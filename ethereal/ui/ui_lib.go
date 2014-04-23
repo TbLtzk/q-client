@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/eth-go/ethchain"
 	"github.com/ethereum/eth-go/ethutil"
 	"gitlab.com/q-dev/q-client/utils"
-	"github.com/niemeyer/qml"
+	"github.com/go-qml/qml"
 	"os"
 	"path"
 	"path/filepath"
