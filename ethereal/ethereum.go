@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"github.com/ethereum/eth-go"
 	"github.com/ethereum/eth-go/ethchain"
+	"github.com/ethereum/eth-go/ethpub"
+	"github.com/ethereum/eth-go/ethrpc"
 	"github.com/ethereum/eth-go/ethutil"
 	"gitlab.com/q-dev/q-client/ethereal/ui"
 	"gitlab.com/q-dev/q-client/utils"
-	"github.com/niemeyer/qml"
+	"github.com/go-qml/qml"
 	"log"
 	"os"
 	"os/signal"
@@ -84,8 +86,6 @@ func main() {
 				utils.ImportPrivateKey(ImportKey)
 				os.Exit(0)
 			}
-		} else {
-			utils.CreateKeyPair(false)
 		}
 	}
 
@@ -98,6 +98,11 @@ func main() {
 	if ShowGenesis {
 		fmt.Println(ethereum.BlockChain().Genesis())
 		os.Exit(0)
+	}
+
+	if StartRpc {
+		ethereum.RpcServer = ethrpc.NewJsonRpcServer(ethpub.NewPEthereum(ethereum.StateManager(), ethereum.BlockChain(), ethereum.TxPool()))
+		go ethereum.RpcServer.Start()
 	}
 
 	log.Printf("Starting Ethereum GUI v%s\n", ethutil.Config.Ver)
