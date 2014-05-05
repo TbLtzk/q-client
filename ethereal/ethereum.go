@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/ethereum/eth-go"
 	"github.com/ethereum/eth-go/ethchain"
-	"github.com/ethereum/eth-go/etherpc"
 	"github.com/ethereum/eth-go/ethpub"
+	"github.com/ethereum/eth-go/ethrpc"
 	"github.com/ethereum/eth-go/ethutil"
 	"gitlab.com/q-dev/q-client/ethereal/ui"
 	"gitlab.com/q-dev/q-client/utils"
@@ -101,7 +101,7 @@ func main() {
 	}
 
 	if StartRpc {
-		ethereum.RpcServer = etherpc.NewJsonRpcServer(ethpub.NewPEthereum(ethereum.StateManager(), ethereum.BlockChain(), ethereum.TxPool()))
+		ethereum.RpcServer = ethrpc.NewJsonRpcServer(ethpub.NewPEthereum(ethereum.StateManager(), ethereum.BlockChain(), ethereum.TxPool()))
 		go ethereum.RpcServer.Start()
 	}
 
