@@ -1,14 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"gitlab.com/q-dev/q-client/ethereal/ui"
 	"gitlab.com/q-dev/q-client/utils"
 	"github.com/go-qml/qml"
 	"runtime"
 )
-
-const Debug = true
 
 func main() {
 	qml.Init(nil)
@@ -38,6 +35,6 @@ func main() {
 
 	utils.StartEthereum(ethereum, UseSeed)
 
-	gui := ethui.New(ethereum, logLevel)
+	gui := ethui.New(ethereum, LogLevel)
 	gui.Start(AssetPath)
 }
