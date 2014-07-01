@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/ethereum/eth-go/ethlog"
-	"gitlab.com/q-dev/q-client/ethereal/ui"
 	"gitlab.com/q-dev/q-client/utils"
 	"github.com/go-qml/qml"
 	"os"
@@ -47,7 +46,7 @@ func main() {
 		utils.StartRpc(ethereum, RpcPort)
 	}
 
-	gui := ethui.New(ethereum, KeyRing, LogLevel)
+	gui := NewWindow(ethereum, KeyRing, LogLevel)
 
 	utils.RegisterInterrupt(func(os.Signal) {
 		gui.Stop()
