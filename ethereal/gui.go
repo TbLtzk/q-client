@@ -18,7 +18,7 @@ import (
 	"github.com/ethereum/eth-go/ethutil"
 	"github.com/ethereum/eth-go/ethwire"
 	"gitlab.com/q-dev/q-client/utils"
-	"github.com/go-qml/qml"
+	"gopkg.in/qml.v1"
 )
 
 var logger = ethlog.NewLogger("GUI")

@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/eth-go/ethreact"
 	"github.com/ethereum/eth-go/ethstate"
 	"gitlab.com/q-dev/q-client/javascript"
-	"github.com/go-qml/qml"
+	"gopkg.in/qml.v1"
 )
 
 type AppContainer interface {
