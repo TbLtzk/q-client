@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/ethereum/eth-go"
-	"gitlab.com/q-dev/q-client/ethereum/repl"
-	"gitlab.com/q-dev/q-client/utils"
 	"io/ioutil"
 	"os"
+
+	"github.com/ethereum/eth-go"
+	"gitlab.com/q-dev/q-client/ethereum/repl"
+	"gitlab.com/q-dev/q-client/javascript"
+	"gitlab.com/q-dev/q-client/utils"
 )
 
 func InitJsConsole(ethereum *eth.Ethereum) {
@@ -25,7 +27,7 @@ func ExecJsFile(ethereum *eth.Ethereum, InputFile string) {
 	if err != nil {
 		logger.Fatalln(err)
 	}
-	re := ethrepl.NewJSRE(ethereum)
+	re := javascript.NewJSRE(ethereum)
 	utils.RegisterInterrupt(func(os.Signal) {
 		re.Stop()
 	})
