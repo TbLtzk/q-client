@@ -1,10 +1,10 @@
 package utils
 
 import (
-	"github.com/ethereum/eth-go"
-	"github.com/ethereum/eth-go/ethpipe"
-	"github.com/ethereum/eth-go/ethutil"
-	"github.com/ethereum/eth-go/websocket"
+	"github.com/ethereum/go-ethereum"
+	"gitlab.com/q-dev/q-client/ethpipe"
+	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/websocket"
 )
 
 func args(v ...interface{}) []interface{} {
