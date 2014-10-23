@@ -3,11 +3,11 @@ package javascript
 import (
 	"fmt"
 
-	"github.com/ethereum/eth-go"
-	"github.com/ethereum/eth-go/ethpipe"
-	"github.com/ethereum/eth-go/ethstate"
-	"github.com/ethereum/eth-go/ethutil"
-	"github.com/ethereum/eth-go/ui"
+	"github.com/ethereum/go-ethereum"
+	"gitlab.com/q-dev/q-client/ethpipe"
+	"gitlab.com/q-dev/q-client/ethstate"
+	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/ui"
 	"github.com/obscuren/otto"
 )
 
