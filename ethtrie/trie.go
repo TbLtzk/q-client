@@ -3,14 +3,11 @@ package ethtrie
 import (
 	"bytes"
 	"fmt"
-	_ "reflect"
 	"sync"
 
 	"gitlab.com/q-dev/q-client/ethcrypto"
 	"gitlab.com/q-dev/q-client/ethutil"
 )
-
-func __ignore() { fmt.Println("") }
 
 func ParanoiaCheck(t1 *Trie) (bool, *Trie) {
 	t2 := New(ethutil.Config.Db, "")
