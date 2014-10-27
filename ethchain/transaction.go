@@ -8,6 +8,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethcrypto"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/vm"
 	"github.com/obscuren/secp256k1-go"
 )
 
@@ -27,6 +28,8 @@ type Transaction struct {
 	Data      []byte
 	v         byte
 	r, s      []byte
+
+	logs []vm.Log
 
 	// Indicates whether this tx is a contract creation transaction
 	contractCreation bool
@@ -52,6 +55,10 @@ func NewTransactionFromValue(val *ethutil.Value) *Transaction {
 	tx.RlpValueDecode(val)
 
 	return tx
+}
+
+func (self *Transaction) addLog(log vm.Log) {
+	self.logs = append(self.logs, log)
 }
 
 func (self *Transaction) GasValue() *big.Int {
