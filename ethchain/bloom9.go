@@ -3,7 +3,7 @@ package ethchain
 import (
 	"math/big"
 
-	"github.com/ethereum.backup/ethutil-go"
+	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/vm"
 )
 
