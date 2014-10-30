@@ -3,21 +3,21 @@ package ethchain
 import (
 	"math/big"
 
+	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/vm"
 )
 
 func CreateBloom(block *Block) []byte {
 	bin := new(big.Int)
 	bin.Or(bin, bloom9(block.Coinbase))
-	for _, tx := range block.Transactions() {
-		bin.Or(bin, LogsBloom(tx.logs))
+	for _, receipt := range block.Receipts() {
+		bin.Or(bin, LogsBloom(receipt.logs))
 	}
 
 	return bin.Bytes()
 }
 
-func LogsBloom(logs []vm.Log) *big.Int {
+func LogsBloom(logs ethstate.Logs) *big.Int {
 	bin := new(big.Int)
 	for _, log := range logs {
 		data := [][]byte{log.Address}

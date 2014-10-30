@@ -1,4 +1,4 @@
-package vm
+package ethstate
 
 import "gitlab.com/q-dev/q-client/ethutil"
 

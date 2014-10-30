@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/ethcrypto"
+	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
 )
 
@@ -710,7 +711,7 @@ func (self *DebugVm) RunClosure(closure *Closure) (ret []byte, err error) {
 			for i := 0; i < n; i++ {
 				topics[i] = stack.Pop().Bytes()
 			}
-			self.env.AddLog(Log{closure.Address(), topics, data})
+			self.env.AddLog(ethstate.Log{closure.Address(), topics, data})
 		case MLOAD:
 			offset := stack.Pop()
 			val := ethutil.BigD(mem.Get(offset.Int64(), 32))
