@@ -10,11 +10,11 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/ethpipe"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/obscuren/otto"
 )
 
@@ -23,7 +23,7 @@ var jsrelogger = logger.NewLogger("JSRE")
 type JSRE struct {
 	ethereum *eth.Ethereum
 	Vm       *otto.Otto
-	pipe     *ethpipe.JSPipe
+	pipe     *xeth.JSXEth
 
 	events event.Subscription
 
@@ -48,7 +48,7 @@ func NewJSRE(ethereum *eth.Ethereum) *JSRE {
 	re := &JSRE{
 		ethereum,
 		otto.New(),
-		ethpipe.NewJSPipe(ethereum),
+		xeth.NewJSXEth(ethereum),
 		nil,
 		make(map[string][]otto.Value),
 	}

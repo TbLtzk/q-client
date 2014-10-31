@@ -27,11 +27,11 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/ethpipe"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/javascript"
 	"gitlab.com/q-dev/q-client/ui/qt"
+	"gitlab.com/q-dev/q-client/xeth"
 	"gopkg.in/qml.v1"
 )
 
@@ -42,7 +42,7 @@ type memAddr struct {
 
 // UI Library that has some basic functionality exposed
 type UiLib struct {
-	*ethpipe.JSPipe
+	*xeth.JSXEth
 	engine    *qml.Engine
 	eth       *eth.Ethereum
 	connected bool
@@ -58,7 +58,7 @@ type UiLib struct {
 }
 
 func NewUiLib(engine *qml.Engine, eth *eth.Ethereum, assetPath string) *UiLib {
-	return &UiLib{JSPipe: ethpipe.NewJSPipe(eth), engine: engine, eth: eth, assetPath: assetPath, jsEngine: javascript.NewJSRE(eth), filterCallbacks: make(map[int][]int)} //, filters: make(map[int]*ethpipe.JSFilter)}
+	return &UiLib{JSXEth: xeth.NewJSXEth(eth), engine: engine, eth: eth, assetPath: assetPath, jsEngine: javascript.NewJSRE(eth), filterCallbacks: make(map[int][]int)} //, filters: make(map[int]*xeth.JSFilter)}
 }
 
 func (self *UiLib) Notef(args []interface{}) {
@@ -214,7 +214,7 @@ func (self *UiLib) StartDebugger() {
 func (self *UiLib) NewFilter(object map[string]interface{}) (id int) {
 	filter := qt.NewFilterFromMap(object, self.eth)
 	filter.MessageCallback = func(messages ethstate.Messages) {
-		self.win.Root().Call("invokeFilterCallback", ethpipe.ToJSMessages(messages), id)
+		self.win.Root().Call("invokeFilterCallback", xeth.ToJSMessages(messages), id)
 	}
 	id = self.eth.InstallFilter(filter)
 	return id
@@ -232,7 +232,7 @@ func (self *UiLib) NewFilterString(typ string) (id int) {
 func (self *UiLib) Messages(id int) *ethutil.List {
 	filter := self.eth.GetFilter(id)
 	if filter != nil {
-		messages := ethpipe.ToJSMessages(filter.Find())
+		messages := xeth.ToJSMessages(filter.Find())
 
 		return messages
 	}
@@ -295,10 +295,10 @@ func mapToTxParams(object map[string]interface{}) map[string]string {
 	return conv
 }
 
-func (self *UiLib) Transact(params map[string]interface{}) (*ethpipe.JSReceipt, error) {
+func (self *UiLib) Transact(params map[string]interface{}) (*xeth.JSReceipt, error) {
 	object := mapToTxParams(params)
 
-	return self.JSPipe.Transact(
+	return self.JSXEth.Transact(
 		object["from"],
 		object["to"],
 		object["value"],
@@ -320,7 +320,7 @@ func (self *UiLib) Compile(code string) (string, error) {
 func (self *UiLib) Call(params map[string]interface{}) (string, error) {
 	object := mapToTxParams(params)
 
-	return self.JSPipe.Execute(
+	return self.JSXEth.Execute(
 		object["to"],
 		object["value"],
 		object["gas"],

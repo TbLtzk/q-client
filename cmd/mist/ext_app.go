@@ -21,11 +21,11 @@ import (
 	"encoding/json"
 
 	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/ethpipe"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/javascript"
 	"gitlab.com/q-dev/q-client/ui/qt"
+	"gitlab.com/q-dev/q-client/xeth"
 	"gopkg.in/qml.v1"
 )
 
@@ -43,7 +43,7 @@ type AppContainer interface {
 }
 
 type ExtApplication struct {
-	*ethpipe.JSPipe
+	*xeth.JSXEth
 	eth chain.EthManager
 
 	events          event.Subscription
@@ -57,7 +57,7 @@ type ExtApplication struct {
 
 func NewExtApplication(container AppContainer, lib *UiLib) *ExtApplication {
 	return &ExtApplication{
-		JSPipe:          ethpipe.NewJSPipe(lib.eth),
+		JSXEth:          xeth.NewJSXEth(lib.eth),
 		eth:             lib.eth,
 		watcherQuitChan: make(chan bool),
 		filters:         make(map[string]*chain.Filter),

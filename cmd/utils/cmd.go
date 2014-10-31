@@ -17,11 +17,11 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethminer"
-	"gitlab.com/q-dev/q-client/ethpipe"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/ethwire"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/xeth"
 )
 
 var clilogger = logger.NewLogger("CLI")
@@ -244,7 +244,7 @@ func KeyTasks(keyManager *crypto.KeyManager, KeyRing string, GenAddr bool, Secre
 
 func StartRpc(ethereum *eth.Ethereum, RpcPort int) {
 	var err error
-	ethereum.RpcServer, err = rpc.NewJsonRpcServer(ethpipe.NewJSPipe(ethereum), RpcPort)
+	ethereum.RpcServer, err = rpc.NewJsonRpcServer(xeth.NewJSXEth(ethereum), RpcPort)
 	if err != nil {
 		clilogger.Errorf("Could not start RPC interface (port %v): %v", RpcPort, err)
 	} else {

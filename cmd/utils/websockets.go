@@ -2,9 +2,9 @@ package utils
 
 import (
 	"github.com/ethereum/go-ethereum"
-	"gitlab.com/q-dev/q-client/ethpipe"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/websocket"
+	"gitlab.com/q-dev/q-client/xeth"
 )
 
 func args(v ...interface{}) []interface{} {
@@ -21,7 +21,7 @@ func NewWebSocketServer(eth *eth.Ethereum) *WebSocketServer {
 }
 
 func (self *WebSocketServer) Serv() {
-	pipe := ethpipe.NewJSPipe(self.ethereum)
+	pipe := xeth.NewJSXEth(self.ethereum)
 
 	wsServ := websocket.NewServer("/eth", ":40404")
 	wsServ.MessageFunc(func(c *websocket.Client, msg *websocket.Message) {

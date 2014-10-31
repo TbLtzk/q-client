@@ -1,4 +1,4 @@
-package ethpipe
+package xeth
 
 import (
 	"gitlab.com/q-dev/q-client/ethstate"

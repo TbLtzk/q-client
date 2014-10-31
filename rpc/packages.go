@@ -6,12 +6,12 @@ import (
 	"math/big"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/ethpipe"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/xeth"
 )
 
 type EthereumApi struct {
-	pipe *ethpipe.JSPipe
+	pipe *xeth.JSXEth
 }
 
 type JsonArgs interface {

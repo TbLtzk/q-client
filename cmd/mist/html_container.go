@@ -28,10 +28,10 @@ import (
 	"path/filepath"
 
 	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/ethpipe"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/javascript"
+	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/howeyc/fsnotify"
 	"gopkg.in/qml.v1"
 )
@@ -139,7 +139,7 @@ func (app *HtmlApplication) Window() *qml.Window {
 }
 
 func (app *HtmlApplication) NewBlock(block *chain.Block) {
-	b := &ethpipe.JSBlock{Number: int(block.BlockInfo().Number), Hash: ethutil.Bytes2Hex(block.Hash())}
+	b := &xeth.JSBlock{Number: int(block.BlockInfo().Number), Hash: ethutil.Bytes2Hex(block.Hash())}
 	app.webView.Call("onNewBlockCb", b)
 }
 
