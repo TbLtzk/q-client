@@ -1,8 +1,8 @@
 package chain
 
 import (
-	"gitlab.com/q-dev/q-client/ethtrie"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 type DerivableList interface {
@@ -11,7 +11,7 @@ type DerivableList interface {
 }
 
 func DeriveSha(list DerivableList) []byte {
-	trie := ethtrie.New(ethutil.Config.Db, "")
+	trie := trie.New(ethutil.Config.Db, "")
 	for i := 0; i < list.Len(); i++ {
 		trie.Update(string(ethutil.NewValue(i).Encode()), string(list.GetRlp(i)))
 	}
