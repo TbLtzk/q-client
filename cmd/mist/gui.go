@@ -33,9 +33,9 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/ethminer"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/wire"
 	"gitlab.com/q-dev/q-client/xeth"
 	"gopkg.in/qml.v1"
@@ -92,7 +92,7 @@ type Gui struct {
 
 	plugins map[string]plugin
 
-	miner  *ethminer.Miner
+	miner  *miner.Miner
 	stdLog logger.LogSystem
 }
 
@@ -410,7 +410,7 @@ func (gui *Gui) update() {
 		chain.NewBlockEvent{},
 		chain.TxPreEvent{},
 		chain.TxPostEvent{},
-		ethminer.Event{},
+		miner.Event{},
 	)
 
 	// nameReg := gui.pipe.World().Config().Get("NameReg")
@@ -469,8 +469,8 @@ func (gui *Gui) update() {
 				case eth.PeerListEvent:
 					gui.setPeerInfo()
 
-				case ethminer.Event:
-					if ev.Type == ethminer.Started {
+				case miner.Event:
+					if ev.Type == miner.Started {
 						gui.miner = ev.Miner
 					} else {
 						gui.miner = nil
