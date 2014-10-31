@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/ethtrie"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 var ZeroHash256 = make([]byte, 32)
@@ -15,7 +15,7 @@ func TestSnapshot(t *testing.T) {
 	ethutil.ReadConfig(".ethtest", "/tmp/ethtest", "")
 	ethutil.Config.Db = db
 
-	state := New(ethtrie.New(db, ""))
+	state := New(trie.New(db, ""))
 
 	stateObject := state.GetOrNewStateObject([]byte("aa"))
 

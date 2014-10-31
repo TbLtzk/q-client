@@ -4,16 +4,16 @@ import (
 	"log"
 	"os"
 
-	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethutil"
+	logpkg "gitlab.com/q-dev/q-client/logger"
 )
 
-var Logger ethlog.LogSystem
-var Log = ethlog.NewLogger("TEST")
+var Logger logpkg.LogSystem
+var Log = logpkg.NewLogger("TEST")
 
 func init() {
-	Logger = ethlog.NewStdLogSystem(os.Stdout, log.LstdFlags, ethlog.InfoLevel)
-	ethlog.AddLogSystem(Logger)
+	Logger = logpkg.NewStdLogSystem(os.Stdout, log.LstdFlags, logpkg.InfoLevel)
+	logpkg.AddLogSystem(Logger)
 
 	ethutil.ReadConfig(".ethtest", "/tmp/ethtest", "")
 }
