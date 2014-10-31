@@ -25,9 +25,9 @@ import (
 	"unicode"
 
 	"gitlab.com/q-dev/q-client/chain"
+	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/utils"
 	"gitlab.com/q-dev/q-client/vm"
 	"gopkg.in/qml.v1"
 )

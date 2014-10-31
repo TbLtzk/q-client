@@ -23,8 +23,8 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/cmd/ethereum/repl"
+	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/javascript"
-	"gitlab.com/q-dev/q-client/utils"
 )
 
 func InitJsConsole(ethereum *eth.Ethereum) {

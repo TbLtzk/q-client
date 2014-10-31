@@ -23,10 +23,10 @@ import (
 	"strconv"
 
 	"gitlab.com/q-dev/q-client/chain"
+	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/ethpipe"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/utils"
 )
 
 type plugin struct {
