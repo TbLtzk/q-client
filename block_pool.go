@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/ethwire"
+	"gitlab.com/q-dev/q-client/logger"
 )
 
-var poollogger = ethlog.NewLogger("BPOOL")
+var poollogger = logger.NewLogger("BPOOL")
 
 type block struct {
 	from      *Peer

@@ -3,11 +3,11 @@ package vm
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/logger"
 )
 
-var vmlogger = ethlog.NewLogger("VM")
+var vmlogger = logger.NewLogger("VM")
 
 type Type int
 

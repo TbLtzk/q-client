@@ -6,11 +6,11 @@ import (
 	"net/rpc"
 	"net/rpc/jsonrpc"
 
-	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethpipe"
+	"gitlab.com/q-dev/q-client/logger"
 )
 
-var logger = ethlog.NewLogger("JSON")
+var jsonlogger = logger.NewLogger("JSON")
 
 type JsonRpcServer struct {
 	quit     chan bool
@@ -28,7 +28,7 @@ out:
 		}
 	}
 
-	logger.Infoln("Shutdown JSON-RPC server")
+	jsonlogger.Infoln("Shutdown JSON-RPC server")
 }
 
 func (s *JsonRpcServer) Stop() {
@@ -36,7 +36,7 @@ func (s *JsonRpcServer) Stop() {
 }
 
 func (s *JsonRpcServer) Start() {
-	logger.Infoln("Starting JSON-RPC server")
+	jsonlogger.Infoln("Starting JSON-RPC server")
 	go s.exitHandler()
 	rpc.Register(&EthereumApi{pipe: s.pipe})
 	rpc.HandleHTTP()
@@ -44,10 +44,10 @@ func (s *JsonRpcServer) Start() {
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
-			logger.Infoln("Error starting JSON-RPC:", err)
+			jsonlogger.Infoln("Error starting JSON-RPC:", err)
 			break
 		}
-		logger.Debugln("Incoming request.")
+		jsonlogger.Debugln("Incoming request.")
 		go jsonrpc.ServeConn(conn)
 	}
 }

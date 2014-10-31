@@ -3,12 +3,12 @@ package ethstate
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethtrie"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/logger"
 )
 
-var statelogger = ethlog.NewLogger("STATE")
+var statelogger = logger.NewLogger("STATE")
 
 // States within the ethereum protocol are used to store anything
 // within the merkle trie. States take care of caching and storing

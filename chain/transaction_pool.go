@@ -7,12 +7,12 @@ import (
 	"math/big"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethwire"
+	"gitlab.com/q-dev/q-client/logger"
 )
 
-var txplogger = ethlog.NewLogger("TXP")
+var txplogger = logger.NewLogger("TXP")
 
 const txPoolQueueSize = 50
 

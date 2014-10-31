@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/logger"
 	"github.com/obscuren/sha3"
 )
 
-var powlogger = ethlog.NewLogger("POW")
+var powlogger = logger.NewLogger("POW")
 
 type PoW interface {
 	Search(block *Block, stop <-chan struct{}) []byte

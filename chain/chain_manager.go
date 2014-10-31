@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/logger"
 )
 
-var chainlogger = ethlog.NewLogger("CHAIN")
+var chainlogger = logger.NewLogger("CHAIN")
 
 type ChainManager struct {
 	Ethereum EthManager

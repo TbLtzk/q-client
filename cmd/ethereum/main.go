@@ -23,9 +23,10 @@ import (
 	"runtime"
 
 	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/utils"
+	"github.com/ethgo.old/ethlog"
 )
 
 const (
@@ -33,7 +34,7 @@ const (
 	Version          = "0.7.0"
 )
 
-var logger = ethlog.NewLogger("CLI")
+var clilogger = logger.NewLogger("CLI")
 
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())

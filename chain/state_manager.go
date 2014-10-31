@@ -10,14 +10,14 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/ethwire"
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/logger"
 )
 
-var statelogger = ethlog.NewLogger("BLOCK")
+var statelogger = logger.NewLogger("BLOCK")
 
 type Peer interface {
 	Inbound() bool

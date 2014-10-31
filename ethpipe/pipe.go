@@ -6,13 +6,13 @@ import (
 
 	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/vm"
 )
 
-var logger = ethlog.NewLogger("PIPE")
+var pipelogger = logger.NewLogger("PIPE")
 
 type VmVars struct {
 	State *ethstate.State
@@ -143,7 +143,7 @@ func (self *Pipe) Transact(key *crypto.KeyPair, rec []byte, value, gas, price *e
 
 	if contractCreation {
 		addr := tx.CreationAddress(self.World().State())
-		logger.Infof("Contract addr %x\n", addr)
+		pipelogger.Infof("Contract addr %x\n", addr)
 
 		return addr, nil
 	}
@@ -155,7 +155,7 @@ func (self *Pipe) PushTx(tx *chain.Transaction) ([]byte, error) {
 	self.obj.TxPool().QueueTransaction(tx)
 	if tx.Recipient == nil {
 		addr := tx.CreationAddress(self.World().State())
-		logger.Infof("Contract addr %x\n", addr)
+		pipelogger.Infof("Contract addr %x\n", addr)
 		return addr, nil
 	}
 	return tx.Hash(), nil
