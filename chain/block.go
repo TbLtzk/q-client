@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"gitlab.com/q-dev/q-client/ethcrypto"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethtrie"
 	"gitlab.com/q-dev/q-client/ethutil"
@@ -144,12 +144,12 @@ func CreateBlock(root interface{},
 
 // Returns a hash of the block
 func (block *Block) Hash() ethutil.Bytes {
-	return ethcrypto.Sha3(ethutil.NewValue(block.header()).Encode())
-	//return ethcrypto.Sha3(block.Value().Encode())
+	return crypto.Sha3(ethutil.NewValue(block.header()).Encode())
+	//return crypto.Sha3(block.Value().Encode())
 }
 
 func (block *Block) HashNoNonce() []byte {
-	return ethcrypto.Sha3(ethutil.Encode(block.miningHeader()))
+	return crypto.Sha3(ethutil.Encode(block.miningHeader()))
 }
 
 func (block *Block) State() *ethstate.State {
@@ -232,7 +232,7 @@ func (block *Block) rlpUncles() interface{} {
 
 func (block *Block) SetUncles(uncles []*Block) {
 	block.Uncles = uncles
-	block.UncleSha = ethcrypto.Sha3(ethutil.Encode(block.rlpUncles()))
+	block.UncleSha = crypto.Sha3(ethutil.Encode(block.rlpUncles()))
 }
 
 func (self *Block) SetReceipts(receipts Receipts) {

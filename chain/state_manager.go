@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/ethcrypto"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
@@ -40,7 +40,7 @@ type EthManager interface {
 	IsMining() bool
 	IsListening() bool
 	Peers() *list.List
-	KeyManager() *ethcrypto.KeyManager
+	KeyManager() *crypto.KeyManager
 	ClientIdentity() ethwire.ClientIdentity
 	Db() ethutil.Database
 	EventMux() *event.TypeMux

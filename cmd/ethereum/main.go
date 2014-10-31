@@ -22,7 +22,7 @@ import (
 	"os"
 	"runtime"
 
-	"gitlab.com/q-dev/q-client/ethchain"
+	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/utils"
@@ -74,7 +74,7 @@ func main() {
 	ethereum := utils.NewEthereum(db, clientIdentity, keyManager, UseUPnP, OutboundPort, MaxPeer)
 
 	if Dump {
-		var block *ethchain.Block
+		var block *chain.Block
 
 		if len(DumpHash) == 0 && DumpNumber == -1 {
 			block = ethereum.ChainManager().CurrentBlock

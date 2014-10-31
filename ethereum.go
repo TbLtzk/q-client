@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/ethcrypto"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
@@ -86,7 +86,7 @@ type Ethereum struct {
 
 	RpcServer *rpc.JsonRpcServer
 
-	keyManager *ethcrypto.KeyManager
+	keyManager *crypto.KeyManager
 
 	clientIdentity ethwire.ClientIdentity
 
@@ -97,7 +97,7 @@ type Ethereum struct {
 	filters  map[int]*chain.Filter
 }
 
-func New(db ethutil.Database, clientIdentity ethwire.ClientIdentity, keyManager *ethcrypto.KeyManager, caps Caps, usePnp bool) (*Ethereum, error) {
+func New(db ethutil.Database, clientIdentity ethwire.ClientIdentity, keyManager *crypto.KeyManager, caps Caps, usePnp bool) (*Ethereum, error) {
 	var err error
 	var nat NAT
 
@@ -138,7 +138,7 @@ func New(db ethutil.Database, clientIdentity ethwire.ClientIdentity, keyManager 
 	return ethereum, nil
 }
 
-func (s *Ethereum) KeyManager() *ethcrypto.KeyManager {
+func (s *Ethereum) KeyManager() *crypto.KeyManager {
 	return s.keyManager
 }
 

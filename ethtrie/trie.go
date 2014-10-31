@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/ethcrypto"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
 )
 
@@ -64,7 +64,7 @@ func (cache *Cache) PutValue(v interface{}, force bool) interface{} {
 
 	enc := value.Encode()
 	if len(enc) >= 32 || force {
-		sha := ethcrypto.Sha3(enc)
+		sha := crypto.Sha3(enc)
 
 		cache.nodes[string(sha)] = NewNode(sha, value, true)
 		cache.IsDirty = true
@@ -178,7 +178,7 @@ func (self *Trie) setRoot(root interface{}) {
 	switch t := root.(type) {
 	case string:
 		if t == "" {
-			root = ethcrypto.Sha3([]byte(""))
+			root = crypto.Sha3([]byte(""))
 		}
 		self.Root = root
 	case []byte:

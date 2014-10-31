@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/ethcrypto"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
 )
@@ -519,7 +519,7 @@ func (self *DebugVm) RunClosure(closure *Closure) (ret []byte, err error) {
 			// 0x20 range
 		case SHA3:
 			size, offset := stack.Popn()
-			data := ethcrypto.Sha3(mem.Get(offset.Int64(), size.Int64()))
+			data := crypto.Sha3(mem.Get(offset.Int64(), size.Int64()))
 
 			stack.Push(ethutil.BigD(data))
 
@@ -785,7 +785,7 @@ func (self *DebugVm) RunClosure(closure *Closure) (ret []byte, err error) {
 
 			// Generate a new address
 			n := state.GetNonce(closure.Address())
-			addr := ethcrypto.CreateAddress(closure.Address(), n)
+			addr := crypto.CreateAddress(closure.Address(), n)
 			state.SetNonce(closure.Address(), n+1)
 
 			self.Printf(" (*) %x", addr).Endl()

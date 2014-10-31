@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/ethcrypto"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
 )
@@ -119,7 +119,7 @@ type JSKey struct {
 	PublicKey  string `json:"publicKey"`
 }
 
-func NewJSKey(key *ethcrypto.KeyPair) *JSKey {
+func NewJSKey(key *crypto.KeyPair) *JSKey {
 	return &JSKey{ethutil.Bytes2Hex(key.Address()), ethutil.Bytes2Hex(key.PrivateKey), ethutil.Bytes2Hex(key.PublicKey)}
 }
 

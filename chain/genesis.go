@@ -3,7 +3,7 @@ package chain
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/ethcrypto"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
 )
 
@@ -14,7 +14,7 @@ import (
 var ZeroHash256 = make([]byte, 32)
 var ZeroHash160 = make([]byte, 20)
 var ZeroHash512 = make([]byte, 64)
-var EmptyShaList = ethcrypto.Sha3(ethutil.Encode([]interface{}{}))
+var EmptyShaList = crypto.Sha3(ethutil.Encode([]interface{}{}))
 
 var GenesisHeader = []interface{}{
 	// Previous hash (none)
@@ -47,7 +47,7 @@ var GenesisHeader = []interface{}{
 	// Extra
 	nil,
 	// Nonce
-	ethcrypto.Sha3(big.NewInt(42).Bytes()),
+	crypto.Sha3(big.NewInt(42).Bytes()),
 }
 
 var Genesis = []interface{}{GenesisHeader, []interface{}{}, []interface{}{}}

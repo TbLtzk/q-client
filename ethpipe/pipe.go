@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/ethcrypto"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
@@ -77,7 +77,7 @@ func (self *Pipe) Storage(addr, storageAddr []byte) *ethutil.Value {
 }
 
 func (self *Pipe) ToAddress(priv []byte) []byte {
-	pair, err := ethcrypto.NewKeyPairFromSec(priv)
+	pair, err := crypto.NewKeyPairFromSec(priv)
 	if err != nil {
 		return nil
 	}
@@ -89,7 +89,7 @@ func (self *Pipe) Exists(addr []byte) bool {
 	return self.World().Get(addr) != nil
 }
 
-func (self *Pipe) TransactString(key *ethcrypto.KeyPair, rec string, value, gas, price *ethutil.Value, data []byte) ([]byte, error) {
+func (self *Pipe) TransactString(key *crypto.KeyPair, rec string, value, gas, price *ethutil.Value, data []byte) ([]byte, error) {
 	// Check if an address is stored by this address
 	var hash []byte
 	addr := self.World().Config().Get("NameReg").StorageString(rec).Bytes()
@@ -104,7 +104,7 @@ func (self *Pipe) TransactString(key *ethcrypto.KeyPair, rec string, value, gas,
 	return self.Transact(key, hash, value, gas, price, data)
 }
 
-func (self *Pipe) Transact(key *ethcrypto.KeyPair, rec []byte, value, gas, price *ethutil.Value, data []byte) ([]byte, error) {
+func (self *Pipe) Transact(key *crypto.KeyPair, rec []byte, value, gas, price *ethutil.Value, data []byte) ([]byte, error) {
 	var hash []byte
 	var contractCreation bool
 	if rec == nil {

@@ -26,7 +26,7 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/ethcrypto"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethpipe"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
@@ -69,7 +69,7 @@ func (self *UiLib) LookupDomain(domain string) string {
 	world := self.World()
 
 	if len(domain) > 32 {
-		domain = string(ethcrypto.Sha3([]byte(domain)))
+		domain = string(crypto.Sha3([]byte(domain)))
 	}
 	data := world.Config().Get("DnsReg").StorageString(domain).Bytes()
 

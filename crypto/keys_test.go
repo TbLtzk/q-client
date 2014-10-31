@@ -1,4 +1,4 @@
-package ethcrypto
+package crypto
 
 import (
 	"gitlab.com/q-dev/q-client/ethdb"
