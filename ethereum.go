@@ -17,11 +17,11 @@ import (
 	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/ethwire"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/state"
+	"gitlab.com/q-dev/q-client/wire"
 )
 
 const (
@@ -88,7 +88,7 @@ type Ethereum struct {
 
 	keyManager *crypto.KeyManager
 
-	clientIdentity ethwire.ClientIdentity
+	clientIdentity wire.ClientIdentity
 
 	isUpToDate bool
 
@@ -97,7 +97,7 @@ type Ethereum struct {
 	filters  map[int]*chain.Filter
 }
 
-func New(db ethutil.Database, clientIdentity ethwire.ClientIdentity, keyManager *crypto.KeyManager, caps Caps, usePnp bool) (*Ethereum, error) {
+func New(db ethutil.Database, clientIdentity wire.ClientIdentity, keyManager *crypto.KeyManager, caps Caps, usePnp bool) (*Ethereum, error) {
 	var err error
 	var nat NAT
 
@@ -142,7 +142,7 @@ func (s *Ethereum) KeyManager() *crypto.KeyManager {
 	return s.keyManager
 }
 
-func (s *Ethereum) ClientIdentity() ethwire.ClientIdentity {
+func (s *Ethereum) ClientIdentity() wire.ClientIdentity {
 	return s.clientIdentity
 }
 
@@ -338,12 +338,12 @@ func (s *Ethereum) InOutPeers() []*Peer {
 	return inboundPeers[:length]
 }
 
-func (s *Ethereum) Broadcast(msgType ethwire.MsgType, data []interface{}) {
-	msg := ethwire.NewMessage(msgType, data)
+func (s *Ethereum) Broadcast(msgType wire.MsgType, data []interface{}) {
+	msg := wire.NewMessage(msgType, data)
 	s.BroadcastMsg(msg)
 }
 
-func (s *Ethereum) BroadcastMsg(msg *ethwire.Msg) {
+func (s *Ethereum) BroadcastMsg(msg *wire.Msg) {
 	eachPeer(s.peers, func(p *Peer, e *list.Element) {
 		p.QueueMessage(msg)
 	})

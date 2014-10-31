@@ -11,10 +11,10 @@ import (
 
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/ethwire"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/state"
+	"gitlab.com/q-dev/q-client/wire"
 )
 
 var statelogger = logger.NewLogger("BLOCK")
@@ -35,13 +35,13 @@ type EthManager interface {
 	StateManager() *StateManager
 	ChainManager() *ChainManager
 	TxPool() *TxPool
-	Broadcast(msgType ethwire.MsgType, data []interface{})
+	Broadcast(msgType wire.MsgType, data []interface{})
 	PeerCount() int
 	IsMining() bool
 	IsListening() bool
 	Peers() *list.List
 	KeyManager() *crypto.KeyManager
-	ClientIdentity() ethwire.ClientIdentity
+	ClientIdentity() wire.ClientIdentity
 	Db() ethutil.Database
 	EventMux() *event.TypeMux
 }

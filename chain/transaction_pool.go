@@ -7,9 +7,9 @@ import (
 	"math/big"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/ethwire"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/state"
+	"gitlab.com/q-dev/q-client/wire"
 )
 
 var txplogger = logger.NewLogger("TXP")
@@ -93,7 +93,7 @@ func (pool *TxPool) addTransaction(tx *Transaction) {
 	pool.pool.PushBack(tx)
 
 	// Broadcast the transaction to the rest of the peers
-	pool.Ethereum.Broadcast(ethwire.MsgTxTy, []interface{}{tx.RlpData()})
+	pool.Ethereum.Broadcast(wire.MsgTxTy, []interface{}{tx.RlpData()})
 }
 
 func (pool *TxPool) ValidateTransaction(tx *Transaction) error {

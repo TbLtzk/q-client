@@ -35,8 +35,8 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethminer"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/ethwire"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/wire"
 	"gitlab.com/q-dev/q-client/xeth"
 	"gopkg.in/qml.v1"
 )
@@ -87,7 +87,7 @@ type Gui struct {
 	pipe *xeth.JSXEth
 
 	Session        string
-	clientIdentity *ethwire.SimpleClientIdentity
+	clientIdentity *wire.SimpleClientIdentity
 	config         *ethutil.ConfigManager
 
 	plugins map[string]plugin
@@ -97,7 +97,7 @@ type Gui struct {
 }
 
 // Create GUI, but doesn't start it
-func NewWindow(ethereum *eth.Ethereum, config *ethutil.ConfigManager, clientIdentity *ethwire.SimpleClientIdentity, session string, logLevel int) *Gui {
+func NewWindow(ethereum *eth.Ethereum, config *ethutil.ConfigManager, clientIdentity *wire.SimpleClientIdentity, session string, logLevel int) *Gui {
 	db, err := ethdb.NewLDBDatabase("tx_database")
 	if err != nil {
 		panic(err)
