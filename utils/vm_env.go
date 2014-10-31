@@ -3,20 +3,20 @@ package utils
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/ethchain"
+	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/vm"
 )
 
 type VMEnv struct {
 	state *ethstate.State
-	block *ethchain.Block
+	block *chain.Block
 
 	transactor []byte
 	value      *big.Int
 }
 
-func NewEnv(state *ethstate.State, block *ethchain.Block, transactor []byte, value *big.Int) *VMEnv {
+func NewEnv(state *ethstate.State, block *chain.Block, transactor []byte, value *big.Int) *VMEnv {
 	return &VMEnv{
 		state:      state,
 		block:      block,

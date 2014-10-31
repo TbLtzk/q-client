@@ -27,7 +27,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"gitlab.com/q-dev/q-client/ethchain"
+	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/ethpipe"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
@@ -138,7 +138,7 @@ func (app *HtmlApplication) Window() *qml.Window {
 	return app.win
 }
 
-func (app *HtmlApplication) NewBlock(block *ethchain.Block) {
+func (app *HtmlApplication) NewBlock(block *chain.Block) {
 	b := &ethpipe.JSBlock{Number: int(block.BlockInfo().Number), Hash: ethutil.Bytes2Hex(block.Hash())}
 	app.webView.Call("onNewBlockCb", b)
 }

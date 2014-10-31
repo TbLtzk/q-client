@@ -3,19 +3,19 @@ package ethpipe
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/ethchain"
+	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/vm"
 )
 
 type VMEnv struct {
 	state  *ethstate.State
-	block  *ethchain.Block
+	block  *chain.Block
 	value  *big.Int
 	sender []byte
 }
 
-func NewEnv(state *ethstate.State, block *ethchain.Block, value *big.Int, sender []byte) *VMEnv {
+func NewEnv(state *ethstate.State, block *chain.Block, value *big.Int, sender []byte) *VMEnv {
 	return &VMEnv{
 		state:  state,
 		block:  block,

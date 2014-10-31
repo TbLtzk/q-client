@@ -22,7 +22,7 @@ import (
 	"os"
 	"strconv"
 
-	"gitlab.com/q-dev/q-client/ethchain"
+	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/ethlog"
 	"gitlab.com/q-dev/q-client/ethpipe"
 	"gitlab.com/q-dev/q-client/ethutil"
@@ -110,7 +110,7 @@ func (self *Gui) DumpState(hash, path string) {
 	if len(hash) == 0 {
 		stateDump = self.eth.StateManager().CurrentState().Dump()
 	} else {
-		var block *ethchain.Block
+		var block *chain.Block
 		if hash[0] == '#' {
 			i, _ := strconv.Atoi(hash[1:])
 			block = self.eth.ChainManager().GetBlockByNumber(uint64(i))

@@ -24,7 +24,7 @@ import (
 	"strings"
 	"unicode"
 
-	"gitlab.com/q-dev/q-client/ethchain"
+	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/utils"
@@ -81,7 +81,7 @@ func (self *DebuggerWindow) SetData(data string) {
 func (self *DebuggerWindow) SetAsm(data []byte) {
 	self.win.Root().Call("clearAsm")
 
-	dis := ethchain.Disassemble(data)
+	dis := chain.Disassemble(data)
 	for _, str := range dis {
 		self.win.Root().Call("setAsm", str)
 	}

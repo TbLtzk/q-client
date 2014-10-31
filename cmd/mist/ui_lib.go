@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum"
-	"gitlab.com/q-dev/q-client/ethchain"
+	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/ethcrypto"
 	"gitlab.com/q-dev/q-client/ethpipe"
 	"gitlab.com/q-dev/q-client/ethstate"
@@ -120,7 +120,7 @@ func (self *UiLib) PastPeers() *ethutil.List {
 }
 
 func (self *UiLib) ImportTx(rlpTx string) {
-	tx := ethchain.NewTransactionFromBytes(ethutil.Hex2Bytes(rlpTx))
+	tx := chain.NewTransactionFromBytes(ethutil.Hex2Bytes(rlpTx))
 	self.eth.TxPool().QueueTransaction(tx)
 }
 
@@ -221,8 +221,8 @@ func (self *UiLib) NewFilter(object map[string]interface{}) (id int) {
 }
 
 func (self *UiLib) NewFilterString(typ string) (id int) {
-	filter := ethchain.NewFilter(self.eth)
-	filter.BlockCallback = func(block *ethchain.Block) {
+	filter := chain.NewFilter(self.eth)
+	filter.BlockCallback = func(block *chain.Block) {
 		self.win.Root().Call("invokeFilterCallback", "{}", id)
 	}
 	id = self.eth.InstallFilter(filter)

@@ -1,4 +1,4 @@
-package ethchain
+package chain
 
 import (
 	"gitlab.com/q-dev/q-client/ethtrie"
