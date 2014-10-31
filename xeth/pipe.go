@@ -10,16 +10,16 @@ import (
 
 	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/vm"
 )
 
 var pipelogger = logger.NewLogger("XETH")
 
 type VmVars struct {
-	State *ethstate.State
+	State *state.State
 }
 
 type XEth struct {
@@ -56,7 +56,7 @@ func (self *XEth) Execute(addr []byte, data []byte, value, gas, price *ethutil.V
 
 func (self *XEth) ExecuteObject(object *Object, data []byte, value, gas, price *ethutil.Value) ([]byte, error) {
 	var (
-		initiator = ethstate.NewStateObject(self.obj.KeyManager().KeyPair().Address())
+		initiator = state.NewStateObject(self.obj.KeyManager().KeyPair().Address())
 		block     = self.blockChain.CurrentBlock
 	)
 

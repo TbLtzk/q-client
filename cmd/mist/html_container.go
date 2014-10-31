@@ -28,9 +28,9 @@ import (
 	"path/filepath"
 
 	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/javascript"
+	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/howeyc/fsnotify"
 	"gopkg.in/qml.v1"
@@ -143,7 +143,7 @@ func (app *HtmlApplication) NewBlock(block *chain.Block) {
 	app.webView.Call("onNewBlockCb", b)
 }
 
-func (self *HtmlApplication) Messages(messages ethstate.Messages, id string) {
+func (self *HtmlApplication) Messages(messages state.Messages, id string) {
 	var msgs []javascript.JSMessage
 	for _, m := range messages {
 		msgs = append(msgs, javascript.NewJSMessage(m))

@@ -22,8 +22,8 @@ import (
 	"runtime"
 
 	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
 	"gopkg.in/qml.v1"
 )
@@ -70,7 +70,7 @@ func (app *QmlApplication) NewBlock(block *chain.Block) {
 	app.win.Call("onNewBlockCb", pblock)
 }
 
-func (self *QmlApplication) Messages(msgs ethstate.Messages, id string) {
+func (self *QmlApplication) Messages(msgs state.Messages, id string) {
 	fmt.Println("IMPLEMENT QML APPLICATION MESSAGES METHOD")
 }
 

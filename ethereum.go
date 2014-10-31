@@ -16,12 +16,12 @@ import (
 
 	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/ethwire"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/state"
 )
 
 const (
@@ -615,7 +615,7 @@ func (self *Ethereum) GetFilter(id int) *chain.Filter {
 
 func (self *Ethereum) filterLoop() {
 	// Subscribe to events
-	events := self.eventMux.Subscribe(chain.NewBlockEvent{}, ethstate.Messages(nil))
+	events := self.eventMux.Subscribe(chain.NewBlockEvent{}, state.Messages(nil))
 	for event := range events.Chan() {
 		switch event := event.(type) {
 		case chain.NewBlockEvent:
@@ -627,7 +627,7 @@ func (self *Ethereum) filterLoop() {
 			}
 			self.filterMu.RUnlock()
 
-		case ethstate.Messages:
+		case state.Messages:
 			self.filterMu.RLock()
 			for _, filter := range self.filters {
 				if filter.MessageCallback != nil {

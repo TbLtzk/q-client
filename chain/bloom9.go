@@ -3,8 +3,8 @@ package chain
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/state"
 )
 
 func CreateBloom(block *Block) []byte {
@@ -17,7 +17,7 @@ func CreateBloom(block *Block) []byte {
 	return bin.Bytes()
 }
 
-func LogsBloom(logs ethstate.Logs) *big.Int {
+func LogsBloom(logs state.Logs) *big.Int {
 	bin := new(big.Int)
 	for _, log := range logs {
 		data := [][]byte{log.Address}

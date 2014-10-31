@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum"
-	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/ui"
 	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/obscuren/otto"
@@ -51,7 +51,7 @@ type JSMessage struct {
 	Number    int32  `json:"number"`
 }
 
-func NewJSMessage(message *ethstate.Message) JSMessage {
+func NewJSMessage(message *state.Message) JSMessage {
 	return JSMessage{
 		To:        ethutil.Bytes2Hex(message.To),
 		From:      ethutil.Bytes2Hex(message.From),

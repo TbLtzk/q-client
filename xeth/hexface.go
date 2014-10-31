@@ -7,8 +7,8 @@ import (
 
 	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/state"
 )
 
 type JSXEth struct {
@@ -254,7 +254,7 @@ func (self *JSXEth) CompileMutan(code string) string {
 	return ethutil.Bytes2Hex(data)
 }
 
-func ToJSMessages(messages ethstate.Messages) *ethutil.List {
+func ToJSMessages(messages state.Messages) *ethutil.List {
 	var msgs []JSMessage
 	for _, m := range messages {
 		msgs = append(msgs, NewJSMessage(m))

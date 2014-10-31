@@ -27,9 +27,9 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/javascript"
+	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/ui/qt"
 	"gitlab.com/q-dev/q-client/xeth"
 	"gopkg.in/qml.v1"
@@ -213,7 +213,7 @@ func (self *UiLib) StartDebugger() {
 
 func (self *UiLib) NewFilter(object map[string]interface{}) (id int) {
 	filter := qt.NewFilterFromMap(object, self.eth)
-	filter.MessageCallback = func(messages ethstate.Messages) {
+	filter.MessageCallback = func(messages state.Messages) {
 		self.win.Root().Call("invokeFilterCallback", xeth.ToJSMessages(messages), id)
 	}
 	id = self.eth.InstallFilter(filter)

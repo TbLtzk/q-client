@@ -1,12 +1,12 @@
 package xeth
 
 import (
-	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/state"
 )
 
 type Object struct {
-	*ethstate.StateObject
+	*state.StateObject
 }
 
 func (self *Object) StorageString(str string) *ethutil.Value {

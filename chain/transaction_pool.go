@@ -7,9 +7,9 @@ import (
 	"math/big"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethwire"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/state"
 )
 
 var txplogger = logger.NewLogger("TXP")
@@ -193,7 +193,7 @@ func (pool *TxPool) CurrentTransactions() []*Transaction {
 	return txList
 }
 
-func (pool *TxPool) RemoveInvalid(state *ethstate.State) {
+func (pool *TxPool) RemoveInvalid(state *state.State) {
 	pool.mutex.Lock()
 	defer pool.mutex.Unlock()
 

@@ -10,10 +10,10 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/obscuren/otto"
 )
@@ -127,7 +127,7 @@ func (self *JSRE) initStdFuncs() {
  */
 
 func (self *JSRE) dump(call otto.FunctionCall) otto.Value {
-	var state *ethstate.State
+	var state *state.State
 
 	if len(call.ArgumentList) > 0 {
 		var block *chain.Block

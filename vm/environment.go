@@ -4,12 +4,12 @@ import (
 	"errors"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/state"
 )
 
 type Environment interface {
-	State() *ethstate.State
+	State() *state.State
 
 	Origin() []byte
 	BlockNumber() *big.Int
@@ -20,7 +20,7 @@ type Environment interface {
 	BlockHash() []byte
 	GasLimit() *big.Int
 	Transfer(from, to Account, amount *big.Int) error
-	AddLog(ethstate.Log)
+	AddLog(state.Log)
 }
 
 type Object interface {

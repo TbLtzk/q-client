@@ -7,8 +7,8 @@ import (
 
 	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/ethstate"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/state"
 )
 
 // Block interface exposed to QML
@@ -90,7 +90,7 @@ type JSTransaction struct {
 	Confirmations   int    `json:"confirmations"`
 }
 
-func NewJSTx(tx *chain.Transaction, state *ethstate.State) *JSTransaction {
+func NewJSTx(tx *chain.Transaction, state *state.State) *JSTransaction {
 	hash := ethutil.Bytes2Hex(tx.Hash())
 	receiver := ethutil.Bytes2Hex(tx.Recipient)
 	if receiver == "0000000000000000000000000000000000000000" {
@@ -212,7 +212,7 @@ type JSMessage struct {
 	Value     string `json:"value"`
 }
 
-func NewJSMessage(message *ethstate.Message) JSMessage {
+func NewJSMessage(message *state.Message) JSMessage {
 	return JSMessage{
 		To:        ethutil.Bytes2Hex(message.To),
 		From:      ethutil.Bytes2Hex(message.From),
