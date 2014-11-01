@@ -4,11 +4,11 @@ import (
 	"container/list"
 	"fmt"
 
-	"gitlab.com/q-dev/q-client/ethcrypto"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/ethwire"
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/wire"
 )
 
 // Implement our EthTest Manager
@@ -53,14 +53,14 @@ func (tm *TestManager) StateManager() *StateManager {
 func (tm *TestManager) EventMux() *event.TypeMux {
 	return tm.eventMux
 }
-func (tm *TestManager) Broadcast(msgType ethwire.MsgType, data []interface{}) {
+func (tm *TestManager) Broadcast(msgType wire.MsgType, data []interface{}) {
 	fmt.Println("Broadcast not implemented")
 }
 
-func (tm *TestManager) ClientIdentity() ethwire.ClientIdentity {
+func (tm *TestManager) ClientIdentity() wire.ClientIdentity {
 	return nil
 }
-func (tm *TestManager) KeyManager() *ethcrypto.KeyManager {
+func (tm *TestManager) KeyManager() *crypto.KeyManager {
 	return nil
 }
 

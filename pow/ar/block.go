@@ -3,10 +3,10 @@ package ar
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/ethtrie"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 type Block interface {
-	Trie() *ethtrie.Trie
+	Trie() *trie.Trie
 	Diff() *big.Int
 }

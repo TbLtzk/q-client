@@ -26,7 +26,6 @@ import (
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
-	"github.com/ethgo.old/ethlog"
 )
 
 const (
@@ -131,5 +130,5 @@ func main() {
 
 	// this blocks the thread
 	ethereum.WaitForShutdown()
-	ethlog.Flush()
+	logger.Flush()
 }
