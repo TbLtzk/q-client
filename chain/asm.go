@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/ethutil"
 	"gitlab.com/q-dev/q-client/vm"
-	"github.com/ethgo.old/ethutil"
 )
 
 func Disassemble(script []byte) (asm []string) {
