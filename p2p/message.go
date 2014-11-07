@@ -2,7 +2,7 @@ package p2p
 
 import (
 	// "fmt"
-	"github.com/ethereum/eth-go/ethutil"
+	"gitlab.com/q-dev/q-client/ethutil"
 )
 
 type MsgCode uint8
