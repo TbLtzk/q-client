@@ -3,7 +3,7 @@ package p2p
 import (
 	// "fmt"
 	"bytes"
-	"github.com/ethereum/eth-go/ethutil"
+	"gitlab.com/q-dev/q-client/ethutil"
 	"testing"
 	"time"
 )
