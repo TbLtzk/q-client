@@ -3,17 +3,18 @@ package chain
 import (
 	"math/big"
 
+	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/vm"
 )
 
 type VMEnv struct {
 	state *state.State
-	block *Block
-	tx    *Transaction
+	block *types.Block
+	tx    *types.Transaction
 }
 
-func NewEnv(state *state.State, tx *Transaction, block *Block) *VMEnv {
+func NewEnv(state *state.State, tx *types.Transaction, block *types.Block) *VMEnv {
 	return &VMEnv{
 		state: state,
 		block: block,

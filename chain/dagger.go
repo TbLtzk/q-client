@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"time"
 
+	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
@@ -15,7 +16,7 @@ import (
 var powlogger = logger.NewLogger("POW")
 
 type PoW interface {
-	Search(block *Block, stop <-chan struct{}) []byte
+	Search(block *types.Block, stop <-chan struct{}) []byte
 	Verify(hash []byte, diff *big.Int, nonce []byte) bool
 	GetHashrate() int64
 	Turbo(bool)
@@ -35,7 +36,7 @@ func (pow *EasyPow) Turbo(on bool) {
 	pow.turbo = on
 }
 
-func (pow *EasyPow) Search(block *Block, stop <-chan struct{}) []byte {
+func (pow *EasyPow) Search(block *types.Block, stop <-chan struct{}) []byte {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	hash := block.HashNoNonce()
 	diff := block.Difficulty

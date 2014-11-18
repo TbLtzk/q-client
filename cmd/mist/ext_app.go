@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 
 	"gitlab.com/q-dev/q-client/chain"
+	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/javascript"
 	"gitlab.com/q-dev/q-client/state"
@@ -36,7 +37,7 @@ type AppContainer interface {
 	Window() *qml.Window
 	Engine() *qml.Engine
 
-	NewBlock(*chain.Block)
+	NewBlock(*types.Block)
 	NewWatcher(chan bool)
 	Messages(state.Messages, string)
 	Post(string, int)

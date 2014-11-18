@@ -2,20 +2,19 @@ package xeth
 
 import (
 	"math/big"
-
-	"gitlab.com/q-dev/q-client/chain"
+	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/vm"
 )
 
 type VMEnv struct {
 	state  *state.State
-	block  *chain.Block
+	block  *types.Block
 	value  *big.Int
 	sender []byte
 }
 
-func NewEnv(state *state.State, block *chain.Block, value *big.Int, sender []byte) *VMEnv {
+func NewEnv(state *state.State, block *types.Block, value *big.Int, sender []byte) *VMEnv {
 	return &VMEnv{
 		state:  state,
 		block:  block,

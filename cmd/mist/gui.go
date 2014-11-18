@@ -32,6 +32,7 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/chain"
+	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
@@ -290,7 +291,7 @@ func (self *Gui) loadMergedMiningOptions() {
 	}
 }
 
-func (gui *Gui) insertTransaction(window string, tx *chain.Transaction) {
+func (gui *Gui) insertTransaction(window string, tx *types.Transaction) {
 	pipe := xeth.New(gui.eth)
 	nameReg := pipe.World().Config().Get("NameReg")
 	addr := gui.address()
@@ -340,7 +341,7 @@ func (gui *Gui) insertTransaction(window string, tx *chain.Transaction) {
 func (gui *Gui) readPreviousTransactions() {
 	it := gui.txDb.NewIterator()
 	for it.Next() {
-		tx := chain.NewTransactionFromBytes(it.Value())
+		tx := types.NewTransactionFromBytes(it.Value())
 
 		gui.insertTransaction("post", tx)
 
@@ -348,7 +349,7 @@ func (gui *Gui) readPreviousTransactions() {
 	it.Release()
 }
 
-func (gui *Gui) processBlock(block *chain.Block, initial bool) {
+func (gui *Gui) processBlock(block *types.Block, initial bool) {
 	name := strings.Trim(gui.pipe.World().Config().Get("NameReg").Storage(block.Coinbase).Str(), "\x00")
 	b := xeth.NewJSBlock(block)
 	b.Name = name

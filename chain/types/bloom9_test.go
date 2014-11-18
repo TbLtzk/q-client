@@ -1,7 +1,8 @@
-package chain
+package types
 
 import (
 	"testing"
+
 	"gitlab.com/q-dev/q-client/state"
 )
 
