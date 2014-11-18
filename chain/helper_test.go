@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"fmt"
 
+	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
@@ -19,7 +20,7 @@ type TestManager struct {
 	db         ethutil.Database
 	txPool     *TxPool
 	blockChain *ChainManager
-	Blocks     []*Block
+	Blocks     []*types.Block
 }
 
 func (s *TestManager) IsListening() bool {
