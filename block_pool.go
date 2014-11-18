@@ -13,6 +13,7 @@ import (
 	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/wire"
 )
 
@@ -310,10 +311,6 @@ out:
 				}
 			}
 
-			// TODO figure out whether we were catching up
-			// If caught up and just a new block has been propagated:
-			// sm.eth.EventMux().Post(NewBlockEvent{block})
-			// otherwise process and don't emit anything
 			if len(blocks) > 0 {
 				chainManager := self.eth.ChainManager()
 				// Test and import
@@ -335,10 +332,13 @@ out:
 					self.peer = nil
 				} else {
 					if !chain.IsTDError(err) {
-						chainManager.InsertChain(bchain)
-						for _, block := range blocks {
+						chainManager.InsertChain(bchain, func(block *types.Block, messages state.Messages) {
+							self.eth.EventMux().Post(chain.NewBlockEvent{block})
+							self.eth.EventMux().Post(messages)
+
 							self.Remove(block.Hash())
-						}
+						})
+
 					}
 				}
 			}

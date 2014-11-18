@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
 	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
@@ -23,7 +24,7 @@ const (
 	// The size of the output buffer for writing messages
 	outputBufferSize = 50
 	// Current protocol version
-	ProtocolVersion = 42
+	ProtocolVersion = 43
 	// Current P2P version
 	P2PVersion = 2
 	// Ethereum network version
