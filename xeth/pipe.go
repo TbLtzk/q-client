@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"gitlab.com/q-dev/q-client/chain"
+	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
@@ -72,7 +73,7 @@ func (self *XEth) ExecuteObject(object *Object, data []byte, value, gas, price *
 	return ret, err
 }
 
-func (self *XEth) Block(hash []byte) *chain.Block {
+func (self *XEth) Block(hash []byte) *types.Block {
 	return self.blockChain.GetBlock(hash)
 }
 
@@ -115,7 +116,7 @@ func (self *XEth) Transact(key *crypto.KeyPair, rec []byte, value, gas, price *e
 		contractCreation = true
 	}
 
-	var tx *chain.Transaction
+	var tx *types.Transaction
 	// Compile and assemble the given data
 	if contractCreation {
 		script, err := ethutil.Compile(string(data), false)
@@ -123,7 +124,7 @@ func (self *XEth) Transact(key *crypto.KeyPair, rec []byte, value, gas, price *e
 			return nil, err
 		}
 
-		tx = chain.NewContractCreationTx(value.BigInt(), gas.BigInt(), price.BigInt(), script)
+		tx = types.NewContractCreationTx(value.BigInt(), gas.BigInt(), price.BigInt(), script)
 	} else {
 		data := ethutil.StringToByteFunc(string(data), func(s string) (ret []byte) {
 			slice := strings.Split(s, "\n")
@@ -134,7 +135,7 @@ func (self *XEth) Transact(key *crypto.KeyPair, rec []byte, value, gas, price *e
 			return
 		})
 
-		tx = chain.NewTransactionMessage(hash, value.BigInt(), gas.BigInt(), price.BigInt(), data)
+		tx = types.NewTransactionMessage(hash, value.BigInt(), gas.BigInt(), price.BigInt(), data)
 	}
 
 	acc := self.blockManager.TransState().GetOrNewStateObject(key.Address())
@@ -155,7 +156,7 @@ func (self *XEth) Transact(key *crypto.KeyPair, rec []byte, value, gas, price *e
 	return tx.Hash(), nil
 }
 
-func (self *XEth) PushTx(tx *chain.Transaction) ([]byte, error) {
+func (self *XEth) PushTx(tx *types.Transaction) ([]byte, error) {
 	self.obj.TxPool().QueueTransaction(tx)
 	if tx.Recipient == nil {
 		addr := tx.CreationAddress(self.World().State())

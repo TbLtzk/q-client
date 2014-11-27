@@ -1,4 +1,4 @@
-package chain
+package types
 
 import (
 	"gitlab.com/q-dev/q-client/ethutil"

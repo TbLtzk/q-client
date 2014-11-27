@@ -20,8 +20,7 @@ package main
 import (
 	"fmt"
 	"runtime"
-
-	"gitlab.com/q-dev/q-client/chain"
+	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
@@ -65,7 +64,7 @@ func (app *QmlApplication) NewWatcher(quitChan chan bool) {
 }
 
 // Events
-func (app *QmlApplication) NewBlock(block *chain.Block) {
+func (app *QmlApplication) NewBlock(block *types.Block) {
 	pblock := &xeth.JSBlock{Number: int(block.BlockInfo().Number), Hash: ethutil.Bytes2Hex(block.Hash())}
 	app.win.Call("onNewBlockCb", pblock)
 }

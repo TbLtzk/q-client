@@ -21,8 +21,7 @@ import (
 	"encoding/json"
 	"os"
 	"strconv"
-
-	"gitlab.com/q-dev/q-client/chain"
+	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
@@ -106,7 +105,7 @@ func (self *Gui) DumpState(hash, path string) {
 	if len(hash) == 0 {
 		stateDump = self.eth.BlockManager().CurrentState().Dump()
 	} else {
-		var block *chain.Block
+		var block *types.Block
 		if hash[0] == '#' {
 			i, _ := strconv.Atoi(hash[1:])
 			block = self.eth.ChainManager().GetBlockByNumber(uint64(i))

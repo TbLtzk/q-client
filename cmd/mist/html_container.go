@@ -26,8 +26,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-
-	"gitlab.com/q-dev/q-client/chain"
+	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/javascript"
 	"gitlab.com/q-dev/q-client/state"
@@ -138,7 +137,7 @@ func (app *HtmlApplication) Window() *qml.Window {
 	return app.win
 }
 
-func (app *HtmlApplication) NewBlock(block *chain.Block) {
+func (app *HtmlApplication) NewBlock(block *types.Block) {
 	b := &xeth.JSBlock{Number: int(block.BlockInfo().Number), Hash: ethutil.Bytes2Hex(block.Hash())}
 	app.webView.Call("onNewBlockCb", b)
 }
