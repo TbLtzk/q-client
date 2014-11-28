@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+
 	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/ethutil"
@@ -29,7 +30,7 @@ import (
 
 const (
 	ClientIdentifier = "Ethereum(G)"
-	Version          = "0.7.5"
+	Version          = "0.7.6"
 )
 
 var clilogger = logger.NewLogger("CLI")
