@@ -9,11 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/chain"
 	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/wire"
 )
 
@@ -312,11 +310,10 @@ out:
 			}
 
 			if len(blocks) > 0 {
-				chainManager := self.eth.ChainManager()
-				// Test and import
-				bchain := chain.NewChain(blocks)
-				_, err := chainManager.TestChain(bchain)
-				if err != nil && !chain.IsTDError(err) {
+				chainman := self.eth.ChainManager()
+
+				err := chainman.InsertChain(blocks)
+				if err != nil {
 					poollogger.Debugln(err)
 
 					self.Reset()
@@ -330,16 +327,10 @@ out:
 					self.peer.StopWithReason(DiscBadPeer)
 					self.td = ethutil.Big0
 					self.peer = nil
-				} else {
-					if !chain.IsTDError(err) {
-						chainManager.InsertChain(bchain, func(block *types.Block, messages state.Messages) {
-							self.eth.EventMux().Post(chain.NewBlockEvent{block})
-							self.eth.EventMux().Post(messages)
+				}
 
-							self.Remove(block.Hash())
-						})
-
-					}
+				for _, block := range blocks {
+					self.Remove(block.Hash())
 				}
 			}
 		}
