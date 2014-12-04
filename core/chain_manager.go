@@ -1,10 +1,10 @@
-package chain
+package core
 
 import (
 	"fmt"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/chain/types"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"

@@ -5,8 +5,8 @@ package xeth
  */
 
 import (
-	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/chain/types"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
@@ -20,15 +20,15 @@ type VmVars struct {
 }
 
 type XEth struct {
-	obj          chain.EthManager
-	blockManager *chain.BlockManager
-	blockChain   *chain.ChainManager
+	obj          core.EthManager
+	blockManager *core.BlockManager
+	blockChain   *core.ChainManager
 	world        *World
 
 	Vm VmVars
 }
 
-func New(obj chain.EthManager) *XEth {
+func New(obj core.EthManager) *XEth {
 	pipe := &XEth{
 		obj:          obj,
 		blockManager: obj.BlockManager(),

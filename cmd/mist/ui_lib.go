@@ -25,8 +25,8 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum"
-	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/chain/types"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/javascript"
@@ -231,7 +231,7 @@ func (self *UiLib) NewFilter(object map[string]interface{}) (id int) {
 }
 
 func (self *UiLib) NewFilterString(typ string) (id int) {
-	filter := chain.NewFilter(self.eth)
+	filter := core.NewFilter(self.eth)
 	filter.BlockCallback = func(block *types.Block) {
 		if self.win != nil && self.win.Root() != nil {
 			self.win.Root().Call("invokeFilterCallback", "{}", id)

@@ -1,4 +1,4 @@
-package chain
+package core
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/chain/types"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/wire"

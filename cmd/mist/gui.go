@@ -31,8 +31,8 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum"
-	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/chain/types"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
@@ -413,9 +413,9 @@ func (gui *Gui) update() {
 	events := gui.eth.EventMux().Subscribe(
 		eth.ChainSyncEvent{},
 		eth.PeerListEvent{},
-		chain.NewBlockEvent{},
-		chain.TxPreEvent{},
-		chain.TxPostEvent{},
+		core.NewBlockEvent{},
+		core.TxPreEvent{},
+		core.TxPostEvent{},
 	)
 
 	// nameReg := gui.pipe.World().Config().Get("NameReg")
@@ -430,13 +430,13 @@ func (gui *Gui) update() {
 					return
 				}
 				switch ev := ev.(type) {
-				case chain.NewBlockEvent:
+				case core.NewBlockEvent:
 					gui.processBlock(ev.Block, false)
 					if bytes.Compare(ev.Block.Coinbase, gui.address()) == 0 {
 						gui.setWalletValue(gui.eth.BlockManager().CurrentState().GetAccount(gui.address()).Balance(), nil)
 					}
 
-				case chain.TxPreEvent:
+				case core.TxPreEvent:
 					tx := ev.Tx
 					object := state.GetAccount(gui.address())
 
@@ -449,7 +449,7 @@ func (gui *Gui) update() {
 					gui.setWalletValue(object.Balance(), unconfirmedFunds)
 					gui.insertTransaction("pre", tx)
 
-				case chain.TxPostEvent:
+				case core.TxPostEvent:
 					tx := ev.Tx
 					object := state.GetAccount(gui.address())
 

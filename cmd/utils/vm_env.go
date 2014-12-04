@@ -3,8 +3,8 @@ package utils
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/chain/types"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/vm"
 )
@@ -48,10 +48,10 @@ func (self *VMEnv) Transfer(from, to vm.Account, amount *big.Int) error {
 	return vm.Transfer(from, to, amount)
 }
 
-func (self *VMEnv) vm(addr, data []byte, gas, price, value *big.Int) *chain.Execution {
+func (self *VMEnv) vm(addr, data []byte, gas, price, value *big.Int) *core.Execution {
 	evm := vm.New(self, vm.DebugVmTy)
 
-	return chain.NewExecution(evm, addr, data, gas, price, value)
+	return core.NewExecution(evm, addr, data, gas, price, value)
 }
 
 func (self *VMEnv) Call(caller vm.ClosureRef, addr, data []byte, gas, price, value *big.Int) ([]byte, error) {

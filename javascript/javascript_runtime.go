@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 
 	"github.com/ethereum/go-ethereum"
-	"gitlab.com/q-dev/q-client/chain"
-	"gitlab.com/q-dev/q-client/chain/types"
 	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
@@ -63,7 +63,7 @@ func NewJSRE(ethereum *eth.Ethereum) *JSRE {
 
 	// Subscribe to events
 	mux := ethereum.EventMux()
-	re.events = mux.Subscribe(chain.NewBlockEvent{})
+	re.events = mux.Subscribe(core.NewBlockEvent{})
 
 	// We have to make sure that, whoever calls this, calls "Stop"
 	go re.mainLoop()

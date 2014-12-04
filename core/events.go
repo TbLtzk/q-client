@@ -1,6 +1,6 @@
-package chain
+package core
 
-import "gitlab.com/q-dev/q-client/chain/types"
+import "gitlab.com/q-dev/q-client/core/types"
 
 // TxPreEvent is posted when a transaction enters the transaction pool.
 type TxPreEvent struct{ Tx *types.Transaction }

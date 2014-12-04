@@ -26,7 +26,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"gitlab.com/q-dev/q-client/chain/types"
+
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/javascript"
 	"gitlab.com/q-dev/q-client/state"

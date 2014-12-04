@@ -1,4 +1,4 @@
-package chain
+package core
 
 import (
 	"hash"
@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"time"
 
-	"gitlab.com/q-dev/q-client/chain/types"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
