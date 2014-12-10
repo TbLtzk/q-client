@@ -8,6 +8,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/state"
 )
 
 var chainlogger = logger.NewLogger("CHAIN")
@@ -55,6 +56,8 @@ type ChainManager struct {
 
 	CurrentBlock  *types.Block
 	LastBlockHash []byte
+
+	transState *state.StateDB
 }
 
 func NewChainManager(mux *event.TypeMux) *ChainManager {
@@ -64,11 +67,21 @@ func NewChainManager(mux *event.TypeMux) *ChainManager {
 
 	bc.setLastBlock()
 
+	bc.transState = bc.State().Copy()
+
 	return bc
 }
 
 func (self *ChainManager) SetProcessor(proc types.BlockProcessor) {
 	self.processor = proc
+}
+
+func (self *ChainManager) State() *state.StateDB {
+	return self.CurrentBlock.State()
+}
+
+func (self *ChainManager) TransState() *state.StateDB {
+	return self.transState
 }
 
 func (bc *ChainManager) setLastBlock() {
