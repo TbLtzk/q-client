@@ -11,6 +11,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethutil"
 	ethlogger "gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/pow"
 )
 
 var poolLogger = ethlogger.NewLogger("Blockpool")
@@ -54,7 +55,7 @@ type BlockPool struct {
 	// the minimal interface with blockchain
 	hasBlock    func(hash []byte) bool
 	insertChain func(types.Blocks) error
-	verifyPoW   func(*types.Block) bool
+	verifyPoW   func(pow.Block) bool
 }
 
 type peerInfo struct {
@@ -73,7 +74,7 @@ type peerInfo struct {
 	quitC    chan bool
 }
 
-func NewBlockPool(hasBlock func(hash []byte) bool, insertChain func(types.Blocks) error, verifyPoW func(*types.Block) bool,
+func NewBlockPool(hasBlock func(hash []byte) bool, insertChain func(types.Blocks) error, verifyPoW func(pow.Block) bool,
 ) *BlockPool {
 	return &BlockPool{
 		hasBlock:    hasBlock,
