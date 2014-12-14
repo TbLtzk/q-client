@@ -4,23 +4,23 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"time"
 
 	"bitbucket.org/kardianos/osext"
-	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/miner"
+	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rpc"
-	"gitlab.com/q-dev/q-client/wire"
 	"gitlab.com/q-dev/q-client/xeth"
 )
 
@@ -144,17 +144,32 @@ func NewDatabase() ethutil.Database {
 	return db
 }
 
-func NewClientIdentity(clientIdentifier, version, customIdentifier string) *wire.SimpleClientIdentity {
-	return wire.NewSimpleClientIdentity(clientIdentifier, version, customIdentifier)
+func NewClientIdentity(clientIdentifier, version, customIdentifier string, pubkey string) *p2p.SimpleClientIdentity {
+	return p2p.NewSimpleClientIdentity(clientIdentifier, version, customIdentifier, pubkey)
 }
 
-func NewEthereum(db ethutil.Database, clientIdentity wire.ClientIdentity, keyManager *crypto.KeyManager, usePnp bool, OutboundPort string, MaxPeer int) *eth.Ethereum {
-	ethereum, err := eth.New(db, clientIdentity, keyManager, eth.CapDefault, usePnp)
+func NatType(natType string, gateway string) (nat p2p.NAT) {
+	switch natType {
+	case "UPNP":
+		nat = p2p.UPNP()
+	case "PMP":
+		ip := net.ParseIP(gateway)
+		if ip != nil {
+			clilogger.Fatalf("bad PMP gateway '%s'", gateway)
+		}
+		nat = p2p.PMP(ip)
+	case "":
+	default:
+		clilogger.Fatalf("unrecognised NAT type '%s'", natType)
+	}
+	return
+}
+
+func NewEthereum(db ethutil.Database, clientIdentity p2p.ClientIdentity, keyManager *crypto.KeyManager, nat p2p.NAT, OutboundPort string, MaxPeer int) *eth.Ethereum {
+	ethereum, err := eth.New(db, clientIdentity, keyManager, nat, OutboundPort, MaxPeer)
 	if err != nil {
 		clilogger.Fatalln("eth start err:", err)
 	}
-	ethereum.Port = OutboundPort
-	ethereum.MaxPeers = MaxPeer
 	return ethereum
 }
 
@@ -267,11 +282,6 @@ func StartMining(ethereum *eth.Ethereum) bool {
 			clilogger.Infoln("Start mining")
 			if gminer == nil {
 				gminer = miner.New(addr, ethereum)
-			}
-			// Give it some time to connect with peers
-			time.Sleep(3 * time.Second)
-			for !ethereum.IsUpToDate() {
-				time.Sleep(5 * time.Second)
 			}
 			gminer.Start()
 		}()
