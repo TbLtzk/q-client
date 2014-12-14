@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"container/list"
 	"errors"
 	"fmt"
 	"math/big"
@@ -14,10 +13,10 @@ import (
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/pow/ezp"
 	"gitlab.com/q-dev/q-client/state"
-	"gitlab.com/q-dev/q-client/wire"
 )
 
 var statelogger = logger.NewLogger("BLOCK")
@@ -38,13 +37,12 @@ type EthManager interface {
 	BlockManager() *BlockManager
 	ChainManager() *ChainManager
 	TxPool() *TxPool
-	Broadcast(msgType wire.MsgType, data []interface{})
 	PeerCount() int
 	IsMining() bool
 	IsListening() bool
-	Peers() *list.List
+	Peers() []*p2p.Peer
 	KeyManager() *crypto.KeyManager
-	ClientIdentity() wire.ClientIdentity
+	ClientIdentity() p2p.ClientIdentity
 	Db() ethutil.Database
 	EventMux() *event.TypeMux
 }
