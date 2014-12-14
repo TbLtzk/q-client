@@ -7,12 +7,12 @@ import (
 	"sync"
 
 	"gitlab.com/q-dev/q-client/core"
-	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	ethlogger "gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/pow/ezp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/state"
 )
@@ -111,9 +111,8 @@ func New(db ethutil.Database, identity p2p.ClientIdentity, keyManager *crypto.Ke
 
 	hasBlock := eth.chainManager.HasBlock
 	insertChain := eth.chainManager.InsertChain
-	// pow := ezp.New()
-	// verifyPoW := pow.Verify
-	verifyPoW := func(*types.Block) bool { return true }
+	pow := ezp.New()
+	verifyPoW := pow.Verify
 	eth.blockPool = NewBlockPool(hasBlock, insertChain, verifyPoW)
 
 	// Start the tx pool
