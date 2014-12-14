@@ -24,7 +24,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/ethereum/go-ethereum"
+	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/javascript"
 	"gitlab.com/q-dev/q-client/logger"

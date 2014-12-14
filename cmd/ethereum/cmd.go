@@ -21,9 +21,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/cmd/ethereum/repl"
 	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/javascript"
 )
 
