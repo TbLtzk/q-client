@@ -3,7 +3,7 @@ package javascript
 import (
 	"fmt"
 
-	"github.com/ethereum/go-ethereum"
+	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/ui"

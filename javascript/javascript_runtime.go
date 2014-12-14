@@ -7,10 +7,10 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
@@ -202,7 +202,7 @@ func (self *JSRE) addPeer(call otto.FunctionCall) otto.Value {
 	if err != nil {
 		return otto.FalseValue()
 	}
-	self.ethereum.ConnectToPeer(host)
+	self.ethereum.SuggestPeer(host)
 
 	return otto.TrueValue()
 }
