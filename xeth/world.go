@@ -1,8 +1,7 @@
 package xeth
 
 import (
-	"container/list"
-
+	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/state"
 )
 
@@ -55,7 +54,7 @@ func (self *World) IsListening() bool {
 	return self.pipe.obj.IsListening()
 }
 
-func (self *World) Peers() *list.List {
+func (self *World) Peers() []*p2p.Peer {
 	return self.pipe.obj.Peers()
 }
 
