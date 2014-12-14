@@ -27,7 +27,7 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/ethereum/go-ethereum"
+	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/pow/ezp"
@@ -36,7 +36,6 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/wire"
 )
 
 type LocalTx struct {
@@ -217,7 +216,7 @@ func (self *Miner) mine() {
 		if err != nil {
 			minerlogger.Infoln(err)
 		} else {
-			self.eth.Broadcast(wire.MsgBlockTy, []interface{}{block.Value().Val})
+			self.eth.EventMux().Post(core.NewMinedBlockEvent{block})
 
 			minerlogger.Infof("🔨  Mined block %x\n", block.Hash())
 			minerlogger.Infoln(block)
@@ -246,7 +245,7 @@ func (self *Miner) finiliseTxs() types.Transactions {
 	}
 
 	// Faster than append
-	for _, tx := range self.eth.TxPool().CurrentTransactions() {
+	for _, tx := range self.eth.TxPool().GetTransactions() {
 		if tx.GasPrice.Cmp(self.MinAcceptedGasPrice) >= 0 {
 			txs[actualSize] = tx
 			actualSize++
