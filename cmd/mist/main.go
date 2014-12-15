@@ -23,8 +23,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/logger"
 	"gopkg.in/qml.v1"
 )
@@ -58,8 +58,8 @@ func run() error {
 
 	// create, import, export keys
 	utils.KeyTasks(keyManager, KeyRing, GenAddr, SecretFile, ExportDir, NonInteractive)
-	clientIdentity := utils.NewClientIdentity(ClientIdentifier, Version, Identifier)
-	ethereum = utils.NewEthereum(db, clientIdentity, keyManager, UseUPnP, OutboundPort, MaxPeer)
+	clientIdentity := utils.NewClientIdentity(ClientIdentifier, Version, Identifier, string(keyManager.PublicKey()))
+	ethereum := utils.NewEthereum(db, clientIdentity, keyManager, utils.NatType(NatType, PMPGateway), OutboundPort, MaxPeer)
 
 	if ShowGenesis {
 		utils.ShowGenesis(ethereum)
