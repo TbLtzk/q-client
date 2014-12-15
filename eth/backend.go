@@ -9,6 +9,7 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/event/filter"
 	ethlogger "gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/pow/ezp"
@@ -53,9 +54,10 @@ type Ethereum struct {
 	synclock  sync.Mutex
 	syncGroup sync.WaitGroup
 
-	filterMu sync.RWMutex
-	filterId int
-	filters  map[int]*core.Filter
+	filterManager *filter.FilterManager
+	//filterMu      sync.RWMutex
+	//filterId      int
+	//filters       map[int]*core.Filter
 
 	Mining bool
 }
