@@ -26,7 +26,6 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/rlp"
 )
 
 const (
@@ -118,26 +117,11 @@ func main() {
 	}
 
 	if len(ImportChain) > 0 {
-		clilogger.Infof("importing chain '%s'\n", ImportChain)
-		fh, err := os.OpenFile(ImportChain, os.O_RDONLY, os.ModePerm)
+		err := utils.ImportChain(ethereum, ImportChain)
 		if err != nil {
 			clilogger.Infoln(err)
-			return
 		}
-		defer fh.Close()
-
-		var chain types.Blocks
-		if err := rlp.Decode(fh, &chain); err != nil {
-			clilogger.Infoln(err)
-			return
-		}
-
-		ethereum.ChainManager().Reset()
-		if err := ethereum.ChainManager().InsertChain(chain); err != nil {
-			clilogger.Infoln(err)
-			return
-		}
-		clilogger.Infof("imported %d blocks\n", len(chain))
+		return
 	}
 
 	// better reworked as cases

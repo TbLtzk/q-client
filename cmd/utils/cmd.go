@@ -13,6 +13,7 @@ import (
 	"runtime"
 
 	"bitbucket.org/kardianos/osext"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
@@ -20,6 +21,7 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/xeth"
 )
@@ -334,4 +336,26 @@ func BlockDo(ethereum *eth.Ethereum, hash []byte) error {
 
 	return nil
 
+}
+
+func ImportChain(ethereum *eth.Ethereum, fn string) error {
+	clilogger.Infof("importing chain '%s'\n", ImportChain)
+	fh, err := os.OpenFile(fn, os.O_RDONLY, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+
+	var chain types.Blocks
+	if err := rlp.Decode(fh, &chain); err != nil {
+		return err
+	}
+
+	ethereum.ChainManager().Reset()
+	if err := ethereum.ChainManager().InsertChain(chain); err != nil {
+		return err
+	}
+	clilogger.Infof("imported %d blocks\n", len(chain))
+
+	return nil
 }
