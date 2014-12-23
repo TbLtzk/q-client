@@ -3,9 +3,12 @@ package utils
 import (
 	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/websocket"
 	"gitlab.com/q-dev/q-client/xeth"
 )
+
+var wslogger = logger.NewLogger("WS")
 
 func args(v ...interface{}) []interface{} {
 	return v
@@ -106,6 +109,8 @@ func (self *WebSocketServer) Serv() {
 }
 
 func StartWebSockets(eth *eth.Ethereum) {
+	wslogger.Infoln("Starting WebSockets")
+
 	sock := NewWebSocketServer(eth)
 	go sock.Serv()
 }
