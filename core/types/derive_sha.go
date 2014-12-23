@@ -2,7 +2,7 @@ package types
 
 import (
 	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/trie"
+	"gitlab.com/q-dev/q-client/ptrie"
 )
 
 type DerivableList interface {
@@ -11,10 +11,10 @@ type DerivableList interface {
 }
 
 func DeriveSha(list DerivableList) []byte {
-	trie := trie.New(ethutil.Config.Db, "")
+	trie := ptrie.New(nil, ethutil.Config.Db)
 	for i := 0; i < list.Len(); i++ {
-		trie.Update(string(ethutil.NewValue(i).Encode()), string(list.GetRlp(i)))
+		trie.Update(ethutil.Encode(i), list.GetRlp(i))
 	}
 
-	return trie.GetRoot()
+	return trie.Root()
 }
