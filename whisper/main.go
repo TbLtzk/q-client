@@ -5,10 +5,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
 	"os"
 
-	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/whisper"
@@ -20,12 +18,12 @@ func main() {
 
 	pub, _ := secp256k1.GenerateKeyPair()
 
-	whisper := whisper.New(&event.TypeMux{})
+	whisper := whisper.New()
 
 	srv := p2p.Server{
 		MaxPeers:   10,
 		Identity:   p2p.NewSimpleClientIdentity("whisper-go", "1.0", "", string(pub)),
-		ListenAddr: ":30303",
+		ListenAddr: ":30300",
 		NAT:        p2p.UPNP(),
 
 		Protocols: []p2p.Protocol{whisper.Protocol()},
@@ -34,14 +32,6 @@ func main() {
 		fmt.Println("could not start server:", err)
 		os.Exit(1)
 	}
-
-	// add seed peers
-	seed, err := net.ResolveTCPAddr("tcp", "poc-7.ethdev.com:30300")
-	if err != nil {
-		fmt.Println("couldn't resolve:", err)
-		os.Exit(1)
-	}
-	srv.SuggestPeer(seed.IP, seed.Port, nil)
 
 	select {}
 }

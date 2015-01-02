@@ -37,8 +37,8 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/ptrie"
 	"gitlab.com/q-dev/q-client/state"
-	"gitlab.com/q-dev/q-client/trie"
 	"gitlab.com/q-dev/q-client/vm"
 )
 
@@ -65,7 +65,7 @@ func main() {
 	ethutil.ReadConfig("/tmp/evmtest", "/tmp/evm", "")
 
 	db, _ := ethdb.NewMemDatabase()
-	statedb := state.New(trie.New(db, ""))
+	statedb := state.New(ptrie.New(nil, db))
 	sender := statedb.NewStateObject([]byte("sender"))
 	receiver := statedb.NewStateObject([]byte("receiver"))
 	//receiver.SetCode([]byte(*code))
@@ -141,9 +141,7 @@ func (self *VMEnv) Transfer(from, to vm.Account, amount *big.Int) error {
 }
 
 func (self *VMEnv) vm(addr, data []byte, gas, price, value *big.Int) *core.Execution {
-	evm := vm.New(self, vm.DebugVmTy)
-
-	return core.NewExecution(evm, addr, data, gas, price, value)
+	return core.NewExecution(self, addr, data, gas, price, value)
 }
 
 func (self *VMEnv) Call(caller vm.ClosureRef, addr, data []byte, gas, price, value *big.Int) ([]byte, error) {

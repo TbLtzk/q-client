@@ -1,6 +1,6 @@
 package helper
 
-import "gitlab.com/q-dev/q-client/trie"
+import "gitlab.com/q-dev/q-client/ptrie"
 
 type MemDatabase struct {
 	db map[string][]byte
@@ -24,8 +24,8 @@ func (db *MemDatabase) Print()              {}
 func (db *MemDatabase) Close()              {}
 func (db *MemDatabase) LastKnownTD() []byte { return nil }
 
-func NewTrie() *trie.Trie {
+func NewTrie() *ptrie.Trie {
 	db, _ := NewMemDatabase()
 
-	return trie.New(db, "")
+	return ptrie.New(nil, db)
 }
