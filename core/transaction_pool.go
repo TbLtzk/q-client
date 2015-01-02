@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gopkg.in/fatih/set.v0"
@@ -107,7 +108,14 @@ func (self *TxPool) Add(tx *types.Transaction) error {
 
 	self.addTransaction(tx)
 
-	txplogger.Debugf("(t) %x => %x (%v) %x\n", tx.From()[:4], tx.To()[:4], tx.Value, tx.Hash())
+	var to string
+	if len(tx.To()) > 0 {
+		to = ethutil.Bytes2Hex(tx.To()[:4])
+	} else {
+		to = "[NEW_CONTRACT]"
+	}
+
+	txplogger.Debugf("(t) %x => %s (%v) %x\n", tx.From()[:4], to, tx.Value, tx.Hash())
 
 	// Notify the subscribers
 	go self.eventMux.Post(TxPreEvent{tx})
