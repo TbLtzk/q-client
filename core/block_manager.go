@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
-	"time"
 
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -21,18 +20,6 @@ import (
 )
 
 var statelogger = logger.NewLogger("BLOCK")
-
-type Peer interface {
-	Inbound() bool
-	LastSend() time.Time
-	LastPong() int64
-	Host() []byte
-	Port() uint16
-	Version() string
-	PingTime() string
-	Connected() *int32
-	Caps() *ethutil.Value
-}
 
 type EthManager interface {
 	BlockManager() *BlockManager
