@@ -29,6 +29,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/state"
 )
 
 type plugin struct {
@@ -121,7 +122,7 @@ func (self *Gui) DumpState(hash, path string) {
 			return
 		}
 
-		stateDump = block.State().Dump()
+		stateDump = state.New(block.Root(), self.eth.Db()).Dump()
 	}
 
 	file, err := os.OpenFile(path[7:], os.O_CREATE|os.O_RDWR, os.ModePerm)

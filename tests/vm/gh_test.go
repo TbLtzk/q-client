@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/state"
@@ -38,8 +39,8 @@ func (self Log) Topics() [][]byte {
 	return t
 }
 
-func StateObjectFromAccount(addr string, account Account) *state.StateObject {
-	obj := state.NewStateObject(ethutil.Hex2Bytes(addr))
+func StateObjectFromAccount(db ethutil.Database, addr string, account Account) *state.StateObject {
+	obj := state.NewStateObject(ethutil.Hex2Bytes(addr), db)
 	obj.SetBalance(ethutil.Big(account.Balance))
 
 	if ethutil.IsHex(account.Code) {
@@ -84,9 +85,10 @@ func RunVmTest(p string, t *testing.T) {
 				continue
 			}
 		*/
-		statedb := state.New(helper.NewTrie())
+		db, _ := ethdb.NewMemDatabase()
+		statedb := state.New(nil, db)
 		for addr, account := range test.Pre {
-			obj := StateObjectFromAccount(addr, account)
+			obj := StateObjectFromAccount(db, addr, account)
 			statedb.SetStateObject(obj)
 			for a, v := range account.Storage {
 				obj.SetState(helper.FromHex(a), ethutil.NewValue(helper.FromHex(v)))

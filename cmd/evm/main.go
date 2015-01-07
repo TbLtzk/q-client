@@ -35,7 +35,6 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/ptrie"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/vm"
 )
@@ -63,7 +62,7 @@ func main() {
 	ethutil.ReadConfig("/tmp/evmtest", "/tmp/evm", "")
 
 	db, _ := ethdb.NewMemDatabase()
-	statedb := state.New(ptrie.New(nil, db))
+	statedb := state.New(nil, db)
 	sender := statedb.NewStateObject([]byte("sender"))
 	receiver := statedb.NewStateObject([]byte("receiver"))
 	//receiver.SetCode([]byte(*code))

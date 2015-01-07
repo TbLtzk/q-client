@@ -31,6 +31,7 @@ import (
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/state"
 )
 
 const (
@@ -103,7 +104,8 @@ func main() {
 		}
 
 		// Leave the Println. This needs clean output for piping
-		fmt.Printf("%s\n", block.State().Dump())
+		statedb := state.New(block.Root(), ethereum.Db())
+		fmt.Printf("%s\n", statedb.Dump())
 
 		fmt.Println(block)
 

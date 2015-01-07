@@ -31,6 +31,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/pow/ezp"
+	"gitlab.com/q-dev/q-client/state"
 
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
@@ -178,6 +179,7 @@ func (self *Miner) mine() {
 		blockProcessor = self.eth.BlockProcessor()
 		chainMan       = self.eth.ChainManager()
 		block          = chainMan.NewBlock(self.Coinbase)
+		state          = state.New(block.Root(), self.eth.Db())
 	)
 	block.Header().Extra = self.Extra
 
@@ -187,12 +189,10 @@ func (self *Miner) mine() {
 	}
 
 	parent := chainMan.GetBlock(block.ParentHash())
-	coinbase := block.State().GetOrNewStateObject(block.Coinbase())
+	coinbase := state.GetOrNewStateObject(block.Coinbase())
 	coinbase.SetGasPool(core.CalcGasLimit(parent, block))
 
 	transactions := self.finiliseTxs()
-
-	state := block.State()
 
 	// Accumulate all valid transactions and apply them to the new state
 	// Error may be ignored. It's not important during mining

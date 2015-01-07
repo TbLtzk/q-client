@@ -39,6 +39,7 @@ import (
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
 )
 
@@ -259,7 +260,8 @@ func BlockDo(ethereum *eth.Ethereum, hash []byte) error {
 
 	parent := ethereum.ChainManager().GetBlock(block.ParentHash())
 
-	_, err := ethereum.BlockProcessor().TransitionState(parent.State(), parent, block)
+	statedb := state.New(parent.Root(), ethereum.Db())
+	_, err := ethereum.BlockProcessor().TransitionState(statedb, parent, block)
 	if err != nil {
 		return err
 	}
