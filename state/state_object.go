@@ -6,7 +6,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/ptrie"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 type Code []byte
@@ -152,7 +152,7 @@ func (self *StateObject) Sync() {
 	}
 
 	/*
-		valid, t2 := ptrie.ParanoiaCheck(self.State.trie, ethutil.Config.Db)
+		valid, t2 := trie.ParanoiaCheck(self.State.trie, ethutil.Config.Db)
 		if !valid {
 			statelogger.Infof("Warn: PARANOIA: Different state storage root during copy %x vs %x\n", self.State.Root(), t2.Root())
 
@@ -273,7 +273,7 @@ func (c *StateObject) Init() Code {
 	return c.InitCode
 }
 
-func (self *StateObject) Trie() *ptrie.Trie {
+func (self *StateObject) Trie() *trie.Trie {
 	return self.State.trie
 }
 
