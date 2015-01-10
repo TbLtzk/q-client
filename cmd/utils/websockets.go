@@ -28,7 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/event/filter"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/state"
-	"gitlab.com/q-dev/q-client/ui/qt"
+	"gitlab.com/q-dev/q-client/ui"
 	"gitlab.com/q-dev/q-client/websocket"
 	"gitlab.com/q-dev/q-client/xeth"
 )
@@ -126,7 +126,7 @@ func (self *WebSocketServer) Serv() {
 		case "eth_newFilter":
 			if mp, ok := msg.Args[0].(map[string]interface{}); ok {
 				var id int
-				filter := qt.NewFilterFromMap(mp, self.eth)
+				filter := ui.NewFilterFromMap(mp, self.eth)
 				filter.MessageCallback = func(messages state.Messages) {
 					c.Event(toMessages(messages), "eth_changed", id)
 				}
