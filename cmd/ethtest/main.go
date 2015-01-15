@@ -32,6 +32,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/tests/helper"
 )
@@ -119,6 +120,8 @@ func RunVmTest(r io.Reader) (failed int) {
 				}
 			}
 		}
+
+		logger.Flush()
 	}
 
 	return
