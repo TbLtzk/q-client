@@ -1,11 +1,9 @@
 package p2p
 
 import (
-	// "bytes"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"fmt"
-	// "io"
 
 	"gitlab.com/q-dev/q-client/crypto"
 	"github.com/obscuren/ecies"
