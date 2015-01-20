@@ -40,6 +40,7 @@ import (
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/state"
+	"gitlab.com/q-dev/q-client/websocket"
 	"gitlab.com/q-dev/q-client/xeth"
 )
 
@@ -198,6 +199,13 @@ func StartRpc(ethereum *eth.Ethereum, RpcPort int) {
 	} else {
 		go ethereum.RpcServer.Start()
 	}
+}
+
+func StartWebSockets(eth *eth.Ethereum) {
+	clilogger.Infoln("Starting WebSockets")
+
+	sock := websocket.NewWebSocketServer(eth)
+	go sock.Serv()
 }
 
 var gminer *miner.Miner

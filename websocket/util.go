@@ -1,24 +1,20 @@
 /*
-	This file is part of go-ethereum
+  This file is part of go-ethereum
 
-	go-ethereum is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+  go-ethereum is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
 
-	go-ethereum is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+  go-ethereum is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with go-ethereum.  If not, see <http://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU General Public License
+  along with go-ethereum.  If not, see <http://www.gnu.org/licenses/>.
 */
-/**
- * @authors
- * 	Jeffrey Wilcke <i@jev.io>
- */
-package utils
+package websocket
 
 import (
 	"gitlab.com/q-dev/q-client/core"
@@ -26,14 +22,10 @@ import (
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event/filter"
-	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/ui"
-	"gitlab.com/q-dev/q-client/websocket"
 	"gitlab.com/q-dev/q-client/xeth"
 )
-
-var wslogger = logger.NewLogger("WS")
 
 func args(v ...interface{}) []interface{} {
 	return v
@@ -54,8 +46,8 @@ func NewWebSocketServer(eth *eth.Ethereum) *WebSocketServer {
 func (self *WebSocketServer) Serv() {
 	pipe := xeth.NewJSXEth(self.eth)
 
-	wsServ := websocket.NewServer("/eth", ":40404")
-	wsServ.MessageFunc(func(c *websocket.Client, msg *websocket.Message) {
+	wsServ := NewServer("/eth", ":40404")
+	wsServ.MessageFunc(func(c *Client, msg *Message) {
 		switch msg.Call {
 		case "compile":
 			data := ethutil.NewValue(msg.Args)
@@ -160,13 +152,6 @@ func toMessages(messages state.Messages) (msgs []xeth.JSMessage) {
 	}
 
 	return
-}
-
-func StartWebSockets(eth *eth.Ethereum) {
-	wslogger.Infoln("Starting WebSockets")
-
-	sock := NewWebSocketServer(eth)
-	go sock.Serv()
 }
 
 // TODO This is starting to become a generic method. Move to utils
