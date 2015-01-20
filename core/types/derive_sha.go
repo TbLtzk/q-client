@@ -1,8 +1,9 @@
 package types
 
 import (
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/ptrie"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 type DerivableList interface {
@@ -11,7 +12,8 @@ type DerivableList interface {
 }
 
 func DeriveSha(list DerivableList) []byte {
-	trie := ptrie.New(nil, ethutil.Config.Db)
+	db, _ := ethdb.NewMemDatabase()
+	trie := trie.New(nil, db)
 	for i := 0; i < list.Len(); i++ {
 		trie.Update(ethutil.Encode(i), list.GetRlp(i))
 	}
