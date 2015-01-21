@@ -3,8 +3,8 @@ package crypto
 import (
 	"strings"
 
+	"gitlab.com/q-dev/q-client/crypto/secp256k1"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"github.com/obscuren/secp256k1-go"
 )
 
 type KeyPair struct {

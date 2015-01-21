@@ -7,10 +7,10 @@ import (
 	"crypto/sha256"
 
 	"code.google.com/p/go.crypto/ripemd160"
+	"gitlab.com/q-dev/q-client/crypto/secp256k1"
 	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"github.com/obscuren/ecies"
-	"github.com/obscuren/secp256k1-go"
 )
 
 func init() {

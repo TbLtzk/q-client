@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/q-dev/q-client/crypto/secp256k1"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"github.com/obscuren/secp256k1-go"
 )
 
 // These tests are sanity checks.
