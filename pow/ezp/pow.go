@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/pow"
-	"github.com/obscuren/sha3"
 )
 
 var powlogger = logger.NewLogger("POW")
