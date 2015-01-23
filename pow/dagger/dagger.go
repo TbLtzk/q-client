@@ -6,9 +6,9 @@ import (
 	"math/rand"
 	"time"
 
+	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
-	"github.com/obscuren/sha3"
 )
 
 var powlogger = logger.NewLogger("POW")
