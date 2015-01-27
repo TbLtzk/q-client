@@ -39,7 +39,7 @@ import (
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/rlp"
 	rpchttp "gitlab.com/q-dev/q-client/rpc/http"
-	rpcws "gitlab.com/q-dev/q-client/rpc/websocket"
+	rpcws "gitlab.com/q-dev/q-client/rpc/ws"
 	"gitlab.com/q-dev/q-client/state"
 	// "gitlab.com/q-dev/q-client/websocket"
 	"gitlab.com/q-dev/q-client/xeth"
