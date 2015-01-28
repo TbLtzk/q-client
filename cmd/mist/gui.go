@@ -45,7 +45,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/ui/qt/qwhisper"
 	"gitlab.com/q-dev/q-client/xeth"
-	"gopkg.in/qml.v1"
+	"github.com/obscuren/qml"
 )
 
 var guilogger = logger.NewLogger("GUI")

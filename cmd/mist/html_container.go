@@ -34,7 +34,7 @@ import (
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/howeyc/fsnotify"
-	"gopkg.in/qml.v1"
+	"github.com/obscuren/qml"
 )
 
 type HtmlApplication struct {

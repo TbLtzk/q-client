@@ -30,7 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
-	"gopkg.in/qml.v1"
+	"github.com/obscuren/qml"
 )
 
 const (

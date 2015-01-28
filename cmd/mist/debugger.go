@@ -32,7 +32,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/vm"
-	"gopkg.in/qml.v1"
+	"github.com/obscuren/qml"
 )
 
 type DebuggerWindow struct {

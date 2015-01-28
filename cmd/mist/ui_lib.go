@@ -36,7 +36,7 @@ import (
 	"gitlab.com/q-dev/q-client/javascript"
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/xeth"
-	"gopkg.in/qml.v1"
+	"github.com/obscuren/qml"
 )
 
 type memAddr struct {

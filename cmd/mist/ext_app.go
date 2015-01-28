@@ -27,7 +27,7 @@ import (
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/ui/qt"
 	"gitlab.com/q-dev/q-client/xeth"
-	"gopkg.in/qml.v1"
+	"github.com/obscuren/qml"
 )
 
 type AppContainer interface {

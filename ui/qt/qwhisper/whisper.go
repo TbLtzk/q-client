@@ -7,7 +7,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/whisper"
-	"gopkg.in/qml.v1"
+	"github.com/obscuren/qml"
 )
 
 var qlogger = logger.NewLogger("QSHH")
