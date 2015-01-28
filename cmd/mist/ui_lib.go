@@ -23,11 +23,11 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"path"
 	"strconv"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
@@ -35,8 +35,6 @@ import (
 	"gitlab.com/q-dev/q-client/event/filter"
 	"gitlab.com/q-dev/q-client/javascript"
 	"gitlab.com/q-dev/q-client/miner"
-	"gitlab.com/q-dev/q-client/state"
-	"gitlab.com/q-dev/q-client/ui/qt"
 	"gitlab.com/q-dev/q-client/xeth"
 	"gopkg.in/qml.v1"
 )
@@ -313,32 +311,48 @@ func (self *UiLib) ToAscii(data string) string {
 
 /// Ethereum filter methods
 func (self *UiLib) NewFilter(object map[string]interface{}, view *qml.Common) (id int) {
+	/* TODO remove me
 	filter := qt.NewFilterFromMap(object, self.eth)
 	filter.MessageCallback = func(messages state.Messages) {
 		view.Call("messages", xeth.ToJSMessages(messages), id)
 	}
 	id = self.filterManager.InstallFilter(filter)
 	return id
+	*/
+	return 0
 }
 
 func (self *UiLib) NewFilterString(typ string, view *qml.Common) (id int) {
+	/* TODO remove me
 	filter := core.NewFilter(self.eth)
 	filter.BlockCallback = func(block *types.Block) {
 		view.Call("messages", "{}", id)
 	}
 	id = self.filterManager.InstallFilter(filter)
 	return id
+	*/
+	return 0
 }
 
 func (self *UiLib) Messages(id int) *ethutil.List {
+	/* TODO remove me
 	filter := self.filterManager.GetFilter(id)
 	if filter != nil {
 		messages := xeth.ToJSMessages(filter.Find())
 
 		return messages
 	}
+	*/
 
 	return ethutil.EmptyList()
+}
+
+func (self *UiLib) ReadFile(p string) string {
+	content, err := ioutil.ReadFile(self.AssetPath(path.Join("ext", p)))
+	if err != nil {
+		guilogger.Infoln("error reading file", p, ":", err)
+	}
+	return string(content)
 }
 
 func (self *UiLib) UninstallFilter(id int) {
