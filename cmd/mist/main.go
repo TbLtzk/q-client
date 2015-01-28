@@ -30,6 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/ui/qt/webengine"
 	"github.com/obscuren/qml"
 )
 
@@ -42,6 +43,8 @@ var ethereum *eth.Ethereum
 var mainlogger = logger.NewLogger("MAIN")
 
 func run() error {
+	webengine.Initialize()
+
 	// precedence: code-internal flag default < config file < environment variables < command line
 	Init() // parsing command line
 
