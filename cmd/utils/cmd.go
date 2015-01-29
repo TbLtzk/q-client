@@ -41,7 +41,6 @@ import (
 	rpchttp "gitlab.com/q-dev/q-client/rpc/http"
 	rpcws "gitlab.com/q-dev/q-client/rpc/ws"
 	"gitlab.com/q-dev/q-client/state"
-	// "gitlab.com/q-dev/q-client/websocket"
 	"gitlab.com/q-dev/q-client/xeth"
 )
 
@@ -205,8 +204,6 @@ func StartRpc(ethereum *eth.Ethereum, RpcPort int) {
 func StartWebSockets(eth *eth.Ethereum, wsPort int) {
 	clilogger.Infoln("Starting WebSockets")
 
-	// sock := websocket.NewWebSocketServer(eth)
-	// go sock.Serv()
 	var err error
 	eth.WsServer, err = rpcws.NewWebSocketServer(eth, wsPort)
 	if err != nil {
