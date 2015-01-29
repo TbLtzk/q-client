@@ -21,6 +21,8 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"io"
 	"net/http"
+	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/state"
 )
 
 var rpclogger = logger.NewLogger("RPC")
@@ -55,4 +57,45 @@ func (self JsonWrapper) ParseRequestBody(req *http.Request) (RpcRequest, error) 
 	rpclogger.DebugDetailf("Parsed request: %s", reqParsed)
 
 	return reqParsed, nil
+}
+
+func toHex(b []byte) string {
+	return "0x" + ethutil.Bytes2Hex(b)
+}
+func fromHex(s string) []byte {
+	if len(s) > 1 {
+		if s[0:2] == "0x" {
+			s = s[2:]
+		}
+		return ethutil.Hex2Bytes(s)
+	}
+	return nil
+}
+
+type RpcServer interface {
+	Start()
+	Stop()
+}
+
+type Log struct {
+	Address string   `json:"address"`
+	Topics  []string `json:"topics"`
+	Data    string   `json:"data"`
+}
+
+func toLogs(logs state.Logs) (ls []Log) {
+	ls = make([]Log, len(logs))
+
+	for i, log := range logs {
+		var l Log
+		l.Topics = make([]string, len(log.Topics()))
+		l.Address = toHex(log.Address())
+		l.Data = toHex(log.Data())
+		for j, topic := range log.Topics() {
+			l.Topics[j] = toHex(topic)
+		}
+		ls[i] = l
+	}
+
+	return
 }
