@@ -18,10 +18,11 @@ package rpc
 
 import (
 	"encoding/json"
-	"gitlab.com/q-dev/q-client/logger"
 	"io"
 	"net/http"
+
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/state"
 )
 
@@ -36,7 +37,7 @@ func (self JsonWrapper) Send(writer io.Writer, v interface{}) (n int, err error)
 		rpclogger.Fatalln("Error marshalling JSON", err)
 		return 0, err
 	}
-	rpclogger.Infof("Sending payload: %s", payload)
+	rpclogger.DebugDetailf("Sending payload: %s", payload)
 
 	return writer.Write(payload)
 }
