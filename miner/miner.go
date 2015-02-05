@@ -24,20 +24,42 @@
 package miner
 
 import (
+	"fmt"
 	"math/big"
 	"sort"
 
-	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/pow"
-	"gitlab.com/q-dev/q-client/pow/ezp"
-	"gitlab.com/q-dev/q-client/state"
-
+	"github.com/ethereum/c-ethash/go-ethash"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/pow"
+	"gitlab.com/q-dev/q-client/state"
 )
+
+var dx = []byte{0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42}
+var dy = []byte{0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43, 0x43}
+
+const epochLen = uint64(1000)
+
+func getSeed(chainMan *core.ChainManager, block *types.Block) (x []byte, y []byte) {
+	if block.Number().Uint64() == 0 {
+		return dx, dy
+	} else if block.Number().Uint64()%epochLen == 0 {
+		x, y = getSeed(chainMan, chainMan.GetBlock(block.ParentHash()))
+		if (block.Number().Uint64()/epochLen)%2 > 0 {
+			y = crypto.Sha3(append(y, block.ParentHash()...))
+		} else {
+			x = crypto.Sha3(append(x, block.ParentHash()...))
+		}
+		return x, y
+	} else {
+		return getSeed(chainMan, chainMan.GetBlock(block.ParentHash()))
+	}
+}
 
 type LocalTx struct {
 	To       []byte `json:"to"`
@@ -77,7 +99,6 @@ func New(coinbase []byte, eth *eth.Ethereum) *Miner {
 	return &Miner{
 		eth:                 eth,
 		powQuitCh:           make(chan struct{}),
-		pow:                 ezp.New(),
 		mining:              false,
 		localTxs:            make(map[int]*LocalTx),
 		MinAcceptedGasPrice: big.NewInt(10000000000000),
@@ -212,6 +233,13 @@ func (self *Miner) mine() {
 	block.SetRoot(state.Root())
 
 	minerlogger.Infof("Mining on block. Includes %v transactions", len(transactions))
+
+	x, y := getSeed(chainMan, block)
+	self.pow, err = ethash.New(append(x, y...), block)
+	if err != nil {
+		fmt.Println("err", err)
+		return
+	}
 
 	// Find a valid nonce
 	nonce := self.pow.Search(block, self.powQuitCh)
