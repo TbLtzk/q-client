@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/c-ethash/go-ethash"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
@@ -14,7 +15,7 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/pow"
-	"gitlab.com/q-dev/q-client/pow/ezp"
+	_ "gitlab.com/q-dev/q-client/pow/ezp"
 	"gitlab.com/q-dev/q-client/state"
 	"gopkg.in/fatih/set.v0"
 )
@@ -62,7 +63,7 @@ func NewBlockProcessor(db ethutil.Database, txpool *TxPool, chainManager *ChainM
 	sm := &BlockProcessor{
 		db:       db,
 		mem:      make(map[string]*big.Int),
-		Pow:      ezp.New(),
+		Pow:      &ethash.Ethash{},
 		bc:       chainManager,
 		eventMux: eventMux,
 		txpool:   txpool,
