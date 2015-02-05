@@ -14,6 +14,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/obscuren/otto"
@@ -201,8 +202,15 @@ func (self *JSRE) addPeer(call otto.FunctionCall) otto.Value {
 	if err != nil {
 		return otto.FalseValue()
 	}
-	self.ethereum.SuggestPeer(host)
-
+	idstr, err := call.Argument(0).ToString()
+	if err != nil {
+		return otto.FalseValue()
+	}
+	id, err := discover.HexID(idstr)
+	if err != nil {
+		return otto.FalseValue()
+	}
+	self.ethereum.SuggestPeer(host, id)
 	return otto.TrueValue()
 }
 

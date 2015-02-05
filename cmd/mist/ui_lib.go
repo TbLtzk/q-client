@@ -31,6 +31,7 @@ import (
 	"gitlab.com/q-dev/q-client/event/filter"
 	"gitlab.com/q-dev/q-client/javascript"
 	"gitlab.com/q-dev/q-client/miner"
+	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/obscuren/qml"
 )
@@ -142,8 +143,13 @@ func (ui *UiLib) Connect(button qml.Object) {
 	}
 }
 
-func (ui *UiLib) ConnectToPeer(addr string) {
-	if err := ui.eth.SuggestPeer(addr); err != nil {
+func (ui *UiLib) ConnectToPeer(addr string, hexid string) {
+	id, err := discover.HexID(hexid)
+	if err != nil {
+		guilogger.Errorf("bad node ID: %v", err)
+		return
+	}
+	if err := ui.eth.SuggestPeer(addr, id); err != nil {
 		guilogger.Infoln(err)
 	}
 }

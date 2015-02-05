@@ -9,7 +9,6 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/p2p"
 )
 
 // Implement our EthTest Manager
@@ -53,13 +52,6 @@ func (tm *TestManager) TxPool() *TxPool {
 
 func (tm *TestManager) EventMux() *event.TypeMux {
 	return tm.eventMux
-}
-func (tm *TestManager) Broadcast(msgType p2p.Msg, data []interface{}) {
-	fmt.Println("Broadcast not implemented")
-}
-
-func (tm *TestManager) ClientIdentity() p2p.ClientIdentity {
-	return nil
 }
 func (tm *TestManager) KeyManager() *crypto.KeyManager {
 	return nil
