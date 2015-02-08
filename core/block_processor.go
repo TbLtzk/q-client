@@ -8,11 +8,9 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/pow/ezp"
 	"gitlab.com/q-dev/q-client/state"
@@ -24,20 +22,6 @@ type PendingBlockEvent struct {
 }
 
 var statelogger = logger.NewLogger("BLOCK")
-
-type EthManager interface {
-	BlockProcessor() *BlockProcessor
-	ChainManager() *ChainManager
-	TxPool() *TxPool
-	PeerCount() int
-	IsMining() bool
-	IsListening() bool
-	Peers() []*p2p.Peer
-	KeyManager() *crypto.KeyManager
-	ClientIdentity() p2p.ClientIdentity
-	Db() ethutil.Database
-	EventMux() *event.TypeMux
-}
 
 type BlockProcessor struct {
 	db ethutil.Database
