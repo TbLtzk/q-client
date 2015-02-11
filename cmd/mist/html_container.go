@@ -21,7 +21,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -32,11 +31,10 @@ import (
 
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/javascript"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/howeyc/fsnotify"
-	"gopkg.in/qml.v1"
+	"github.com/obscuren/qml"
 )
 
 type HtmlApplication struct {
@@ -147,6 +145,7 @@ func (app *HtmlApplication) NewBlock(block *types.Block) {
 }
 
 func (self *HtmlApplication) Messages(messages state.Messages, id string) {
+	/* TODO remove me
 	var msgs []javascript.JSMessage
 	for _, m := range messages {
 		msgs = append(msgs, javascript.NewJSMessage(m))
@@ -155,6 +154,7 @@ func (self *HtmlApplication) Messages(messages state.Messages, id string) {
 	b, _ := json.Marshal(msgs)
 
 	self.webView.Call("onWatchedCb", string(b), id)
+	*/
 }
 
 func (app *HtmlApplication) Destroy() {

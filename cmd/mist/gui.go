@@ -44,7 +44,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/ui/qt/qwhisper"
 	"gitlab.com/q-dev/q-client/xeth"
-	"gopkg.in/qml.v1"
+	"github.com/obscuren/qml"
 )
 
 var guilogger = logger.NewLogger("GUI")
@@ -379,14 +379,6 @@ func (gui *Gui) setup() {
 		gui.loadMergedMiningOptions()
 		gui.setPeerInfo()
 	}()
-
-	// Inject javascript files each time navigation is requested.
-	// Unfortunately webview.experimental.userScripts injects _after_
-	// the page has loaded which kind of renders it useless...
-	//jsfiles := loadJavascriptAssets(gui)
-	gui.getObjectByName("webView").On("navigationRequested", func() {
-		//gui.getObjectByName("webView").Call("injectJs", jsfiles)
-	})
 
 	gui.whisper.SetView(gui.getObjectByName("whisperView"))
 

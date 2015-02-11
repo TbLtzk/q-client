@@ -30,18 +30,21 @@ import (
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
-	"gopkg.in/qml.v1"
+	"gitlab.com/q-dev/q-client/ui/qt/webengine"
+	"github.com/obscuren/qml"
 )
 
 const (
 	ClientIdentifier = "Mist"
-	Version          = "0.8.1"
+	Version          = "0.8.2"
 )
 
 var ethereum *eth.Ethereum
 var mainlogger = logger.NewLogger("MAIN")
 
 func run() error {
+	webengine.Initialize()
+
 	// precedence: code-internal flag default < config file < environment variables < command line
 	Init() // parsing command line
 
@@ -81,7 +84,7 @@ func run() error {
 	utils.RegisterInterrupt(func(os.Signal) {
 		gui.Stop()
 	})
-	go utils.StartEthereum(ethereum, UseSeed)
+	go utils.StartEthereum(ethereum, SeedNode)
 
 	fmt.Println("ETH stack took", time.Since(tstart))
 
