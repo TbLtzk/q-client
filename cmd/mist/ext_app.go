@@ -24,7 +24,6 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/ui/qt"
 	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/obscuren/qml"
@@ -39,7 +38,6 @@ type AppContainer interface {
 
 	NewBlock(*types.Block)
 	NewWatcher(chan bool)
-	Messages(state.Messages, string)
 	Post(string, int)
 }
 
@@ -78,10 +76,6 @@ func (app *ExtApplication) run() {
 		guilogger.Errorln(err)
 		return
 	}
-
-	// Subscribe to events
-	mux := app.lib.eth.EventMux()
-	app.events = mux.Subscribe(core.NewBlockEvent{}, state.Messages(nil))
 
 	// Call the main loop
 	go app.mainLoop()
@@ -125,24 +119,4 @@ func (app *ExtApplication) mainLoop() {
 
 func (self *ExtApplication) Watch(filterOptions map[string]interface{}, identifier string) {
 	self.filters[identifier] = qt.NewFilterFromMap(filterOptions, self.eth)
-}
-
-func (self *ExtApplication) GetMessages(object map[string]interface{}) string {
-	/* TODO remove me
-	filter := qt.NewFilterFromMap(object, self.eth)
-
-	messages := filter.Find()
-	var msgs []javascript.JSMessage
-	for _, m := range messages {
-		msgs = append(msgs, javascript.NewJSMessage(m))
-	}
-
-	b, err := json.Marshal(msgs)
-	if err != nil {
-		return "{\"error\":" + err.Error() + "}"
-	}
-
-	return string(b)
-	*/
-	return ""
 }
