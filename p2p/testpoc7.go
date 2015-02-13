@@ -8,9 +8,9 @@ import (
 	"net"
 	"os"
 
+	"gitlab.com/q-dev/q-client/crypto/secp256k1"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
-	"github.com/obscuren/secp256k1-go"
 )
 
 func main() {

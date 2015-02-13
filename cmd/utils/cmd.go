@@ -38,7 +38,8 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/rlp"
-	"gitlab.com/q-dev/q-client/rpc"
+	rpchttp "gitlab.com/q-dev/q-client/rpc/http"
+	rpcws "gitlab.com/q-dev/q-client/rpc/ws"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
 )
@@ -120,9 +121,9 @@ func exit(err error) {
 	os.Exit(status)
 }
 
-func StartEthereum(ethereum *eth.Ethereum, UseSeed bool) {
+func StartEthereum(ethereum *eth.Ethereum, SeedNode string) {
 	clilogger.Infof("Starting %s", ethereum.ClientIdentity())
-	err := ethereum.Start(UseSeed)
+	err := ethereum.Start(SeedNode)
 	if err != nil {
 		exit(err)
 	}
@@ -192,11 +193,23 @@ func KeyTasks(keyManager *crypto.KeyManager, KeyRing string, GenAddr bool, Secre
 
 func StartRpc(ethereum *eth.Ethereum, RpcPort int) {
 	var err error
-	ethereum.RpcServer, err = rpc.NewJsonRpcServer(xeth.NewJSXEth(ethereum), RpcPort)
+	ethereum.RpcServer, err = rpchttp.NewRpcHttpServer(xeth.New(ethereum), RpcPort)
 	if err != nil {
 		clilogger.Errorf("Could not start RPC interface (port %v): %v", RpcPort, err)
 	} else {
 		go ethereum.RpcServer.Start()
+	}
+}
+
+func StartWebSockets(eth *eth.Ethereum, wsPort int) {
+	clilogger.Infoln("Starting WebSockets")
+
+	var err error
+	eth.WsServer, err = rpcws.NewWebSocketServer(xeth.New(eth), wsPort)
+	if err != nil {
+		clilogger.Errorf("Could not start RPC interface (port %v): %v", wsPort, err)
+	} else {
+		go eth.WsServer.Start()
 	}
 }
 

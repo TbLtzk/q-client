@@ -1,11 +1,7 @@
 package types
 
-import (
-	"math/big"
-
-	"gitlab.com/q-dev/q-client/state"
-)
+import "math/big"
 
 type BlockProcessor interface {
-	Process(*Block) (*big.Int, state.Messages, error)
+	Process(*Block) (*big.Int, error)
 }
