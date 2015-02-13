@@ -7,9 +7,9 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/crypto/secp256k1"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/rlp"
-	"github.com/obscuren/secp256k1-go"
 )
 
 func IsContractAddr(addr []byte) bool {

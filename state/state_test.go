@@ -5,7 +5,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/ptrie"
 )
 
 type StateSuite struct {
@@ -25,10 +24,9 @@ func (s *StateSuite) TestDump(c *checker.C) {
 }
 
 func (s *StateSuite) SetUpTest(c *checker.C) {
-	db, _ := ethdb.NewMemDatabase()
 	ethutil.ReadConfig(".ethtest", "/tmp/ethtest", "")
-	ethutil.Config.Db = db
-	s.state = New(ptrie.New(nil, db))
+	db, _ := ethdb.NewMemDatabase()
+	s.state = New(nil, db)
 }
 
 func (s *StateSuite) TestSnapshot(c *checker.C) {

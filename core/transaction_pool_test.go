@@ -6,16 +6,22 @@ import (
 
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/state"
 )
 
 // State query interface
-type stateQuery struct{}
+type stateQuery struct{ db ethutil.Database }
+
+func SQ() stateQuery {
+	db, _ := ethdb.NewMemDatabase()
+	return stateQuery{db: db}
+}
 
 func (self stateQuery) GetAccount(addr []byte) *state.StateObject {
-	return state.NewStateObject(addr)
+	return state.NewStateObject(addr, self.db)
 }
 
 func transaction() *types.Transaction {
@@ -55,7 +61,7 @@ func TestAddInvalidTx(t *testing.T) {
 func TestRemoveSet(t *testing.T) {
 	pool, _ := setup()
 	tx1 := transaction()
-	pool.pool.Add(tx1)
+	pool.addTx(tx1)
 	pool.RemoveSet(types.Transactions{tx1})
 	if pool.Size() > 0 {
 		t.Error("expected pool size to be 0")
@@ -65,17 +71,27 @@ func TestRemoveSet(t *testing.T) {
 func TestRemoveInvalid(t *testing.T) {
 	pool, key := setup()
 	tx1 := transaction()
-	pool.pool.Add(tx1)
-	pool.RemoveInvalid(stateQuery{})
+	pool.addTx(tx1)
+	pool.RemoveInvalid(SQ())
 	if pool.Size() > 0 {
 		t.Error("expected pool size to be 0")
 	}
 
 	tx1.SetNonce(1)
 	tx1.SignECDSA(key)
-	pool.pool.Add(tx1)
-	pool.RemoveInvalid(stateQuery{})
+	pool.addTx(tx1)
+	pool.RemoveInvalid(SQ())
 	if pool.Size() != 1 {
 		t.Error("expected pool size to be 1, is", pool.Size())
+	}
+}
+
+func TestInvalidSender(t *testing.T) {
+	pool, _ := setup()
+	tx := new(types.Transaction)
+	tx.V = 28
+	err := pool.ValidateTransaction(tx)
+	if err != ErrInvalidSender {
+		t.Error("expected %v, got %v", ErrInvalidSender, err)
 	}
 }

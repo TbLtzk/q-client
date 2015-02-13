@@ -7,10 +7,10 @@ import (
 	"log"
 	"os"
 
+	"gitlab.com/q-dev/q-client/crypto/secp256k1"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/whisper"
-	"github.com/obscuren/secp256k1-go"
 )
 
 func main() {
