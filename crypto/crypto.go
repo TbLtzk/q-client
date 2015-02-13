@@ -18,10 +18,10 @@ import (
 	"code.google.com/p/go-uuid/uuid"
 	"code.google.com/p/go.crypto/pbkdf2"
 	"code.google.com/p/go.crypto/ripemd160"
+	"gitlab.com/q-dev/q-client/crypto/ecies"
 	"gitlab.com/q-dev/q-client/crypto/secp256k1"
 	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"github.com/obscuren/ecies"
 )
 
 func init() {

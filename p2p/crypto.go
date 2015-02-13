@@ -8,10 +8,10 @@ import (
 	"io"
 
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/crypto/ecies"
 	"gitlab.com/q-dev/q-client/crypto/secp256k1"
 	ethlogger "gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p/discover"
-	"github.com/obscuren/ecies"
 )
 
 var clogger = ethlogger.NewLogger("CRYPTOID")
