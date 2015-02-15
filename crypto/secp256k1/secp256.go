@@ -15,8 +15,9 @@ import "C"
 import (
 	"bytes"
 	"errors"
-	"gitlab.com/q-dev/q-client/crypto/randentropy"
 	"unsafe"
+
+	"gitlab.com/q-dev/q-client/crypto/randentropy"
 )
 
 //#define USE_FIELD_5X64
@@ -85,6 +86,10 @@ func GenerateKeyPair() ([]byte, []byte) {
 }
 
 func GeneratePubKey(seckey []byte) ([]byte, error) {
+	if err := VerifySeckeyValidity(seckey); err != nil {
+		return nil, err
+	}
+
 	pubkey_len := C.int(65)
 	const seckey_len = 32
 
