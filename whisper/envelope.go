@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/crypto/ecies"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/rlp"
-	"github.com/obscuren/ecies"
 )
 
 const (

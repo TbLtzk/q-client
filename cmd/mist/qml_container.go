@@ -22,12 +22,10 @@
 package main
 
 import (
-	"fmt"
 	"runtime"
 
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/obscuren/qml"
 )
@@ -72,10 +70,6 @@ func (app *QmlApplication) NewWatcher(quitChan chan bool) {
 func (app *QmlApplication) NewBlock(block *types.Block) {
 	pblock := &xeth.Block{Number: int(block.NumberU64()), Hash: ethutil.Bytes2Hex(block.Hash())}
 	app.win.Call("onNewBlockCb", pblock)
-}
-
-func (self *QmlApplication) Messages(msgs state.Messages, id string) {
-	fmt.Println("IMPLEMENT QML APPLICATION MESSAGES METHOD")
 }
 
 // Getters
