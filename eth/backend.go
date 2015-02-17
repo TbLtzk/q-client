@@ -11,6 +11,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	ethlogger "gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/p2p/nat"
@@ -95,6 +96,7 @@ type Ethereum struct {
 	eventMux *event.TypeMux
 	txSub    event.Subscription
 	blockSub event.Subscription
+	miner    *miner.Miner
 
 	RpcServer  rpc.RpcServer
 	WsServer   rpc.RpcServer
@@ -151,6 +153,7 @@ func New(config *Config) (*Ethereum, error) {
 	eth.blockProcessor = core.NewBlockProcessor(db, eth.txPool, eth.chainManager, eth.EventMux())
 	eth.chainManager.SetProcessor(eth.blockProcessor)
 	eth.whisper = whisper.New()
+	eth.miner = miner.New(keyManager.Address(), eth)
 
 	hasBlock := eth.chainManager.HasBlock
 	insertChain := eth.chainManager.InsertChain
@@ -181,69 +184,22 @@ func New(config *Config) (*Ethereum, error) {
 	return eth, nil
 }
 
-func (s *Ethereum) KeyManager() *crypto.KeyManager {
-	return s.keyManager
-}
-
-func (s *Ethereum) Logger() ethlogger.LogSystem {
-	return s.logger
-}
-
-func (s *Ethereum) Name() string {
-	return s.net.Name
-}
-
-func (s *Ethereum) ChainManager() *core.ChainManager {
-	return s.chainManager
-}
-
-func (s *Ethereum) BlockProcessor() *core.BlockProcessor {
-	return s.blockProcessor
-}
-
-func (s *Ethereum) TxPool() *core.TxPool {
-	return s.txPool
-}
-
-func (s *Ethereum) BlockPool() *BlockPool {
-	return s.blockPool
-}
-
-func (s *Ethereum) Whisper() *whisper.Whisper {
-	return s.whisper
-}
-
-func (s *Ethereum) EventMux() *event.TypeMux {
-	return s.eventMux
-}
-func (self *Ethereum) Db() ethutil.Database {
-	return self.db
-}
-
-func (s *Ethereum) IsMining() bool {
-	return s.Mining
-}
-
-func (s *Ethereum) IsListening() bool {
-	// XXX TODO
-	return false
-}
-
-func (s *Ethereum) PeerCount() int {
-	return s.net.PeerCount()
-}
-
-func (s *Ethereum) Peers() []*p2p.Peer {
-	return s.net.Peers()
-}
-
-func (s *Ethereum) MaxPeers() int {
-	return s.net.MaxPeers
-}
-
-func (s *Ethereum) Coinbase() []byte {
-	return nil // TODO
-}
+func (s *Ethereum) KeyManager() *crypto.KeyManager       { return s.keyManager }
+func (s *Ethereum) Logger() ethlogger.LogSystem          { return s.logger }
+func (s *Ethereum) Name() string                         { return s.net.Name }
+func (s *Ethereum) ChainManager() *core.ChainManager     { return s.chainManager }
+func (s *Ethereum) BlockProcessor() *core.BlockProcessor { return s.blockProcessor }
+func (s *Ethereum) TxPool() *core.TxPool                 { return s.txPool }
+func (s *Ethereum) BlockPool() *BlockPool                { return s.blockPool }
+func (s *Ethereum) Whisper() *whisper.Whisper            { return s.whisper }
+func (s *Ethereum) EventMux() *event.TypeMux             { return s.eventMux }
+func (s *Ethereum) Db() ethutil.Database                 { return s.db }
+func (s *Ethereum) Miner() *miner.Miner                  { return s.miner }
+func (s *Ethereum) IsListening() bool                    { return true } // Always listening
+func (s *Ethereum) PeerCount() int                       { return s.net.PeerCount() }
+func (s *Ethereum) Peers() []*p2p.Peer                   { return s.net.Peers() }
+func (s *Ethereum) MaxPeers() int                        { return s.net.MaxPeers }
+func (s *Ethereum) Coinbase() []byte                     { return nil } // TODO
 
 // Start the ethereum
 func (s *Ethereum) Start() error {

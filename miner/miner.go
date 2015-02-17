@@ -3,7 +3,7 @@ package miner
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/pow/ezp"
 )
@@ -16,13 +16,13 @@ type Miner struct {
 	MinAcceptedGasPrice *big.Int
 	Extra               string
 
-	coinbase []byte
+	Coinbase []byte
 	mining   bool
 }
 
-func New(coinbase []byte, eth *eth.Ethereum) *Miner {
+func New(coinbase []byte, eth core.Backend) *Miner {
 	miner := &Miner{
-		coinbase: coinbase,
+		Coinbase: coinbase,
 		worker:   newWorker(coinbase, eth),
 	}
 

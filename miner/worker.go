@@ -8,7 +8,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/pow"
@@ -25,7 +24,7 @@ type environment struct {
 	uncles       *set.Set
 }
 
-func env(block *types.Block, eth *eth.Ethereum) *environment {
+func env(block *types.Block, eth core.Backend) *environment {
 	state := state.New(block.Root(), eth.Db())
 	env := &environment{
 		totalUsedGas: new(big.Int),
@@ -63,7 +62,7 @@ type worker struct {
 	quit   chan struct{}
 	pow    pow.PoW
 
-	eth      *eth.Ethereum
+	eth      core.Backend
 	chain    *core.ChainManager
 	proc     *core.BlockProcessor
 	coinbase []byte
@@ -73,7 +72,7 @@ type worker struct {
 	mining bool
 }
 
-func newWorker(coinbase []byte, eth *eth.Ethereum) *worker {
+func newWorker(coinbase []byte, eth core.Backend) *worker {
 	return &worker{
 		eth:      eth,
 		mux:      eth.EventMux(),
