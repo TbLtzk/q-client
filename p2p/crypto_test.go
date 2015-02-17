@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"gitlab.com/q-dev/q-client/crypto"
-	"github.com/obscuren/ecies"
+	"gitlab.com/q-dev/q-client/crypto/ecies"
 )
 
 func TestPublicKeyEncoding(t *testing.T) {
