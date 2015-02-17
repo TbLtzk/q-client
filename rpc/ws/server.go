@@ -21,10 +21,10 @@ import (
 	"net"
 	"net/http"
 
-	"code.google.com/p/go.net/websocket"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/xeth"
+	"golang.org/x/net/websocket"
 )
 
 var wslogger = logger.NewLogger("RPC-WS")
