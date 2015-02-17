@@ -16,7 +16,6 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/whisper"
 )
 
@@ -220,7 +219,7 @@ func (self *XEth) Call(toStr, valueStr, gasStr, gasPriceStr, dataStr string) (st
 	var (
 		statedb = self.chainManager.TransState()
 		key     = self.eth.KeyManager().KeyPair()
-		from    = state.NewStateObject(key.Address(), self.eth.Db())
+		from    = statedb.GetOrNewStateObject(key.Address())
 		block   = self.chainManager.CurrentBlock()
 		to      = statedb.GetOrNewStateObject(fromHex(toStr))
 		data    = fromHex(dataStr)
