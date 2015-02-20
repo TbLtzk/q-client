@@ -9,7 +9,6 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/wire"
 )
 
 // Implement our EthTest Manager
@@ -54,13 +53,6 @@ func (tm *TestManager) TxPool() *TxPool {
 func (tm *TestManager) EventMux() *event.TypeMux {
 	return tm.eventMux
 }
-func (tm *TestManager) Broadcast(msgType wire.MsgType, data []interface{}) {
-	fmt.Println("Broadcast not implemented")
-}
-
-func (tm *TestManager) ClientIdentity() wire.ClientIdentity {
-	return nil
-}
 func (tm *TestManager) KeyManager() *crypto.KeyManager {
 	return nil
 }
@@ -77,7 +69,6 @@ func NewTestManager() *TestManager {
 		fmt.Println("Could not create mem-db, failing")
 		return nil
 	}
-	ethutil.Config.Db = db
 
 	testManager := &TestManager{}
 	testManager.eventMux = new(event.TypeMux)
