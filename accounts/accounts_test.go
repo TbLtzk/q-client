@@ -5,10 +5,11 @@ import (
 
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/crypto/randentropy"
+	"gitlab.com/q-dev/q-client/ethutil"
 )
 
 func TestAccountManager(t *testing.T) {
-	ks := crypto.NewKeyStorePlain(crypto.DefaultDataDir())
+	ks := crypto.NewKeyStorePlain(ethutil.DefaultDataDir())
 	am := NewAccountManager(ks)
 	pass := "" // not used but required by API
 	a1, err := am.NewAccount(pass)
