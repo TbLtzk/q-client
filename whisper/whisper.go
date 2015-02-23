@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/crypto/ecies"
 	"gitlab.com/q-dev/q-client/event/filter"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
-	"github.com/obscuren/ecies"
 	"gopkg.in/fatih/set.v0"
 )
 
