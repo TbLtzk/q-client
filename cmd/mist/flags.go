@@ -27,7 +27,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime"
 
 	"gitlab.com/q-dev/q-client/crypto"
@@ -35,7 +34,6 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p/nat"
 	"gitlab.com/q-dev/q-client/vm"
-	"github.com/kardianos/osext"
 )
 
 var (

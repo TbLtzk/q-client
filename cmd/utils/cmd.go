@@ -25,10 +25,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path"
-	"path/filepath"
 	"regexp"
-	"runtime"
 
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
