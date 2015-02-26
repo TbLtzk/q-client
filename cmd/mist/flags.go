@@ -30,12 +30,12 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"bitbucket.org/kardianos/osext"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p/nat"
 	"gitlab.com/q-dev/q-client/vm"
+	"github.com/kardianos/osext"
 )
 
 var (

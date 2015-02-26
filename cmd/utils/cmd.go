@@ -30,7 +30,6 @@ import (
 	"regexp"
 	"runtime"
 
-	"bitbucket.org/kardianos/osext"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
@@ -42,6 +41,7 @@ import (
 	rpcws "gitlab.com/q-dev/q-client/rpc/ws"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
+	"github.com/kardianos/osext"
 )
 
 var clilogger = logger.NewLogger("CLI")
