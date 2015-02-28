@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/pow"
-	"gitlab.com/q-dev/q-client/pow/ezp"
 	"gitlab.com/q-dev/q-client/state"
 	"gopkg.in/fatih/set.v0"
 )
@@ -50,7 +50,7 @@ func NewBlockProcessor(db ethutil.Database, txpool *TxPool, chainManager *ChainM
 	sm := &BlockProcessor{
 		db:       db,
 		mem:      make(map[string]*big.Int),
-		Pow:      ezp.New(),
+		Pow:      ethash.New(chainManager),
 		bc:       chainManager,
 		eventMux: eventMux,
 		txpool:   txpool,
@@ -255,6 +255,7 @@ func (sm *BlockProcessor) ValidateBlock(block, parent *types.Block) error {
 		return fmt.Errorf("GasLimit check failed for block %v, %v", block.Header().GasLimit, expl)
 	}
 
+	// There can be at most one uncle
 	if len(block.Uncles()) > 1 {
 		return ValidationError("Block can only contain one uncle (contained %v)", len(block.Uncles()))
 	}
