@@ -12,19 +12,19 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethutil"
-	ethlogger "gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/pow"
 )
 
 const waitTimeout = 60 // seconds
 
-var logsys = ethlogger.NewStdLogSystem(os.Stdout, log.LstdFlags, ethlogger.LogLevel(ethlogger.DebugDetailLevel))
+var logsys = logger.NewStdLogSystem(os.Stdout, log.LstdFlags, logger.LogLevel(logger.DebugDetailLevel))
 
 var ini = false
 
 func logInit() {
 	if !ini {
-		ethlogger.AddLogSystem(logsys)
+		logger.AddLogSystem(logsys)
 		ini = true
 	}
 }
