@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rlp"
 )
@@ -136,6 +137,12 @@ func (self *ethProtocol) handle() error {
 		var txs []*types.Transaction
 		if err := msg.Decode(&txs); err != nil {
 			return self.protoError(ErrDecode, "msg %v: %v", msg, err)
+		}
+		for _, tx := range txs {
+			jsonlogger.LogJson(&logger.EthTxReceived{
+				TxHash:   ethutil.Bytes2Hex(tx.Hash()),
+				RemoteId: self.peer.ID().String(),
+			})
 		}
 		self.txPool.AddTransactions(txs)
 
