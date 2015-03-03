@@ -32,7 +32,6 @@ import (
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/rlp"
 	rpchttp "gitlab.com/q-dev/q-client/rpc/http"
 	rpcws "gitlab.com/q-dev/q-client/rpc/ws"
@@ -182,32 +181,6 @@ func StartWebSockets(eth *eth.Ethereum, wsPort int) {
 	}
 }
 
-var gminer *miner.Miner
-
-func GetMiner() *miner.Miner {
-	return gminer
-}
-
-func StartMining(ethereum *eth.Ethereum) bool {
-	if !ethereum.Mining {
-		ethereum.Mining = true
-		addr := ethereum.KeyManager().Address()
-
-		go func() {
-			clilogger.Infoln("Start mining")
-			if gminer == nil {
-				gminer = miner.New(addr, ethereum, 4)
-			}
-			gminer.Start()
-		}()
-		RegisterInterrupt(func(os.Signal) {
-			StopMining(ethereum)
-		})
-		return true
-	}
-	return false
-}
-
 func FormatTransactionData(data string) []byte {
 	d := ethutil.StringToByteFunc(data, func(s string) (ret []byte) {
 		slice := regexp.MustCompile("\\n|\\s").Split(s, 1000000000)
@@ -219,18 +192,6 @@ func FormatTransactionData(data string) []byte {
 	})
 
 	return d
-}
-
-func StopMining(ethereum *eth.Ethereum) bool {
-	if ethereum.Mining && gminer != nil {
-		gminer.Stop()
-		clilogger.Infoln("Stopped mining")
-		ethereum.Mining = false
-
-		return true
-	}
-
-	return false
 }
 
 // Replay block

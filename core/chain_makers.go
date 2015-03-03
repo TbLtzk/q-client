@@ -2,12 +2,13 @@ package core
 
 import (
 	"fmt"
+	"math/big"
+
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/state"
-	"math/big"
 )
 
 // So we can generate blocks easily
@@ -119,8 +120,7 @@ func newChainManager(block *types.Block, eventMux *event.TypeMux, db ethutil.Dat
 
 // block processor with fake pow
 func newBlockProcessor(db ethutil.Database, txpool *TxPool, cman *ChainManager, eventMux *event.TypeMux) *BlockProcessor {
-	bman := NewBlockProcessor(db, txpool, newChainManager(nil, eventMux, db), eventMux)
-	bman.Pow = FakePow{}
+	bman := NewBlockProcessor(db, FakePow{}, txpool, newChainManager(nil, eventMux, db), eventMux)
 	return bman
 }
 
