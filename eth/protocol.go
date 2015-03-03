@@ -9,6 +9,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/errs"
 	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rlp"
 )
@@ -165,6 +166,12 @@ func (self *ethProtocol) handle() error {
 		if err := msg.Decode(&txs); err != nil {
 			return self.protoError(ErrDecode, "msg %v: %v", msg, err)
 		}
+		for _, tx := range txs {
+			jsonlogger.LogJson(&logger.EthTxReceived{
+				TxHash:   ethutil.Bytes2Hex(tx.Hash()),
+				RemoteId: self.peer.ID().String(),
+			})
+		}
 		self.txPool.AddTransactions(txs)
 
 	case GetBlockHashesMsg:
@@ -243,6 +250,15 @@ func (self *ethProtocol) handle() error {
 			return self.protoError(ErrDecode, "msg %v: %v", msg, err)
 		}
 		hash := request.Block.Hash()
+		_, chainHead, _ := self.chainManager.Status()
+
+		jsonlogger.LogJson(&logger.EthChainReceivedNewBlock{
+			BlockHash:     ethutil.Bytes2Hex(hash),
+			BlockNumber:   request.Block.Number(), // this surely must be zero
+			ChainHeadHash: ethutil.Bytes2Hex(chainHead),
+			BlockPrevHash: ethutil.Bytes2Hex(request.Block.ParentHash()),
+			RemoteId:      self.peer.ID().String(),
+		})
 		// to simplify backend interface adding a new block
 		// uses AddPeer followed by AddBlock only if peer is the best peer
 		// (or selected as new best peer)
