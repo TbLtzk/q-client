@@ -6,7 +6,6 @@ import (
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/state"
-	"gitlab.com/q-dev/q-client/ui"
 	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/obscuren/otto"
 )
@@ -95,18 +94,4 @@ func (self *JSEthereum) toVal(v interface{}) otto.Value {
 	}
 
 	return result
-}
-
-func (self *JSEthereum) Messages(object map[string]interface{}) otto.Value {
-	filter := ui.NewFilterFromMap(object, self.ethereum)
-
-	logs := filter.Find()
-	var jslogs []JSLog
-	for _, m := range logs {
-		jslogs = append(jslogs, NewJSLog(m))
-	}
-
-	v, _ := self.vm.ToValue(jslogs)
-
-	return v
 }
