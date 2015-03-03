@@ -12,11 +12,11 @@ import (
 
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethutil"
-	ethlogger "gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/pow"
 )
 
-var poolLogger = ethlogger.NewLogger("Blockpool")
+var poolLogger = logger.NewLogger("Blockpool")
 
 const (
 	blockHashesBatchSize       = 256
