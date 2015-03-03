@@ -34,7 +34,6 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/rlp"
 	rpchttp "gitlab.com/q-dev/q-client/rpc/http"
-	rpcws "gitlab.com/q-dev/q-client/rpc/ws"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
 )
@@ -166,18 +165,6 @@ func StartRpc(ethereum *eth.Ethereum, RpcListenAddress string, RpcPort int) {
 		clilogger.Errorf("Could not start RPC interface (port %v): %v", RpcPort, err)
 	} else {
 		go ethereum.RpcServer.Start()
-	}
-}
-
-func StartWebSockets(eth *eth.Ethereum, wsPort int) {
-	clilogger.Infoln("Starting WebSockets")
-
-	var err error
-	eth.WsServer, err = rpcws.NewWebSocketServer(xeth.New(eth), wsPort)
-	if err != nil {
-		clilogger.Errorf("Could not start RPC interface (port %v): %v", wsPort, err)
-	} else {
-		go eth.WsServer.Start()
 	}
 }
 
