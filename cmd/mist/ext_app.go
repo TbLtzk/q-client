@@ -24,7 +24,6 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/ui/qt"
 	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/obscuren/qml"
 )
@@ -115,8 +114,4 @@ func (app *ExtApplication) mainLoop() {
 			*/
 		}
 	}
-}
-
-func (self *ExtApplication) Watch(filterOptions map[string]interface{}, identifier string) {
-	self.filters[identifier] = qt.NewFilterFromMap(filterOptions, self.eth)
 }
