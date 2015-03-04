@@ -26,6 +26,7 @@ import (
 	"runtime"
 	"time"
 
+	"gitlab.com/q-dev/q-client/cmd/ethereum/repl"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
@@ -137,7 +138,12 @@ func main() {
 	}
 
 	if StartJsConsole {
-		InitJsConsole(ethereum)
+		repl := ethrepl.NewJSRepl(ethereum)
+		repl.Start()
+		utils.RegisterInterrupt(func(os.Signal) {
+			repl.Stop()
+		})
+
 	} else if len(InputFile) > 0 {
 		ExecJsFile(ethereum, InputFile)
 	}
