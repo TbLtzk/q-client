@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/p2p/nat"
@@ -135,7 +136,7 @@ func (srv *Server) SuggestPeer(n *discover.Node) {
 func (srv *Server) Broadcast(protocol string, code uint64, data ...interface{}) {
 	var payload []byte
 	if data != nil {
-		payload = encodePayload(data...)
+		payload = ethutil.Encode(data)
 	}
 	srv.lock.RLock()
 	defer srv.lock.RUnlock()
