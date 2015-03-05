@@ -19,7 +19,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/p2p/nat"
-	"gitlab.com/q-dev/q-client/pow/ezp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/whisper"
 )
@@ -189,7 +188,7 @@ func New(config *Config) (*Ethereum, error) {
 
 	hasBlock := eth.chainManager.HasBlock
 	insertChain := eth.chainManager.InsertChain
-	eth.blockPool = blockpool.New(hasBlock, insertChain, ezp.Verify)
+	eth.blockPool = blockpool.New(hasBlock, insertChain, pow.Verify)
 
 	netprv, err := config.nodeKey()
 	if err != nil {
