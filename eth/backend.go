@@ -20,6 +20,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/p2p/nat"
 	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/vm"
 	"gitlab.com/q-dev/q-client/whisper"
 )
 
@@ -43,6 +44,7 @@ type Config struct {
 	LogLevel  int
 	KeyRing   string
 	LogFormat string
+	VmDebug   bool
 
 	MaxPeers int
 	Port     string
@@ -211,6 +213,8 @@ func New(config *Config) (*Ethereum, error) {
 	if len(config.Port) > 0 {
 		eth.net.ListenAddr = ":" + config.Port
 	}
+
+	vm.Debug = config.VmDebug
 
 	return eth, nil
 }
