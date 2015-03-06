@@ -21,20 +21,23 @@ import (
 	"io/ioutil"
 	"os"
 
+	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/javascript"
 	"gitlab.com/q-dev/q-client/xeth"
 )
 
-func ExecJsFile(ethereum *eth.Ethereum, InputFile string) {
-	file, err := os.Open(InputFile)
+func execJsFile(ethereum *eth.Ethereum, filename string) {
+	file, err := os.Open(filename)
 	if err != nil {
-		clilogger.Fatalln(err)
+		utils.Fatalf("%v", err)
 	}
 	content, err := ioutil.ReadAll(file)
 	if err != nil {
-		clilogger.Fatalln(err)
+		utils.Fatalf("%v", err)
 	}
 	re := javascript.NewJSRE(xeth.New(ethereum))
-	re.Run(string(content))
+	if _, err := re.Run(string(content)); err != nil {
+		utils.Fatalf("Javascript Error: %v", err)
+	}
 }
