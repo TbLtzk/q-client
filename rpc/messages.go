@@ -20,8 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
-	"gitlab.com/q-dev/q-client/xeth"
 )
 
 var (
