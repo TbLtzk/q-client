@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	ethlogger "github.com/ethereum/go-ethereu/logger"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/errs"
 	"gitlab.com/q-dev/q-client/ethutil"
+	ethlogger "gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 )
