@@ -3,10 +3,11 @@ package accounts
 import (
 	"testing"
 
+	"time"
+
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/crypto/randentropy"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"time"
 )
 
 func TestAccountManager(t *testing.T) {
