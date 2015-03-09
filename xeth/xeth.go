@@ -19,6 +19,7 @@ import (
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/state"
+	"gitlab.com/q-dev/q-client/ui"
 	"gitlab.com/q-dev/q-client/whisper"
 )
 
@@ -33,7 +34,8 @@ type Backend interface {
 	PeerCount() int
 	IsListening() bool
 	Peers() []*p2p.Peer
-	Db() ethutil.Database
+	BlockDb() ethutil.Database
+	StateDb() ethutil.Database
 	EventMux() *event.TypeMux
 	Whisper() *whisper.Whisper
 	Miner() *miner.Miner
@@ -47,9 +49,16 @@ type XEth struct {
 	state          *State
 	whisper        *Whisper
 	miner          *miner.Miner
+
+	frontend ui.Interface
 }
 
-func New(eth Backend) *XEth {
+type TmpFrontend struct{}
+
+func (TmpFrontend) UnlockAccount([]byte) bool                  { panic("UNLOCK ACCOUNT") }
+func (TmpFrontend) ConfirmTransaction(*types.Transaction) bool { panic("CONFIRM TRANSACTION") }
+
+func New(eth Backend, frontend ui.Interface) *XEth {
 	xeth := &XEth{
 		eth:            eth,
 		blockProcessor: eth.BlockProcessor(),
@@ -58,6 +67,11 @@ func New(eth Backend) *XEth {
 		whisper:        NewWhisper(eth.Whisper()),
 		miner:          eth.Miner(),
 	}
+
+	if frontend == nil {
+		xeth.frontend = TmpFrontend{}
+	}
+
 	xeth.state = NewState(xeth, xeth.chainManager.TransState())
 
 	return xeth

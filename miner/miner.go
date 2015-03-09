@@ -3,6 +3,7 @@ package miner
 import (
 	"math/big"
 
+	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/pow"
@@ -44,6 +45,8 @@ func (self *Miner) Mining() bool {
 func (self *Miner) Start() {
 	self.mining = true
 
+	self.pow.(*ethash.Ethash).UpdateDAG()
+
 	self.worker.start()
 
 	self.worker.commitNewWork()
@@ -53,6 +56,8 @@ func (self *Miner) Stop() {
 	self.mining = false
 
 	self.worker.stop()
+
+	//self.pow.(*ethash.Ethash).Stop()
 }
 
 func (self *Miner) HashRate() int64 {
