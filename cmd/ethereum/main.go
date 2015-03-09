@@ -31,6 +31,7 @@ import (
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/state"
 )
 
@@ -61,7 +62,7 @@ func main() {
 	utils.InitConfig(VmType, ConfigFile, Datadir, "ETH")
 
 	ethereum, err := eth.New(&eth.Config{
-		Name:         ethutil.MakeVersion(ClientIdentifier, Version),
+		Name:         p2p.MakeName(ClientIdentifier, Version),
 		KeyStore:     KeyStore,
 		DataDir:      Datadir,
 		LogFile:      LogFile,
