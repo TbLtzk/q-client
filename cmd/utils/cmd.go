@@ -34,9 +34,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/rlp"
-	rpchttp "gitlab.com/q-dev/q-client/rpc/http"
 	"gitlab.com/q-dev/q-client/state"
-	"gitlab.com/q-dev/q-client/xeth"
 )
 
 var clilogger = logger.NewLogger("CLI")
@@ -163,16 +161,6 @@ func KeyTasks(keyManager *crypto.KeyManager, KeyRing string, GenAddr bool, Secre
 		}
 	}
 	clilogger.Infof("Main address %x\n", keyManager.Address())
-}
-
-func StartRpc(ethereum *eth.Ethereum, RpcListenAddress string, RpcPort int) {
-	var err error
-	ethereum.RpcServer, err = rpchttp.NewRpcHttpServer(xeth.New(ethereum), RpcListenAddress, RpcPort)
-	if err != nil {
-		clilogger.Errorf("Could not start RPC interface (port %v): %v", RpcPort, err)
-	} else {
-		go ethereum.RpcServer.Start()
-	}
 }
 
 func FormatTransactionData(data string) []byte {
