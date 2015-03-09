@@ -20,7 +20,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/p2p/nat"
-	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/whisper"
 )
 
@@ -123,8 +122,6 @@ type Ethereum struct {
 	txSub    event.Subscription
 	blockSub event.Subscription
 	miner    *miner.Miner
-
-	RpcServer rpc.RpcServer
 
 	logger logger.LogSystem
 
@@ -267,10 +264,6 @@ func (s *Ethereum) Stop() {
 
 	s.txSub.Unsubscribe()    // quits txBroadcastLoop
 	s.blockSub.Unsubscribe() // quits blockBroadcastLoop
-
-	if s.RpcServer != nil {
-		s.RpcServer.Stop()
-	}
 
 	s.txPool.Stop()
 	s.eventMux.Stop()
