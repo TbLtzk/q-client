@@ -19,6 +19,17 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/nat"
 )
 
+// NewApp creates an app with sane defaults.
+func NewApp(version, usage string) *cli.App {
+	app := cli.NewApp()
+	app.Name = path.Base(os.Args[0])
+	app.Author = ""
+	app.Email = ""
+	app.Version = version
+	app.Usage = usage
+	return app
+}
+
 // These are all the command line flags we support.
 // If you add to this list, please remember to include the
 // flag in the appropriate command definition.
