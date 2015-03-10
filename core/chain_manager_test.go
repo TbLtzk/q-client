@@ -12,14 +12,12 @@ import (
 
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	ethutil.ReadConfig("/tmp/ethtest", "/tmp/ethtest", "ETH")
 }
 
 // Test fork of length N starting from block i

@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 
-	"gitlab.com/q-dev/q-client/ethutil"
 	logpkg "gitlab.com/q-dev/q-client/logger"
 )
 
@@ -14,6 +13,4 @@ var Log = logpkg.NewLogger("TEST")
 func init() {
 	Logger = logpkg.NewStdLogSystem(os.Stdout, log.LstdFlags, logpkg.InfoLevel)
 	logpkg.AddLogSystem(Logger)
-
-	ethutil.ReadConfig(".ethtest", "/tmp/ethtest", "")
 }
