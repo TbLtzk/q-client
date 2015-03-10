@@ -1,11 +1,10 @@
 package ethdb
 
 import (
-	"path"
 	"fmt"
 
-	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/compression/rle"
+	"gitlab.com/q-dev/q-client/ethutil"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
@@ -15,17 +14,13 @@ type LDBDatabase struct {
 	comp bool
 }
 
-func NewLDBDatabase(name string) (*LDBDatabase, error) {
-	dbPath := path.Join(ethutil.Config.ExecPath, name)
-
+func NewLDBDatabase(file string) (*LDBDatabase, error) {
 	// Open the db
-	db, err := leveldb.OpenFile(dbPath, nil)
+	db, err := leveldb.OpenFile(file, nil)
 	if err != nil {
 		return nil, err
 	}
-
 	database := &LDBDatabase{db: db, comp: true}
-
 	return database, nil
 }
 

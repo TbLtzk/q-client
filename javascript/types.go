@@ -2,8 +2,6 @@ package javascript
 
 import (
 	"fmt"
-
-	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
@@ -55,8 +53,7 @@ func NewJSLog(log state.Log) JSLog {
 
 type JSEthereum struct {
 	*xeth.XEth
-	vm       *otto.Otto
-	ethereum *eth.Ethereum
+	vm *otto.Otto
 }
 
 func (self *JSEthereum) Block(v interface{}) otto.Value {

@@ -11,13 +11,23 @@ import (
 
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/errs"
 	"gitlab.com/q-dev/q-client/ethutil"
-	"gitlab.com/q-dev/q-client/logger"
+	ethlogger "gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 )
 
-var sys = logger.NewStdLogSystem(os.Stdout, log.LstdFlags, logger.LogLevel(logger.DebugDetailLevel))
+var logsys = ethlogger.NewStdLogSystem(os.Stdout, log.LstdFlags, ethlogger.LogLevel(ethlogger.DebugDetailLevel))
+
+var ini = false
+
+func logInit() {
+	if !ini {
+		ethlogger.AddLogSystem(logsys)
+		ini = true
+	}
+}
 
 type testMsgReadWriter struct {
 	in  chan p2p.Msg
@@ -64,7 +74,7 @@ type testChainManager struct {
 type testBlockPool struct {
 	addBlockHashes func(next func() ([]byte, bool), peerId string)
 	addBlock       func(block *types.Block, peerId string) (err error)
-	addPeer        func(td *big.Int, currentBlock []byte, peerId string, requestHashes func([]byte) error, requestBlocks func([][]byte) error, peerError func(int, string, ...interface{})) (best bool)
+	addPeer        func(td *big.Int, currentBlock []byte, peerId string, requestHashes func([]byte) error, requestBlocks func([][]byte) error, peerError func(*errs.Error)) (best bool)
 	removePeer     func(peerId string)
 }
 
@@ -116,7 +126,7 @@ func (self *testBlockPool) AddBlock(block *types.Block, peerId string) {
 	}
 }
 
-func (self *testBlockPool) AddPeer(td *big.Int, currentBlock []byte, peerId string, requestBlockHashes func([]byte) error, requestBlocks func([][]byte) error, peerError func(int, string, ...interface{})) (best bool) {
+func (self *testBlockPool) AddPeer(td *big.Int, currentBlock []byte, peerId string, requestBlockHashes func([]byte) error, requestBlocks func([][]byte) error, peerError func(*errs.Error)) (best bool) {
 	if self.addPeer != nil {
 		best = self.addPeer(td, currentBlock, peerId, requestBlockHashes, requestBlocks, peerError)
 	}
@@ -169,7 +179,7 @@ func (self *ethProtocolTester) checkError(expCode int, delay time.Duration) (err
 		self.t.Errorf("no error after %v, expected %v", delay, expCode)
 		return
 	}
-	perr, ok := err.(*protocolError)
+	perr, ok := err.(*errs.Error)
 	if ok && perr != nil {
 		if code := perr.Code; code != expCode {
 			self.t.Errorf("expected protocol error (code %v), got %v (%v)", expCode, code, err)
