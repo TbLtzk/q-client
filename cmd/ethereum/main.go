@@ -30,7 +30,6 @@ import (
 	"time"
 
 	"github.com/codegangsta/cli"
-	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
@@ -158,10 +157,7 @@ func run(ctx *cli.Context) {
 	fmt.Printf("Welcome to the FRONTIER\n")
 	utils.HandleInterrupt()
 	eth, err := utils.GetEthereum(ClientIdentifier, Version, ctx)
-	if err == accounts.ErrNoKeys {
-		utils.Fatalf(`No accounts configured.
-Please run 'ethereum account new' to create a new account.`)
-	} else if err != nil {
+	if err != nil {
 		utils.Fatalf("%v", err)
 	}
 
@@ -172,10 +168,7 @@ Please run 'ethereum account new' to create a new account.`)
 
 func runjs(ctx *cli.Context) {
 	eth, err := utils.GetEthereum(ClientIdentifier, Version, ctx)
-	if err == accounts.ErrNoKeys {
-		utils.Fatalf(`No accounts configured.
-Please run 'ethereum account new' to create a new account.`)
-	} else if err != nil {
+	if err != nil {
 		utils.Fatalf("%v", err)
 	}
 
@@ -214,7 +207,7 @@ func startEth(ctx *cli.Context, eth *eth.Ethereum) {
 		utils.StartRPC(eth, ctx)
 	}
 	if ctx.GlobalBool(utils.MiningEnabledFlag.Name) {
-		eth.Miner().Start()
+		eth.StartMining()
 	}
 }
 
