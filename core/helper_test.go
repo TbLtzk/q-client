@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/crypto"
+	// "gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
@@ -53,9 +53,10 @@ func (tm *TestManager) TxPool() *TxPool {
 func (tm *TestManager) EventMux() *event.TypeMux {
 	return tm.eventMux
 }
-func (tm *TestManager) KeyManager() *crypto.KeyManager {
-	return nil
-}
+
+// func (tm *TestManager) KeyManager() *crypto.KeyManager {
+// 	return nil
+// }
 
 func (tm *TestManager) Db() ethutil.Database {
 	return tm.db
