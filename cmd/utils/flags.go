@@ -18,7 +18,6 @@ import (
 	"gitlab.com/q-dev/q-client/ethutil"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/nat"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/xeth"
@@ -194,7 +193,7 @@ func GetNodeKey(ctx *cli.Context) (key *ecdsa.PrivateKey) {
 
 func GetEthereum(clientID, version string, ctx *cli.Context) (*eth.Ethereum, error) {
 	return eth.New(&eth.Config{
-		Name:           p2p.MakeName(clientID, version),
+		Name:           ethutil.MakeName(clientID, version),
 		DataDir:        ctx.GlobalString(DataDirFlag.Name),
 		LogFile:        ctx.GlobalString(LogFileFlag.Name),
 		LogLevel:       ctx.GlobalInt(LogLevelFlag.Name),
