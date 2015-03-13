@@ -11,6 +11,7 @@ import (
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/blockpool"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethutil"
@@ -123,6 +124,7 @@ type Ethereum struct {
 	blockPool      *blockpool.BlockPool
 	accountManager *accounts.Manager
 	whisper        *whisper.Whisper
+	pow            *ethash.Ethash
 
 	net      *p2p.Server
 	eventMux *event.TypeMux
@@ -175,16 +177,16 @@ func New(config *Config) (*Ethereum, error) {
 	}
 
 	eth.chainManager = core.NewChainManager(blockDb, stateDb, eth.EventMux())
-	pow := ethash.New(eth.chainManager)
+	eth.pow = ethash.New(eth.chainManager)
 	eth.txPool = core.NewTxPool(eth.EventMux())
-	eth.blockProcessor = core.NewBlockProcessor(stateDb, pow, eth.txPool, eth.chainManager, eth.EventMux())
+	eth.blockProcessor = core.NewBlockProcessor(stateDb, eth.pow, eth.txPool, eth.chainManager, eth.EventMux())
 	eth.chainManager.SetProcessor(eth.blockProcessor)
 	eth.whisper = whisper.New()
-	eth.miner = miner.New(eth, pow, config.MinerThreads)
+	eth.miner = miner.New(eth, eth.pow, config.MinerThreads)
 
 	hasBlock := eth.chainManager.HasBlock
 	insertChain := eth.chainManager.InsertChain
-	eth.blockPool = blockpool.New(hasBlock, insertChain, pow.Verify)
+	eth.blockPool = blockpool.New(hasBlock, insertChain, eth.pow.Verify)
 
 	netprv, err := config.nodeKey()
 	if err != nil {
@@ -212,6 +214,11 @@ func New(config *Config) (*Ethereum, error) {
 	vm.Debug = config.VmDebug
 
 	return eth, nil
+}
+
+func (s *Ethereum) ResetWithGenesisBlock(gb *types.Block) {
+	s.chainManager.ResetWithGenesisBlock(gb)
+	s.pow.UpdateCache(true)
 }
 
 func (s *Ethereum) StartMining() error {
