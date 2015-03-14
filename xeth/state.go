@@ -1,6 +1,9 @@
 package xeth
 
-import "gitlab.com/q-dev/q-client/state"
+import (
+	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/state"
+)
 
 type State struct {
 	xeth  *XEth
@@ -16,7 +19,7 @@ func (self *State) State() *state.StateDB {
 }
 
 func (self *State) Get(addr string) *Object {
-	return &Object{self.state.GetStateObject(fromHex(addr))}
+	return &Object{self.state.GetStateObject(ethutil.FromHex(addr))}
 }
 
 func (self *State) SafeGet(addr string) *Object {
@@ -24,9 +27,9 @@ func (self *State) SafeGet(addr string) *Object {
 }
 
 func (self *State) safeGet(addr string) *state.StateObject {
-	object := self.state.GetStateObject(fromHex(addr))
+	object := self.state.GetStateObject(ethutil.FromHex(addr))
 	if object == nil {
-		object = state.NewStateObject(fromHex(addr), self.xeth.eth.StateDb())
+		object = state.NewStateObject(ethutil.FromHex(addr), self.xeth.eth.StateDb())
 	}
 
 	return object
