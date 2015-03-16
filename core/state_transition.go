@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/vm"
 )
@@ -45,8 +45,8 @@ type StateTransition struct {
 }
 
 type Message interface {
-	From() []byte
-	To() []byte
+	From() common.Address
+	To() common.Address
 
 	GasPrice() *big.Int
 	Gas() *big.Int
