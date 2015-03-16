@@ -7,13 +7,13 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/state"
 )
 
 // State query interface
-type stateQuery struct{ db ethutil.Database }
+type stateQuery struct{ db common.Database }
 
 func SQ() stateQuery {
 	db, _ := ethdb.NewMemDatabase()
@@ -25,7 +25,7 @@ func (self stateQuery) GetAccount(addr []byte) *state.StateObject {
 }
 
 func transaction() *types.Transaction {
-	return types.NewTransactionMessage(make([]byte, 20), ethutil.Big0, ethutil.Big0, ethutil.Big0, nil)
+	return types.NewTransactionMessage(make([]byte, 20), common.Big0, common.Big0, common.Big0, nil)
 }
 
 func setup() (*TxPool, *ecdsa.PrivateKey) {

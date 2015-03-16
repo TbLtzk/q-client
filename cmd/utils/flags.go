@@ -15,7 +15,7 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p/nat"
@@ -87,7 +87,7 @@ var (
 	DataDirFlag = cli.StringFlag{
 		Name:  "datadir",
 		Usage: "Data directory to be used",
-		Value: ethutil.DefaultDataDir(),
+		Value: common.DefaultDataDir(),
 	}
 	MinerThreadsFlag = cli.IntFlag{
 		Name:  "minerthreads",
@@ -193,7 +193,7 @@ func GetNodeKey(ctx *cli.Context) (key *ecdsa.PrivateKey) {
 
 func MakeEthConfig(clientID, version string, ctx *cli.Context) *eth.Config {
 	return &eth.Config{
-		Name:           ethutil.MakeName(clientID, version),
+		Name:           common.MakeName(clientID, version),
 		DataDir:        ctx.GlobalString(DataDirFlag.Name),
 		LogFile:        ctx.GlobalString(LogFileFlag.Name),
 		LogLevel:       ctx.GlobalInt(LogLevelFlag.Name),
@@ -211,7 +211,7 @@ func MakeEthConfig(clientID, version string, ctx *cli.Context) *eth.Config {
 	}
 }
 
-func GetChain(ctx *cli.Context) (*core.ChainManager, ethutil.Database, ethutil.Database) {
+func GetChain(ctx *cli.Context) (*core.ChainManager, common.Database, common.Database) {
 	dataDir := ctx.GlobalString(DataDirFlag.Name)
 	blockDb, err := ethdb.NewLDBDatabase(path.Join(dataDir, "blockchain"))
 	if err != nil {

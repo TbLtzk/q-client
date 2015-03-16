@@ -3,10 +3,10 @@ package state
 import (
 	"testing"
 
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 )
 
-var addr = ethutil.Address([]byte("test"))
+var addr = common.Address([]byte("test"))
 
 func create() (*ManagedState, *account) {
 	ms := ManageState(&StateDB{stateObjects: make(map[string]*StateObject)})

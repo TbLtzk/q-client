@@ -33,7 +33,7 @@ import (
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/state"
 	"github.com/peterh/liner"
@@ -200,7 +200,7 @@ func startEth(ctx *cli.Context, eth *eth.Ethereum) {
 		}
 		am := eth.AccountManager()
 		// Attempt to unlock the account
-		err := am.Unlock(ethutil.FromHex(split[0]), split[1])
+		err := am.Unlock(common.FromHex(split[0]), split[1])
 		if err != nil {
 			utils.Fatalf("Unlock account failed '%v'", err)
 		}
@@ -284,7 +284,7 @@ func dump(ctx *cli.Context) {
 	for _, arg := range ctx.Args() {
 		var block *types.Block
 		if hashish(arg) {
-			block = chainmgr.GetBlock(ethutil.Hex2Bytes(arg))
+			block = chainmgr.GetBlock(common.Hex2Bytes(arg))
 		} else {
 			num, _ := strconv.Atoi(arg)
 			block = chainmgr.GetBlockByNumber(uint64(num))
