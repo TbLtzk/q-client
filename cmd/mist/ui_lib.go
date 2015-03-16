@@ -25,9 +25,9 @@ import (
 	"io/ioutil"
 	"path"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/event/filter"
 	"gitlab.com/q-dev/q-client/javascript"
 	"gitlab.com/q-dev/q-client/xeth"
@@ -135,15 +135,6 @@ func (self *UiLib) Transact(params map[string]interface{}) (string, error) {
 		object["gasPrice"],
 		object["data"],
 	)
-}
-
-func (self *UiLib) Compile(code string) (string, error) {
-	bcode, err := common.Compile(code, false)
-	if err != nil {
-		return err.Error(), err
-	}
-
-	return common.Bytes2Hex(bcode), err
 }
 
 func (self *UiLib) Call(params map[string]interface{}) (string, error) {
