@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/event/filter"
 	"gitlab.com/q-dev/q-client/state"
@@ -368,6 +368,11 @@ func (p *EthereumApi) DbGet(args *DbArgs, reply *interface{}) error {
 
 func (p *EthereumApi) NewWhisperIdentity(reply *interface{}) error {
 	*reply = p.xeth().Whisper().NewIdentity()
+	return nil
+}
+
+func (p *EthereumApi) RemoveWhisperIdentity(args *WhisperIdentityArgs, reply *interface{}) error {
+	*reply = p.xeth().Whisper().RemoveIdentity(args.Identity)
 	return nil
 }
 
@@ -751,6 +756,12 @@ func (p *EthereumApi) GetRequestReply(req *RpcRequest, reply *interface{}) error
 		return p.WhisperPost(args, reply)
 	case "shh_newIdentity":
 		return p.NewWhisperIdentity(reply)
+	case "shh_removeIdentity":
+		args := new(WhisperIdentityArgs)
+		if err := json.Unmarshal(req.Params, &args); err != nil {
+			return err
+		}
+		return p.RemoveWhisperIdentity(args, reply)
 	case "shh_hasIdentity":
 		args := new(WhisperIdentityArgs)
 		if err := json.Unmarshal(req.Params, &args); err != nil {

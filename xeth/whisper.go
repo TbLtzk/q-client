@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/whisper"
 )
@@ -61,6 +61,10 @@ func (self *Whisper) NewIdentity() string {
 
 func (self *Whisper) HasIdentity(key string) bool {
 	return self.Whisper.HasIdentity(crypto.ToECDSAPub(common.FromHex(key)))
+}
+
+func (self *Whisper) RemoveIdentity(key string) bool {
+	return self.Whisper.RemoveIdentity(crypto.ToECDSAPub(common.FromHex(key)))
 }
 
 func (self *Whisper) Watch(opts *Options) int {
