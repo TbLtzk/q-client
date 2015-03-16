@@ -3,18 +3,18 @@ package types
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/state"
 )
 
-func CreateBloom(receipts Receipts) []byte {
+func CreateBloom(receipts Receipts) Bloom {
 	bin := new(big.Int)
 	for _, receipt := range receipts {
 		bin.Or(bin, LogsBloom(receipt.logs))
 	}
 
-	return common.LeftPadBytes(bin.Bytes(), 256)
+	return BytesToBloom(bin.Bytes())
 }
 
 func LogsBloom(logs state.Logs) *big.Int {
