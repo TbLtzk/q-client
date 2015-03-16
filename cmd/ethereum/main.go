@@ -31,9 +31,9 @@ import (
 
 	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/state"
 	"github.com/peterh/liner"
@@ -91,9 +91,9 @@ Use "ethereum dump 0" to dump the genesis block.
 		{
 			Action: console,
 			Name:   "console",
-			Usage:  `Ethereum Frontier Console: interactive JavaScript environment`,
+			Usage:  `Ethereum Console: interactive JavaScript environment`,
 			Description: `
-Frontier Console is an interactive shell for the Ethereum Frontier JavaScript runtime environment which exposes a node admin interface as well as the DAPP JavaScript API.
+Console is an interactive shell for the Ethereum JavaScript runtime environment which exposes a node admin interface as well as the DAPP JavaScript API.
 See https://github.com/ethereum/go-ethereum/wiki/Frontier-Console
 `,
 		},
@@ -102,7 +102,7 @@ See https://github.com/ethereum/go-ethereum/wiki/Frontier-Console
 			Name:   "js",
 			Usage:  `executes the given JavaScript files in the Ethereum Frontier JavaScript VM`,
 			Description: `
-The Ethereum Frontier JavaScript VM exposes a node admin interface as well as the DAPP JavaScript API. See https://github.com/ethereum/go-ethereum/wiki/Frontier-Console
+The Ethereum JavaScript VM exposes a node admin interface as well as the DAPP JavaScript API. See https://github.com/ethereum/go-ethereum/wiki/Frontier-Console
 `,
 		},
 		{
