@@ -10,7 +10,7 @@ import (
 	"gitlab.com/q-dev/q-client/blockpool/test"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/errs"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/pow"
 )
 
@@ -315,7 +315,7 @@ func (self *peerTester) sendBlocks(indexes ...int) {
 	hashes := self.hashPool.IndexesToHashes(indexes)
 	for i := 1; i < len(hashes); i++ {
 		fmt.Printf("adding block %v %x\n", indexes[i], hashes[i][:4])
-		self.blockPool.AddBlock(&types.Block{HeaderHash: ethutil.Bytes(hashes[i]), ParentHeaderHash: ethutil.Bytes(hashes[i-1])}, self.id)
+		self.blockPool.AddBlock(&types.Block{HeaderHash: common.Bytes(hashes[i]), ParentHeaderHash: common.Bytes(hashes[i-1])}, self.id)
 	}
 }
 

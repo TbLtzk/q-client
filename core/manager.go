@@ -1,7 +1,7 @@
 package core
 
 import (
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/p2p"
 )
@@ -13,7 +13,7 @@ type Backend interface {
 	PeerCount() int
 	IsListening() bool
 	Peers() []*p2p.Peer
-	BlockDb() ethutil.Database
-	StateDb() ethutil.Database
+	BlockDb() common.Database
+	StateDb() common.Database
 	EventMux() *event.TypeMux
 }

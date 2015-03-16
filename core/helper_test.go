@@ -7,7 +7,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	// "gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/event"
 )
 
@@ -16,7 +16,7 @@ type TestManager struct {
 	// stateManager *StateManager
 	eventMux *event.TypeMux
 
-	db         ethutil.Database
+	db         common.Database
 	txPool     *TxPool
 	blockChain *ChainManager
 	Blocks     []*types.Block
@@ -58,7 +58,7 @@ func (tm *TestManager) EventMux() *event.TypeMux {
 // 	return nil
 // }
 
-func (tm *TestManager) Db() ethutil.Database {
+func (tm *TestManager) Db() common.Database {
 	return tm.db
 }
 

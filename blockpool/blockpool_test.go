@@ -6,7 +6,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/blockpool/test"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 func TestPeerWithKnownBlock(t *testing.T) {
@@ -69,9 +69,9 @@ func TestPeerPromotionByOptionalTdOnBlock(t *testing.T) {
 	hashes := blockPoolTester.hashPool.IndexesToHashes([]int{2, 3})
 	peer1.waitBlocksRequests(3)
 	blockPool.AddBlock(&types.Block{
-		HeaderHash:       ethutil.Bytes(hashes[1]),
-		ParentHeaderHash: ethutil.Bytes(hashes[0]),
-		Td:               ethutil.Big3,
+		HeaderHash:       common.Bytes(hashes[1]),
+		ParentHeaderHash: common.Bytes(hashes[0]),
+		Td:               common.Big3,
 	}, "peer1")
 
 	blockPool.RemovePeer("peer2")

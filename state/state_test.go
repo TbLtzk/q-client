@@ -6,7 +6,7 @@ import (
 	checker "gopkg.in/check.v1"
 
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 type StateSuite struct {
@@ -63,9 +63,9 @@ func (s *StateSuite) SetUpTest(c *checker.C) {
 
 func (s *StateSuite) TestSnapshot(c *checker.C) {
 	stateobjaddr := []byte("aa")
-	storageaddr := ethutil.Big("0")
-	data1 := ethutil.NewValue(42)
-	data2 := ethutil.NewValue(43)
+	storageaddr := common.Big("0")
+	data1 := common.NewValue(42)
+	data2 := common.NewValue(43)
 
 	// get state object
 	stateObject := s.state.GetOrNewStateObject(stateobjaddr)

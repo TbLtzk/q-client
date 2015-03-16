@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"gitlab.com/q-dev/q-client/compression/rle"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
@@ -82,7 +82,7 @@ func (self *LDBDatabase) Print() {
 		value := iter.Value()
 
 		fmt.Printf("%x(%d): ", key, len(key))
-		node := ethutil.NewValueFromBytes(value)
+		node := common.NewValueFromBytes(value)
 		fmt.Printf("%v\n", node)
 	}
 }
