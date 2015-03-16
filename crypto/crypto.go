@@ -16,10 +16,10 @@ import (
 	"errors"
 
 	"code.google.com/p/go-uuid/uuid"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto/ecies"
 	"gitlab.com/q-dev/q-client/crypto/secp256k1"
 	"gitlab.com/q-dev/q-client/crypto/sha3"
-	"gitlab.com/q-dev/q-client/common"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/ripemd160"
 )
@@ -35,6 +35,15 @@ func Sha3(data ...[]byte) []byte {
 		d.Write(b)
 	}
 	return d.Sum(nil)
+}
+
+func Sha3Hash(data ...[]byte) (h common.Hash) {
+	d := sha3.NewKeccak256()
+	for _, b := range data {
+		d.Write(b)
+	}
+	d.Sum(h[:])
+	return h
 }
 
 // Creates an ethereum address given the bytes and the nonce
