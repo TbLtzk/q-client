@@ -12,7 +12,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/errs"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	ethlogger "gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
@@ -223,7 +223,7 @@ func (self *ethProtocolTester) run() {
 func TestStatusMsgErrors(t *testing.T) {
 	logInit()
 	eth := newEth(t)
-	td := ethutil.Big1
+	td := common.Big1
 	currentBlock := []byte{1}
 	genesis := []byte{2}
 	eth.chainManager.status = func() (*big.Int, []byte, []byte) { return td, currentBlock, genesis }

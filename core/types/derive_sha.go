@@ -2,7 +2,7 @@ package types
 
 import (
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/trie"
 )
 
@@ -15,7 +15,7 @@ func DeriveSha(list DerivableList) []byte {
 	db, _ := ethdb.NewMemDatabase()
 	trie := trie.New(nil, db)
 	for i := 0; i < list.Len(); i++ {
-		trie.Update(ethutil.Encode(i), list.GetRlp(i))
+		trie.Update(common.Encode(i), list.GetRlp(i))
 	}
 
 	return trie.Root()

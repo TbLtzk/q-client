@@ -25,7 +25,7 @@ import (
 	"reflect"
 	"time"
 
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
@@ -120,7 +120,7 @@ func (self JsonWrapper) ParseRequestBody(req *http.Request) (RpcRequest, error) 
 }
 
 func toHex(b []byte) string {
-	hex := ethutil.Bytes2Hex(b)
+	hex := common.Bytes2Hex(b)
 	// Prefer output of "0x0" instead of "0x"
 	if len(hex) == 0 {
 		hex = "0"

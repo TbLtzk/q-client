@@ -10,7 +10,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/errs"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 type peer struct {
@@ -230,7 +230,7 @@ func (self *peers) addPeer(
 		}
 		best = true
 	} else {
-		currentTD := ethutil.Big0
+		currentTD := common.Big0
 		if self.best != nil {
 			currentTD = self.best.td
 		}
@@ -264,7 +264,7 @@ func (self *peers) removePeer(id string) {
 	if self.best == p {
 		var newp *peer
 		// FIXME: own TD
-		max := ethutil.Big0
+		max := common.Big0
 		// peer with the highest self-acclaimed TD is chosen
 		for _, pp := range self.peers {
 			if pp.td.Cmp(max) > 0 {

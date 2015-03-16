@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 )
@@ -113,13 +113,13 @@ func (self *TxPool) add(tx *types.Transaction) error {
 
 	var to string
 	if len(tx.To()) > 0 {
-		to = ethutil.Bytes2Hex(tx.To()[:4])
+		to = common.Bytes2Hex(tx.To()[:4])
 	} else {
 		to = "[NEW_CONTRACT]"
 	}
 	var from string
 	if len(tx.From()) > 0 {
-		from = ethutil.Bytes2Hex(tx.From()[:4])
+		from = common.Bytes2Hex(tx.From()[:4])
 	} else {
 		return errors.New(fmt.Sprintf("FROM ADDRESS MUST BE POSITIVE (was %v)", tx.From()))
 	}

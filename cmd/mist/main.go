@@ -29,7 +29,7 @@ import (
 	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/ui/qt/webengine"
 	"github.com/obscuren/qml"
@@ -45,7 +45,7 @@ var (
 	assetPathFlag = cli.StringFlag{
 		Name:  "asset_path",
 		Usage: "absolute path to GUI assets directory",
-		Value: ethutil.DefaultAssetPath(),
+		Value: common.DefaultAssetPath(),
 	}
 )
 

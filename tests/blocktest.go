@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/state"
 )
@@ -97,7 +97,7 @@ func LoadBlockTests(file string) (map[string]*BlockTest, error) {
 
 // InsertPreState populates the given database with the genesis
 // accounts defined by the test.
-func (t *BlockTest) InsertPreState(db ethutil.Database) error {
+func (t *BlockTest) InsertPreState(db common.Database) error {
 	statedb := state.New(nil, db)
 	for addrString, acct := range t.preAccounts {
 		// XXX: is is worth it checking for errors here?

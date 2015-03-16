@@ -30,7 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/ethutil"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/rlp"
 )
@@ -62,7 +62,7 @@ func RunInterruptCallbacks(sig os.Signal) {
 }
 
 func openLogFile(Datadir string, filename string) *os.File {
-	path := ethutil.AbsolutePath(Datadir, filename)
+	path := common.AbsolutePath(Datadir, filename)
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		panic(fmt.Sprintf("error opening log file '%s': %v", filename, err))
@@ -132,10 +132,10 @@ func StartEthereumForTest(ethereum *eth.Ethereum) {
 }
 
 func FormatTransactionData(data string) []byte {
-	d := ethutil.StringToByteFunc(data, func(s string) (ret []byte) {
+	d := common.StringToByteFunc(data, func(s string) (ret []byte) {
 		slice := regexp.MustCompile("\\n|\\s").Split(s, 1000000000)
 		for _, dataItem := range slice {
-			d := ethutil.FormatData(dataItem)
+			d := common.FormatData(dataItem)
 			ret = append(ret, d...)
 		}
 		return
@@ -171,7 +171,7 @@ func ExportChain(chainmgr *core.ChainManager, fn string) error {
 
 	data := chainmgr.Export()
 
-	if err := ethutil.WriteFile(fn, data); err != nil {
+	if err := common.WriteFile(fn, data); err != nil {
 		return err
 	}
 	fmt.Printf("exported blockchain\n")
