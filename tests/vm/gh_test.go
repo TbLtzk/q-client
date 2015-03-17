@@ -11,7 +11,6 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/tests/helper"
-	"gitlab.com/q-dev/q-client/vm"
 )
 
 type Account struct {
@@ -81,11 +80,6 @@ func RunVmTest(p string, t *testing.T) {
 	helper.CreateFileTests(t, p, &tests)
 
 	for name, test := range tests {
-		helper.Logger.SetLogLevel(5)
-		vm.Debug = true
-		if name != "TransactionCreateSuicideContract" {
-			continue
-		}
 		db, _ := ethdb.NewMemDatabase()
 		statedb := state.New(common.Hash{}, db)
 		for addr, account := range test.Pre {
