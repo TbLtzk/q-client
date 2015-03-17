@@ -26,8 +26,8 @@ import (
 	"strconv"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/state"
 )
 
@@ -37,18 +37,9 @@ type plugin struct {
 }
 
 func (gui *Gui) Transact(from, recipient, value, gas, gasPrice, d string) (string, error) {
-	var data string
-	if len(recipient) == 0 {
-		code, err := common.Compile(d, false)
-		if err != nil {
-			return "", err
-		}
-		data = common.Bytes2Hex(code)
-	} else {
-		data = common.Bytes2Hex(utils.FormatTransactionData(d))
-	}
+	d = common.Bytes2Hex(utils.FormatTransactionData(d))
 
-	return gui.xeth.Transact(from, recipient, value, gas, gasPrice, data)
+	return gui.xeth.Transact(from, recipient, value, gas, gasPrice, d)
 }
 
 func (self *Gui) AddPlugin(pluginPath string) {
