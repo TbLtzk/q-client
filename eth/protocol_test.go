@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/errs"
-	"gitlab.com/q-dev/q-client/common"
 	ethlogger "gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
@@ -216,7 +216,7 @@ func (self *ethProtocolTester) checkMsg(i int, code uint64, val interface{}) (ms
 }
 
 func (self *ethProtocolTester) run() {
-	err := runEthProtocol(self.txPool, self.chainManager, self.blockPool, testPeer(), self.rw)
+	err := runEthProtocol(ProtocolVersion, NetworkId, self.txPool, self.chainManager, self.blockPool, testPeer(), self.rw)
 	self.quit <- err
 }
 
