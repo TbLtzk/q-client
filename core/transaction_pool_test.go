@@ -4,10 +4,10 @@ import (
 	"crypto/ecdsa"
 	"testing"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/state"
 )
@@ -21,11 +21,11 @@ func SQ() stateQuery {
 }
 
 func (self stateQuery) GetAccount(addr []byte) *state.StateObject {
-	return state.NewStateObject(addr, self.db)
+	return state.NewStateObject(common.BytesToAddress(addr), self.db)
 }
 
 func transaction() *types.Transaction {
-	return types.NewTransactionMessage(make([]byte, 20), common.Big0, common.Big0, common.Big0, nil)
+	return types.NewTransactionMessage(common.Address{}, common.Big0, common.Big0, common.Big0, nil)
 }
 
 func setup() (*TxPool, *ecdsa.PrivateKey) {
@@ -88,10 +88,8 @@ func TestRemoveInvalid(t *testing.T) {
 
 func TestInvalidSender(t *testing.T) {
 	pool, _ := setup()
-	tx := new(types.Transaction)
-	tx.V = 28
-	err := pool.ValidateTransaction(tx)
+	err := pool.ValidateTransaction(new(types.Transaction))
 	if err != ErrInvalidSender {
-		t.Error("expected %v, got %v", ErrInvalidSender, err)
+		t.Errorf("expected %v, got %v", ErrInvalidSender, err)
 	}
 }
