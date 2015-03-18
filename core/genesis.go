@@ -8,7 +8,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/state"
 )
 
@@ -19,9 +18,6 @@ import (
 var ZeroHash256 = make([]byte, 32)
 var ZeroHash160 = make([]byte, 20)
 var ZeroHash512 = make([]byte, 64)
-var EmptyShaList = crypto.Sha3(common.Encode([]interface{}{}))
-var EmptyListRoot = crypto.Sha3(common.Encode(""))
-
 var GenesisDiff = big.NewInt(131072)
 var GenesisGasLimit = big.NewInt(3141592)
 
