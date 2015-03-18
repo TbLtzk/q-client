@@ -28,8 +28,8 @@ import (
 
 	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/ui/qt/webengine"
 	"github.com/obscuren/qml"
@@ -66,6 +66,8 @@ func init() {
 		utils.RPCListenAddrFlag,
 		utils.RPCPortFlag,
 		utils.JSpathFlag,
+		utils.ProtocolVersionFlag,
+		utils.NetworkIdFlag,
 	}
 }
 
