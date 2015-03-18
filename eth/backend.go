@@ -10,11 +10,11 @@ import (
 	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/blockpool"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/miner"
@@ -288,7 +288,7 @@ func (s *Ethereum) StartMining() error {
 		servlogger.Errorf("Cannot start mining without coinbase: %v\n", err)
 		return fmt.Errorf("no coinbase: %v", err)
 	}
-	s.miner.Start(cb)
+	s.miner.Start(common.BytesToAddress(cb))
 	return nil
 }
 
@@ -304,9 +304,9 @@ func (s *Ethereum) TxPool() *core.TxPool                 { return s.txPool }
 func (s *Ethereum) BlockPool() *blockpool.BlockPool      { return s.blockPool }
 func (s *Ethereum) Whisper() *whisper.Whisper            { return s.whisper }
 func (s *Ethereum) EventMux() *event.TypeMux             { return s.eventMux }
-func (s *Ethereum) BlockDb() common.Database            { return s.blockDb }
-func (s *Ethereum) StateDb() common.Database            { return s.stateDb }
-func (s *Ethereum) ExtraDb() common.Database            { return s.extraDb }
+func (s *Ethereum) BlockDb() common.Database             { return s.blockDb }
+func (s *Ethereum) StateDb() common.Database             { return s.stateDb }
+func (s *Ethereum) ExtraDb() common.Database             { return s.extraDb }
 func (s *Ethereum) IsListening() bool                    { return true } // Always listening
 func (s *Ethereum) PeerCount() int                       { return s.net.PeerCount() }
 func (s *Ethereum) PeerInfo() int                        { return s.net.PeerCount() }
