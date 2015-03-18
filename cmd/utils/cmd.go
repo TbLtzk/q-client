@@ -23,14 +23,15 @@ package utils
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"regexp"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/rlp"
 )
@@ -152,29 +153,35 @@ func ImportChain(chainmgr *core.ChainManager, fn string) error {
 	}
 	defer fh.Close()
 
-	var blocks types.Blocks
-	if err := rlp.Decode(fh, &blocks); err != nil {
-		return err
-	}
-
 	chainmgr.Reset()
-	if err := chainmgr.InsertChain(blocks); err != nil {
-		return err
+	stream := rlp.NewStream(fh)
+	var i int
+	for ; ; i++ {
+		var b types.Block
+		err := stream.Decode(&b)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return fmt.Errorf("at block %d: %v", i, err)
+		}
+		if err := chainmgr.InsertChain(types.Blocks{b}); err != nil {
+			return fmt.Errorf("invalid block %d: %v", i, err)
+		}
 	}
-	fmt.Printf("imported %d blocks\n", len(blocks))
-
+	fmt.Printf("imported %d blocks\n", i)
 	return nil
 }
 
 func ExportChain(chainmgr *core.ChainManager, fn string) error {
 	fmt.Printf("exporting blockchain '%s'\n", fn)
-
-	data := chainmgr.Export()
-
-	if err := common.WriteFile(fn, data); err != nil {
+	fh, err := os.OpenFile(fn, os.O_WRONLY|os.O_TRUNC, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+	if err := chainmgr.Export(fh); err != nil {
 		return err
 	}
 	fmt.Printf("exported blockchain\n")
-
 	return nil
 }
