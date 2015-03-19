@@ -11,6 +11,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/errs"
+	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/pow"
 )
 
@@ -38,6 +39,7 @@ type blockPoolTester struct {
 	blockChain        blockChain
 	blockPool         *BlockPool
 	t                 *testing.T
+	chainEvents       *event.TypeMux
 }
 
 func newTestBlockPool(t *testing.T) (hashPool *test.TestHashPool, blockPool *BlockPool, b *blockPoolTester) {
@@ -48,8 +50,9 @@ func newTestBlockPool(t *testing.T) (hashPool *test.TestHashPool, blockPool *Blo
 		blockChain:        make(blockChain),
 		refBlockChain:     make(blockChain),
 		blocksRequestsMap: make(map[int]bool),
+		chainEvents:       &event.TypeMux{},
 	}
-	b.blockPool = New(b.hasBlock, b.insertChain, b.verifyPoW)
+	b.blockPool = New(b.hasBlock, b.insertChain, b.verifyPoW, b.chainEvents, common.Big0)
 	blockPool = b.blockPool
 	blockPool.Config.BlockHashesRequestInterval = testBlockHashesRequestInterval
 	blockPool.Config.BlocksRequestInterval = testBlocksRequestInterval
