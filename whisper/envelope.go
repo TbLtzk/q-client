@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/crypto/ecies"
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
