@@ -19,12 +19,9 @@ package rpc
 import (
 	"time"
 
-	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
 )
-
-var rpclogger = logger.NewLogger("RPC")
 
 type whisperFilter struct {
 	messages []xeth.WhisperMessage
