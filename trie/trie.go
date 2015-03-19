@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
 )
 
 func ParanoiaCheck(t1 *Trie, backend Backend) (bool, *Trie) {
@@ -305,11 +305,13 @@ func (self *Trie) mknode(value *common.Value) Node {
 			return NewShortNode(self, CompactDecode(string(value.Get(0).Bytes())), self.mknode(value.Get(1)))
 		}
 	case 17:
-		fnode := NewFullNode(self)
-		for i := 0; i < l; i++ {
-			fnode.set(byte(i), self.mknode(value.Get(i)))
+		if len(value.Bytes()) != 17 {
+			fnode := NewFullNode(self)
+			for i := 0; i < l; i++ {
+				fnode.set(byte(i), self.mknode(value.Get(i)))
+			}
+			return fnode
 		}
-		return fnode
 	case 32:
 		return &HashNode{value.Bytes(), self}
 	}
