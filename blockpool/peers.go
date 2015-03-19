@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/errs"
 )
@@ -471,6 +472,7 @@ func (self *peer) getBlockHashes() {
 				}
 			}
 			headKey := self.parentHash.Str()
+			height := self.bp.status.chain[headKey] + 1
 			self.bp.status.chain[self.currentBlockHash.Str()] = height
 			if height > self.bp.status.values.LongestChain {
 				self.bp.status.values.LongestChain = height
