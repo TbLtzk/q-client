@@ -1,14 +1,16 @@
 package types
 
 import (
-	"fmt"
 	"math/big"
 
+	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/common"
+
+	"fmt"
 )
 
 type BlockProcessor interface {
-	Process(*Block) (*big.Int, error)
+	Process(*Block) (*big.Int, state.Logs, error)
 }
 
 const bloomLength = 256
