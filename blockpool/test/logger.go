@@ -9,6 +9,8 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 )
 
+// logging in tests
+
 var once sync.Once
 
 /* usage:
