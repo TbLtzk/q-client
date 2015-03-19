@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/blockpool/test"
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core/types"
 )
 
 // using the mock framework in blockpool_util_test
