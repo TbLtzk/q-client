@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/p2p/nat"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 const (
@@ -129,10 +129,14 @@ func (srv *Server) SuggestPeer(n *discover.Node) {
 
 // Broadcast sends an RLP-encoded message to all connected peers.
 // This method is deprecated and will be removed later.
-func (srv *Server) Broadcast(protocol string, code uint64, data ...interface{}) {
+func (srv *Server) Broadcast(protocol string, code uint64, data interface{}) error {
 	var payload []byte
 	if data != nil {
-		payload = common.Encode(data)
+		var err error
+		payload, err = rlp.EncodeToBytes(data)
+		if err != nil {
+			return err
+		}
 	}
 	srv.lock.RLock()
 	defer srv.lock.RUnlock()
@@ -146,6 +150,7 @@ func (srv *Server) Broadcast(protocol string, code uint64, data ...interface{}) 
 			peer.writeProtoMsg(protocol, msg)
 		}
 	}
+	return nil
 }
 
 // Start starts running the server.
