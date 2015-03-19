@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/state"
@@ -93,7 +93,7 @@ func makeChain(bman *BlockProcessor, parent *types.Block, max int, db common.Dat
 	blocks := make(types.Blocks, max)
 	for i := 0; i < max; i++ {
 		block := makeBlock(bman, parent, i, db, seed)
-		td, err := bman.processWithParent(block, parent)
+		td, _, err := bman.processWithParent(block, parent)
 		if err != nil {
 			fmt.Println("process with parent failed", err)
 			panic(err)
