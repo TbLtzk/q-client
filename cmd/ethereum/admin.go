@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
-	"github.com/obscuren/otto"
+	"github.com/robertkrimen/otto"
 )
 
 /*

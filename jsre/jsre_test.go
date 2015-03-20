@@ -1,7 +1,7 @@
 package jsre
 
 import (
-	"github.com/obscuren/otto"
+	"github.com/robertkrimen/otto"
 	"testing"
 
 	"gitlab.com/q-dev/q-client/common"
