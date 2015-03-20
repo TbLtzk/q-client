@@ -5,9 +5,9 @@ import (
 
 	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/tests"
 )
 
