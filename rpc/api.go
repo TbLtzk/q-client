@@ -12,7 +12,6 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/xeth"
 )
 
@@ -24,7 +23,6 @@ var (
 type EthereumApi struct {
 	eth    *xeth.XEth
 	xethMu sync.RWMutex
-	mux    *event.TypeMux
 
 	// // Register keeps a list of accounts and transaction data
 	// regmut   sync.Mutex
@@ -34,10 +32,10 @@ type EthereumApi struct {
 }
 
 func NewEthereumApi(eth *xeth.XEth, dataDir string) *EthereumApi {
+	// What about when dataDir is empty?
 	db, _ := ethdb.NewLDBDatabase(path.Join(dataDir, "dapps"))
 	api := &EthereumApi{
 		eth: eth,
-		mux: eth.Backend().EventMux(),
 		db:  db,
 	}
 
