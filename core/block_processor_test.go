@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/pow/ezp"
@@ -19,7 +20,7 @@ func proc() (*BlockProcessor, *ChainManager) {
 
 func TestNumber(t *testing.T) {
 	bp, chain := proc()
-	block1 := chain.NewBlock(nil)
+	block1 := chain.NewBlock(common.Address{})
 	block1.Header().Number = big.NewInt(3)
 
 	err := bp.ValidateHeader(block1.Header(), chain.Genesis().Header())
@@ -27,7 +28,7 @@ func TestNumber(t *testing.T) {
 		t.Errorf("expected block number error")
 	}
 
-	block1 = chain.NewBlock(nil)
+	block1 = chain.NewBlock(common.Address{})
 	err = bp.ValidateHeader(block1.Header(), chain.Genesis().Header())
 	if err == BlockNumberErr {
 		t.Errorf("didn't expect block number error")

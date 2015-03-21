@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/state"
@@ -221,13 +221,10 @@ func (js *jsre) exportChain(call otto.FunctionCall) otto.Value {
 		fmt.Println(err)
 		return otto.FalseValue()
 	}
-
-	data := js.ethereum.ChainManager().Export()
-	if err := common.WriteFile(fn, data); err != nil {
+	if err := utils.ExportChain(js.ethereum.ChainManager(), fn); err != nil {
 		fmt.Println(err)
 		return otto.FalseValue()
 	}
-
 	return otto.TrueValue()
 }
 
@@ -239,7 +236,7 @@ func (js *jsre) dumpBlock(call otto.FunctionCall) otto.Value {
 			block = js.ethereum.ChainManager().GetBlockByNumber(uint64(num))
 		} else if call.Argument(0).IsString() {
 			hash, _ := call.Argument(0).ToString()
-			block = js.ethereum.ChainManager().GetBlock(common.Hex2Bytes(hash))
+			block = js.ethereum.ChainManager().GetBlock(common.HexToHash(hash))
 		} else {
 			fmt.Println("invalid argument for dump. Either hex string or number")
 		}

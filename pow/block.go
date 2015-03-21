@@ -3,14 +3,15 @@ package pow
 import (
 	"math/big"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 )
 
 type Block interface {
 	Difficulty() *big.Int
-	HashNoNonce() []byte
+	HashNoNonce() common.Hash
 	Nonce() uint64
-	MixDigest() []byte
+	MixDigest() common.Hash
 	NumberU64() uint64
 }
 

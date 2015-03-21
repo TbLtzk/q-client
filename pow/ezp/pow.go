@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"time"
 
-	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/pow"
 )
@@ -83,17 +83,14 @@ func (pow *EasyPow) Verify(block pow.Block) bool {
 	return Verify(block)
 }
 
-func verify(hash []byte, diff *big.Int, nonce uint64) bool {
+func verify(hash common.Hash, diff *big.Int, nonce uint64) bool {
 	sha := sha3.NewKeccak256()
-
 	n := make([]byte, 8)
 	binary.PutUvarint(n, nonce)
-	d := append(hash, n...)
-	sha.Write(d)
-
+	sha.Write(n)
+	sha.Write(hash[:])
 	verification := new(big.Int).Div(common.BigPow(2, 256), diff)
 	res := common.BigD(sha.Sum(nil))
-
 	return res.Cmp(verification) <= 0
 }
 
