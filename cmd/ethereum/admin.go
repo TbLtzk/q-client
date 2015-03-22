@@ -14,7 +14,7 @@ import (
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/xeth"
-	"github.com/obscuren/otto"
+	"github.com/robertkrimen/otto"
 )
 
 /*
