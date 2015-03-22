@@ -29,8 +29,8 @@ import (
 	"path"
 	"path/filepath"
 
-	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/xeth"
 	"github.com/howeyc/fsnotify"
 	"github.com/obscuren/qml"
@@ -139,7 +139,7 @@ func (app *HtmlApplication) Window() *qml.Window {
 }
 
 func (app *HtmlApplication) NewBlock(block *types.Block) {
-	b := &xeth.Block{Number: int(block.NumberU64()), Hash: common.Bytes2Hex(block.Hash())}
+	b := &xeth.Block{Number: int(block.NumberU64()), Hash: block.Hash().Hex()}
 	app.webView.Call("onNewBlockCb", b)
 }
 
