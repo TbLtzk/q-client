@@ -17,6 +17,7 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/event/filter"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/state"
 	"gitlab.com/q-dev/q-client/whisper"
@@ -43,6 +44,7 @@ type Backend interface {
 	ExtraDb() common.Database
 	EventMux() *event.TypeMux
 	Whisper() *whisper.Whisper
+	Miner() *miner.Miner
 
 	IsMining() bool
 	StartMining() error
