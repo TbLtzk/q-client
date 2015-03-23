@@ -13,6 +13,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
@@ -21,7 +22,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/p2p/nat"
-	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/whisper"
 )
 
@@ -141,8 +141,8 @@ type Ethereum struct {
 	Mining          bool
 	DataDir         string
 	version         string
-	ProtocolVersion int
-	NetworkId       int
+	protocolVersion int
+	networkId       int
 }
 
 func New(config *Config) (*Ethereum, error) {
@@ -177,15 +177,16 @@ func New(config *Config) (*Ethereum, error) {
 	servlogger.Infof("Protocol Version: %v, Network Id: %v", config.ProtocolVersion, config.NetworkId)
 
 	eth := &Ethereum{
-		shutdownChan: make(chan bool),
-		blockDb:      blockDb,
-		stateDb:      stateDb,
-		extraDb:      extraDb,
-		eventMux:     &event.TypeMux{},
-		// logger:         servlogsystem,
-		accountManager: config.AccountManager,
-		DataDir:        config.DataDir,
-		version:        config.Name, // TODO should separate from Name
+		shutdownChan:    make(chan bool),
+		blockDb:         blockDb,
+		stateDb:         stateDb,
+		extraDb:         extraDb,
+		eventMux:        &event.TypeMux{},
+		accountManager:  config.AccountManager,
+		DataDir:         config.DataDir,
+		version:         config.Name, // TODO should separate from Name
+		protocolVersion: config.ProtocolVersion,
+		networkId:       config.NetworkId,
 	}
 
 	eth.chainManager = core.NewChainManager(blockDb, stateDb, eth.EventMux())
@@ -324,6 +325,8 @@ func (s *Ethereum) PeerCount() int                       { return s.net.PeerCoun
 func (s *Ethereum) Peers() []*p2p.Peer                   { return s.net.Peers() }
 func (s *Ethereum) MaxPeers() int                        { return s.net.MaxPeers }
 func (s *Ethereum) Version() string                      { return s.version }
+func (s *Ethereum) ProtocolVersion() int                 { return s.protocolVersion }
+func (s *Ethereum) NetworkId() int                       { return s.networkId }
 
 // Start the ethereum
 func (s *Ethereum) Start() error {
