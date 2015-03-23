@@ -8,11 +8,11 @@ import (
 	"sync"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/rlp"
-	"gitlab.com/q-dev/q-client/core/state"
 )
 
 var (
@@ -523,7 +523,7 @@ out:
 					case ChainEvent:
 						// We need some control over the mining operation. Acquiring locks and waiting for the miner to create new block takes too long
 						// and in most cases isn't even necessary.
-						if i == ev.canonicalCount {
+						if i+1 == ev.canonicalCount {
 							self.eventMux.Post(ChainHeadEvent{event.Block})
 						}
 					case ChainSplitEvent:
