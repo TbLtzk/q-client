@@ -33,12 +33,12 @@ import (
 	"strings"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/tests/helper"
-	"gitlab.com/q-dev/q-client/core/vm"
 )
 
 type Log struct {
@@ -80,8 +80,7 @@ func StateObjectFromAccount(db common.Database, addr string, account Account) *s
 }
 
 type VmTest struct {
-	Callcreates interface{}
-	//Env         map[string]string
+	Callcreates   interface{}
 	Env           Env
 	Exec          map[string]string
 	Transaction   map[string]string
@@ -219,7 +218,7 @@ func RunVmTest(r io.Reader) (failed int) {
 }
 
 func main() {
-	//helper.Logger.SetLogLevel(5)
+	helper.Logger.SetLogLevel(5)
 	vm.Debug = true
 
 	if len(os.Args) > 1 {
