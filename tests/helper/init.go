@@ -7,7 +7,7 @@ import (
 	logpkg "gitlab.com/q-dev/q-client/logger"
 )
 
-var Logger logpkg.LogSystem
+var Logger *logpkg.StdLogSystem
 var Log = logpkg.NewLogger("TEST")
 
 func init() {
