@@ -19,7 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/state"
+	"gitlab.com/q-dev/q-client/core/state"
 	"math/big"
 	"unsafe"
 )

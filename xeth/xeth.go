@@ -19,7 +19,7 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/state"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/whisper"
 )
 

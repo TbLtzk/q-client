@@ -6,8 +6,8 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/state"
-	"gitlab.com/q-dev/q-client/vm"
+	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/vm"
 )
 
 const tryJit = false

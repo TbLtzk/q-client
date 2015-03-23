@@ -21,7 +21,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/p2p/nat"
-	"gitlab.com/q-dev/q-client/vm"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/whisper"
 )
 

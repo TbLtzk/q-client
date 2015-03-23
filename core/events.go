@@ -2,7 +2,7 @@ package core
 
 import (
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/state"
+	"gitlab.com/q-dev/q-client/core/state"
 )
 
 // TxPreEvent is posted when a transaction enters the transaction pool.

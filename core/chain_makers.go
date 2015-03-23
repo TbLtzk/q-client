@@ -8,7 +8,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/pow"
-	"gitlab.com/q-dev/q-client/state"
+	"gitlab.com/q-dev/q-client/core/state"
 )
 
 // So we can generate blocks easily

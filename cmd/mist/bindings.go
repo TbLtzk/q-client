@@ -28,7 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/state"
+	"gitlab.com/q-dev/q-client/core/state"
 )
 
 type plugin struct {

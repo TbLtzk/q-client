@@ -4,7 +4,7 @@ package types
 import (
 	"testing"
 
-	"gitlab.com/q-dev/q-client/state"
+	"gitlab.com/q-dev/q-client/core/state"
 )
 
 func TestBloom9(t *testing.T) {

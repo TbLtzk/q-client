@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/vm"
+	"gitlab.com/q-dev/q-client/core/vm"
 )
 
 func main() {
