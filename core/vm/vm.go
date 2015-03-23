@@ -5,8 +5,8 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/crypto"
 )
 
 type Vm struct {
@@ -34,6 +34,8 @@ func New(env Environment) *Vm {
 
 func (self *Vm) Run(context *Context, callData []byte) (ret []byte, err error) {
 	self.env.SetDepth(self.env.Depth() + 1)
+	defer self.env.SetDepth(self.env.Depth() - 1)
+
 	var (
 		caller = context.caller
 		code   = context.Code
