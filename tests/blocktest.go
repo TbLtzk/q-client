@@ -13,9 +13,9 @@ import (
 	"strings"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/rlp"
-	"gitlab.com/q-dev/q-client/core/state"
 )
 
 // Block Test JSON Format
@@ -172,7 +172,6 @@ func mustConvertGenesis(testGenesis btHeader) *types.Block {
 	hdr.Number = big.NewInt(0)
 	b := types.NewBlockWithHeader(hdr)
 	b.Td = new(big.Int)
-	b.Reward = new(big.Int)
 	return b
 }
 
