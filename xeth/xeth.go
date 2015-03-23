@@ -12,6 +12,7 @@ import (
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/event"
@@ -19,7 +20,6 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/whisper"
 )
 
@@ -50,6 +50,8 @@ type Backend interface {
 	StartMining() error
 	StopMining()
 	Version() string
+	ProtocolVersion() int
+	NetworkId() int
 }
 
 // Frontend should be implemented by users of XEth. Its methods are
