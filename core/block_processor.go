@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/rlp"
-	"gitlab.com/q-dev/q-client/core/state"
 	"gopkg.in/fatih/set.v0"
 )
 
@@ -243,7 +243,7 @@ func (sm *BlockProcessor) processWithParent(block, parent *types.Block) (td *big
 		chainlogger.Infof("found possible uncle block #%d (%x...)\n", header.Number, block.Hash().Bytes()[0:4])
 		return td, nil, BlockEqualTSErr
 	} else {
-		chainlogger.Infof("processed block #%d (%x...)\n", header.Number, block.Hash().Bytes()[0:4])
+		chainlogger.Infof("processed block #%d (%d TXs %d UNCs) (%x...)\n", header.Number, len(block.Transactions()), len(block.Uncles()), block.Hash().Bytes()[0:4])
 	}
 
 	return td, state.Logs(), nil
