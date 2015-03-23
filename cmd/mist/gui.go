@@ -31,11 +31,11 @@ import (
 	"sort"
 	"time"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/ui/qt/qwhisper"
 	"gitlab.com/q-dev/q-client/xeth"
@@ -230,7 +230,8 @@ func (self *Gui) loadMergedMiningOptions() {
 
 func (gui *Gui) insertTransaction(window string, tx *types.Transaction) {
 	var inout string
-	if gui.eth.AccountManager().HasAccount(tx.From()) {
+	from, _ := tx.From()
+	if gui.eth.AccountManager().HasAccount(common.Hex2Bytes(from.Hex())) {
 		inout = "send"
 	} else {
 		inout = "recv"
@@ -238,8 +239,8 @@ func (gui *Gui) insertTransaction(window string, tx *types.Transaction) {
 
 	var (
 		ptx  = xeth.NewTx(tx)
-		send = common.Bytes2Hex(tx.From())
-		rec  = common.Bytes2Hex(tx.To())
+		send = from.Hex()
+		rec  = tx.To().Hex()
 	)
 	ptx.Sender = send
 	ptx.Address = rec
@@ -263,7 +264,7 @@ func (gui *Gui) readPreviousTransactions() {
 }
 
 func (gui *Gui) processBlock(block *types.Block, initial bool) {
-	name := common.Bytes2Hex(block.Coinbase())
+	name := block.Coinbase().Hex()
 	b := xeth.NewBlock(block)
 	b.Name = name
 
