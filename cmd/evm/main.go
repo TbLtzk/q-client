@@ -32,11 +32,11 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/core/state"
-	"gitlab.com/q-dev/q-client/core/vm"
 )
 
 var (
@@ -157,7 +157,7 @@ func (self *VMEnv) CallCode(caller vm.ContextRef, addr common.Address, data []by
 	return exe.Call(addr, caller)
 }
 
-func (self *VMEnv) Create(caller vm.ContextRef, addr *common.Address, data []byte, gas, price, value *big.Int) ([]byte, error, vm.ContextRef) {
-	exe := self.vm(addr, data, gas, price, value)
+func (self *VMEnv) Create(caller vm.ContextRef, data []byte, gas, price, value *big.Int) ([]byte, error, vm.ContextRef) {
+	exe := self.vm(nil, data, gas, price, value)
 	return exe.Create(caller)
 }
