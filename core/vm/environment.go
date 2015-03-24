@@ -7,8 +7,8 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 type Environment interface {

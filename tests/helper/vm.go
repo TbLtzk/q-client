@@ -6,9 +6,9 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/vm"
+	"gitlab.com/q-dev/q-client/crypto"
 )
 
 type Env struct {
