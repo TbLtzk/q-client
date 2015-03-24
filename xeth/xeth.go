@@ -15,12 +15,10 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/event/filter"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/miner"
-	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/whisper"
 )
 
 var (
@@ -29,30 +27,6 @@ var (
 	defaultGasPrice  = big.NewInt(10000000000000) //150000000000
 	defaultGas       = big.NewInt(90000)          //500000
 )
-
-// to resolve the import cycle
-type Backend interface {
-	BlockProcessor() *core.BlockProcessor
-	ChainManager() *core.ChainManager
-	AccountManager() *accounts.Manager
-	TxPool() *core.TxPool
-	PeerCount() int
-	IsListening() bool
-	Peers() []*p2p.Peer
-	BlockDb() common.Database
-	StateDb() common.Database
-	ExtraDb() common.Database
-	EventMux() *event.TypeMux
-	Whisper() *whisper.Whisper
-	Miner() *miner.Miner
-
-	IsMining() bool
-	StartMining() error
-	StopMining()
-	Version() string
-	ProtocolVersion() int
-	NetworkId() int
-}
 
 // Frontend should be implemented by users of XEth. Its methods are
 // called whenever XEth makes a decision that requires user input.
@@ -82,7 +56,7 @@ func (dummyFrontend) UnlockAccount([]byte) bool                  { return false 
 func (dummyFrontend) ConfirmTransaction(*types.Transaction) bool { return true }
 
 type XEth struct {
-	eth            Backend
+	eth            *eth.Ethereum
 	blockProcessor *core.BlockProcessor
 	chainManager   *core.ChainManager
 	accountManager *accounts.Manager
@@ -110,7 +84,7 @@ type XEth struct {
 // New creates an XEth that uses the given frontend.
 // If a nil Frontend is provided, a default frontend which
 // confirms all transactions will be used.
-func New(eth Backend, frontend Frontend) *XEth {
+func New(eth *eth.Ethereum, frontend Frontend) *XEth {
 	xeth := &XEth{
 		eth:            eth,
 		blockProcessor: eth.BlockProcessor(),
@@ -195,7 +169,7 @@ func (self *XEth) AtStateNum(num int64) *XEth {
 	return self.WithState(st)
 }
 
-func (self *XEth) Backend() Backend { return self.eth }
+func (self *XEth) Backend() *eth.Ethereum { return self.eth }
 func (self *XEth) WithState(statedb *state.StateDB) *XEth {
 	xeth := &XEth{
 		eth:            self.eth,
