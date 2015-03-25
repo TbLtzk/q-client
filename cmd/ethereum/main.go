@@ -33,16 +33,16 @@ import (
 	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/core/state"
 	"github.com/peterh/liner"
 )
 
 const (
 	ClientIdentifier = "Ethereum(G)"
-	Version          = "0.9.2"
+	Version          = "0.9.3"
 )
 
 var (
