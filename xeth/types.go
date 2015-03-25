@@ -7,11 +7,11 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rlp"
-	"gitlab.com/q-dev/q-client/core/state"
 )
 
 type Object struct {
@@ -45,7 +45,7 @@ func (self *Object) Storage() (storage map[string]string) {
 	for it.Next() {
 		var data []byte
 		rlp.Decode(bytes.NewReader(it.Value), &data)
-		storage[common.ToHex(it.Key)] = common.ToHex(data)
+		storage[common.ToHex(self.Trie().GetKey(it.Key))] = common.ToHex(data)
 	}
 
 	return
