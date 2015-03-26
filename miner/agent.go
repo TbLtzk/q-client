@@ -1,12 +1,15 @@
 package miner
 
 import (
+	"sync"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/pow"
 )
 
 type CpuMiner struct {
+	chMu          sync.Mutex
 	c             chan *types.Block
 	quit          chan struct{}
 	quitCurrentOp chan struct{}
@@ -43,16 +46,13 @@ func (self *CpuMiner) Start() {
 }
 
 func (self *CpuMiner) update() {
-	justStarted := true
 out:
 	for {
 		select {
 		case block := <-self.c:
-			if justStarted {
-				justStarted = true
-			} else {
-				self.quitCurrentOp <- struct{}{}
-			}
+			self.chMu.Lock()
+			self.quitCurrentOp <- struct{}{}
+			self.chMu.Unlock()
 
 			go self.mine(block)
 		case <-self.quit:
@@ -60,6 +60,7 @@ out:
 		}
 	}
 
+	close(self.quitCurrentOp)
 done:
 	// Empty channel
 	for {
@@ -75,12 +76,20 @@ done:
 
 func (self *CpuMiner) mine(block *types.Block) {
 	minerlogger.Debugf("(re)started agent[%d]. mining...\n", self.index)
+
+	// Reset the channel
+	self.chMu.Lock()
+	self.quitCurrentOp = make(chan struct{}, 1)
+	self.chMu.Unlock()
+
+	// Mine
 	nonce, mixDigest, _ := self.pow.Search(block, self.quitCurrentOp)
 	if nonce != 0 {
 		block.SetNonce(nonce)
 		block.Header().MixDigest = common.BytesToHash(mixDigest)
 		self.returnCh <- block
-		//self.returnCh <- Work{block.Number().Uint64(), nonce, mixDigest, seedHash}
+	} else {
+		self.returnCh <- nil
 	}
 }
 
