@@ -4,8 +4,8 @@ import (
 	"math"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/types"
 )
 
 type AccountChange struct {
