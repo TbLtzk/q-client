@@ -22,13 +22,14 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"os"
 	"strconv"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/types"
 )
 
 type plugin struct {
@@ -46,14 +47,14 @@ func (self *Gui) AddPlugin(pluginPath string) {
 	self.plugins[pluginPath] = plugin{Name: pluginPath, Path: pluginPath}
 
 	json, _ := json.MarshalIndent(self.plugins, "", "    ")
-	common.WriteFile(self.eth.DataDir+"/plugins.json", json)
+	ioutil.WriteFile(self.eth.DataDir+"/plugins.json", json, os.ModePerm)
 }
 
 func (self *Gui) RemovePlugin(pluginPath string) {
 	delete(self.plugins, pluginPath)
 
 	json, _ := json.MarshalIndent(self.plugins, "", "    ")
-	common.WriteFile(self.eth.DataDir+"/plugins.json", json)
+	ioutil.WriteFile(self.eth.DataDir+"/plugins.json", json, os.ModePerm)
 }
 
 func (self *Gui) DumpState(hash, path string) {
