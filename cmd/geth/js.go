@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/common/natspec"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
 	re "gitlab.com/q-dev/q-client/jsre"
@@ -140,8 +141,16 @@ var net = web3.net;
 }
 
 func (self *jsre) ConfirmTransaction(tx *types.Transaction) bool {
-	p := fmt.Sprintf("Confirm Transaction %v\n[y/n] ", tx)
-	answer, _ := self.Prompt(p)
+	var notice string
+	nat, err := natspec.New()
+	if err == nil {
+		notice, err = nat.Notice(tx)
+	}
+	if err != nil {
+		notice = fmt.Sprintf("About to submit transaction: %v")
+	}
+	fmt.Println(notice)
+	answer, _ := self.Prompt("Confirm Transaction\n[y/n] ")
 	return strings.HasPrefix(strings.Trim(answer, " "), "y")
 }
 
