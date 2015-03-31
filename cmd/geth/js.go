@@ -26,7 +26,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common/natspec"
-	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
 	re "gitlab.com/q-dev/q-client/jsre"
 	"gitlab.com/q-dev/q-client/rpc"
@@ -140,11 +139,11 @@ var net = web3.net;
 	js.re.Eval(globalRegistrar + "registrar = new GlobalRegistrar(\"" + globalRegistrarAddr + "\");")
 }
 
-func (self *jsre) ConfirmTransaction(tx *types.Transaction) bool {
+func (self *jsre) ConfirmTransaction(tx string) bool {
 	var notice string
-	nat, err := natspec.New()
+	nat, err := natspec.New(self.xeth, tx)
 	if err == nil {
-		notice, err = nat.Notice(tx)
+		notice, err = nat.Notice()
 	}
 	if err != nil {
 		notice = fmt.Sprintf("About to submit transaction: %v")
