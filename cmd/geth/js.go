@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/common/docserver"
 	"gitlab.com/q-dev/q-client/common/natspec"
 	"gitlab.com/q-dev/q-client/eth"
 	re "gitlab.com/q-dev/q-client/jsre"
@@ -139,9 +140,11 @@ var net = web3.net;
 	js.re.Eval(globalRegistrar + "registrar = new GlobalRegistrar(\"" + globalRegistrarAddr + "\");")
 }
 
+var ds, _ = docserver.New(utils.JSpathFlag.String())
+
 func (self *jsre) ConfirmTransaction(tx string) bool {
 	var notice string
-	nat, err := natspec.New(self.xeth, tx)
+	nat, err := natspec.New(self.xeth, tx, ds)
 	if err == nil {
 		notice, err = nat.Notice()
 	}
