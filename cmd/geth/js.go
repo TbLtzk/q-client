@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/docserver"
 	"gitlab.com/q-dev/q-client/common/natspec"
 	"gitlab.com/q-dev/q-client/eth"
@@ -164,7 +165,7 @@ func (self *jsre) UnlockAccount(addr []byte) bool {
 		return false
 	}
 	// TODO: allow retry
-	if err := self.ethereum.AccountManager().Unlock(addr, pass); err != nil {
+	if err := self.ethereum.AccountManager().Unlock(common.BytesToAddress(addr), pass); err != nil {
 		return false
 	} else {
 		fmt.Println("Account is now unlocked for this session.")
