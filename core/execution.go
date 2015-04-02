@@ -8,6 +8,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 type Execution struct {
@@ -43,7 +44,7 @@ func (self *Execution) exec(contextAddr *common.Address, code []byte, caller vm.
 
 	env := self.env
 	evm := self.evm
-	if env.Depth() == vm.MaxCallDepth {
+	if env.Depth() > int(params.CallCreateDepth.Int64()) {
 		caller.ReturnGas(self.Gas, self.price)
 
 		return nil, vm.DepthError{}

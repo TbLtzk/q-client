@@ -8,6 +8,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 const tryJit = false
@@ -178,7 +179,7 @@ func (self *StateTransition) transitionState() (ret []byte, usedGas *big.Int, er
 	)
 
 	// Transaction gas
-	if err = self.UseGas(vm.GasTx); err != nil {
+	if err = self.UseGas(params.TxGas); err != nil {
 		return nil, nil, InvalidTxError(err)
 	}
 
@@ -186,9 +187,9 @@ func (self *StateTransition) transitionState() (ret []byte, usedGas *big.Int, er
 	dgas := new(big.Int)
 	for _, byt := range self.data {
 		if byt != 0 {
-			dgas.Add(dgas, vm.GasTxDataNonzeroByte)
+			dgas.Add(dgas, params.TxDataNonZeroGas)
 		} else {
-			dgas.Add(dgas, vm.GasTxDataZeroByte)
+			dgas.Add(dgas, params.TxDataZeroGas)
 		}
 	}
 
@@ -202,7 +203,7 @@ func (self *StateTransition) transitionState() (ret []byte, usedGas *big.Int, er
 		ret, err, ref = vmenv.Create(sender, self.msg.Data(), self.gas, self.gasPrice, self.value)
 		if err == nil {
 			dataGas := big.NewInt(int64(len(ret)))
-			dataGas.Mul(dataGas, vm.GasCreateByte)
+			dataGas.Mul(dataGas, params.CreateDataGas)
 			if err := self.UseGas(dataGas); err == nil {
 				ref.SetCode(ret)
 			} else {
