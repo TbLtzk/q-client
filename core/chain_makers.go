@@ -5,10 +5,10 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/pow"
-	"gitlab.com/q-dev/q-client/core/state"
 )
 
 // So we can generate blocks easily
@@ -81,7 +81,7 @@ func makeBlock(bman *BlockProcessor, parent *types.Block, i int, db common.Datab
 	cbase := state.GetOrNewStateObject(addr)
 	cbase.SetGasPool(CalcGasLimit(parent, block))
 	cbase.AddBalance(BlockReward)
-	state.Update(common.Big0)
+	state.Update()
 	block.SetRoot(state.Root())
 	return block
 }
