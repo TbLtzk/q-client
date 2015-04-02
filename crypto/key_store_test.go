@@ -1,8 +1,8 @@
 package crypto
 
 import (
-	"gitlab.com/q-dev/q-client/crypto/randentropy"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto/randentropy"
 	"reflect"
 	"testing"
 )
