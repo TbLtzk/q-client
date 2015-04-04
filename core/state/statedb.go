@@ -6,11 +6,9 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/trie"
-	"github.com/golang/glog"
 )
-
-var statelogger = logger.NewLogger("STATE")
 
 // StateDBs within the ethereum protocol are used to store anything
 // within the merkle trie. StateDBs take care of caching and storing

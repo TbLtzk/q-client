@@ -5,10 +5,8 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 )
-
-var vmlogger = logger.NewLogger("VM")
 
 // Global Debug flag indicating Debug VM (full logging)
 var Debug bool
@@ -41,7 +39,7 @@ func NewVm(env Environment) VirtualMachine {
 	case JitVmTy:
 		return NewJitVm(env)
 	default:
-		vmlogger.Infoln("unsupported vm type %d", env.VmType())
+		glog.V(0).Infoln("unsupported vm type %d", env.VmType())
 		fallthrough
 	case StdVmTy:
 		return New(env)

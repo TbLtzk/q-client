@@ -9,8 +9,10 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/tests/helper"
 )
 
@@ -80,14 +82,13 @@ func RunVmTest(p string, t *testing.T) {
 	tests := make(map[string]VmTest)
 	helper.CreateFileTests(t, p, &tests)
 
+	vm.Debug = true
+	glog.SetV(4)
+	glog.SetToStderr(true)
 	for name, test := range tests {
-		/*
-			vm.Debug = true
-			helper.Logger.SetLogLevel(5)
-			if name != "Call1MB1024Calldepth" {
-				continue
-			}
-		*/
+		if name != "stackLimitPush32_1024" {
+			continue
+		}
 		db, _ := ethdb.NewMemDatabase()
 		statedb := state.New(common.Hash{}, db)
 		for addr, account := range test.Pre {
