@@ -2,14 +2,15 @@ package core
 
 import (
 	"crypto/ecdsa"
+	"math/big"
 	"testing"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/core/state"
 )
 
 // State query interface
@@ -88,7 +89,10 @@ func TestRemoveInvalid(t *testing.T) {
 
 func TestInvalidSender(t *testing.T) {
 	pool, _ := setup()
-	err := pool.ValidateTransaction(new(types.Transaction))
+	tx := new(types.Transaction)
+	tx.R = new(big.Int)
+	tx.S = new(big.Int)
+	err := pool.ValidateTransaction(tx)
 	if err != ErrInvalidSender {
 		t.Errorf("expected %v, got %v", ErrInvalidSender, err)
 	}
