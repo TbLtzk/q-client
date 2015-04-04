@@ -9,6 +9,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/xeth"
@@ -34,6 +35,18 @@ func (js *jsre) adminBindings() {
 	admin.Set("import", js.importChain)
 	admin.Set("export", js.exportChain)
 	admin.Set("dumpBlock", js.dumpBlock)
+	admin.Set("verbosity", js.verbosity)
+}
+
+func (js *jsre) verbosity(call otto.FunctionCall) otto.Value {
+	v, err := call.Argument(0).ToInteger()
+	if err != nil {
+		fmt.Println(err)
+		return otto.UndefinedValue()
+	}
+
+	glog.SetV(int(v))
+	return otto.UndefinedValue()
 }
 
 func (js *jsre) startMining(call otto.FunctionCall) otto.Value {
