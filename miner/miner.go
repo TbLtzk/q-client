@@ -6,11 +6,8 @@ import (
 	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
-	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/pow"
 )
-
-var minerlogger = logger.NewLogger("MINER")
 
 type Miner struct {
 	worker *worker

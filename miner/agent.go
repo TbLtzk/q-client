@@ -5,6 +5,8 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/pow"
 )
 
@@ -75,7 +77,7 @@ done:
 }
 
 func (self *CpuMiner) mine(block *types.Block) {
-	minerlogger.Debugf("(re)started agent[%d]. mining...\n", self.index)
+	glog.V(logger.Debug).Infof("(re)started agent[%d]. mining...\n", self.index)
 
 	// Reset the channel
 	self.chMu.Lock()
