@@ -9,6 +9,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/crypto/secp256k1"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
@@ -129,7 +130,12 @@ func (tx *Transaction) PublicKey() []byte {
 
 	//pubkey := crypto.Ecrecover(append(hash[:], sig...))
 	//pubkey, _ := secp256k1.RecoverPubkey(hash[:], sig)
-	pubkey := crypto.FromECDSAPub(crypto.SigToPub(hash[:], sig))
+	p, err := crypto.SigToPub(hash[:], sig)
+	if err != nil {
+		glog.V(0).Infof("Could not get pubkey from signature: ", err)
+		return nil
+	}
+	pubkey := crypto.FromECDSAPub(p)
 	return pubkey
 }
 
