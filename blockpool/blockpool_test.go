@@ -7,6 +7,10 @@ import (
 	"gitlab.com/q-dev/q-client/blockpool/test"
 )
 
+func init() {
+	test.LogInit()
+}
+
 // using the mock framework in blockpool_util_test
 // we test various scenarios here
 
