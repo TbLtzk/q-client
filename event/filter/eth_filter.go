@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"gitlab.com/q-dev/q-client/core"
-	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/event"
 )
 
 type FilterManager struct {
