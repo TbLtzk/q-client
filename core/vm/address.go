@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/params"
 )
@@ -84,7 +85,7 @@ func ecrecoverFunc(in []byte) []byte {
 	pubKey, err := crypto.Ecrecover(in[:32], rsv)
 	// make sure the public key is a valid one
 	if err != nil {
-		glog.V(0).Infof("EC RECOVER FAIL: ", err)
+		glog.V(logger.Error).Infof("EC RECOVER FAIL: ", err)
 		return nil
 	}
 
