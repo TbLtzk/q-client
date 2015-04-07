@@ -33,10 +33,10 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
-var clilogger = logger.NewLogger("CLI")
 var interruptCallbacks = []func(os.Signal){}
 
 // Register interrupt handlers callbacks
@@ -50,7 +50,7 @@ func HandleInterrupt() {
 	go func() {
 		signal.Notify(c, os.Interrupt)
 		for sig := range c {
-			clilogger.Errorf("Shutting down (%v) ... \n", sig)
+			glog.V(logger.Error).Infof("Shutting down (%v) ... \n", sig)
 			RunInterruptCallbacks(sig)
 		}
 	}()
@@ -113,7 +113,7 @@ func Fatalf(format string, args ...interface{}) {
 }
 
 func StartEthereum(ethereum *eth.Ethereum) {
-	clilogger.Infoln("Starting ", ethereum.Name())
+	glog.V(logger.Info).Infoln("Starting ", ethereum.Name())
 	if err := ethereum.Start(); err != nil {
 		exit(err)
 	}
@@ -124,7 +124,7 @@ func StartEthereum(ethereum *eth.Ethereum) {
 }
 
 func StartEthereumForTest(ethereum *eth.Ethereum) {
-	clilogger.Infoln("Starting ", ethereum.Name())
+	glog.V(logger.Info).Infoln("Starting ", ethereum.Name())
 	ethereum.StartForTest()
 	RegisterInterrupt(func(sig os.Signal) {
 		ethereum.Stop()

@@ -12,6 +12,7 @@ import (
 	"gitlab.com/q-dev/q-client/errs"
 	"gitlab.com/q-dev/q-client/event"
 	ethlogger "gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/pow"
 )
 
@@ -260,7 +261,7 @@ func (self *BlockPool) Start() {
 			}
 		}
 	}()
-	plog.Infoln("Started")
+	glog.V(ethlogger.Info).Infoln("Blockpool started")
 }
 
 func (self *BlockPool) Stop() {
