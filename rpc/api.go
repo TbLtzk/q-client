@@ -8,6 +8,8 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/xeth"
 )
 
@@ -37,7 +39,7 @@ func (api *EthereumApi) xethAtStateNum(num int64) *xeth.XEth {
 
 func (api *EthereumApi) GetRequestReply(req *RpcRequest, reply *interface{}) error {
 	// Spec at https://github.com/ethereum/wiki/wiki/JSON-RPC
-	rpclogger.Debugf("%s %s", req.Method, req.Params)
+	glog.V(logger.Debug).Infof("%s %s", req.Method, req.Params)
 
 	switch req.Method {
 	case "web3_sha3":
