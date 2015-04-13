@@ -11,7 +11,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/crypto/ecies"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
@@ -85,26 +84,21 @@ func (self *Envelope) Open(key *ecdsa.PrivateKey) (msg *Message, err error) {
 	}
 	data = data[1:]
 
-	if message.Flags&128 == 128 {
-		if len(data) < 65 {
-			return nil, fmt.Errorf("unable to open envelope. First bit set but len(data) < 65")
+	if message.Flags&signatureFlag == signatureFlag {
+		if len(data) < signatureLength {
+			return nil, fmt.Errorf("unable to open envelope. First bit set but len(data) < len(signature)")
 		}
-		message.Signature, data = data[:65], data[65:]
+		message.Signature, data = data[:signatureLength], data[signatureLength:]
 	}
 	message.Payload = data
 
-	// Short circuit if the encryption was requested
+	// Decrypt the message, if requested
 	if key == nil {
 		return message, nil
 	}
-	// Otherwise try to decrypt the message
-	message.Payload, err = crypto.Decrypt(key, message.Payload)
-	switch err {
+	switch message.decrypt(key) {
 	case nil:
 		return message, nil
-
-	case ecies.ErrInvalidPublicKey: // Payload isn't encrypted
-		return message, err
 
 	default:
 		return nil, fmt.Errorf("unable to open envelope, decrypt failed: %v", err)
