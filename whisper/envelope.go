@@ -11,6 +11,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/crypto/ecies"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
@@ -96,9 +97,13 @@ func (self *Envelope) Open(key *ecdsa.PrivateKey) (msg *Message, err error) {
 	if key == nil {
 		return message, nil
 	}
-	switch message.decrypt(key) {
+	err = message.decrypt(key)
+	switch err {
 	case nil:
 		return message, nil
+
+	case ecies.ErrInvalidPublicKey: // Payload isn't encrypted
+		return message, err
 
 	default:
 		return nil, fmt.Errorf("unable to open envelope, decrypt failed: %v", err)
