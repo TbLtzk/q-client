@@ -8,9 +8,8 @@ import (
 	"io/ioutil"
 	"math/rand"
 
-	"gitlab.com/q-dev/q-client/p2p"
-
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 )
 
