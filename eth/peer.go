@@ -6,6 +6,8 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gopkg.in/fatih/set.v0"
 )
@@ -85,12 +87,12 @@ func (p *peer) sendNewBlock(block *types.Block) error {
 }
 
 func (p *peer) requestHashes(from common.Hash) error {
-	p.Debugf("fetching hashes (%d) %x...\n", maxHashes, from[0:4])
+	glog.V(logger.Debug).Infof("[%s] fetching hashes (%d) %x...\n", p.id, maxHashes, from[:4])
 	return p2p.Send(p.rw, GetBlockHashesMsg, getBlockHashesMsgData{from, maxHashes})
 }
 
 func (p *peer) requestBlocks(hashes []common.Hash) error {
-	p.Debugf("fetching %v blocks", len(hashes))
+	glog.V(logger.Debug).Infof("[%s] fetching %v blocks\n", p.id, len(hashes))
 	return p2p.Send(p.rw, GetBlocksMsg, hashes)
 }
 
