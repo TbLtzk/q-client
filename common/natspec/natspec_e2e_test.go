@@ -10,11 +10,9 @@ import (
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/docserver"
-	"gitlab.com/q-dev/q-client/common/natspec"
 	"gitlab.com/q-dev/q-client/common/resolver"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
-	//"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/rpc"
@@ -100,7 +98,7 @@ func (f *testFrontend) ConfirmTransaction(tx string) bool {
 		if err != nil {
 			f.t.Errorf("Error creating DocServer: %v", err)
 		}
-		f.lastConfirm = natspec.GetNotice(f.xeth, tx, ds)
+		f.lastConfirm = GetNotice(f.xeth, tx, ds)
 	}
 	return true
 }
