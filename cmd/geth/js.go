@@ -25,7 +25,8 @@ import (
 	"strings"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/common/docserver"
+	"gitlab.com/q-dev/q-client/common/natspec"
 	"gitlab.com/q-dev/q-client/eth"
 	re "gitlab.com/q-dev/q-client/jsre"
 	"gitlab.com/q-dev/q-client/rpc"
@@ -139,10 +140,17 @@ var net = web3.net;
 	js.re.Eval(globalRegistrar + "registrar = new GlobalRegistrar(\"" + globalRegistrarAddr + "\");")
 }
 
-func (self *jsre) ConfirmTransaction(tx *types.Transaction) bool {
-	p := fmt.Sprintf("Confirm Transaction %v\n[y/n] ", tx)
-	answer, _ := self.Prompt(p)
-	return strings.HasPrefix(strings.Trim(answer, " "), "y")
+var ds, _ = docserver.New(utils.JSpathFlag.String())
+
+func (self *jsre) ConfirmTransaction(tx string) bool {
+	if self.ethereum.NatSpec {
+		notice := natspec.GetNotice(self.xeth, tx, ds)
+		fmt.Println(notice)
+		answer, _ := self.Prompt("Confirm Transaction\n[y/n] ")
+		return strings.HasPrefix(strings.Trim(answer, " "), "y")
+	} else {
+		return true
+	}
 }
 
 func (self *jsre) UnlockAccount(addr []byte) bool {
