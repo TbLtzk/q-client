@@ -15,7 +15,7 @@ import (
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
-const Version = 3
+const Version = 4
 
 // Errors
 var (
