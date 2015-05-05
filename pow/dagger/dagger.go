@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"time"
 
-	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/logger"
 )
 
@@ -44,7 +44,7 @@ func (dag *Dagger) Find(obj *big.Int, resChan chan int64) {
 	resChan <- 0
 }
 
-func (dag *Dagger) Search(hash, diff *big.Int) ([]byte, []byte, []byte) {
+func (dag *Dagger) Search(hash, diff *big.Int) (uint64, []byte) {
 	// TODO fix multi threading. Somehow it results in the wrong nonce
 	amountOfRoutines := 1
 
@@ -69,7 +69,7 @@ func (dag *Dagger) Search(hash, diff *big.Int) ([]byte, []byte, []byte) {
 		}
 	}
 
-	return big.NewInt(res).Bytes(), nil, nil
+	return uint64(res), nil
 }
 
 func (dag *Dagger) Verify(hash, diff, nonce *big.Int) bool {
