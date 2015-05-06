@@ -3,7 +3,6 @@ package miner
 import (
 	"math/big"
 
-	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
@@ -41,13 +40,7 @@ func (self *Miner) Mining() bool {
 func (self *Miner) Start(coinbase common.Address) {
 	self.mining = true
 	self.worker.coinbase = coinbase
-
-	if self.threads > 0 {
-		self.pow.(*ethash.Ethash).UpdateDAG()
-	}
-
 	self.worker.start()
-
 	self.worker.commitNewWork()
 }
 
