@@ -3,6 +3,7 @@ package rpc
 import (
 	"encoding/json"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 )
@@ -302,4 +303,14 @@ func NewLogsRes(logs state.Logs) (ls []LogRes) {
 	}
 
 	return
+}
+
+func NewHashesRes(hs []common.Hash) []string {
+	hashes := make([]string, len(hs))
+
+	for i, hash := range hs {
+		hashes[i] = hash.Hex()
+	}
+
+	return hashes
 }
