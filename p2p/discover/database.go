@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/rlp"
@@ -167,6 +168,7 @@ func (db *nodeDB) node(id NodeID) *Node {
 		glog.V(logger.Warn).Infof("failed to decode node RLP: %v", err)
 		return nil
 	}
+	node.sha = crypto.Sha3Hash(node.ID[:])
 	return node
 }
 
