@@ -7,6 +7,8 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/pow"
 )
 
@@ -47,6 +49,8 @@ func (m *Miner) SetGasPrice(price *big.Int) {
 }
 
 func (self *Miner) Start(coinbase common.Address) {
+	glog.V(logger.Info).Infoln("Starting mining operation")
+
 	self.mining = true
 	self.worker.coinbase = coinbase
 	self.worker.start()
