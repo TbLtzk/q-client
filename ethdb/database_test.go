@@ -2,7 +2,6 @@ package ethdb
 
 import (
 	"os"
-
 	"path/filepath"
 
 	"gitlab.com/q-dev/q-client/common"

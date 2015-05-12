@@ -27,11 +27,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"time"
-
-	"path/filepath"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"

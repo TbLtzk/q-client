@@ -22,9 +22,8 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"strings"
-
 	"path/filepath"
+	"strings"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common/docserver"

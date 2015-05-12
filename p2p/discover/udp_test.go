@@ -9,6 +9,7 @@ import (
 	logpkg "log"
 	"net"
 	"os"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"sync"
@@ -17,7 +18,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/logger"
-    "path/filepath"
 )
 
 func init() {

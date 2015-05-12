@@ -22,7 +22,6 @@ package main
 
 import (
 	"io/ioutil"
-
 	"path/filepath"
 
 	"gitlab.com/q-dev/q-client/common"
