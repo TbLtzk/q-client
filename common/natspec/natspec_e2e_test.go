@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"gitlab.com/q-dev/q-client/accounts"
@@ -115,7 +116,7 @@ func testEth(t *testing.T) (ethereum *eth.Ethereum, err error) {
 	if err != nil {
 		panic(err)
 	}
-	testAddress := common.Bytes2Hex(testAccount.Address)
+	testAddress := strings.TrimPrefix(testAccount.Address.Hex(), "0x")
 
 	// set up mock genesis with balance on the testAddress
 	core.GenesisData = []byte(`{
