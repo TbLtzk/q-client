@@ -1,3 +1,6 @@
+// Contains the block download scheduler to collect download tasks and schedule
+// them in an ordered, and throttled way.
+
 package downloader
 
 import (
@@ -8,6 +11,8 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 )
 
@@ -126,6 +131,10 @@ func (q *queue) Insert(hashes []common.Hash) {
 	for i, hash := range hashes {
 		index := q.hashCounter + i
 
+		if old, ok := q.hashPool[hash]; ok {
+			glog.V(logger.Warn).Infof("Hash %x already scheduled at index %v", hash, old)
+			continue
+		}
 		q.hashPool[hash] = index
 		q.hashQueue.Push(hash, float32(index)) // Highest gets schedules first
 	}
