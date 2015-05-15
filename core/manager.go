@@ -3,10 +3,12 @@ package core
 import (
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/p2p"
 )
 
+// TODO move this to types?
 type Backend interface {
 	AccountManager() *accounts.Manager
 	BlockProcessor() *BlockProcessor
@@ -18,4 +20,5 @@ type Backend interface {
 	BlockDb() common.Database
 	StateDb() common.Database
 	EventMux() *event.TypeMux
+	Downloader() *downloader.Downloader
 }
