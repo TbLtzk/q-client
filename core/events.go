@@ -3,6 +3,7 @@ package core
 import (
 	"math/big"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 )
@@ -27,6 +28,7 @@ type ChainSplitEvent struct {
 
 type ChainEvent struct {
 	Block *types.Block
+	Hash  common.Hash
 	Logs  state.Logs
 }
 

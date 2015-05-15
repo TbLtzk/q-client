@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/event"
 )
 
 var (
@@ -67,7 +68,8 @@ func newTester(t *testing.T, hashes []common.Hash, blocks map[common.Hash]*types
 
 		done: make(chan bool),
 	}
-	downloader := New(tester.hasBlock, tester.getBlock)
+	var mux event.TypeMux
+	downloader := New(&mux, tester.hasBlock, tester.getBlock)
 	tester.downloader = downloader
 
 	return tester
