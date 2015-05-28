@@ -12,7 +12,7 @@ import (
 	"gitlab.com/q-dev/q-client/tests"
 )
 
-var blocktestCmd = cli.Command{
+var blocktestCommand = cli.Command{
 	Action: runBlockTest,
 	Name:   "blocktest",
 	Usage:  `loads a block test file`,
