@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
 	"gopkg.in/fatih/set.v0"
 )
 
@@ -100,9 +98,6 @@ func (p *peer) SetIdle() {
 			// If we're having problems at 1 capacity, try to find better peers
 			if next == 1 {
 				p.Demote()
-			}
-			if prev != next {
-				glog.V(logger.Detail).Infof("%s: changing block download capacity from %d to %d", p.id, prev, next)
 			}
 			break
 		}
