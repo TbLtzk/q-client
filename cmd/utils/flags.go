@@ -24,6 +24,9 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/nat"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/xeth"
+	"gitlab.com/q-dev/q-client/rpc/api"
+	"gitlab.com/q-dev/q-client/rpc/comms"
+	"gitlab.com/q-dev/q-client/rpc/codec"
 )
 
 func init() {
@@ -206,6 +209,20 @@ var (
 		Usage: "Domain on which to send Access-Control-Allow-Origin header",
 		Value: "",
 	}
+	IPCDisabledFlag = cli.BoolFlag{
+		Name:  "ipcdisable",
+		Usage: "Disable the IPC-RPC server",
+	}
+	IPCApiFlag = cli.StringFlag{
+		Name:  "ipcapi",
+		Usage: "Specify the API's which are offered over this interface",
+		Value: api.DefaultIpcApis,
+	}
+	IPCPathFlag = DirectoryFlag{
+		Name:  "ipcpath",
+		Usage: "Filename for IPC socket/pipe",
+		Value: DirectoryString{common.DefaultIpcPath()},
+	}
 	// Network Settings
 	MaxPeersFlag = cli.IntFlag{
 		Name:  "maxpeers",
@@ -366,6 +383,22 @@ func MakeAccountManager(ctx *cli.Context) *accounts.Manager {
 	dataDir := ctx.GlobalString(DataDirFlag.Name)
 	ks := crypto.NewKeyStorePassphrase(filepath.Join(dataDir, "keystore"))
 	return accounts.NewManager(ks)
+}
+
+func StartIPC(eth *eth.Ethereum, ctx *cli.Context) error {
+	config := comms.IpcConfig{
+		Endpoint: ctx.GlobalString(IPCPathFlag.Name),
+	}
+
+	xeth := xeth.New(eth, nil)
+	codec := codec.JSON
+
+	apis, err := api.ParseApiString(ctx.GlobalString(IPCApiFlag.Name), codec, xeth, eth)
+	if err != nil {
+		return err
+	}
+
+	return comms.StartIpc(config, codec, apis...)
 }
 
 func StartRPC(eth *eth.Ethereum, ctx *cli.Context) error {

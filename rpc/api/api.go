@@ -2,6 +2,11 @@ package api
 
 import "gitlab.com/q-dev/q-client/rpc/shared"
 
+const (
+	// List with all API's which are offered over the IPC interface by default
+	DefaultIpcApis = "eth"
+)
+
 // Ethereum RPC API interface
 type EthereumApi interface {
 	// Execute the given request and returns the response or an error
