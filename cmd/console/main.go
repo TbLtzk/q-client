@@ -25,11 +25,11 @@ import (
 	"io"
 	"os"
 
-	"github.com/mattn/go-colorable"
-	"github.com/mattn/go-isatty"
 	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/logger"
+	"github.com/mattn/go-colorable"
+	"github.com/mattn/go-isatty"
 )
 
 const (
@@ -40,7 +40,7 @@ const (
 var (
 	gitCommit       string // set via linker flag
 	nodeNameVersion string
-	app           = utils.NewApp(Version, "the ether console")
+	app             = utils.NewApp(Version, "the ether console")
 )
 
 func init() {
@@ -96,6 +96,6 @@ func run(ctx *cli.Context) {
 	ipcpath := ctx.GlobalString(utils.IPCPathFlag.Name)
 
 	repl := newJSRE(jspath, ipcpath)
-	repl.welcome()
+	repl.welcome(ipcpath)
 	repl.interactive()
 }
