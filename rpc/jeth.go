@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gitlab.com/q-dev/q-client/jsre"
-	"github.com/robertkrimen/otto"
-	"gitlab.com/q-dev/q-client/rpc/comms"
-	"gitlab.com/q-dev/q-client/rpc/codec"
-	"gitlab.com/q-dev/q-client/rpc/shared"
 	"reflect"
+
+	"gitlab.com/q-dev/q-client/jsre"
+	"gitlab.com/q-dev/q-client/rpc/codec"
+	"gitlab.com/q-dev/q-client/rpc/comms"
+	"gitlab.com/q-dev/q-client/rpc/shared"
+	"github.com/robertkrimen/otto"
 )
 
 type Jeth struct {
