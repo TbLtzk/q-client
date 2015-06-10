@@ -6,8 +6,8 @@ import (
 
 	"gitlab.com/q-dev/q-client/core/types"
 	// "gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 )
 
@@ -75,9 +75,6 @@ func NewTestManager() *TestManager {
 	// testManager.txPool = NewTxPool(testManager)
 	// testManager.blockChain = NewChainManager(testManager)
 	// testManager.stateManager = NewStateManager(testManager)
-
-	// Start the tx pool
-	testManager.txPool.Start()
 
 	return testManager
 }
