@@ -32,12 +32,12 @@ import (
 	"gitlab.com/q-dev/q-client/common/docserver"
 	re "gitlab.com/q-dev/q-client/jsre"
 	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/rpc/api"
 	"gitlab.com/q-dev/q-client/rpc/codec"
 	"gitlab.com/q-dev/q-client/rpc/comms"
 	"gitlab.com/q-dev/q-client/rpc/shared"
 	"github.com/peterh/liner"
 	"github.com/robertkrimen/otto"
-	"gitlab.com/q-dev/q-client/rpc/api"
 )
 
 type prompter interface {
@@ -235,6 +235,7 @@ func (self *jsre) suportedApis(ipcpath string) ([]string, error) {
 // show summary of current geth instance
 func (self *jsre) welcome(ipcpath string) {
 	self.re.Eval(`console.log('instance: ' + web3.version.client);`)
+	self.re.Eval(`console.log(' datadir: ' + admin.datadir);`)
 	self.re.Eval(`console.log("coinbase: " + eth.coinbase);`)
 	self.re.Eval(`var lastBlockTimestamp = 1000 * eth.getBlock(eth.blockNumber).timestamp`)
 	self.re.Eval(`console.log("at block: " + eth.blockNumber + " (" + new Date(lastBlockTimestamp).toLocaleDateString()
