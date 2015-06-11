@@ -12,6 +12,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/logger/glog"
 )
 
 func RunStateTest(p string) error {
@@ -25,7 +26,7 @@ func RunStateTest(p string) error {
 
 	for name, test := range tests {
 		if skipTest[name] {
-			fmt.Println("Skipping state test", name)
+			glog.Infoln("Skipping state test", name)
 			return nil
 		}
 		db, _ := ethdb.NewMemDatabase()
@@ -105,7 +106,7 @@ func RunStateTest(p string) error {
 			}
 		}
 
-		fmt.Println("State test passed: ", name)
+		glog.Infoln("State test passed: ", name)
 		//fmt.Println(string(statedb.Dump()))
 	}
 	return nil

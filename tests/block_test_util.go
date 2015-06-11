@@ -19,6 +19,7 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
@@ -99,15 +100,14 @@ func RunBlockTest(filepath string) error {
 	for name, test := range bt {
 		// if the test should be skipped, return
 		if skipTest[name] {
-			fmt.Println("Skipping state test", name)
+			glog.Infoln("Skipping block test", name)
 			return nil
 		}
 		// test the block
 		if err := testBlock(test); err != nil {
 			return err
 		}
-		fmt.Println("Block test passed: ", name)
-
+		glog.Infoln("Block test passed: ", name)
 	}
 	return nil
 }

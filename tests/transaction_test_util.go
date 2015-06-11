@@ -8,6 +8,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
@@ -44,14 +45,14 @@ func RunTransactionTests(file string) error {
 	for name, test := range bt {
 		// if the test should be skipped, return
 		if skipTest[name] {
-			fmt.Println("Skipping state test", name)
+			glog.Infoln("Skipping transaction test", name)
 			return nil
 		}
 		// test the block
 		if err := runTest(test); err != nil {
 			return err
 		}
-		fmt.Println("Transaction test passed: ", name)
+		glog.Infoln("Transaction test passed: ", name)
 
 	}
 	return nil
