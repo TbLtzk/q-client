@@ -11,7 +11,6 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/p2p"
@@ -168,8 +167,7 @@ func newProtocolManagerForTesting(txAdded chan<- []*types.Transaction) *Protocol
 		db, _    = ethdb.NewMemDatabase()
 		chain, _ = core.NewChainManager(core.GenesisBlock(0, db), db, db, core.FakePow{}, em)
 		txpool   = &fakeTxPool{added: txAdded}
-		dl       = downloader.New(em, chain.HasBlock, chain.GetBlock)
-		pm       = NewProtocolManager(ProtocolVersion, 0, em, txpool, chain, dl)
+		pm       = NewProtocolManager(ProtocolVersion, 0, em, txpool, chain)
 	)
 	pm.Start()
 	return pm
