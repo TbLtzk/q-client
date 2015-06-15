@@ -23,10 +23,10 @@ import (
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/p2p/nat"
 	"gitlab.com/q-dev/q-client/rpc"
-	"gitlab.com/q-dev/q-client/xeth"
 	"gitlab.com/q-dev/q-client/rpc/api"
-	"gitlab.com/q-dev/q-client/rpc/comms"
 	"gitlab.com/q-dev/q-client/rpc/codec"
+	"gitlab.com/q-dev/q-client/rpc/comms"
+	"gitlab.com/q-dev/q-client/xeth"
 )
 
 func init() {
@@ -132,7 +132,7 @@ var (
 	GasPriceFlag = cli.StringFlag{
 		Name:  "gasprice",
 		Usage: "Sets the minimal gasprice when mining transactions",
-		Value: new(big.Int).Mul(big.NewInt(10), common.Szabo).String(),
+		Value: new(big.Int).Mul(big.NewInt(1), common.Szabo).String(),
 	}
 
 	UnlockedAccountFlag = cli.StringFlag{
@@ -279,12 +279,12 @@ var (
 	GpoMinGasPriceFlag = cli.StringFlag{
 		Name:  "gpomin",
 		Usage: "Minimum suggested gas price",
-		Value: new(big.Int).Mul(big.NewInt(10), common.Szabo).String(),
+		Value: new(big.Int).Mul(big.NewInt(1), common.Szabo).String(),
 	}
 	GpoMaxGasPriceFlag = cli.StringFlag{
 		Name:  "gpomax",
 		Usage: "Maximum suggested gas price",
-		Value: new(big.Int).Mul(big.NewInt(1000), common.Szabo).String(),
+		Value: new(big.Int).Mul(big.NewInt(100), common.Szabo).String(),
 	}
 	GpoFullBlockRatioFlag = cli.IntFlag{
 		Name:  "gpofull",
@@ -432,7 +432,7 @@ func IpcSocketPath(ctx *cli.Context) (ipcpath string) {
 		if ctx.GlobalString(IPCPathFlag.Name) != common.DefaultIpcPath() {
 			ipcpath = ctx.GlobalString(IPCPathFlag.Name)
 		} else if ctx.GlobalString(DataDirFlag.Name) != "" &&
-		ctx.GlobalString(DataDirFlag.Name) != common.DefaultDataDir() {
+			ctx.GlobalString(DataDirFlag.Name) != common.DefaultDataDir() {
 			ipcpath = filepath.Join(ctx.GlobalString(DataDirFlag.Name), "geth.ipc")
 		}
 	}
