@@ -3,7 +3,6 @@
 package comms
 
 import (
-	"io"
 	"net"
 	"os"
 
@@ -11,7 +10,6 @@ import (
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/rpc/api"
 	"gitlab.com/q-dev/q-client/rpc/codec"
-	"gitlab.com/q-dev/q-client/rpc/shared"
 )
 
 func newIpcClient(cfg IpcConfig, codec codec.Codec) (*ipcClient, error) {
@@ -40,32 +38,7 @@ func startIpc(cfg IpcConfig, codec codec.Codec, api api.EthereumApi) error {
 				continue
 			}
 
-			go func(conn net.Conn) {
-				codec := codec.New(conn)
-
-				for {
-					req, err := codec.ReadRequest()
-					if err == io.EOF {
-						codec.Close()
-						return
-					} else if err != nil {
-						glog.V(logger.Error).Infof("IPC recv err - %v\n", err)
-						codec.Close()
-						return
-					}
-
-					var rpcResponse interface{}
-					res, err := api.Execute(req)
-
-					rpcResponse = shared.NewRpcResponse(req.Id, req.Jsonrpc, res, err)
-					err = codec.WriteResponse(rpcResponse)
-					if err != nil {
-						glog.V(logger.Error).Infof("IPC send err - %v\n", err)
-						codec.Close()
-						return
-					}
-				}
-			}(conn)
+			go handle(conn, api, codec)
 		}
 
 		os.Remove(cfg.Endpoint)
