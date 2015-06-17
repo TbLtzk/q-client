@@ -38,6 +38,8 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/rpc/codec"
+	"gitlab.com/q-dev/q-client/rpc/comms"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-isatty"
 )
@@ -310,12 +312,14 @@ func console(ctx *cli.Context) {
 		utils.Fatalf("%v", err)
 	}
 
+	client := comms.NewInProcClient(codec.JSON)
+
 	startEth(ctx, ethereum)
 	repl := newJSRE(
 		ethereum,
 		ctx.String(utils.JSpathFlag.Name),
 		ctx.GlobalString(utils.RPCCORSDomainFlag.Name),
-		utils.IpcSocketPath(ctx),
+		client,
 		true,
 		nil,
 	)
@@ -332,12 +336,13 @@ func execJSFiles(ctx *cli.Context) {
 		utils.Fatalf("%v", err)
 	}
 
+	client := comms.NewInProcClient(codec.JSON)
 	startEth(ctx, ethereum)
 	repl := newJSRE(
 		ethereum,
 		ctx.String(utils.JSpathFlag.Name),
 		ctx.GlobalString(utils.RPCCORSDomainFlag.Name),
-		utils.IpcSocketPath(ctx),
+		client,
 		false,
 		nil,
 	)
