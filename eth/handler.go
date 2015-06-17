@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/eth/fetcher"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth/downloader"
+	"gitlab.com/q-dev/q-client/eth/fetcher"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
