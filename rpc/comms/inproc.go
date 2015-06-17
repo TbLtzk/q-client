@@ -1,21 +1,22 @@
 package comms
 
 import (
-	"gitlab.com/q-dev/q-client/rpc/api"
-	"gitlab.com/q-dev/q-client/rpc/shared"
 	"fmt"
-	"gitlab.com/q-dev/q-client/rpc/codec"
-	"gitlab.com/q-dev/q-client/xeth"
+
 	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/rpc/api"
+	"gitlab.com/q-dev/q-client/rpc/codec"
+	"gitlab.com/q-dev/q-client/rpc/shared"
+	"gitlab.com/q-dev/q-client/xeth"
 )
 
 type InProcClient struct {
-	api api.EthereumApi
-	codec codec.Codec
-	lastId interface{}
+	api         api.EthereumApi
+	codec       codec.Codec
+	lastId      interface{}
 	lastJsonrpc string
-	lastErr error
-	lastRes interface{}
+	lastErr     error
+	lastRes     interface{}
 }
 
 // Create a new in process client
@@ -49,5 +50,4 @@ func (self *InProcClient) Send(req interface{}) error {
 
 func (self *InProcClient) Recv() (interface{}, error) {
 	return self.lastRes, self.lastErr
-	//return *shared.NewRpcResponse(self.lastId, self.lastJsonrpc, self.lastRes, self.lastErr), nil
 }
