@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/pow"
-
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
