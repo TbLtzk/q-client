@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"net"
 
+	"encoding/json"
+
 	"gitlab.com/q-dev/q-client/rpc/api"
 	"gitlab.com/q-dev/q-client/rpc/codec"
 	"gitlab.com/q-dev/q-client/rpc/shared"
-	"encoding/json"
 )
 
 type IpcConfig struct {

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 
+	"strconv"
+
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/rpc/api"
@@ -82,7 +84,28 @@ func ClientFromEndpoint(endpoint string, c codec.Codec) (EthereumClient, error) 
 	}
 
 	if strings.HasPrefix(endpoint, "rpc:") {
+		parts := strings.Split(endpoint, ":")
+		addr := "http://localhost"
+		port := uint(8545)
+		if len(parts) >= 3 {
+			addr = parts[1] + ":" + parts[2]
+		}
 
+		if len(parts) >= 4 {
+			p, err := strconv.Atoi(parts[3])
+
+			if err != nil {
+				return nil, err
+			}
+			port = uint(p)
+		}
+
+		cfg := HttpConfig{
+			ListenAddress: addr,
+			ListenPort:    port,
+		}
+
+		return NewHttpClient(cfg, codec.JSON), nil
 	}
 
 	return nil, fmt.Errorf("Invalid endpoint")
