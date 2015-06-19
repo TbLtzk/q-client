@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
@@ -16,6 +15,7 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
@@ -307,7 +307,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			blocks = nil
 		}
 		// Update the receive timestamp of each block
-		for i:=0; i<len(blocks); i++ {
+		for i := 0; i < len(blocks); i++ {
 			blocks[i].ReceivedAt = msg.ReceivedAt
 		}
 		// Filter out any explicitly requested blocks, deliver the rest to the downloader
@@ -417,8 +417,8 @@ func (self *ProtocolManager) minedBroadcastLoop() {
 	for obj := range self.minedBlockSub.Chan() {
 		switch ev := obj.(type) {
 		case core.NewMinedBlockEvent:
-			self.BroadcastBlock(ev.Block, false)
-			self.BroadcastBlock(ev.Block, true)
+			self.BroadcastBlock(ev.Block, true)  // First propagate block to peers
+			self.BroadcastBlock(ev.Block, false) // Only then announce to the rest
 		}
 	}
 }
