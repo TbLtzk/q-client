@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strconv"
 	"testing"
+	"time"
 
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
@@ -20,8 +21,8 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/rpc/comms"
 	"gitlab.com/q-dev/q-client/rpc/codec"
+	"gitlab.com/q-dev/q-client/rpc/comms"
 )
 
 const (
@@ -141,7 +142,6 @@ func TestAccounts(t *testing.T) {
 
 	checkEvalJSON(t, repl, `eth.accounts`, `["`+testAddress+`"]`)
 	checkEvalJSON(t, repl, `eth.coinbase`, `null`)
-
 	val, err := repl.re.Run(`personal.newAccount("password")`)
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
@@ -151,7 +151,7 @@ func TestAccounts(t *testing.T) {
 		t.Errorf("address not hex: %q", addr)
 	}
 
-	// checkEvalJSON(t, repl, `eth.accounts`, `["`+testAddress+`", "`+addr+`"]`)
+	checkEvalJSON(t, repl, `eth.accounts`, `["`+testAddress+`","`+addr+`"]`)
 }
 
 func TestBlockChain(t *testing.T) {
