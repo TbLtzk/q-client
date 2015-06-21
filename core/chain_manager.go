@@ -19,6 +19,7 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/rlp"
+	"github.com/rcrowley/go-metrics"
 )
 
 var (
@@ -27,6 +28,8 @@ var (
 
 	blockHashPre = []byte("block-hash-")
 	blockNumPre  = []byte("block-num-")
+
+	blockInsertTimer = metrics.GetOrRegisterTimer("core/BlockInsertions", metrics.DefaultRegistry)
 )
 
 const (
@@ -691,7 +694,7 @@ func (self *ChainManager) InsertChain(chain types.Blocks) (int, error) {
 		self.futureBlocks.Delete(block.Hash())
 
 		stats.processed++
-
+		blockInsertTimer.UpdateSince(bstart)
 	}
 
 	if (stats.queued > 0 || stats.processed > 0 || stats.ignored > 0) && bool(glog.V(logger.Info)) {
