@@ -10,7 +10,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
-	"gitlab.com/q-dev/q-client/rpc/api"
 	"gitlab.com/q-dev/q-client/rpc/codec"
 	"gitlab.com/q-dev/q-client/rpc/shared"
 	"github.com/rs/cors"
@@ -28,7 +27,7 @@ type HttpConfig struct {
 	CorsDomain    string
 }
 
-func StartHttp(cfg HttpConfig, codec codec.Codec, apis ...api.EthereumApi) error {
+func StartHttp(cfg HttpConfig, codec codec.Codec, api shared.EthereumApi) error {
 	if httpListener != nil {
 		if fmt.Sprintf("%s:%d", cfg.ListenAddress, cfg.ListenPort) != httpListener.Addr().String() {
 			return fmt.Errorf("RPC service already running on %s ", httpListener.Addr().String())
@@ -43,7 +42,6 @@ func StartHttp(cfg HttpConfig, codec codec.Codec, apis ...api.EthereumApi) error
 	}
 	httpListener = l
 
-	api := api.Merge(apis...)
 	var handler http.Handler
 	if len(cfg.CorsDomain) > 0 {
 		var opts cors.Options

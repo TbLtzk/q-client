@@ -8,8 +8,8 @@ import (
 
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
-	"gitlab.com/q-dev/q-client/rpc/api"
 	"gitlab.com/q-dev/q-client/rpc/codec"
+	"gitlab.com/q-dev/q-client/rpc/shared"
 )
 
 func newIpcClient(cfg IpcConfig, codec codec.Codec) (*ipcClient, error) {
@@ -31,7 +31,7 @@ func (self *ipcClient) reconnect() error {
 	return err
 }
 
-func startIpc(cfg IpcConfig, codec codec.Codec, api api.EthereumApi) error {
+func startIpc(cfg IpcConfig, codec codec.Codec, api shared.EthereumApi) error {
 	os.Remove(cfg.Endpoint) // in case it still exists from a previous run
 
 	l, err := net.ListenUnix("unix", &net.UnixAddr{Name: cfg.Endpoint, Net: "unix"})

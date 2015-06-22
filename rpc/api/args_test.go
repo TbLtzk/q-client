@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+
 	"gitlab.com/q-dev/q-client/rpc/shared"
 )
 

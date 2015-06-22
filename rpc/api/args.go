@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+
 	"gitlab.com/q-dev/q-client/rpc/shared"
 )
 
