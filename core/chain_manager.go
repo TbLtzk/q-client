@@ -13,7 +13,6 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
@@ -31,10 +30,6 @@ var (
 	blockNumPre  = []byte("block-num-")
 
 	blockInsertTimer = metrics.GetOrRegisterTimer("core/BlockInsertions", metrics.DefaultRegistry)
-	blockdbGetMeter  = metrics.GetOrRegisterMeter("core/blockdb/Gets", metrics.DefaultRegistry)
-	blockdbPutMeter  = metrics.GetOrRegisterMeter("core/blockdb/Puts", metrics.DefaultRegistry)
-	statedbGetMeter  = metrics.GetOrRegisterMeter("core/statedb/Gets", metrics.DefaultRegistry)
-	statedbPutMeter  = metrics.GetOrRegisterMeter("core/statedb/Puts", metrics.DefaultRegistry)
 )
 
 const (
@@ -125,15 +120,6 @@ func NewChainManager(genesis *types.Block, blockDb, stateDb common.Database, pow
 		quit:         make(chan struct{}),
 		cache:        NewBlockCache(blockCacheLimit),
 		pow:          pow,
-	}
-	// Instrument the block and state databases
-	if db, ok := blockDb.(*ethdb.LDBDatabase); ok {
-		db.GetMeter = blockdbGetMeter
-		db.PutMeter = blockdbPutMeter
-	}
-	if db, ok := stateDb.(*ethdb.LDBDatabase); ok {
-		db.GetMeter = statedbGetMeter
-		db.PutMeter = statedbPutMeter
 	}
 	// Check the genesis block given to the chain manager. If the genesis block mismatches block number 0
 	// throw an error. If no block or the same block's found continue.
