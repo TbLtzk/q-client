@@ -9,7 +9,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/docserver"
-	"gitlab.com/q-dev/q-client/common/resolver"
+	"gitlab.com/q-dev/q-client/common/registrar"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/xeth"
 )
@@ -88,7 +88,7 @@ func New(xeth *xeth.XEth, jsontx string, http *docserver.DocServer) (self *NatSp
 }
 
 // also called by admin.contractInfo.get
-func FetchDocsForContract(contractAddress string, xeth *xeth.XEth, http *docserver.DocServer) (content []byte, err error) {
+func FetchDocsForContract(contractAddress string, xeth *xeth.XEth, ds *docserver.DocServer) (content []byte, err error) {
 	// retrieve contract hash from state
 	codehex := xeth.CodeAt(contractAddress)
 	codeb := xeth.CodeAtBytes(contractAddress)
@@ -99,20 +99,32 @@ func FetchDocsForContract(contractAddress string, xeth *xeth.XEth, http *docserv
 	}
 	codehash := common.BytesToHash(crypto.Sha3(codeb))
 	// set up nameresolver with natspecreg + urlhint contract addresses
-	res := resolver.New(xeth)
+	reg := registrar.New(xeth)
 
 	// resolve host via HashReg/UrlHint Resolver
-	uri, hash, err := res.KeyToUrl(codehash)
+	hash, err := reg.HashToHash(codehash)
+	if err != nil {
+		return
+	}
+	if ds.HasScheme("bzz") {
+		content, err = ds.Get("bzz://"+hash.Hex()[2:], "")
+		if err == nil { // non-fatal
+			return
+		}
+		err = nil
+		//falling back to urlhint
+	}
+
+	uri, err := reg.HashToUrl(hash)
 	if err != nil {
 		return
 	}
 
 	// get content via http client and authenticate content using hash
-	content, err = http.GetAuthContent(uri, hash)
+	content, err = ds.GetAuthContent(uri, hash)
 	if err != nil {
 		return
 	}
-
 	return
 }
 
