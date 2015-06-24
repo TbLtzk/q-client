@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/rpc/codec"
 	"gitlab.com/q-dev/q-client/rpc/shared"
@@ -74,6 +75,7 @@ var (
 		"eth_hashrate":                            (*ethApi).Hashrate,
 		"eth_getWork":                             (*ethApi).GetWork,
 		"eth_submitWork":                          (*ethApi).SubmitWork,
+		"eth_resend":                              (*ethApi).Resend,
 		"eth_pendingTransactions":                 (*ethApi).PendingTransactions,
 	}
 )
@@ -559,6 +561,22 @@ func (self *ethApi) SubmitWork(req *shared.Request) (interface{}, error) {
 		return nil, shared.NewDecodeParamError(err.Error())
 	}
 	return self.xeth.RemoteMining().SubmitWork(args.Nonce, common.HexToHash(args.Digest), common.HexToHash(args.Header)), nil
+}
+
+func (self *ethApi) Resend(req *shared.Request) (interface{}, error) {
+	args := new(ResendArgs)
+	if err := self.codec.Decode(req.Params, &args); err != nil {
+		return nil, shared.NewDecodeParamError(err.Error())
+	}
+
+	ret, err := self.xeth.Transact(args.Tx.From, args.Tx.To, args.Tx.Nonce, args.Tx.Value, args.GasLimit, args.GasPrice, args.Tx.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	self.ethereum.TxPool().RemoveTransactions(types.Transactions{args.Tx.tx})
+
+	return ret, nil
 }
 
 func (self *ethApi) PendingTransactions(req *shared.Request) (interface{}, error) {
