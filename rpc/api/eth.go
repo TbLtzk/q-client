@@ -12,7 +12,6 @@ import (
 	"gitlab.com/q-dev/q-client/rpc/shared"
 	"gitlab.com/q-dev/q-client/xeth"
 	"gopkg.in/fatih/set.v0"
-	"fmt"
 )
 
 const (
