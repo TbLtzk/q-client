@@ -23,7 +23,6 @@ import (
 	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/rlp"
 	"github.com/hashicorp/golang-lru"
-	"github.com/rcrowley/go-metrics"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
