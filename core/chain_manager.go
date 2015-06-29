@@ -18,6 +18,7 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/rlp"
@@ -33,7 +34,7 @@ var (
 	blockHashPre = []byte("block-hash-")
 	blockNumPre  = []byte("block-num-")
 
-	blockInsertTimer = metrics.GetOrRegisterTimer("core/BlockInsertions", metrics.DefaultRegistry)
+	blockInsertTimer = metrics.NewTimer("chain/inserts")
 )
 
 const (
