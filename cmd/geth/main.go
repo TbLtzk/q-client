@@ -30,6 +30,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/codegangsta/cli"
 	"github.com/ethereum/ethash"
@@ -38,6 +39,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/rpc/codec"
 	"gitlab.com/q-dev/q-client/rpc/comms"
 	"github.com/mattn/go-colorable"
@@ -46,7 +48,7 @@ import (
 
 const (
 	ClientIdentifier = "Geth"
-	Version          = "0.9.32"
+	Version          = "0.9.34"
 )
 
 var (
@@ -72,6 +74,7 @@ func init() {
 		upgradedbCommand,
 		removedbCommand,
 		dumpCommand,
+		monitorCommand,
 		{
 			Action: makedag,
 			Name:   "makedag",
@@ -269,6 +272,7 @@ JavaScript API. See https://github.com/ethereum/go-ethereum/wiki/Javascipt-Conso
 		utils.LogJSONFlag,
 		utils.PProfEanbledFlag,
 		utils.PProfPortFlag,
+		utils.MetricsEnabledFlag,
 		utils.SolcPathFlag,
 		utils.GpoMinGasPriceFlag,
 		utils.GpoMaxGasPriceFlag,
@@ -284,6 +288,8 @@ JavaScript API. See https://github.com/ethereum/go-ethereum/wiki/Javascipt-Conso
 		}
 		return nil
 	}
+	// Start system runtime metrics collection
+	go metrics.CollectProcessMetrics(3 * time.Second)
 }
 
 func main() {
