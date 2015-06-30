@@ -7,9 +7,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc/codec"
 	"gitlab.com/q-dev/q-client/rpc/shared"
 	"gitlab.com/q-dev/q-client/xeth"
@@ -555,13 +553,6 @@ func (self *ethApi) SubmitWork(req *shared.Request) (interface{}, error) {
 		return nil, shared.NewDecodeParamError(err.Error())
 	}
 	return self.xeth.RemoteMining().SubmitWork(args.Nonce, common.HexToHash(args.Digest), common.HexToHash(args.Header)), nil
-}
-
-func rlpHash(x interface{}) (h common.Hash) {
-	hw := sha3.NewKeccak256()
-	rlp.Encode(hw, x)
-	hw.Sum(h[:0])
-	return h
 }
 
 func (self *ethApi) Resend(req *shared.Request) (interface{}, error) {
