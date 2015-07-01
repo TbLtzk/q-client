@@ -39,6 +39,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/rpc/codec"
 	"gitlab.com/q-dev/q-client/rpc/comms"
@@ -68,6 +69,15 @@ func init() {
 	app.Action = run
 	app.HideVersion = true // we have a command to print the version
 	app.Commands = []cli.Command{
+		{
+			Action: blockRecovery,
+			Name:   "recover",
+			Usage:  "attempts to recover a corrupted database by setting a new block head by number",
+			Description: `
+The recover commands will attempt to read out the last
+block based on that.
+`,
+		},
 		blocktestCommand,
 		importCommand,
 		exportCommand,
@@ -437,6 +447,20 @@ func unlockAccount(ctx *cli.Context, am *accounts.Manager, account string) (pass
 	}
 	fmt.Printf("Account '%s' unlocked.\n", account)
 	return
+}
+
+func blockRecovery(ctx *cli.Context) {
+	num := ctx.Args().First()
+	if len(ctx.Args()) < 1 {
+		glog.Fatal("recover requires block number")
+	}
+
+	cfg := utils.MakeEthConfig(ClientIdentifier, nodeNameVersion, ctx)
+	ethereum, err := eth.New(cfg)
+	if err != nil {
+		utils.Fatalf("%v", err)
+	}
+	ethereum.ChainManager().Recover(common.String2Big(num).Uint64())
 }
 
 func startEth(ctx *cli.Context, eth *eth.Ethereum) {
