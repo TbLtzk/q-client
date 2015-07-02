@@ -7,7 +7,6 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/vm"
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/params"
@@ -54,11 +53,6 @@ type Message interface {
 
 	Nonce() uint64
 	Data() []byte
-}
-
-func AddressFromMessage(msg Message) common.Address {
-	from, _ := msg.From()
-	return crypto.CreateAddress(from, msg.Nonce())
 }
 
 func MessageCreatesContract(msg Message) bool {
