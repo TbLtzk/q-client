@@ -9,7 +9,6 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
@@ -73,7 +72,7 @@ func (self *BlockProcessor) ApplyTransaction(coinbase *state.StateObject, stated
 
 	cb := statedb.GetStateObject(coinbase.Address())
 	_, gas, err := ApplyMessage(NewEnv(statedb, self.bc, tx, header), tx, cb)
-	if err != nil && err != vm.OutOfGasError {
+	if err != nil {
 		return nil, nil, err
 	}
 
@@ -119,7 +118,7 @@ func (self *BlockProcessor) ApplyTransactions(coinbase *state.StateObject, state
 		statedb.StartRecord(tx.Hash(), block.Hash(), i)
 
 		receipt, txGas, err := self.ApplyTransaction(coinbase, statedb, header, tx, totalUsedGas, transientProcess)
-		if err != nil && err != vm.OutOfGasError {
+		if err != nil {
 			return nil, err
 		}
 
