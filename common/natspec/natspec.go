@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/robertkrimen/otto"
 	"strings"
 
 	"gitlab.com/q-dev/q-client/common"
@@ -28,6 +27,7 @@ import (
 	"gitlab.com/q-dev/q-client/common/registrar"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/xeth"
+	"github.com/robertkrimen/otto"
 )
 
 type abi2method map[[8]byte]*method

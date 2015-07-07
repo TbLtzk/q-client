@@ -34,10 +34,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"gitlab.com/q-dev/q-client/core/state"
-	"gitlab.com/q-dev/q-client/crypto"
 	"math/big"
 	"unsafe"
+
+	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 type JitVm struct {

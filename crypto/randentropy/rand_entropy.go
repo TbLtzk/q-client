@@ -18,8 +18,9 @@ package randentropy
 
 import (
 	crand "crypto/rand"
-	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"io"
+
+	"gitlab.com/q-dev/q-client/crypto/sha3"
 )
 
 var Reader io.Reader = &randEntropy{}
