@@ -37,6 +37,7 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/rpc/codec"
 	"gitlab.com/q-dev/q-client/rpc/comms"
 )
@@ -89,9 +90,9 @@ func testREPL(t *testing.T, config func(*eth.Config)) (string, *testjethre, *eth
 		t.Fatal(err)
 	}
 
-	// set up mock genesis with balance on the testAddress
-	core.GenesisAccounts = []byte(testGenesis)
+	db, _ := ethdb.NewMemDatabase()
 
+	core.WriteGenesisBlockForTesting(db, common.HexToAddress(testAddress), common.String2Big(testBalance))
 	ks := crypto.NewKeyStorePlain(filepath.Join(tmp, "keystore"))
 	am := accounts.NewManager(ks)
 	conf := &eth.Config{
@@ -102,6 +103,7 @@ func testREPL(t *testing.T, config func(*eth.Config)) (string, *testjethre, *eth
 		Name:           "test",
 		SolcPath:       testSolcPath,
 		PowTest:        true,
+		NewDB:          func(path string) (common.Database, error) { return db, nil },
 	}
 	if config != nil {
 		config(conf)
