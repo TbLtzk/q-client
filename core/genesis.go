@@ -27,6 +27,8 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -83,7 +85,12 @@ func WriteGenesisBlock(stateDb, blockDb common.Database, reader io.Reader) (*typ
 	block.Td = difficulty
 
 	if block := GetBlockByHash(blockDb, block.Hash()); block != nil {
-		return nil, fmt.Errorf("Block %x already in database", block.Hash())
+		glog.V(logger.Info).Infoln("Genesis block already in chain. Writing canonical number")
+		err := WriteCanonNumber(blockDb, block)
+		if err != nil {
+			return nil, err
+		}
+		return block, nil
 	}
 
 	statedb.Sync()
