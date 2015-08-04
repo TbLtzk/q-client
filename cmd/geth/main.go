@@ -38,6 +38,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/fdtrack"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/metrics"
@@ -531,6 +532,9 @@ func blockRecovery(ctx *cli.Context) {
 func startEth(ctx *cli.Context, eth *eth.Ethereum) {
 	// Start Ethereum itself
 	utils.StartEthereum(eth)
+
+	// Start logging file descriptor stats.
+	fdtrack.Start()
 
 	am := eth.AccountManager()
 	account := ctx.GlobalString(utils.UnlockedAccountFlag.Name)

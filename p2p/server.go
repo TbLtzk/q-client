@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/q-dev/q-client/fdtrack"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/p2p/discover"
@@ -372,7 +373,7 @@ func (srv *Server) startListening() error {
 	}
 	laddr := listener.Addr().(*net.TCPAddr)
 	srv.ListenAddr = laddr.String()
-	srv.listener = listener
+	srv.listener = fdtrack.WrapListener("p2p", listener)
 	srv.loopWG.Add(1)
 	go srv.listenLoop()
 	// Map the TCP listening port if NAT is configured.
