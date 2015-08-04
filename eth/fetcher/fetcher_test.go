@@ -28,12 +28,13 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 var (
 	testdb, _    = ethdb.NewMemDatabase()
 	genesis      = core.GenesisBlockForTesting(testdb, common.Address{}, big.NewInt(0))
-	unknownBlock = types.NewBlock(&types.Header{}, nil, nil, nil)
+	unknownBlock = types.NewBlock(&types.Header{GasLimit: params.GenesisGasLimit}, nil, nil, nil)
 )
 
 // makeChain creates a chain of n blocks starting at and including parent.
