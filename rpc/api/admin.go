@@ -37,6 +37,7 @@ import (
 	"gitlab.com/q-dev/q-client/rpc/codec"
 	"gitlab.com/q-dev/q-client/rpc/comms"
 	"gitlab.com/q-dev/q-client/rpc/shared"
+	"gitlab.com/q-dev/q-client/rpc/useragent"
 	"gitlab.com/q-dev/q-client/xeth"
 )
 
@@ -71,6 +72,7 @@ var (
 		"admin_httpGet":            (*adminApi).HttpGet,
 		"admin_sleepBlocks":        (*adminApi).SleepBlocks,
 		"admin_sleep":              (*adminApi).Sleep,
+		"admin_enableUserAgent":    (*adminApi).EnableUserAgent,
 	}
 )
 
@@ -473,4 +475,11 @@ func (self *adminApi) HttpGet(req *shared.Request) (interface{}, error) {
 	}
 
 	return string(resp), nil
+}
+
+func (self *adminApi) EnableUserAgent(req *shared.Request) (interface{}, error) {
+	if fe, ok := self.xeth.Frontend().(*useragent.RemoteFrontend); ok {
+		fe.Enable()
+	}
+	return true, nil
 }
