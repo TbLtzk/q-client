@@ -17,12 +17,9 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rpc/codec"
 	"gitlab.com/q-dev/q-client/rpc/shared"
 )
@@ -126,11 +123,10 @@ func (self *minerApi) SetExtra(req *shared.Request) (interface{}, error) {
 		return nil, err
 	}
 
-	if uint64(len(args.Data)) > params.MaximumExtraDataSize.Uint64()*2 {
-		return false, fmt.Errorf("extra datasize can be no longer than %v bytes", params.MaximumExtraDataSize)
+	if err := self.ethereum.Miner().SetExtra([]byte(args.Data)); err != nil {
+		return false, err
 	}
 
-	self.ethereum.Miner().SetExtra([]byte(args.Data))
 	return true, nil
 }
 

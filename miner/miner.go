@@ -18,6 +18,7 @@
 package miner
 
 import (
+	"fmt"
 	"math/big"
 	"sync/atomic"
 
@@ -29,6 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/pow"
 )
 
@@ -143,8 +145,13 @@ func (self *Miner) HashRate() int64 {
 	return self.pow.GetHashrate()
 }
 
-func (self *Miner) SetExtra(extra []byte) {
+func (self *Miner) SetExtra(extra []byte) error {
+	if uint64(len(extra)) > params.MaximumExtraDataSize.Uint64() {
+		return fmt.Errorf("Extra exceeds max length. %d > %v", len(extra), params.MaximumExtraDataSize)
+	}
+
 	self.worker.extra = extra
+	return nil
 }
 
 func (self *Miner) PendingState() *state.StateDB {
