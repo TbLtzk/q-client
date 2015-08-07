@@ -45,7 +45,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/p2p/nat"
-	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/whisper"
 )
 
@@ -92,6 +91,7 @@ type Config struct {
 	NatSpec   bool
 	AutoDAG   bool
 	PowTest   bool
+	ExtraData []byte
 
 	MaxPeers        int
 	MaxPendingPeers int
@@ -378,12 +378,7 @@ func New(config *Config) (*Ethereum, error) {
 
 	eth.miner = miner.New(eth, eth.EventMux(), eth.pow)
 	eth.miner.SetGasPrice(config.GasPrice)
-
-	extra := config.Name
-	if uint64(len(extra)) > params.MaximumExtraDataSize.Uint64() {
-		extra = extra[:params.MaximumExtraDataSize.Uint64()]
-	}
-	eth.miner.SetExtra([]byte(extra))
+	eth.miner.SetExtra(config.ExtraData)
 
 	if config.Shh {
 		eth.whisper = whisper.New()
