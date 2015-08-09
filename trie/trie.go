@@ -27,6 +27,8 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 )
 
+var StatePre = []byte("state-")
+
 func ParanoiaCheck(t1 *Trie, backend Backend) (bool, *Trie) {
 	t2 := New(nil, backend)
 
