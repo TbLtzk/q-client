@@ -21,30 +21,32 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
 
-	"gitlab.com/q-dev/q-client/core/vm"
-	"gitlab.com/q-dev/q-client/metrics"
-
 	"github.com/codegangsta/cli"
 	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/p2p/nat"
 	"gitlab.com/q-dev/q-client/rpc/api"
 	"gitlab.com/q-dev/q-client/rpc/codec"
 	"gitlab.com/q-dev/q-client/rpc/comms"
+	"gitlab.com/q-dev/q-client/rpc/shared"
+	"gitlab.com/q-dev/q-client/rpc/useragent"
 	"gitlab.com/q-dev/q-client/xeth"
 )
 
@@ -518,15 +520,20 @@ func StartIPC(eth *eth.Ethereum, ctx *cli.Context) error {
 		Endpoint: IpcSocketPath(ctx),
 	}
 
-	xeth := xeth.New(eth, nil)
-	codec := codec.JSON
+	initializer := func(conn net.Conn) (shared.EthereumApi, error) {
+		fe := useragent.NewRemoteFrontend(conn, eth.AccountManager())
+		xeth := xeth.New(eth, fe)
+		codec := codec.JSON
 
-	apis, err := api.ParseApiString(ctx.GlobalString(IPCApiFlag.Name), codec, xeth, eth)
-	if err != nil {
-		return err
+		apis, err := api.ParseApiString(ctx.GlobalString(IPCApiFlag.Name), codec, xeth, eth)
+		if err != nil {
+			return nil, err
+		}
+
+		return api.Merge(apis...), nil
 	}
 
-	return comms.StartIpc(config, codec, api.Merge(apis...))
+	return comms.StartIpc(config, codec.JSON, initializer)
 }
 
 func StartRPC(eth *eth.Ethereum, ctx *cli.Context) error {
