@@ -22,6 +22,8 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 )
 
 type AccountChange struct {
@@ -111,7 +113,7 @@ done:
 			// Get the logs of the block
 			unfiltered, err := self.eth.BlockProcessor().GetLogs(block)
 			if err != nil {
-				chainlogger.Warnln("err: filter get logs ", err)
+				glog.V(logger.Warn).Infoln("err: filter get logs ", err)
 
 				break
 			}
