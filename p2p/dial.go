@@ -23,7 +23,6 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/q-dev/q-client/fdtrack"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/p2p/discover"
@@ -213,7 +212,6 @@ func (t *dialTask) Do(srv *Server) {
 		glog.V(logger.Detail).Infof("dial error: %v", err)
 		return
 	}
-	fd = fdtrack.WrapConn("p2p", fd)
 	mfd := newMeteredConn(fd, false)
 
 	srv.setupConn(mfd, t.flags, t.dest)
