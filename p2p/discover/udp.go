@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/fdtrack"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/p2p/nat"
@@ -200,7 +199,6 @@ func ListenUDP(priv *ecdsa.PrivateKey, laddr string, natm nat.Interface, nodeDBP
 	if err != nil {
 		return nil, err
 	}
-	fdtrack.Open("p2p")
 	conn, err := net.ListenUDP("udp", addr)
 	if err != nil {
 		return nil, err
@@ -238,7 +236,6 @@ func newUDP(priv *ecdsa.PrivateKey, c conn, natm nat.Interface, nodeDBPath strin
 
 func (t *udp) close() {
 	close(t.closing)
-	fdtrack.Close("p2p")
 	t.conn.Close()
 	// TODO: wait for the loops to end.
 }

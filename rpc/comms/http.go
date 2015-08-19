@@ -29,7 +29,6 @@ import (
 	"io"
 	"io/ioutil"
 
-	"gitlab.com/q-dev/q-client/fdtrack"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/rpc/codec"
@@ -178,7 +177,6 @@ func listenHTTP(addr string, h http.Handler) (*stopServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	l = fdtrack.WrapListener("rpc", l)
 	s := &stopServer{l: l, idle: make(map[net.Conn]struct{})}
 	s.Server = &http.Server{
 		Addr:         addr,
