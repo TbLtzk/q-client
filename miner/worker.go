@@ -29,6 +29,7 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
@@ -298,7 +299,7 @@ func (self *worker) wait() {
 				}
 
 				// broadcast before waiting for validation
-				go func(block *types.Block, logs state.Logs, receipts []*types.Receipt) {
+				go func(block *types.Block, logs vm.Logs, receipts []*types.Receipt) {
 					self.mux.Post(core.NewMinedBlockEvent{block})
 					self.mux.Post(core.ChainEvent{block, block.Hash(), logs})
 					if stat == core.CanonStatTy {

@@ -28,8 +28,8 @@ import (
 
 	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
@@ -361,7 +361,7 @@ func TestChainMultipleInsertions(t *testing.T) {
 
 type bproc struct{}
 
-func (bproc) Process(*types.Block) (state.Logs, types.Receipts, error) { return nil, nil, nil }
+func (bproc) Process(*types.Block) (vm.Logs, types.Receipts, error) { return nil, nil, nil }
 
 func makeChainWithDiff(genesis *types.Block, d []int, seed byte) []*types.Block {
 	var chain []*types.Block

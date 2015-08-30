@@ -22,7 +22,7 @@ import (
 	"sync"
 
 	"gitlab.com/q-dev/q-client/core"
-	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/event"
 )
 
@@ -89,7 +89,7 @@ func (fs *FilterSystem) filterLoop() {
 		//core.PendingBlockEvent{},
 		core.ChainEvent{},
 		core.TxPreEvent{},
-		state.Logs(nil))
+		vm.Logs(nil))
 
 out:
 	for {
@@ -116,7 +116,7 @@ out:
 				}
 				fs.filterMu.RUnlock()
 
-			case state.Logs:
+			case vm.Logs:
 				fs.filterMu.RLock()
 				for _, filter := range fs.filters {
 					if filter.LogsCallback != nil {
