@@ -36,9 +36,9 @@ import (
 	"io"
 	"reflect"
 
-	"code.google.com/p/go-uuid/uuid"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto/randentropy"
+	"github.com/pborman/uuid"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
 )

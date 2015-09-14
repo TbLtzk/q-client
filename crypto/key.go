@@ -23,8 +23,8 @@ import (
 	"encoding/json"
 	"io"
 
-	"code.google.com/p/go-uuid/uuid"
 	"gitlab.com/q-dev/q-client/common"
+	"github.com/pborman/uuid"
 )
 
 const (
