@@ -28,6 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/eth/fetcher"
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
@@ -61,7 +62,7 @@ func (ep extProt) GetBlock(hashes []common.Hash) error { return ep.getBlocks(has
 type ProtocolManager struct {
 	txpool   txPool
 	chainman *core.ChainManager
-	chaindb  common.Database
+	chaindb  ethdb.Database
 
 	downloader *downloader.Downloader
 	fetcher    *fetcher.Fetcher
@@ -86,7 +87,7 @@ type ProtocolManager struct {
 
 // NewProtocolManager returns a new ethereum sub protocol manager. The Ethereum sub protocol manages peers capable
 // with the ethereum network.
-func NewProtocolManager(networkId int, mux *event.TypeMux, txpool txPool, pow pow.PoW, chainman *core.ChainManager, chaindb common.Database) *ProtocolManager {
+func NewProtocolManager(networkId int, mux *event.TypeMux, txpool txPool, pow pow.PoW, chainman *core.ChainManager, chaindb ethdb.Database) *ProtocolManager {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
 		eventMux:  mux,

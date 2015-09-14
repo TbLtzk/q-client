@@ -21,6 +21,7 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/trie"
@@ -32,7 +33,7 @@ import (
 // * Contracts
 // * Accounts
 type StateDB struct {
-	db   common.Database
+	db   ethdb.Database
 	trie *trie.SecureTrie
 	root common.Hash
 
@@ -47,7 +48,7 @@ type StateDB struct {
 }
 
 // Create a new state from a given trie
-func New(root common.Hash, db common.Database) *StateDB {
+func New(root common.Hash, db ethdb.Database) *StateDB {
 	trie := trie.NewSecure(root[:], db)
 	return &StateDB{root: root, db: db, trie: trie, stateObjects: make(map[string]*StateObject), refund: new(big.Int), logs: make(map[common.Hash]Logs)}
 }
