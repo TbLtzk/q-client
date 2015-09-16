@@ -26,6 +26,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
@@ -41,7 +42,7 @@ const (
 )
 
 type BlockProcessor struct {
-	chainDb common.Database
+	chainDb ethdb.Database
 	// Mutex for locking the block processor. Blocks can only be handled one at a time
 	mutex sync.Mutex
 	// Canonical block chain
@@ -68,7 +69,7 @@ type GasPool interface {
 	SubGas(gas, price *big.Int) error
 }
 
-func NewBlockProcessor(db common.Database, pow pow.PoW, chainManager *ChainManager, eventMux *event.TypeMux) *BlockProcessor {
+func NewBlockProcessor(db ethdb.Database, pow pow.PoW, chainManager *ChainManager, eventMux *event.TypeMux) *BlockProcessor {
 	sm := &BlockProcessor{
 		chainDb:  db,
 		mem:      make(map[string]*big.Int),

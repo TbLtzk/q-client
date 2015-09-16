@@ -29,6 +29,7 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger/glog"
 )
 
@@ -191,7 +192,7 @@ func hashish(x string) bool {
 	return err != nil
 }
 
-func closeAll(dbs ...common.Database) {
+func closeAll(dbs ...ethdb.Database) {
 	for _, db := range dbs {
 		db.Close()
 	}

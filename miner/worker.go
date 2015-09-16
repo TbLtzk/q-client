@@ -29,6 +29,7 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
@@ -100,7 +101,7 @@ type worker struct {
 	eth     core.Backend
 	chain   *core.ChainManager
 	proc    *core.BlockProcessor
-	chainDb common.Database
+	chainDb ethdb.Database
 
 	coinbase common.Address
 	gasPrice *big.Int

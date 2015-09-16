@@ -23,6 +23,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/rlp"
@@ -56,7 +57,7 @@ func (self Storage) Copy() Storage {
 
 type StateObject struct {
 	// State database for storing state changes
-	db   common.Database
+	db   ethdb.Database
 	trie *trie.SecureTrie
 
 	// Address belonging to this account
@@ -87,7 +88,7 @@ type StateObject struct {
 	dirty   bool
 }
 
-func NewStateObject(address common.Address, db common.Database) *StateObject {
+func NewStateObject(address common.Address, db ethdb.Database) *StateObject {
 	object := &StateObject{db: db, address: address, balance: new(big.Int), gasPool: new(big.Int), dirty: true}
 	object.trie = trie.NewSecure((common.Hash{}).Bytes(), db)
 	object.storage = make(Storage)
@@ -96,7 +97,7 @@ func NewStateObject(address common.Address, db common.Database) *StateObject {
 	return object
 }
 
-func NewStateObjectFromBytes(address common.Address, data []byte, db common.Database) *StateObject {
+func NewStateObjectFromBytes(address common.Address, data []byte, db ethdb.Database) *StateObject {
 	// TODO clean me up
 	var extobject struct {
 		Nonce    uint64

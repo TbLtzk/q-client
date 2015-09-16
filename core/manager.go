@@ -18,7 +18,7 @@ package core
 
 import (
 	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 )
 
@@ -28,7 +28,7 @@ type Backend interface {
 	BlockProcessor() *BlockProcessor
 	ChainManager() *ChainManager
 	TxPool() *TxPool
-	ChainDb() common.Database
-	DappDb() common.Database
+	ChainDb() ethdb.Database
+	DappDb() ethdb.Database
 	EventMux() *event.TypeMux
 }

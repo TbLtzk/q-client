@@ -30,6 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
@@ -60,7 +61,7 @@ const (
 
 type ChainManager struct {
 	//eth          EthManager
-	chainDb      common.Database
+	chainDb      ethdb.Database
 	processor    types.BlockProcessor
 	eventMux     *event.TypeMux
 	genesisBlock *types.Block
@@ -90,7 +91,7 @@ type ChainManager struct {
 	pow pow.PoW
 }
 
-func NewChainManager(chainDb common.Database, pow pow.PoW, mux *event.TypeMux) (*ChainManager, error) {
+func NewChainManager(chainDb ethdb.Database, pow pow.PoW, mux *event.TypeMux) (*ChainManager, error) {
 	headerCache, _ := lru.New(headerCacheLimit)
 	bodyCache, _ := lru.New(bodyCacheLimit)
 	bodyRLPCache, _ := lru.New(bodyCacheLimit)

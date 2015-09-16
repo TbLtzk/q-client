@@ -22,7 +22,6 @@ import (
 
 	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/tests"
@@ -103,7 +102,7 @@ func runBlockTest(ctx *cli.Context) {
 
 func runOneBlockTest(ctx *cli.Context, test *tests.BlockTest) (*eth.Ethereum, error) {
 	cfg := utils.MakeEthConfig(ClientIdentifier, Version, ctx)
-	cfg.NewDB = func(path string) (common.Database, error) { return ethdb.NewMemDatabase() }
+	cfg.NewDB = func(path string) (ethdb.Database, error) { return ethdb.NewMemDatabase() }
 	cfg.MaxPeers = 0 // disable network
 	cfg.Shh = false  // disable whisper
 	cfg.NAT = nil    // disable port mapping
