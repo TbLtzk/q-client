@@ -29,6 +29,7 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger"
@@ -99,7 +100,7 @@ type worker struct {
 	pow    pow.PoW
 
 	eth     core.Backend
-	chain   *core.ChainManager
+	chain   *core.BlockChain
 	proc    *core.BlockProcessor
 	chainDb ethdb.Database
 
@@ -130,7 +131,7 @@ func newWorker(coinbase common.Address, eth core.Backend) *worker {
 		chainDb:        eth.ChainDb(),
 		recv:           make(chan *Result, resultQueueSize),
 		gasPrice:       new(big.Int),
-		chain:          eth.ChainManager(),
+		chain:          eth.BlockChain(),
 		proc:           eth.BlockProcessor(),
 		possibleUncles: make(map[common.Hash]*types.Block),
 		coinbase:       coinbase,
@@ -298,7 +299,7 @@ func (self *worker) wait() {
 				}
 
 				// broadcast before waiting for validation
-				go func(block *types.Block, logs state.Logs, receipts []*types.Receipt) {
+				go func(block *types.Block, logs vm.Logs, receipts []*types.Receipt) {
 					self.mux.Post(core.NewMinedBlockEvent{block})
 					self.mux.Post(core.ChainEvent{block, block.Hash(), logs})
 					if stat == core.CanonStatTy {

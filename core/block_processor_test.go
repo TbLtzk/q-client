@@ -24,21 +24,22 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/pow/ezp"
 )
 
-func proc() (*BlockProcessor, *ChainManager) {
+func proc() (*BlockProcessor, *BlockChain) {
 	db, _ := ethdb.NewMemDatabase()
 	var mux event.TypeMux
 
 	WriteTestNetGenesisBlock(db, 0)
-	chainMan, err := NewChainManager(db, thePow(), &mux)
+	blockchain, err := NewBlockChain(db, thePow(), &mux)
 	if err != nil {
 		fmt.Println(err)
 	}
-	return NewBlockProcessor(db, ezp.New(), chainMan, &mux), chainMan
+	return NewBlockProcessor(db, ezp.New(), blockchain, &mux), blockchain
 }
 
 func TestNumber(t *testing.T) {
@@ -69,7 +70,7 @@ func TestPutReceipt(t *testing.T) {
 	hash[0] = 2
 
 	receipt := new(types.Receipt)
-	receipt.SetLogs(state.Logs{&state.Log{
+	receipt.SetLogs(vm.Logs{&vm.Log{
 		Address:   addr,
 		Topics:    []common.Hash{hash},
 		Data:      []byte("hi"),
