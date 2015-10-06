@@ -17,7 +17,6 @@
 package core
 
 import (
-	"errors"
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
@@ -108,13 +107,7 @@ func exec(env vm.Environment, caller vm.ContractRef, address, codeAddr *common.A
 }
 
 // generic transfer method
-func Transfer(from, to vm.Account, amount *big.Int) error {
-	if from.Balance().Cmp(amount) < 0 {
-		return errors.New("Insufficient balance in account")
-	}
-
+func Transfer(from, to vm.Account, amount *big.Int) {
 	from.SubBalance(amount)
 	to.AddBalance(amount)
-
-	return nil
 }
