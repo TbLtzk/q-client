@@ -21,8 +21,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"math"
-	"math/big"
 	"os"
 	"os/signal"
 	"regexp"
@@ -34,7 +32,6 @@ import (
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
-	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 	"github.com/peterh/liner"
 )
@@ -144,16 +141,6 @@ func StartEthereum(ethereum *eth.Ethereum) {
 		glog.V(logger.Error).Infof("Force quitting: this might not end so well.")
 		panic("boom")
 	}()
-}
-
-func InitOlympic() {
-	params.DurationLimit = big.NewInt(8)
-	params.GenesisGasLimit = big.NewInt(3141592)
-	params.MinGasLimit = big.NewInt(125000)
-	params.MaximumExtraDataSize = big.NewInt(1024)
-	NetworkIdFlag.Value = 0
-	core.BlockReward = big.NewInt(1.5e+18)
-	core.ExpDiffPeriod = big.NewInt(math.MaxInt64)
 }
 
 func FormatTransactionData(data string) []byte {
