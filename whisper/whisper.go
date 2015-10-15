@@ -28,6 +28,8 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/p2p"
+	rpc "gitlab.com/q-dev/q-client/rpc/v2"
+
 	"gopkg.in/fatih/set.v0"
 )
 
@@ -96,6 +98,18 @@ func New() *Whisper {
 	}
 
 	return whisper
+}
+
+// APIs returns the RPC descriptors the Whisper implementation offers
+func (s *Whisper) APIs() []rpc.API {
+	return []rpc.API{
+		{
+			Namespace: "shh",
+			Version:   "1.0",
+			Service:   NewPublicWhisperAPI(s),
+			Public:    true,
+		},
+	}
 }
 
 // Protocols returns the whisper sub-protocols ran by this particular client.

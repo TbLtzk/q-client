@@ -23,6 +23,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/p2p"
+	rpc "gitlab.com/q-dev/q-client/rpc/v2"
 )
 
 // ServiceContext is a collection of service independent options inherited from
@@ -69,6 +70,9 @@ type ServiceConstructor func(ctx *ServiceContext) (Service, error)
 type Service interface {
 	// Protocol retrieves the P2P protocols the service wishes to start.
 	Protocols() []p2p.Protocol
+
+	// APIs retrieves the list of RPC descriptors the service provides
+	APIs() []rpc.API
 
 	// Start is called after all services have been constructed and the networking
 	// layer was also initialized to spawn any goroutines required by the service.
