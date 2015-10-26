@@ -31,7 +31,7 @@ import (
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/compiler"
-	"gitlab.com/q-dev/q-client/common/docserver"
+	"gitlab.com/q-dev/q-client/common/httpclient"
 	"gitlab.com/q-dev/q-client/common/natspec"
 	"gitlab.com/q-dev/q-client/common/registrar"
 	"gitlab.com/q-dev/q-client/core"
@@ -62,7 +62,7 @@ var (
 type testjethre struct {
 	*jsre
 	lastConfirm string
-	ds          *docserver.DocServer
+	client      *httpclient.HTTPClient
 }
 
 func (self *testjethre) UnlockAccount(acc []byte) bool {
@@ -75,7 +75,7 @@ func (self *testjethre) UnlockAccount(acc []byte) bool {
 
 func (self *testjethre) ConfirmTransaction(tx string) bool {
 	if self.ethereum.NatSpec {
-		self.lastConfirm = natspec.GetNotice(self.xeth, tx, self.ds)
+		self.lastConfirm = natspec.GetNotice(self.xeth, tx, self.client)
 	}
 	return true
 }
@@ -101,6 +101,7 @@ func testREPL(t *testing.T, config func(*eth.Config)) (string, *testjethre, *eth
 		AccountManager: am,
 		MaxPeers:       0,
 		Name:           "test",
+		DocRoot:        "/",
 		SolcPath:       testSolcPath,
 		PowTest:        true,
 		NewDB:          func(path string) (ethdb.Database, error) { return db, nil },
@@ -130,8 +131,7 @@ func testREPL(t *testing.T, config func(*eth.Config)) (string, *testjethre, *eth
 
 	assetPath := filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "ethereum", "go-ethereum", "cmd", "mist", "assets", "ext")
 	client := comms.NewInProcClient(codec.JSON)
-	ds := docserver.New("/")
-	tf := &testjethre{ds: ds}
+	tf := &testjethre{client: ethereum.HTTPClient()}
 	repl := newJSRE(ethereum, assetPath, "", client, false, tf)
 	tf.jsre = repl
 	return tmp, tf, ethereum
