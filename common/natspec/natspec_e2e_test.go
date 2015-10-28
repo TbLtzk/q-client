@@ -28,7 +28,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/docserver"
+	"gitlab.com/q-dev/q-client/common/httpclient"
 	"gitlab.com/q-dev/q-client/common/registrar"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -113,8 +113,8 @@ func (self *testFrontend) UnlockAccount(acc []byte) bool {
 
 func (self *testFrontend) ConfirmTransaction(tx string) bool {
 	if self.wantNatSpec {
-		ds := docserver.New("/tmp/")
-		self.lastConfirm = GetNotice(self.xeth, tx, ds)
+		client := httpclient.New("/tmp/")
+		self.lastConfirm = GetNotice(self.xeth, tx, client)
 	}
 	return true
 }
