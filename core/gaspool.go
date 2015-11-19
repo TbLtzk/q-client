@@ -14,12 +14,33 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package types
+package core
 
-import "gitlab.com/q-dev/q-client/core/vm"
+import "math/big"
 
-type BlockProcessor interface {
-	Process(*Block) (vm.Logs, Receipts, error)
-	ValidateHeader(*Header, bool, bool) error
-	ValidateHeaderWithParent(*Header, *Header, bool, bool) error
+// GasPool tracks the amount of gas available during
+// execution of the transactions in a block.
+// The zero value is a pool with zero gas available.
+type GasPool big.Int
+
+// AddGas makes gas available for execution.
+func (gp *GasPool) AddGas(amount *big.Int) *GasPool {
+	i := (*big.Int)(gp)
+	i.Add(i, amount)
+	return gp
+}
+
+// SubGas deducts the given amount from the pool if enough gas is
+// available and returns an error otherwise.
+func (gp *GasPool) SubGas(amount *big.Int) error {
+	i := (*big.Int)(gp)
+	if i.Cmp(amount) < 0 {
+		return &GasLimitErr{Have: new(big.Int).Set(i), Want: amount}
+	}
+	i.Sub(i, amount)
+	return nil
+}
+
+func (gp *GasPool) String() string {
+	return (*big.Int)(gp).String()
 }
