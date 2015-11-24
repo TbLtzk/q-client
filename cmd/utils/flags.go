@@ -34,6 +34,7 @@ import (
 	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/versions"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -773,6 +774,12 @@ func MakeSystemNode(name, version string, extra []byte, ctx *cli.Context) *node.
 		}
 	}
 
+	err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+		return versions.NewVersionCheck(ctx)
+	})
+	if err != nil {
+		Fatalf("Failed to register the Version Check service: %v", err)
+	}
 	return stack
 }
 
