@@ -7,6 +7,8 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto/sha3"
+	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
@@ -39,7 +41,14 @@ func (t *Trie) Prove(key []byte) []rlp.RawValue {
 		case nil:
 			return nil
 		case hashNode:
-			tn = t.resolveHash(n)
+			var err error
+			tn, err = t.resolveHash(n, nil, nil)
+			if err != nil {
+				if glog.V(logger.Error) {
+					glog.Errorf("Unhandled trie error: %v", err)
+				}
+				return nil
+			}
 		default:
 			panic(fmt.Sprintf("%T: invalid node: %v", tn, tn))
 		}
