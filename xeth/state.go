@@ -19,7 +19,6 @@ package xeth
 import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
-	"gitlab.com/q-dev/q-client/eth"
 )
 
 type State struct {
@@ -46,7 +45,7 @@ func (self *State) SafeGet(addr string) *Object {
 func (self *State) safeGet(addr string) *state.StateObject {
 	object := self.state.GetStateObject(common.HexToAddress(addr))
 	if object == nil {
-		object = state.NewStateObject(common.HexToAddress(addr), self.xeth.backend.Service("eth").(*eth.Ethereum).ChainDb())
+		object = state.NewStateObject(common.HexToAddress(addr), self.xeth.EthereumService().ChainDb())
 	}
 	return object
 }
