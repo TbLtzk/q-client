@@ -34,6 +34,8 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/node"
 	xe "gitlab.com/q-dev/q-client/xeth"
 )
 
@@ -146,13 +148,11 @@ func testEth(t *testing.T) (ethereum *eth.Ethereum, err error) {
 	}
 
 	// only use minimalistic stack with no networking
-	return eth.New(&eth.Config{
-		DataDir:                 tmp,
+	return eth.New(&node.ServiceContext{EventMux: new(event.TypeMux)}, &eth.Config{
 		AccountManager:          am,
 		Etherbase:               common.HexToAddress(testAddress),
-		MaxPeers:                0,
 		PowTest:                 true,
-		NewDB:                   func(path string) (ethdb.Database, error) { return db, nil },
+		TestGenesisState:        db,
 		GpoMinGasPrice:          common.Big1,
 		GpobaseCorrectionFactor: 1,
 		GpoMaxGasPrice:          common.Big1,
@@ -166,7 +166,7 @@ func testInit(t *testing.T) (self *testFrontend) {
 		t.Errorf("error creating ethereum: %v", err)
 		return
 	}
-	err = ethereum.Start()
+	err = ethereum.Start(nil)
 	if err != nil {
 		t.Errorf("error starting ethereum: %v", err)
 		return
@@ -174,7 +174,7 @@ func testInit(t *testing.T) (self *testFrontend) {
 
 	// mock frontend
 	self = &testFrontend{t: t, ethereum: ethereum}
-	self.xeth = xe.New(ethereum, self)
+	self.xeth = xe.New(nil, self)
 	self.wait = self.xeth.UpdateState()
 	addr, _ := self.ethereum.Etherbase()
 
