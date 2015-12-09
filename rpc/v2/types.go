@@ -22,7 +22,6 @@ import (
 	"math/big"
 	"reflect"
 	"strings"
-
 	"sync"
 
 	"gitlab.com/q-dev/q-client/event"
@@ -41,6 +40,7 @@ type callback struct {
 	rcvr        reflect.Value  // receiver of method
 	method      reflect.Method // callback
 	argTypes    []reflect.Type // input argument types
+	hasCtx      bool           // method's first argument is a context (not included in argTypes)
 	errPos      int            // err return idx, of -1 when method cannot return error
 	isSubscribe bool           // indication if the callback is a subscription
 }
