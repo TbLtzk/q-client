@@ -27,6 +27,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/p2p"
+	rpc "gitlab.com/q-dev/q-client/rpc/v2"
 )
 
 var (
@@ -263,4 +264,13 @@ func (n *Node) DataDir() string {
 // the current protocol stack.
 func (n *Node) EventMux() *event.TypeMux {
 	return n.eventmux
+}
+
+// RPCAPIs returns the collection of RPC descriptor this node offers
+func (n *Node) RPCAPIs() []rpc.API {
+	var apis []rpc.API
+	for _, api := range n.services {
+		apis = append(apis, api.APIs()...)
+	}
+	return apis
 }
