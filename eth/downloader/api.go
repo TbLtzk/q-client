@@ -17,7 +17,7 @@
 package downloader
 
 import (
-	rpc "gitlab.com/q-dev/q-client/rpc/v2"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // PublicDownloaderAPI provides an API which gives informatoin about the current synchronisation status.

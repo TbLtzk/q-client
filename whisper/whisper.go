@@ -28,7 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/p2p"
-	rpc "gitlab.com/q-dev/q-client/rpc/v2"
+	"gitlab.com/q-dev/q-client/rpc"
 
 	"gopkg.in/fatih/set.v0"
 )

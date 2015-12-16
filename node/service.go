@@ -23,7 +23,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/p2p"
-	rpc "gitlab.com/q-dev/q-client/rpc/v2"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // ServiceContext is a collection of service independent options inherited from

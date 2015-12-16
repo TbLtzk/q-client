@@ -24,7 +24,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
-	rpc "gitlab.com/q-dev/q-client/rpc/v2"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // PublicWhisperAPI provides the whisper RPC service.

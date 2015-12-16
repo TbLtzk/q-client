@@ -23,7 +23,7 @@ import (
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
-	rpc "gitlab.com/q-dev/q-client/rpc/v2"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // SampleService is a trivial network service that can be attached to a node for
