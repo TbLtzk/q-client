@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/ethereum/ethash"
+	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/console"
@@ -313,11 +314,10 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	utils.StartNode(stack)
 
 	// Unlock any account specifically requested
-	var ethereum *eth.Ethereum
-	if err := stack.Service(&ethereum); err != nil {
+	var accman *accounts.Manager
+	if err := stack.Service(&accman); err != nil {
 		utils.Fatalf("ethereum service not running: %v", err)
 	}
-	accman := ethereum.AccountManager()
 	passwords := utils.MakePasswordList(ctx)
 
 	accounts := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
@@ -328,6 +328,10 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	}
 	// Start auxiliary services if enabled
 	if ctx.GlobalBool(utils.MiningEnabledFlag.Name) {
+		var ethereum *eth.FullNodeService
+		if err := stack.Service(&ethereum); err != nil {
+			utils.Fatalf("ethereum service not running: %v", err)
+		}
 		if err := ethereum.StartMining(ctx.GlobalInt(utils.MinerThreadsFlag.Name), ctx.GlobalString(utils.MiningGPUFlag.Name)); err != nil {
 			utils.Fatalf("Failed to start mining: %v", err)
 		}
