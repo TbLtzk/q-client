@@ -27,6 +27,8 @@ import (
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/internal/ethapi"
+	"gitlab.com/q-dev/q-client/les"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/node"
@@ -60,12 +62,20 @@ type ReleaseService struct {
 // releases and notify the user of such.
 func NewReleaseService(ctx *node.ServiceContext, config Config) (node.Service, error) {
 	// Retrieve the Ethereum service dependency to access the blockchain
+	var apiBackend ethapi.Backend
 	var ethereum *eth.Ethereum
-	if err := ctx.Service(&ethereum); err != nil {
-		return nil, err
+	if err := ctx.Service(&ethereum); err == nil {
+		apiBackend = ethereum.ApiBackend
+	} else {
+		var ethereum *les.LightEthereum
+		if err := ctx.Service(&ethereum); err == nil {
+			apiBackend = ethereum.ApiBackend
+		} else {
+			return nil, err
+		}
 	}
 	// Construct the release service
-	contract, err := NewReleaseOracle(config.Oracle, eth.NewContractBackend(ethereum))
+	contract, err := NewReleaseOracle(config.Oracle, eth.NewContractBackend(apiBackend))
 	if err != nil {
 		return nil, err
 	}
