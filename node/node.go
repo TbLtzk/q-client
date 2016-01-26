@@ -27,7 +27,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/p2p"
-	rpc "gitlab.com/q-dev/q-client/rpc/v2"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 var (
@@ -289,6 +289,11 @@ func (n *Node) APIs() []rpc.API {
 			Namespace: "debug",
 			Version:   "1.0",
 			Service:   NewPublicDebugAPI(n),
+			Public:    true,
+		}, {
+			Namespace: "web3",
+			Version:   "1.0",
+			Service:   NewPublicWeb3API(n),
 			Public:    true,
 		},
 	}

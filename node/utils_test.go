@@ -23,7 +23,7 @@ import (
 	"reflect"
 
 	"gitlab.com/q-dev/q-client/p2p"
-	rpc "gitlab.com/q-dev/q-client/rpc/v2"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // NoopService is a trivial implementation of the Service interface.
