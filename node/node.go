@@ -26,6 +26,7 @@ import (
 	"syscall"
 
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/internal/debug"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rpc"
 )
@@ -284,7 +285,7 @@ func (n *Node) APIs() []rpc.API {
 		}, {
 			Namespace: "debug",
 			Version:   "1.0",
-			Service:   NewPrivateDebugAPI(n),
+			Service:   debug.Handler,
 		}, {
 			Namespace: "debug",
 			Version:   "1.0",

@@ -20,7 +20,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -34,6 +33,7 @@ import (
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/internal/debug"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/metrics"
@@ -326,12 +326,6 @@ JavaScript API. See https://github.com/ethereum/go-ethereum/wiki/Javascipt-Conso
 		utils.VMEnableJitFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
-		utils.VerbosityFlag,
-		utils.BacktraceAtFlag,
-		utils.LogVModuleFlag,
-		utils.LogFileFlag,
-		utils.PProfEanbledFlag,
-		utils.PProfPortFlag,
 		utils.MetricsEnabledFlag,
 		utils.SolcPathFlag,
 		utils.GpoMinGasPriceFlag,
@@ -342,23 +336,29 @@ JavaScript API. See https://github.com/ethereum/go-ethereum/wiki/Javascipt-Conso
 		utils.GpobaseCorrectionFactorFlag,
 		utils.ExtraDataFlag,
 	}
+	app.Flags = append(app.Flags, debug.Flags...)
+
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
+		if err := debug.Setup(ctx); err != nil {
+			return err
+		}
+		// Start system runtime metrics collection
+		go metrics.CollectProcessMetrics(3 * time.Second)
 
-		utils.SetupLogger(ctx)
 		utils.SetupNetwork(ctx)
 		utils.SetupVM(ctx)
-		if ctx.GlobalBool(utils.PProfEanbledFlag.Name) {
-			utils.StartPProf(ctx)
-		}
 		return nil
 	}
-	// Start system runtime metrics collection
-	go metrics.CollectProcessMetrics(3 * time.Second)
+
+	app.After = func(ctx *cli.Context) error {
+		logger.Flush()
+		debug.Exit()
+		return nil
+	}
 }
 
 func main() {
-	defer logger.Flush()
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
