@@ -28,7 +28,7 @@ import (
 
 	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/rpc"
 	"github.com/gizak/termui"
 )
@@ -36,7 +36,7 @@ import (
 var (
 	monitorCommandAttachFlag = cli.StringFlag{
 		Name:  "attach",
-		Value: "ipc:" + common.DefaultIpcPath(),
+		Value: "ipc:" + node.DefaultIpcEndpoint(),
 		Usage: "API endpoint to attach to",
 	}
 	monitorCommandRowsFlag = cli.IntFlag{
