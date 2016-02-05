@@ -27,8 +27,6 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/fatih/set.v0"
-
 	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
@@ -46,6 +44,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
+	"gopkg.in/fatih/set.v0"
 )
 
 const (
