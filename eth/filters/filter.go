@@ -18,6 +18,7 @@ package filters
 
 import (
 	"math"
+	"time"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
@@ -32,6 +33,8 @@ type AccountChange struct {
 
 // Filtering interface
 type Filter struct {
+	created time.Time
+
 	db         ethdb.Database
 	begin, end int64
 	addresses  []common.Address
