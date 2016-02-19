@@ -23,6 +23,7 @@ import (
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/compiler"
+	"gitlab.com/q-dev/q-client/common/registrar"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
@@ -30,7 +31,6 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
-	"gitlab.com/q-dev/q-client/common/registrar"
 )
 
 // registryAPIBackend is a backend for an Ethereum Registry.
@@ -110,6 +110,9 @@ type callmsg struct {
 
 // accessor boilerplate to implement core.Message
 func (m callmsg) From() (common.Address, error) {
+	return m.from.Address(), nil
+}
+func (m callmsg) FromFrontier() (common.Address, error) {
 	return m.from.Address(), nil
 }
 func (m callmsg) Nonce() uint64 {
