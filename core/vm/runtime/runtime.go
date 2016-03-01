@@ -22,13 +22,20 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 )
 
+// The default, always homestead, rule set for the vm env
+type ruleSet struct{}
+
+func (ruleSet) IsHomestead(*big.Int) bool { return true }
+
 // Config is a basic type specifying certain configuration flags for running
 // the EVM.
 type Config struct {
+	RuleSet     vm.RuleSet
 	Difficulty  *big.Int
 	Origin      common.Address
 	Coinbase    common.Address
@@ -46,6 +53,10 @@ type Config struct {
 
 // sets defaults on the config
 func setDefaults(cfg *Config) {
+	if cfg.RuleSet == nil {
+		cfg.RuleSet = ruleSet{}
+	}
+
 	if cfg.Difficulty == nil {
 		cfg.Difficulty = new(big.Int)
 	}
