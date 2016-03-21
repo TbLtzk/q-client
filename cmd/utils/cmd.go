@@ -18,13 +18,11 @@
 package utils
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
 	"regexp"
-	"strings"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
@@ -34,15 +32,10 @@ import (
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/rlp"
-	"github.com/peterh/liner"
 )
 
 const (
 	importBatchSize = 2500
-)
-
-var (
-	interruptCallbacks = []func(os.Signal){}
 )
 
 func openLogFile(Datadir string, filename string) *os.File {
@@ -52,49 +45,6 @@ func openLogFile(Datadir string, filename string) *os.File {
 		panic(fmt.Sprintf("error opening log file '%s': %v", filename, err))
 	}
 	return file
-}
-
-func PromptConfirm(prompt string) (bool, error) {
-	var (
-		input string
-		err   error
-	)
-	prompt = prompt + " [y/N] "
-
-	// if liner.TerminalSupported() {
-	// 	fmt.Println("term")
-	// 	lr := liner.NewLiner()
-	// 	defer lr.Close()
-	// 	input, err = lr.Prompt(prompt)
-	// } else {
-	fmt.Print(prompt)
-	input, err = bufio.NewReader(os.Stdin).ReadString('\n')
-	fmt.Println()
-	// }
-
-	if len(input) > 0 && strings.ToUpper(input[:1]) == "Y" {
-		return true, nil
-	} else {
-		return false, nil
-	}
-
-	return false, err
-}
-
-func PromptPassword(prompt string, warnTerm bool) (string, error) {
-	if liner.TerminalSupported() {
-		lr := liner.NewLiner()
-		defer lr.Close()
-		return lr.PasswordPrompt(prompt)
-	}
-	if warnTerm {
-		fmt.Println("!! Unsupported terminal, password will be echoed.")
-	}
-	fmt.Print(prompt)
-	input, err := bufio.NewReader(os.Stdin).ReadString('\n')
-	input = strings.TrimRight(input, "\r\n")
-	fmt.Println()
-	return input, err
 }
 
 // Fatalf formats a message to standard error and exits the program.
