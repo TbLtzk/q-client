@@ -17,7 +17,6 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
-	"gitlab.com/q-dev/q-client/params"
 )
 
 var (
@@ -35,7 +34,7 @@ func newTestProtocolManager(fastSync bool, blocks int, generator func(int, *core
 		pow           = new(core.FakePow)
 		db, _         = ethdb.NewMemDatabase()
 		genesis       = core.WriteGenesisBlockForTesting(db, core.GenesisAccount{testBankAddress, testBankFunds})
-		chainConfig   = &core.ChainConfig{HomesteadBlock: params.MainNetHomesteadBlock}
+		chainConfig   = &core.ChainConfig{HomesteadBlock: big.NewInt(0)} // homestead set to 0 because of chain maker
 		blockchain, _ = core.NewBlockChain(db, chainConfig, pow, evmux)
 	)
 	chain, _ := core.GenerateChain(genesis, db, blocks, generator)

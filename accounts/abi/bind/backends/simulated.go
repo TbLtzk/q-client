@@ -27,11 +27,10 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/params"
 )
 
 // Default chain configuration which sets homestead phase at block 0 (i.e. no frontier)
-var chainConfig = &core.ChainConfig{HomesteadBlock: params.MainNetHomesteadBlock}
+var chainConfig = &core.ChainConfig{HomesteadBlock: big.NewInt(0)}
 
 // This nil assignment ensures compile time that SimulatedBackend implements bind.ContractBackend.
 var _ bind.ContractBackend = (*SimulatedBackend)(nil)

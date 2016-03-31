@@ -27,12 +27,11 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/pow/ezp"
 )
 
 func testChainConfig() *ChainConfig {
-	return &ChainConfig{HomesteadBlock: params.MainNetHomesteadBlock}
+	return &ChainConfig{HomesteadBlock: big.NewInt(0)}
 }
 
 func proc() (Validator, *BlockChain) {
