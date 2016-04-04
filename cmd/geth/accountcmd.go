@@ -23,6 +23,7 @@ import (
 	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 )
@@ -308,9 +309,13 @@ func accountImport(ctx *cli.Context) {
 	if len(keyfile) == 0 {
 		utils.Fatalf("keyfile must be given as argument")
 	}
+	key, err := crypto.LoadECDSA(keyfile)
+	if err != nil {
+		utils.Fatalf("keyfile must be given as argument")
+	}
 	accman := utils.MakeAccountManager(ctx)
 	passphrase := getPassPhrase("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, utils.MakePasswordList(ctx))
-	acct, err := accman.Import(keyfile, passphrase)
+	acct, err := accman.ImportECDSA(key, passphrase)
 	if err != nil {
 		utils.Fatalf("Could not create the account: %v", err)
 	}
