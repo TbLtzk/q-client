@@ -26,11 +26,13 @@ import (
 
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/node"
+	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/tests"
 	"gitlab.com/q-dev/q-client/whisper"
 )
@@ -129,6 +131,7 @@ func MakeSystemNode(keydir string, privkey string, test *tests.BlockTest) (*node
 	ethConf := &eth.Config{
 		TestGenesisState: db,
 		TestGenesisBlock: test.Genesis,
+		ChainConfig:      &core.ChainConfig{HomesteadBlock: params.MainNetHomesteadBlock},
 		AccountManager:   accman,
 	}
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) { return eth.New(ctx, ethConf) }); err != nil {
