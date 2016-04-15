@@ -32,6 +32,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/registrar"
 	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/internal/web3ext"
 	re "gitlab.com/q-dev/q-client/jsre"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/rpc"
@@ -202,7 +203,7 @@ func (js *jsre) apiBindings() error {
 			continue // manually mapped or ignore
 		}
 
-		if jsFile, ok := rpc.WEB3Extensions[apiName]; ok {
+		if jsFile, ok := web3ext.Modules[apiName]; ok {
 			if err = js.re.Compile(fmt.Sprintf("%s.js", apiName), jsFile); err == nil {
 				shortcuts += fmt.Sprintf("var %s = web3.%s; ", apiName, apiName)
 			} else {
