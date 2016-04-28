@@ -34,7 +34,6 @@ import (
 	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/versions"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -49,6 +48,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/nat"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/pow"
+	"gitlab.com/q-dev/q-client/release"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/whisper"
 )
@@ -642,7 +642,7 @@ func MakePasswordList(ctx *cli.Context) []string {
 
 // MakeSystemNode sets up a local node, configures the services to launch and
 // assembles the P2P protocol stack.
-func MakeSystemNode(name, version string, extra []byte, ctx *cli.Context) *node.Node {
+func MakeSystemNode(name, version string, relconf release.Config, extra []byte, ctx *cli.Context) *node.Node {
 	// Avoid conflicting network flags
 	networks, netFlags := 0, []cli.BoolFlag{DevModeFlag, TestNetFlag, OlympicFlag}
 	for _, flag := range netFlags {
@@ -773,12 +773,10 @@ func MakeSystemNode(name, version string, extra []byte, ctx *cli.Context) *node.
 			Fatalf("Failed to register the Whisper service: %v", err)
 		}
 	}
-
-	err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return versions.NewVersionCheck(ctx)
-	})
-	if err != nil {
-		Fatalf("Failed to register the Version Check service: %v", err)
+	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+		return release.NewReleaseService(ctx, relconf)
+	}); err != nil {
+		Fatalf("Failed to register the Geth release oracle service: %v", err)
 	}
 	return stack
 }
