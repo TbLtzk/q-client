@@ -23,6 +23,7 @@ import (
 	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/console"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
@@ -215,12 +216,12 @@ func getPassPhrase(prompt string, confirmation bool, i int, passwords []string) 
 	if prompt != "" {
 		fmt.Println(prompt)
 	}
-	password, err := utils.Stdin.PasswordPrompt("Passphrase: ")
+	password, err := console.TerminalPrompter.PromptPassword("Passphrase: ")
 	if err != nil {
 		utils.Fatalf("Failed to read passphrase: %v", err)
 	}
 	if confirmation {
-		confirm, err := utils.Stdin.PasswordPrompt("Repeat passphrase: ")
+		confirm, err := console.TerminalPrompter.PromptPassword("Repeat passphrase: ")
 		if err != nil {
 			utils.Fatalf("Failed to read passphrase confirmation: %v", err)
 		}
