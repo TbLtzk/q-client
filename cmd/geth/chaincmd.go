@@ -26,6 +26,7 @@ import (
 	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/console"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
@@ -116,7 +117,7 @@ func exportChain(ctx *cli.Context) {
 }
 
 func removeDB(ctx *cli.Context) {
-	confirm, err := utils.Stdin.ConfirmPrompt("Remove local database?")
+	confirm, err := console.Stdin.PromptConfirm("Remove local database?")
 	if err != nil {
 		utils.Fatalf("%v", err)
 	}
