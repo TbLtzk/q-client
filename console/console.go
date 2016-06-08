@@ -30,6 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/internal/jsre"
 	"gitlab.com/q-dev/q-client/internal/web3ext"
 	"gitlab.com/q-dev/q-client/rpc"
+	"github.com/mattn/go-colorable"
 	"github.com/peterh/liner"
 	"github.com/robertkrimen/otto"
 )
@@ -80,7 +81,7 @@ func New(config Config) (*Console, error) {
 		config.Prompt = DefaultPrompt
 	}
 	if config.Printer == nil {
-		config.Printer = os.Stdout
+		config.Printer = colorable.NewColorableStdout()
 	}
 	// Initialize the console and return
 	console := &Console{
