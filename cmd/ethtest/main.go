@@ -25,10 +25,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/tests"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (

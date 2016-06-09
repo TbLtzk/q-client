@@ -28,7 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
@@ -44,6 +43,7 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/release"
 	"gitlab.com/q-dev/q-client/rlp"
+	"gopkg.in/urfave/cli.v1"
 )
 
 const (

@@ -30,7 +30,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
@@ -51,6 +50,7 @@ import (
 	"gitlab.com/q-dev/q-client/release"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/whisper"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func init() {
