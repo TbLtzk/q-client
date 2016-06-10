@@ -22,9 +22,9 @@ import (
 	_ "net/http/pprof"
 	"runtime"
 
-	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (

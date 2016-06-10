@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/rpc"
+	"gopkg.in/urfave/cli.v1"
 )
 
 // NewRemoteRPCClient returns a RPC client which connects to a running geth instance.

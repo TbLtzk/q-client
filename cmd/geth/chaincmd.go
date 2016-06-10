@@ -23,7 +23,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/console"
@@ -32,6 +31,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger/glog"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (

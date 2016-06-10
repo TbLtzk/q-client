@@ -26,11 +26,11 @@ import (
 
 	"sort"
 
-	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/rpc"
 	"github.com/gizak/termui"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (

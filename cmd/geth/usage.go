@@ -21,9 +21,9 @@ package main
 import (
 	"io"
 
-	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/internal/debug"
+	"gopkg.in/urfave/cli.v1"
 )
 
 // AppHelpTemplate is the test template for the default, global app help topic.

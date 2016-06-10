@@ -24,7 +24,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
@@ -33,6 +32,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger/glog"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (

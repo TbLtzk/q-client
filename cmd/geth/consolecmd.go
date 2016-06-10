@@ -20,9 +20,9 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/codegangsta/cli"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/console"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (
