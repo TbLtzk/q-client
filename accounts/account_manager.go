@@ -34,6 +34,8 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 var (
@@ -339,4 +341,24 @@ func zeroKey(k *ecdsa.PrivateKey) {
 	for i := range b {
 		b[i] = 0
 	}
+}
+
+// APIs implements node.Service
+func (am *Manager) APIs() []rpc.API {
+	return nil
+}
+
+// Protocols implements node.Service
+func (am *Manager) Protocols() []p2p.Protocol {
+	return nil
+}
+
+// Start implements node.Service
+func (am *Manager) Start(srvr *p2p.Server) error {
+	return nil
+}
+
+// Stop implements node.Service
+func (am *Manager) Stop() error {
+	return nil
 }
