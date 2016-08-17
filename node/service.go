@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/p2p"
@@ -30,9 +31,10 @@ import (
 // the protocol stack, that is passed to all constructors to be optionally used;
 // as well as utility methods to operate on the service environment.
 type ServiceContext struct {
-	datadir  string                   // Data directory for protocol persistence
-	services map[reflect.Type]Service // Index of the already constructed services
-	EventMux *event.TypeMux           // Event multiplexer used for decoupled notifications
+	datadir        string                   // Data directory for protocol persistence
+	services       map[reflect.Type]Service // Index of the already constructed services
+	EventMux       *event.TypeMux           // Event multiplexer used for decoupled notifications
+	AccountManager *accounts.Manager        // Account manager created by the node.
 }
 
 // OpenDatabase opens an existing database with the given name (or creates one
