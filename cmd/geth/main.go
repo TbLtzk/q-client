@@ -33,6 +33,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/console"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/internal/debug"
@@ -264,6 +265,10 @@ func initGenesis(ctx *cli.Context) error {
 	genesisPath := ctx.Args().First()
 	if len(genesisPath) == 0 {
 		utils.Fatalf("must supply path to genesis JSON file")
+	}
+
+	if ctx.GlobalBool(utils.TestNetFlag.Name) {
+		state.StartingNonce = 1048576 // (2**20)
 	}
 
 	chainDb, err := ethdb.NewLDBDatabase(filepath.Join(utils.MustMakeDataDir(ctx), "chaindata"), 0, 0)
