@@ -24,9 +24,9 @@ import (
 
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/contracts/ens/contract"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/contracts/ens/contract"
 )
 
 // swarm domain name registry and resolver
