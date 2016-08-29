@@ -32,6 +32,7 @@ import (
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/console"
+	"gitlab.com/q-dev/q-client/contracts/release"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/eth"
@@ -42,7 +43,6 @@ import (
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/release"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gopkg.in/urfave/cli.v1"
 )
