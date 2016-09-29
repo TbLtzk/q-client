@@ -23,7 +23,6 @@ import (
 	"os"
 	"os/signal"
 
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
@@ -88,12 +87,12 @@ func MakeSystemNode(privkey string, test *tests.BlockTest) (*node.Node, error) {
 	// Create a networkless protocol stack
 	stack, err := node.New(&node.Config{
 		UseLightweightKDF: true,
-		IPCPath:           node.DefaultIPCEndpoint(),
-		HTTPHost:          common.DefaultHTTPHost,
-		HTTPPort:          common.DefaultHTTPPort,
+		IPCPath:           node.DefaultIPCEndpoint(""),
+		HTTPHost:          node.DefaultHTTPHost,
+		HTTPPort:          node.DefaultHTTPPort,
 		HTTPModules:       []string{"admin", "db", "eth", "debug", "miner", "net", "shh", "txpool", "personal", "web3"},
-		WSHost:            common.DefaultWSHost,
-		WSPort:            common.DefaultWSPort,
+		WSHost:            node.DefaultWSHost,
+		WSPort:            node.DefaultWSPort,
 		WSModules:         []string{"admin", "db", "eth", "debug", "miner", "net", "shh", "txpool", "personal", "web3"},
 		NoDiscovery:       true,
 	})
