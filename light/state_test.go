@@ -23,6 +23,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/trie"
 	"golang.org/x/net/context"
@@ -60,7 +61,7 @@ func makeTestState() (common.Hash, ethdb.Database) {
 			so.SetNonce(100)
 		}
 		so.AddBalance(big.NewInt(int64(i)))
-		so.SetCode([]byte{i, i, i})
+		so.SetCode(crypto.Keccak256Hash([]byte{i, i, i}), []byte{i, i, i})
 		so.UpdateRoot(sdb)
 		st.UpdateStateObject(so)
 	}

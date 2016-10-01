@@ -30,6 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gopkg.in/urfave/cli.v1"
@@ -146,7 +147,9 @@ func run(ctx *cli.Context) error {
 		)
 	} else {
 		receiver := statedb.CreateAccount(common.StringToAddress("receiver"))
-		receiver.SetCode(common.Hex2Bytes(ctx.GlobalString(CodeFlag.Name)))
+
+		code := common.Hex2Bytes(ctx.GlobalString(CodeFlag.Name))
+		receiver.SetCode(crypto.Keccak256Hash(code), code)
 		ret, err = vmenv.Call(
 			sender,
 			receiver.Address(),
