@@ -25,12 +25,16 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 // The default, always homestead, rule set for the vm env
 type ruleSet struct{}
 
 func (ruleSet) IsHomestead(*big.Int) bool { return true }
+func (ruleSet) GasTable(*big.Int) params.GasTable {
+	return params.GasTableHomesteadGasRepriceFork
+}
 
 // Config is a basic type specifying certain configuration flags for running
 // the EVM.

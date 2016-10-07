@@ -26,11 +26,13 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 type ruleSet struct{}
 
-func (self *ruleSet) IsHomestead(*big.Int) bool { return true }
+func (self *ruleSet) IsHomestead(*big.Int) bool    { return true }
+func (*ruleSet) GasTable(*big.Int) params.GasTable { return params.GasTableHomesteadGasRepriceFork }
 
 type Env struct {
 	gasLimit *big.Int
