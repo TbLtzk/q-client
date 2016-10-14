@@ -33,6 +33,7 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/params"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -226,6 +227,9 @@ func NewEnv(state *state.StateDB, transactor common.Address, value *big.Int, cfg
 type ruleSet struct{}
 
 func (ruleSet) IsHomestead(*big.Int) bool { return true }
+func (ruleSet) GasTable(*big.Int) params.GasTable {
+	return params.GasTableHomesteadGasRepriceFork
+}
 
 func (self *VMEnv) RuleSet() vm.RuleSet       { return ruleSet{} }
 func (self *VMEnv) Vm() vm.Vm                 { return self.evm }
