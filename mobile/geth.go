@@ -32,7 +32,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethclient"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p/nat"
-	"gitlab.com/q-dev/q-client/whisper"
+	"gitlab.com/q-dev/q-client/whisper/whisperv2"
 )
 
 // NodeConfig represents the collection of configuration values to fine tune the Geth
@@ -150,7 +150,7 @@ func NewNode(datadir string, config *NodeConfig) (*Node, error) {
 	}
 	// Register the Whisper protocol if requested
 	if config.WhisperEnabled {
-		if err := stack.Register(func(*node.ServiceContext) (node.Service, error) { return whisper.New(), nil }); err != nil {
+		if err := stack.Register(func(*node.ServiceContext) (node.Service, error) { return whisperv2.New(), nil }); err != nil {
 			return nil, fmt.Errorf("whisper init: %v", err)
 		}
 	}
