@@ -30,6 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
@@ -75,7 +76,7 @@ func TestCalcDifficulty(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	config := &ChainConfig{HomesteadBlock: big.NewInt(1150000)}
+	config := &params.ChainConfig{HomesteadBlock: big.NewInt(1150000)}
 	for name, test := range tests {
 		number := new(big.Int).Sub(test.CurrentBlocknumber, big.NewInt(1))
 		diff := CalcDifficulty(config, test.CurrentTimestamp, test.ParentTimestamp, number, test.ParentDifficulty)
@@ -562,7 +563,7 @@ func TestMipmapChain(t *testing.T) {
 	defer db.Close()
 
 	genesis := WriteGenesisBlockForTesting(db, GenesisAccount{addr, big.NewInt(1000000)})
-	chain, receipts := GenerateChain(nil, genesis, db, 1010, func(i int, gen *BlockGen) {
+	chain, receipts := GenerateChain(params.TestChainConfig, genesis, db, 1010, func(i int, gen *BlockGen) {
 		var receipts types.Receipts
 		switch i {
 		case 1:

@@ -30,6 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rpc"
 )
 
@@ -81,7 +82,7 @@ func TestBlockSubscription(t *testing.T) {
 
 	var (
 		genesis     = core.WriteGenesisBlockForTesting(db)
-		chain, _    = core.GenerateChain(nil, genesis, db, 10, func(i int, gen *core.BlockGen) {})
+		chain, _    = core.GenerateChain(params.TestChainConfig, genesis, db, 10, func(i int, gen *core.BlockGen) {})
 		chainEvents = []core.ChainEvent{}
 	)
 

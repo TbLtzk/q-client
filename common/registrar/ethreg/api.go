@@ -32,11 +32,12 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 // registryAPIBackend is a backend for an Ethereum Registry.
 type registryAPIBackend struct {
-	config  *core.ChainConfig
+	config  *params.ChainConfig
 	bc      *core.BlockChain
 	chainDb ethdb.Database
 	txPool  *core.TxPool
@@ -45,12 +46,12 @@ type registryAPIBackend struct {
 
 // PrivateRegistarAPI offers various functions to access the Ethereum registry.
 type PrivateRegistarAPI struct {
-	config *core.ChainConfig
+	config *params.ChainConfig
 	be     *registryAPIBackend
 }
 
 // NewPrivateRegistarAPI creates a new PrivateRegistarAPI instance.
-func NewPrivateRegistarAPI(config *core.ChainConfig, bc *core.BlockChain, chainDb ethdb.Database, txPool *core.TxPool, am *accounts.Manager) *PrivateRegistarAPI {
+func NewPrivateRegistarAPI(config *params.ChainConfig, bc *core.BlockChain, chainDb ethdb.Database, txPool *core.TxPool, am *accounts.Manager) *PrivateRegistarAPI {
 	return &PrivateRegistarAPI{
 		config: config,
 		be: &registryAPIBackend{
