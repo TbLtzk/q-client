@@ -20,6 +20,7 @@ import (
 	"errors"
 	"math/big"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/params"
 )
@@ -36,7 +37,8 @@ type ChainConfig struct {
 	DAOForkBlock   *big.Int `json:"daoForkBlock"`   // TheDAO hard-fork switch block (nil = no fork)
 	DAOForkSupport bool     `json:"daoForkSupport"` // Whether the nodes supports or opposes the DAO hard-fork
 
-	HomesteadGasRepriceBlock *big.Int `json:"homesteadGasRepriceBlock"` // Homestead gas reprice switch block (nil = no fork)
+	HomesteadGasRepriceBlock *big.Int    `json:"homesteadGasRepriceBlock"` // Homestead gas reprice switch block (nil = no fork)
+	HomesteadGasRepriceHash  common.Hash `json:"homesteadGasRepriceHash"`  // Homestead gas reprice switch block hash (fast sync aid)
 
 	VmConfig vm.Config `json:"-"`
 }
