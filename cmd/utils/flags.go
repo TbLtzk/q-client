@@ -48,7 +48,7 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/rpc"
-	"gitlab.com/q-dev/q-client/whisper"
+	whisper "gitlab.com/q-dev/q-client/whisper/whisperv2"
 	"gopkg.in/urfave/cli.v1"
 )
 
