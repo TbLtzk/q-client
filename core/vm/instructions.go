@@ -21,6 +21,7 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/params"
 )
@@ -192,8 +193,8 @@ func opSmod(instr instruction, pc *uint64, env Environment, contract *Contract, 
 }
 
 func opExp(instr instruction, pc *uint64, env Environment, contract *Contract, memory *Memory, stack *Stack) {
-	x, y := stack.pop(), stack.pop()
-	stack.push(U256(x.Exp(x, y, Pow256)))
+	base, exponent := stack.pop(), stack.pop()
+	stack.push(math.Exp(base, exponent))
 }
 
 func opSignExtend(instr instruction, pc *uint64, env Environment, contract *Contract, memory *Memory, stack *Stack) {
