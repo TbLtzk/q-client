@@ -29,6 +29,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
@@ -225,7 +226,7 @@ func RunState(chainConfig *params.ChainConfig, statedb *state.StateDB, env, tx m
 
 	key, _ := hex.DecodeString(tx["secretKey"])
 	addr := crypto.PubkeyToAddress(crypto.ToECDSA(key).PublicKey)
-	message := NewMessage(addr, to, data, value, gas, price, nonce)
+	message := types.NewMessage(addr, to, nonce, value, gas, price, data)
 	vmenv := NewEnvFromMap(chainConfig, statedb, env, tx)
 	vmenv.origin = addr
 
