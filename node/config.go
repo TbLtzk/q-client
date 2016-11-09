@@ -32,6 +32,7 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/p2p/discover"
+	"gitlab.com/q-dev/q-client/p2p/discv5"
 	"gitlab.com/q-dev/q-client/p2p/nat"
 )
 
@@ -95,15 +96,22 @@ type Config struct {
 	// or not. Disabling is usually useful for protocol debugging (manual topology).
 	NoDiscovery bool
 
+	// DiscoveryV5 specifies whether the the new topic-discovery based V5 discovery
+	// protocol should be started or not.
 	DiscoveryV5 bool
 
-	// Bootstrap nodes used to establish connectivity with the rest of the network.
+	// Listener address for the V5 discovery protocol UDP traffic.
+	DiscoveryV5Addr string
+
+	// BootstrapNodes used to establish connectivity with the rest of the network.
 	BootstrapNodes []*discover.Node
+
+	// BootstrapNodesV5 used to establish connectivity with the rest of the network
+	// using the V5 discovery protocol.
+	BootstrapNodesV5 []*discv5.Node
 
 	// Network interface address on which the node should listen for inbound peers.
 	ListenAddr string
-
-	ListenAddrV5 string
 
 	// If set to a non-nil value, the given NAT port mapper is used to make the
 	// listening port available to the Internet.
