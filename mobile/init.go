@@ -14,16 +14,22 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Contains wrappers and init code for the logger.
+// Contains initialization code for the mbile library.
 
 package geth
 
 import (
+	"runtime"
+
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 )
 
 func init() {
+	// Initialize the logger
 	glog.SetV(logger.Info)
 	glog.SetToStderr(true)
+
+	// Initialize the goroutine count
+	runtime.GOMAXPROCS(runtime.NumCPU())
 }
