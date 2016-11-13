@@ -19,7 +19,6 @@ package les
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -31,6 +30,8 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/les/flowcontrol"
 	"gitlab.com/q-dev/q-client/light"
+	"gitlab.com/q-dev/q-client/logger"
+	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/trie"
@@ -288,7 +289,9 @@ func (pm *ProtocolManager) blockLoop() {
 						}
 						lastHead = header
 						lastBroadcastTd = td
-						//fmt.Println("BROADCAST", number, hash, td, reorg)
+
+						glog.V(logger.Debug).Infoln("===> ", number, hash, td, reorg)
+
 						announce := announceData{Hash: hash, Number: number, Td: td, ReorgDepth: reorg}
 						for _, p := range peers {
 							select {
@@ -391,7 +394,9 @@ func makeCht(db ethdb.Database) bool {
 		lastChtNum = 0
 	} else {
 		lastChtNum++
-		fmt.Printf("CHT %d %064x\n", lastChtNum, root)
+
+		glog.V(logger.Info).Infoln("CHT %d %064x\n", lastChtNum, root)
+
 		storeChtRoot(db, lastChtNum, root)
 		var data [8]byte
 		binary.BigEndian.PutUint64(data[:], lastChtNum)
