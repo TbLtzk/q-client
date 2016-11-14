@@ -25,7 +25,6 @@ import (
 	"path/filepath"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethclient"
@@ -33,6 +32,7 @@ import (
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p/nat"
+	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/whisper/whisperv2"
 )
 
@@ -129,12 +129,14 @@ func NewNode(datadir string, config *NodeConfig) (*Node, error) {
 	// Register the Ethereum protocol if requested
 	if config.EthereumEnabled {
 		ethConf := &eth.Config{
-			ChainConfig: &core.ChainConfig{
-				HomesteadBlock:           big.NewInt(config.EthereumChainConfig.HomesteadBlock),
-				DAOForkBlock:             big.NewInt(config.EthereumChainConfig.DAOForkBlock),
-				DAOForkSupport:           config.EthereumChainConfig.DAOForkSupport,
-				HomesteadGasRepriceBlock: big.NewInt(config.EthereumChainConfig.HomesteadGasRepriceBlock),
-				HomesteadGasRepriceHash:  config.EthereumChainConfig.HomesteadGasRepriceHash.hash,
+			ChainConfig: &params.ChainConfig{
+				HomesteadBlock: big.NewInt(config.EthereumChainConfig.HomesteadBlock),
+				DAOForkBlock:   big.NewInt(config.EthereumChainConfig.DAOForkBlock),
+				DAOForkSupport: config.EthereumChainConfig.DAOForkSupport,
+				EIP150Block:    big.NewInt(config.EthereumChainConfig.EIP150Block),
+				EIP150Hash:     config.EthereumChainConfig.EIP150Hash.hash,
+				EIP155Block:    big.NewInt(config.EthereumChainConfig.EIP155Block),
+				EIP158Block:    big.NewInt(config.EthereumChainConfig.EIP158Block),
 			},
 			Genesis:                 config.EthereumGenesis,
 			LightMode:               true,
