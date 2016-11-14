@@ -23,7 +23,6 @@ import (
 	"os"
 	"os/signal"
 
-	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
@@ -122,7 +121,7 @@ func MakeSystemNode(privkey string, test *tests.BlockTest) (*node.Node, error) {
 	ethConf := &eth.Config{
 		TestGenesisState: db,
 		TestGenesisBlock: test.Genesis,
-		ChainConfig:      &core.ChainConfig{HomesteadBlock: params.MainNetHomesteadBlock},
+		ChainConfig:      &params.ChainConfig{HomesteadBlock: params.MainNetHomesteadBlock},
 	}
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) { return eth.New(ctx, ethConf) }); err != nil {
 		return nil, err

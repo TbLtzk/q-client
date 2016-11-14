@@ -29,7 +29,6 @@ import (
 	"gitlab.com/q-dev/q-client/common/httpclient"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/eth/filters"
@@ -42,13 +41,14 @@ import (
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/params"
 	rpc "gitlab.com/q-dev/q-client/rpc"
 )
 
 type LightEthereum struct {
 	odr         *LesOdr
 	relay       *LesTxRelay
-	chainConfig *core.ChainConfig
+	chainConfig *params.ChainConfig
 	// Channel for shutting down the service
 	shutdownChan chan bool
 	// Handlers
@@ -107,10 +107,6 @@ func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
 		return nil, errors.New("missing chain config")
 	}
 	eth.chainConfig = config.ChainConfig
-	eth.chainConfig.VmConfig = vm.Config{
-		EnableJit: config.EnableJit,
-		ForceJit:  config.ForceJit,
-	}
 	eth.blockchain, err = light.NewLightChain(odr, eth.chainConfig, eth.pow, eth.eventMux)
 	if err != nil {
 		if err == core.ErrNoGenesis {
