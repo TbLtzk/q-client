@@ -38,7 +38,6 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/les"
-	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/metrics"
@@ -754,8 +753,6 @@ func RegisterEthService(ctx *cli.Context, stack *node.Node, extra []byte) {
 			ethConf.NetworkId = 2
 		}
 		ethConf.Genesis = core.TestNetGenesisBlock()
-		state.StartingNonce = 1048576 // (2**20)
-		light.StartingNonce = 1048576 // (2**20)
 
 	case ctx.GlobalBool(DevModeFlag.Name):
 		ethConf.Genesis = core.OlympicGenesisBlock()
