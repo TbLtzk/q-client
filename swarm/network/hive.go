@@ -26,6 +26,7 @@ import (
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/p2p/discover"
+	"gitlab.com/q-dev/q-client/p2p/netutil"
 	"gitlab.com/q-dev/q-client/swarm/network/kademlia"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 )
@@ -288,6 +289,10 @@ func newNodeRecord(addr *peerAddr) *kademlia.NodeRecord {
 func (self *Hive) HandlePeersMsg(req *peersMsgData, from *peer) {
 	var nrs []*kademlia.NodeRecord
 	for _, p := range req.Peers {
+		if err := netutil.CheckRelayIP(from.remoteAddr.IP, p.IP); err != nil {
+			glog.V(logger.Detail).Infof("invalid peer IP %v from %v: %v", from.remoteAddr.IP, p.IP, err)
+			continue
+		}
 		nrs = append(nrs, newNodeRecord(p))
 	}
 	self.kad.Add(nrs)
