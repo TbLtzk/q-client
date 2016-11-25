@@ -26,7 +26,6 @@ import (
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/compiler"
-	"gitlab.com/q-dev/q-client/common/httpclient"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
@@ -62,7 +61,6 @@ type LightEthereum struct {
 
 	eventMux       *event.TypeMux
 	pow            *ethash.Ethash
-	httpclient     *httpclient.HTTPClient
 	accountManager *accounts.Manager
 	solcPath       string
 	solc           *compiler.Solidity
@@ -96,7 +94,6 @@ func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
 		accountManager: ctx.AccountManager,
 		pow:            pow,
 		shutdownChan:   make(chan bool),
-		httpclient:     httpclient.New(config.DocRoot),
 		netVersionId:   config.NetworkId,
 		NatSpec:        config.NatSpec,
 		PowTest:        config.PowTest,
