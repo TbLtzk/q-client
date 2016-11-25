@@ -34,6 +34,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/p2p/discv5"
 	"gitlab.com/q-dev/q-client/p2p/nat"
+	"gitlab.com/q-dev/q-client/p2p/netutil"
 )
 
 var (
@@ -102,6 +103,10 @@ type Config struct {
 
 	// Listener address for the V5 discovery protocol UDP traffic.
 	DiscoveryV5Addr string
+
+	// Restrict communication to white listed IP networks.
+	// The whitelist only applies when non-nil.
+	NetRestrict *netutil.Netlist
 
 	// BootstrapNodes used to establish connectivity with the rest of the network.
 	BootstrapNodes []*discover.Node
