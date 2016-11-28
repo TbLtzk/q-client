@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
@@ -331,6 +331,6 @@ func (s *PublicWeb3API) ClientVersion() string {
 
 // Sha3 applies the ethereum sha3 implementation on the input.
 // It assumes the input is hex encoded.
-func (s *PublicWeb3API) Sha3(input string) string {
-	return common.ToHex(crypto.Keccak256(common.FromHex(input)))
+func (s *PublicWeb3API) Sha3(input hexutil.Bytes) hexutil.Bytes {
+	return crypto.Keccak256(input)
 }
