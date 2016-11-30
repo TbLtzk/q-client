@@ -25,6 +25,7 @@ import (
 	"math/big"
 	"sync"
 	"testing"
+	"time"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
@@ -333,4 +334,14 @@ func (p *testPeer) handshake(t *testing.T, td *big.Int, head common.Hash, headNu
 // manager of termination.
 func (p *testPeer) close() {
 	p.app.Close()
+}
+
+type testServerPool peer
+
+func (p *testServerPool) selectPeer(func(*peer) (bool, uint64)) *peer {
+	return (*peer)(p)
+}
+
+func (p *testServerPool) adjustResponseTime(*poolEntry, time.Duration, bool) {
+
 }
