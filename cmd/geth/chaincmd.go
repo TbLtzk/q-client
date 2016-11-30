@@ -32,6 +32,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -39,6 +40,18 @@ import (
 )
 
 var (
+	initCommand = cli.Command{
+		Action:    initGenesis,
+		Name:      "init",
+		Usage:     "Bootstrap and initialize a new genesis block",
+		ArgsUsage: "<genesisPath>",
+		Category:  "BLOCKCHAIN COMMANDS",
+		Description: `
+The init command initializes a new genesis block and definition for the network.
+This is a destructive action and changes the network in which you will be
+participating.
+`,
+	}
 	importCommand = cli.Command{
 		Action:    importChain,
 		Name:      "import",
@@ -94,6 +107,30 @@ Use "ethereum dump 0" to dump the genesis block.
 `,
 	}
 )
+
+// initGenesis will initialise the given JSON format genesis file and writes it as
+// the zero'd block (i.e. genesis) or will fail hard if it can't succeed.
+func initGenesis(ctx *cli.Context) error {
+	genesisPath := ctx.Args().First()
+	if len(genesisPath) == 0 {
+		utils.Fatalf("must supply path to genesis JSON file")
+	}
+
+	stack := makeFullNode(ctx)
+	chaindb := utils.MakeChainDatabase(ctx, stack)
+
+	genesisFile, err := os.Open(genesisPath)
+	if err != nil {
+		utils.Fatalf("failed to read genesis file: %v", err)
+	}
+
+	block, err := core.WriteGenesisBlock(chaindb, genesisFile)
+	if err != nil {
+		utils.Fatalf("failed to write genesis block: %v", err)
+	}
+	glog.V(logger.Info).Infof("successfully wrote genesis block and/or chain rule set: %x", block.Hash())
+	return nil
+}
 
 func importChain(ctx *cli.Context) error {
 	if len(ctx.Args()) != 1 {
