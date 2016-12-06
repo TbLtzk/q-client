@@ -18,7 +18,6 @@ package tests
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"math/big"
@@ -29,9 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
-	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/params"
@@ -207,39 +204,21 @@ func runStateTest(chainConfig *params.ChainConfig, test VmTest) error {
 }
 
 func RunState(chainConfig *params.ChainConfig, statedb *state.StateDB, env, tx map[string]string) ([]byte, vm.Logs, *big.Int, error) {
-	var (
-		data  = common.FromHex(tx["data"])
-		gas   = common.Big(tx["gasLimit"])
-		price = common.Big(tx["gasPrice"])
-		value = common.Big(tx["value"])
-		nonce = common.Big(tx["nonce"]).Uint64()
-	)
-
-	var to *common.Address
-	if len(tx["to"]) > 2 {
-		t := common.HexToAddress(tx["to"])
-		to = &t
-	}
+	environment, msg := NewEVMEnvironment(false, chainConfig, statedb, env, tx)
 	// Set pre compiled contracts
 	vm.Precompiled = vm.PrecompiledContracts()
 	gaspool := new(core.GasPool).AddGas(common.Big(env["currentGasLimit"]))
-
-	key, _ := hex.DecodeString(tx["secretKey"])
-	addr := crypto.PubkeyToAddress(crypto.ToECDSA(key).PublicKey)
-	message := types.NewMessage(addr, to, nonce, value, gas, price, data, true)
-	vmenv := NewEnvFromMap(chainConfig, statedb, env, tx)
-	vmenv.origin = addr
 
 	root, _ := statedb.Commit(false)
 	statedb.Reset(root)
 
 	snapshot := statedb.Snapshot()
 
-	ret, _, err := core.ApplyMessage(vmenv, message, gaspool)
+	ret, gasUsed, err := core.ApplyMessage(environment, msg, gaspool)
 	if core.IsNonceErr(err) || core.IsInvalidTxErr(err) || core.IsGasLimitErr(err) {
 		statedb.RevertToSnapshot(snapshot)
 	}
-	statedb.Commit(chainConfig.IsEIP158(vmenv.BlockNumber()))
+	statedb.Commit(chainConfig.IsEIP158(environment.Context.BlockNumber))
 
-	return ret, vmenv.state.Logs(), vmenv.Gas, err
+	return ret, statedb.Logs(), gasUsed, err
 }

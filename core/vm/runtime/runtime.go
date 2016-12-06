@@ -22,6 +22,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/params"
@@ -49,6 +50,7 @@ type Config struct {
 	Value       *big.Int
 	DisableJit  bool // "disable" so it's enabled by default
 	Debug       bool
+	EVMConfig   vm.Config
 
 	State     *state.StateDB
 	GetHashFn func(n uint64) common.Hash
@@ -123,11 +125,35 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 		receiver.Address(),
 		input,
 		cfg.GasLimit,
-		cfg.GasPrice,
 		cfg.Value,
 	)
 
 	return ret, cfg.State, err
+}
+
+// Create executes the code using the EVM create method
+func Create(input []byte, cfg *Config) ([]byte, common.Address, error) {
+	if cfg == nil {
+		cfg = new(Config)
+	}
+	setDefaults(cfg)
+
+	if cfg.State == nil {
+		db, _ := ethdb.NewMemDatabase()
+		cfg.State, _ = state.New(common.Hash{}, db)
+	}
+	var (
+		vmenv  = NewEnv(cfg, cfg.State)
+		sender = cfg.State.CreateAccount(cfg.Origin)
+	)
+
+	// Call the code with the given configuration.
+	return vmenv.Create(
+		sender,
+		input,
+		cfg.GasLimit,
+		cfg.Value,
+	)
 }
 
 // Call executes the code given by the contract's address. It will return the
@@ -147,7 +173,6 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, error) {
 		address,
 		input,
 		cfg.GasLimit,
-		cfg.GasPrice,
 		cfg.Value,
 	)
 

@@ -23,7 +23,10 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 )
 
-var OutOfGasError = errors.New("Out of gas")
-var CodeStoreOutOfGasError = errors.New("Contract creation code storage out of gas")
-var DepthError = fmt.Errorf("Max call depth exceeded (%d)", params.CallCreateDepth)
-var TraceLimitReachedError = errors.New("The number of logs reached the specified limit")
+var (
+	OutOfGasError          = errors.New("Out of gas")
+	CodeStoreOutOfGasError = errors.New("Contract creation code storage out of gas")
+	DepthError             = fmt.Errorf("Max call depth exceeded (%d)", params.CallCreateDepth)
+	TraceLimitReachedError = errors.New("The number of logs reached the specified limit")
+	ErrInsufficientBalance = errors.New("insufficient balance for transfer")
+)
