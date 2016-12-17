@@ -26,6 +26,7 @@ import (
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/compiler"
+	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
@@ -135,8 +136,8 @@ func (s *LightDummyAPI) Coinbase() (common.Address, error) {
 }
 
 // Hashrate returns the POW hashrate
-func (s *LightDummyAPI) Hashrate() *rpc.HexNumber {
-	return rpc.NewHexNumber(0)
+func (s *LightDummyAPI) Hashrate() hexutil.Uint {
+	return 0
 }
 
 // Mining returns an indication if this node is currently mining.
