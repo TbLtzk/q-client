@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/compiler"
@@ -42,6 +41,7 @@ import (
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/pow"
 	rpc "gitlab.com/q-dev/q-client/rpc"
 )
 
@@ -61,13 +61,12 @@ type LightEthereum struct {
 	ApiBackend *LesApiBackend
 
 	eventMux       *event.TypeMux
-	pow            *ethash.Ethash
+	pow            pow.PoW
 	accountManager *accounts.Manager
 	solcPath       string
 	solc           *compiler.Solidity
 
 	NatSpec       bool
-	PowTest       bool
 	netVersionId  int
 	netRPCService *ethapi.PublicNetAPI
 }
@@ -97,7 +96,6 @@ func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
 		shutdownChan:   make(chan bool),
 		netVersionId:   config.NetworkId,
 		NatSpec:        config.NatSpec,
-		PowTest:        config.PowTest,
 		solcPath:       config.SolcPath,
 	}
 
