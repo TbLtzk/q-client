@@ -26,6 +26,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger/glog"
@@ -164,7 +165,7 @@ func runVmTest(test VmTest) error {
 		ret  []byte
 		gas  *big.Int
 		err  error
-		logs vm.Logs
+		logs []*types.Log
 	)
 
 	ret, logs, gas, err = RunVm(statedb, env, test.Exec)
@@ -211,7 +212,7 @@ func runVmTest(test VmTest) error {
 	return nil
 }
 
-func RunVm(statedb *state.StateDB, env, exec map[string]string) ([]byte, vm.Logs, *big.Int, error) {
+func RunVm(statedb *state.StateDB, env, exec map[string]string) ([]byte, []*types.Log, *big.Int, error) {
 	chainConfig := &params.ChainConfig{
 		HomesteadBlock: params.MainNetHomesteadBlock,
 		DAOForkBlock:   params.MainNetDAOForkBlock,
