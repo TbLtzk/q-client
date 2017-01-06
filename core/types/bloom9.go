@@ -22,7 +22,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
-	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 )
 
@@ -95,7 +94,7 @@ func CreateBloom(receipts Receipts) Bloom {
 	return BytesToBloom(bin.Bytes())
 }
 
-func LogsBloom(logs vm.Logs) *big.Int {
+func LogsBloom(logs []*Log) *big.Int {
 	bin := new(big.Int)
 	for _, log := range logs {
 		data := make([]common.Hash, len(log.Topics))

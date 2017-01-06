@@ -18,10 +18,10 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"encoding/hex"
 	"strings"
 
 	"gitlab.com/q-dev/q-client/core/vm"

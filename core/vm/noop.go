@@ -20,6 +20,7 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 )
 
 func NoopCanTransfer(db StateDB, from common.Address, balance *big.Int) bool {
@@ -65,4 +66,4 @@ func (NoopStateDB) Exist(common.Address) bool                         { return f
 func (NoopStateDB) Empty(common.Address) bool                         { return false }
 func (NoopStateDB) RevertToSnapshot(int)                              {}
 func (NoopStateDB) Snapshot() int                                     { return 0 }
-func (NoopStateDB) AddLog(*Log)                                       {}
+func (NoopStateDB) AddLog(*types.Log)                                 {}

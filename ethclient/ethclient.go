@@ -26,7 +26,6 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"golang.org/x/net/context"
@@ -294,14 +293,14 @@ func (ec *Client) NonceAt(ctx context.Context, account common.Address, blockNumb
 // Filters
 
 // FilterLogs executes a filter query.
-func (ec *Client) FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]vm.Log, error) {
-	var result []vm.Log
+func (ec *Client) FilterLogs(ctx context.Context, q ethereum.FilterQuery) ([]types.Log, error) {
+	var result []types.Log
 	err := ec.c.CallContext(ctx, &result, "eth_getLogs", toFilterArg(q))
 	return result, err
 }
 
 // SubscribeFilterLogs subscribes to the results of a streaming filter query.
-func (ec *Client) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- vm.Log) (ethereum.Subscription, error) {
+func (ec *Client) SubscribeFilterLogs(ctx context.Context, q ethereum.FilterQuery, ch chan<- types.Log) (ethereum.Subscription, error) {
 	return ec.c.EthSubscribe(ctx, ch, "logs", toFilterArg(q))
 }
 

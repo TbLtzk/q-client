@@ -27,17 +27,16 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 func makeReceipt(addr common.Address) *types.Receipt {
 	receipt := types.NewReceipt(nil, new(big.Int))
-	receipt.Logs = vm.Logs{
-		&vm.Log{Address: addr},
+	receipt.Logs = []*types.Log{
+		{Address: addr},
 	}
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 	return receipt
@@ -146,8 +145,8 @@ func TestFilters(t *testing.T) {
 		switch i {
 		case 1:
 			receipt := types.NewReceipt(nil, new(big.Int))
-			receipt.Logs = vm.Logs{
-				&vm.Log{
+			receipt.Logs = []*types.Log{
+				{
 					Address: addr,
 					Topics:  []common.Hash{hash1},
 				},
@@ -156,8 +155,8 @@ func TestFilters(t *testing.T) {
 			receipts = types.Receipts{receipt}
 		case 2:
 			receipt := types.NewReceipt(nil, new(big.Int))
-			receipt.Logs = vm.Logs{
-				&vm.Log{
+			receipt.Logs = []*types.Log{
+				{
 					Address: addr,
 					Topics:  []common.Hash{hash2},
 				},
@@ -166,8 +165,8 @@ func TestFilters(t *testing.T) {
 			receipts = types.Receipts{receipt}
 		case 998:
 			receipt := types.NewReceipt(nil, new(big.Int))
-			receipt.Logs = vm.Logs{
-				&vm.Log{
+			receipt.Logs = []*types.Log{
+				{
 					Address: addr,
 					Topics:  []common.Hash{hash3},
 				},
@@ -176,8 +175,8 @@ func TestFilters(t *testing.T) {
 			receipts = types.Receipts{receipt}
 		case 999:
 			receipt := types.NewReceipt(nil, new(big.Int))
-			receipt.Logs = vm.Logs{
-				&vm.Log{
+			receipt.Logs = []*types.Log{
+				{
 					Address: addr,
 					Topics:  []common.Hash{hash4},
 				},

@@ -24,7 +24,6 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/params"
@@ -77,7 +76,7 @@ func TestPutReceipt(t *testing.T) {
 	hash[0] = 2
 
 	receipt := new(types.Receipt)
-	receipt.Logs = vm.Logs{&vm.Log{
+	receipt.Logs = []*types.Log{{
 		Address:     addr,
 		Topics:      []common.Hash{hash},
 		Data:        []byte("hi"),

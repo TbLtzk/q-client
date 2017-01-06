@@ -31,7 +31,7 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/params"
-	rpc "gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/rpc"
 	"golang.org/x/net/context"
 )
 

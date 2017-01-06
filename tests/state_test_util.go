@@ -28,7 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
-	"gitlab.com/q-dev/q-client/core/vm"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/params"
@@ -146,7 +146,7 @@ func runStateTest(chainConfig *params.ChainConfig, test VmTest) error {
 		ret []byte
 		// gas  *big.Int
 		// err  error
-		logs vm.Logs
+		logs []*types.Log
 	)
 
 	ret, logs, _, _ = RunState(chainConfig, statedb, env, test.Transaction)
@@ -203,7 +203,7 @@ func runStateTest(chainConfig *params.ChainConfig, test VmTest) error {
 	return nil
 }
 
-func RunState(chainConfig *params.ChainConfig, statedb *state.StateDB, env, tx map[string]string) ([]byte, vm.Logs, *big.Int, error) {
+func RunState(chainConfig *params.ChainConfig, statedb *state.StateDB, env, tx map[string]string) ([]byte, []*types.Log, *big.Int, error) {
 	environment, msg := NewEVMEnvironment(false, chainConfig, statedb, env, tx)
 	gaspool := new(core.GasPool).AddGas(common.Big(env["currentGasLimit"]))
 
