@@ -22,6 +22,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"gitlab.com/q-dev/q-client/crypto"
@@ -53,6 +54,9 @@ func decryptPreSaleKey(fileContent []byte, password string) (key *Key, err error
 		return nil, err
 	}
 	encSeedBytes, err := hex.DecodeString(preSaleKeyStruct.EncSeed)
+	if err != nil {
+		return nil, errors.New("invalid hex in encSeed")
+	}
 	iv := encSeedBytes[:16]
 	cipherText := encSeedBytes[16:]
 	/*
