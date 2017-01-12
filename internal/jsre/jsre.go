@@ -27,7 +27,13 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/internal/jsre/deps"
 	"github.com/robertkrimen/otto"
+)
+
+var (
+	BigNumber_JS = deps.MustAsset("bignumber.js")
+	Web3_JS      = deps.MustAsset("web3.js")
 )
 
 /*
