@@ -22,6 +22,7 @@ import (
 	"sync/atomic"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/pow"
@@ -112,7 +113,7 @@ func (self *CpuAgent) mine(work *Work, stop <-chan struct{}) {
 	// Mine
 	nonce, mixDigest := self.pow.Search(work.Block, stop, self.index)
 	if nonce != 0 {
-		block := work.Block.WithMiningResult(nonce, common.BytesToHash(mixDigest))
+		block := work.Block.WithMiningResult(types.EncodeNonce(nonce), common.BytesToHash(mixDigest))
 		self.returnCh <- &Result{work, block}
 	} else {
 		self.returnCh <- nil

@@ -25,6 +25,7 @@ import (
 
 	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 	"gitlab.com/q-dev/q-client/pow"
@@ -132,7 +133,7 @@ func (a *RemoteAgent) GetWork() ([3]string, error) {
 // SubmitWork tries to inject a PoW solution tinto the remote agent, returning
 // whether the solution was acceted or not (not can be both a bad PoW as well as
 // any other error, like no work pending).
-func (a *RemoteAgent) SubmitWork(nonce uint64, mixDigest, hash common.Hash) bool {
+func (a *RemoteAgent) SubmitWork(nonce types.BlockNonce, mixDigest, hash common.Hash) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
