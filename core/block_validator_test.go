@@ -24,6 +24,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/params"
@@ -39,7 +40,7 @@ func proc() (Validator, *BlockChain) {
 	var mux event.TypeMux
 
 	WriteTestNetGenesisBlock(db)
-	blockchain, err := NewBlockChain(db, testChainConfig(), thePow(), &mux)
+	blockchain, err := NewBlockChain(db, testChainConfig(), thePow(), &mux, vm.Config{})
 	if err != nil {
 		fmt.Println(err)
 	}

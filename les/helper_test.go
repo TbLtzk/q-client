@@ -30,6 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
@@ -143,7 +144,7 @@ func newTestProtocolManager(lightSync bool, blocks int, generator func(int, *cor
 		odr = NewLesOdr(db)
 		chain, _ = light.NewLightChain(odr, chainConfig, pow, evmux)
 	} else {
-		blockchain, _ := core.NewBlockChain(db, chainConfig, pow, evmux)
+		blockchain, _ := core.NewBlockChain(db, chainConfig, pow, evmux, vm.Config{})
 		gchain, _ := core.GenerateChain(chainConfig, genesis, db, blocks, generator)
 		if _, err := blockchain.InsertChain(gchain); err != nil {
 			panic(err)
