@@ -28,6 +28,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/accounts/usbwallet"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/logger"
@@ -432,6 +433,15 @@ func makeAccountManager(conf *Config) (am *accounts.Manager, ephemeralKeystore s
 	if err := os.MkdirAll(keydir, 0700); err != nil {
 		return nil, "", err
 	}
-	ks := keystore.NewKeyStore(keydir, scryptN, scryptP)
-	return accounts.NewManager(ks), ephemeralKeystore, nil
+
+	// Assemble the account manager and supported backends
+	backends := []accounts.Backend{
+		keystore.NewKeyStore(keydir, scryptN, scryptP),
+	}
+	if ledgerhub, err := usbwallet.NewLedgerHub(); err != nil {
+		glog.V(logger.Warn).Infof("Failed to start Ledger hub, disabling: %v", err)
+	} else {
+		backends = append(backends, ledgerhub)
+	}
+	return accounts.NewManager(backends...), ephemeralKeystore, nil
 }
