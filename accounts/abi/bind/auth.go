@@ -22,7 +22,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"gitlab.com/q-dev/q-client/accounts"
+	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -35,7 +35,7 @@ func NewTransactor(keyin io.Reader, passphrase string) (*TransactOpts, error) {
 	if err != nil {
 		return nil, err
 	}
-	key, err := accounts.DecryptKey(json, passphrase)
+	key, err := keystore.DecryptKey(json, passphrase)
 	if err != nil {
 		return nil, err
 	}

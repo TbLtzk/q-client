@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/console"
@@ -245,12 +246,13 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	utils.StartNode(stack)
 
 	// Unlock any account specifically requested
-	accman := stack.AccountManager()
+	ks := stack.AccountManager().Backend(keystore.BackendType).(*keystore.KeyStore)
+
 	passwords := utils.MakePasswordList(ctx)
 	accounts := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
 	for i, account := range accounts {
 		if trimmed := strings.TrimSpace(account); trimmed != "" {
-			unlockAccount(ctx, accman, trimmed, i, passwords)
+			unlockAccount(ctx, ks, trimmed, i, passwords)
 		}
 	}
 	// Start auxiliary services if enabled
