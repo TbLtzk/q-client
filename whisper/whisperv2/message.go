@@ -21,11 +21,13 @@ package whisperv2
 
 import (
 	"crypto/ecdsa"
+	crand "crypto/rand"
 	"math/rand"
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/crypto/ecies"
 	"gitlab.com/q-dev/q-client/logger"
 	"gitlab.com/q-dev/q-client/logger/glog"
 )
@@ -131,13 +133,13 @@ func (self *Message) Recover() *ecdsa.PublicKey {
 
 // encrypt encrypts a message payload with a public key.
 func (self *Message) encrypt(key *ecdsa.PublicKey) (err error) {
-	self.Payload, err = crypto.Encrypt(key, self.Payload)
+	self.Payload, err = ecies.Encrypt(crand.Reader, ecies.ImportECDSAPublic(key), self.Payload, nil, nil)
 	return
 }
 
 // decrypt decrypts an encrypted payload with a private key.
 func (self *Message) decrypt(key *ecdsa.PrivateKey) error {
-	cleartext, err := crypto.Decrypt(key, self.Payload)
+	cleartext, err := ecies.ImportECDSA(key).Decrypt(crand.Reader, self.Payload, nil, nil)
 	if err == nil {
 		self.Payload = cleartext
 	}
