@@ -32,7 +32,6 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/logger/glog"
@@ -222,10 +221,12 @@ func (t *BlockTest) InsertPreState(db ethdb.Database) (*state.StateDB, error) {
 		if err != nil {
 			return nil, err
 		}
-		obj := statedb.CreateAccount(common.HexToAddress(addrString))
-		obj.SetCode(crypto.Keccak256Hash(code), code)
-		obj.SetBalance(balance)
-		obj.SetNonce(nonce)
+
+		addr := common.HexToAddress(addrString)
+		statedb.CreateAccount(addr)
+		statedb.SetCode(addr, code)
+		statedb.SetBalance(addr, balance)
+		statedb.SetNonce(addr, nonce)
 		for k, v := range acct.Storage {
 			statedb.SetState(common.HexToAddress(addrString), common.HexToHash(k), common.HexToHash(v))
 		}
