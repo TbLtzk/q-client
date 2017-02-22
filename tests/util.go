@@ -30,7 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -40,7 +40,7 @@ var (
 )
 
 func init() {
-	glog.SetV(0)
+	log.Root().SetHandler(log.LvlFilterHandler(log.LvlCrit, log.StreamHandler(os.Stderr, log.TerminalFormat())))
 	if os.Getenv("JITVM") == "true" {
 		ForceJit = true
 		EnableJit = true

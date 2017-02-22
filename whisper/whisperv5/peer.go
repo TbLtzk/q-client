@@ -21,8 +21,7 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rlp"
 	set "gopkg.in/fatih/set.v0"
@@ -56,13 +55,13 @@ func newPeer(host *Whisper, remote *p2p.Peer, rw p2p.MsgReadWriter) *Peer {
 // into the network.
 func (p *Peer) start() {
 	go p.update()
-	glog.V(logger.Debug).Infof("%v: whisper started", p.peer)
+	log.Debug(fmt.Sprintf("%v: whisper started", p.peer))
 }
 
 // stop terminates the peer updater, stopping message forwarding to it.
 func (p *Peer) stop() {
 	close(p.quit)
-	glog.V(logger.Debug).Infof("%v: whisper stopped", p.peer)
+	log.Debug(fmt.Sprintf("%v: whisper stopped", p.peer))
 }
 
 // handshake sends the protocol initiation status message to the remote peer and
@@ -111,7 +110,7 @@ func (p *Peer) update() {
 
 		case <-transmit.C:
 			if err := p.broadcast(); err != nil {
-				glog.V(logger.Info).Infof("%v: broadcast failed: %v", p.peer, err)
+				log.Info(fmt.Sprintf("%v: broadcast failed: %v", p.peer, err))
 				return
 			}
 
@@ -172,7 +171,7 @@ func (p *Peer) broadcast() error {
 	if err := p2p.Send(p.ws, messagesCode, transmit); err != nil {
 		return err
 	}
-	glog.V(logger.Detail).Infoln(p.peer, "broadcasted", len(transmit), "message(s)")
+	log.Trace(fmt.Sprint(p.peer, "broadcasted", len(transmit), "message(s)"))
 	return nil
 }
 

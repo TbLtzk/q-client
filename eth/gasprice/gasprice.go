@@ -17,6 +17,7 @@
 package gasprice
 
 import (
+	"fmt"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -25,8 +26,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 const (
@@ -176,7 +176,7 @@ func (self *GasPriceOracle) processBlock(block *types.Block) {
 	self.lastBase = newBase
 	self.lastBaseMutex.Unlock()
 
-	glog.V(logger.Detail).Infof("Processed block #%v, base price is %v\n", i, newBase.Int64())
+	log.Trace(fmt.Sprintf("Processed block #%v, base price is %v\n", i, newBase.Int64()))
 }
 
 // returns the lowers possible price with which a tx was or could have been included

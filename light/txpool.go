@@ -26,8 +26,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 	"golang.org/x/net/context"
@@ -321,7 +320,7 @@ func (pool *TxPool) eventLoop() {
 func (pool *TxPool) Stop() {
 	close(pool.quit)
 	pool.events.Unsubscribe()
-	glog.V(logger.Info).Infoln("Transaction pool stopped")
+	log.Info(fmt.Sprint("Transaction pool stopped"))
 }
 
 // Stats returns the number of currently pending (locally created) transactions
@@ -417,7 +416,7 @@ func (self *TxPool) add(ctx context.Context, tx *types.Transaction) error {
 		go self.eventMux.Post(core.TxPreEvent{Tx: tx})
 	}
 
-	if glog.V(logger.Debug) {
+	log.Debug("", "msg", log.Lazy{Fn: func() string {
 		var toname string
 		if to := tx.To(); to != nil {
 			toname = common.Bytes2Hex(to[:4])
@@ -428,8 +427,8 @@ func (self *TxPool) add(ctx context.Context, tx *types.Transaction) error {
 		// verified in ValidateTransaction.
 		f, _ := types.Sender(self.signer, tx)
 		from := common.Bytes2Hex(f[:4])
-		glog.Infof("(t) %x => %s (%v) %x\n", from, toname, tx.Value, hash)
-	}
+		return fmt.Sprintf("(t) %x => %s (%v) %x\n", from, toname, tx.Value(), hash)
+	}})
 
 	return nil
 }
@@ -464,11 +463,11 @@ func (self *TxPool) AddBatch(ctx context.Context, txs []*types.Transaction) {
 
 	for _, tx := range txs {
 		if err := self.add(ctx, tx); err != nil {
-			glog.V(logger.Debug).Infoln("tx error:", err)
+			log.Debug(fmt.Sprint("tx error:", err))
 		} else {
 			sendTx = append(sendTx, tx)
 			h := tx.Hash()
-			glog.V(logger.Debug).Infof("tx %x\n", h[:4])
+			log.Debug(fmt.Sprintf("tx %x\n", h[:4]))
 		}
 	}
 

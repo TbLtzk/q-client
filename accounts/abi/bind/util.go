@@ -22,8 +22,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"golang.org/x/net/context"
 )
 
@@ -39,9 +38,9 @@ func WaitMined(ctx context.Context, b DeployBackend, tx *types.Transaction) (*ty
 			return receipt, nil
 		}
 		if err != nil {
-			glog.V(logger.Detail).Infof("tx %x error: %v", loghash, err)
+			log.Trace(fmt.Sprintf("tx %x error: %v", loghash, err))
 		} else {
-			glog.V(logger.Detail).Infof("tx %x not yet mined...", loghash)
+			log.Trace(fmt.Sprintf("tx %x not yet mined...", loghash))
 		}
 		// Wait for the next round.
 		select {

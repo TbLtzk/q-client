@@ -19,6 +19,7 @@ package light
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
@@ -26,8 +27,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/rlp"
 	"golang.org/x/net/context"
 )
@@ -149,7 +149,7 @@ func GetBody(ctx context.Context, odr OdrBackend, hash common.Hash, number uint6
 	}
 	body := new(types.Body)
 	if err := rlp.Decode(bytes.NewReader(data), body); err != nil {
-		glog.V(logger.Error).Infof("invalid block body RLP for hash %x: %v", hash, err)
+		log.Error(fmt.Sprintf("invalid block body RLP for hash %x: %v", hash, err))
 		return nil, err
 	}
 	return body, nil

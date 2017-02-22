@@ -27,8 +27,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/trie"
 	lru "github.com/hashicorp/golang-lru"
@@ -411,7 +410,7 @@ func (self *StateDB) getStateObject(addr common.Address) (stateObject *stateObje
 	}
 	var data Account
 	if err := rlp.DecodeBytes(enc, &data); err != nil {
-		glog.Errorf("can't decode object at %x: %v", addr[:], err)
+		log.Error(fmt.Sprintf("can't decode object at %x: %v", addr[:], err))
 		return nil
 	}
 	// Insert into the live set.
@@ -446,9 +445,9 @@ func (self *StateDB) createObject(addr common.Address) (newobj, prev *stateObjec
 	newobj = newObject(self, addr, Account{}, self.MarkStateObjectDirty)
 	newobj.setNonce(0) // sets the object to dirty
 	if prev == nil {
-		if glog.V(logger.Debug) {
-			glog.Infof("(+) %x\n", addr)
-		}
+		log.Debug("", "msg", log.Lazy{Fn: func() string {
+			return fmt.Sprintf("(+) %x\n", addr)
+		}})
 		self.journal = append(self.journal, createObjectChange{account: &addr})
 	} else {
 		self.journal = append(self.journal, resetObjectChange{prev: prev})
@@ -617,7 +616,7 @@ func (s *StateDB) CommitBatch(deleteEmptyObjects bool) (root common.Hash, batch 
 	batch = s.db.NewBatch()
 	root, _ = s.commit(batch, deleteEmptyObjects)
 
-	glog.V(logger.Debug).Infof("Trie cache stats: %d misses, %d unloads", trie.CacheMisses(), trie.CacheUnloads())
+	log.Debug(fmt.Sprintf("Trie cache stats: %d misses, %d unloads", trie.CacheMisses(), trie.CacheUnloads()))
 	return root, batch
 }
 

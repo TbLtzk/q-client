@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -68,7 +69,7 @@ The output of this command is supposed to be machine-readable.
 func makedag(ctx *cli.Context) error {
 	args := ctx.Args()
 	wrongArgs := func() {
-		utils.Fatalf(`Usage: geth makedag <block number> <outputdir>`)
+		log.Crit(fmt.Sprintf(`Usage: geth makedag <block number> <outputdir>`))
 	}
 	switch {
 	case len(args) == 2:
@@ -84,7 +85,7 @@ func makedag(ctx *cli.Context) error {
 			}
 			_, err = ioutil.ReadDir(dir)
 			if err != nil {
-				utils.Fatalf("Can't find dir")
+				log.Crit(fmt.Sprintf("Can't find dir"))
 			}
 			fmt.Println("making DAG, this could take awhile...")
 			ethash.MakeDAG(blockNum, dir)

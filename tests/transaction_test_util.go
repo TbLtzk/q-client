@@ -25,7 +25,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 )
@@ -64,14 +64,14 @@ func RunTransactionTestsWithReader(config *params.ChainConfig, r io.Reader, skip
 	for name, test := range bt {
 		// if the test should be skipped, return
 		if skipTest[name] {
-			glog.Infoln("Skipping transaction test", name)
+			log.Info(fmt.Sprint("Skipping transaction test", name))
 			return nil
 		}
 		// test the block
 		if err := runTransactionTest(config, test); err != nil {
 			return err
 		}
-		glog.Infoln("Transaction test passed: ", name)
+		log.Info(fmt.Sprint("Transaction test passed: ", name))
 
 	}
 	return nil
@@ -98,7 +98,7 @@ func runTransactionTests(config *params.ChainConfig, tests map[string]Transactio
 	for name, test := range tests {
 		// if the test should be skipped, return
 		if skipTest[name] {
-			glog.Infoln("Skipping transaction test", name)
+			log.Info(fmt.Sprint("Skipping transaction test", name))
 			return nil
 		}
 
@@ -106,7 +106,7 @@ func runTransactionTests(config *params.ChainConfig, tests map[string]Transactio
 		if err := runTransactionTest(config, test); err != nil {
 			return fmt.Errorf("%s: %v", name, err)
 		}
-		glog.Infoln("Transaction test passed: ", name)
+		log.Info(fmt.Sprint("Transaction test passed: ", name))
 
 	}
 	return nil

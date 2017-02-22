@@ -17,14 +17,14 @@
 package miner
 
 import (
+	"fmt"
 	"sync"
 
 	"sync/atomic"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/pow"
 )
 
@@ -108,7 +108,7 @@ done:
 }
 
 func (self *CpuAgent) mine(work *Work, stop <-chan struct{}) {
-	glog.V(logger.Debug).Infof("(re)started agent[%d]. mining...\n", self.index)
+	log.Debug(fmt.Sprintf("(re)started agent[%d]. mining...\n", self.index))
 
 	// Mine
 	nonce, mixDigest := self.pow.Search(work.Block, stop, self.index)

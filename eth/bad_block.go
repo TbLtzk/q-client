@@ -25,8 +25,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
@@ -66,9 +65,9 @@ func sendBadBlockReport(block *types.Block, err error) {
 	client := http.Client{Timeout: 8 * time.Second}
 	resp, err := client.Post(badBlocksURL, "application/json", bytes.NewReader(jsonStr))
 	if err != nil {
-		glog.V(logger.Debug).Infoln(err)
+		log.Debug(fmt.Sprint(err))
 		return
 	}
-	glog.V(logger.Debug).Infof("Bad Block Report posted (%d)", resp.StatusCode)
+	log.Debug(fmt.Sprintf("Bad Block Report posted (%d)", resp.StatusCode))
 	resp.Body.Close()
 }

@@ -22,14 +22,14 @@ package whisperv2
 import (
 	"crypto/ecdsa"
 	crand "crypto/rand"
+	"fmt"
 	"math/rand"
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/crypto/ecies"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // Message represents an end-user data packet to transmit through the Whisper
@@ -125,7 +125,7 @@ func (self *Message) Recover() *ecdsa.PublicKey {
 	// Otherwise try and recover the signature
 	pub, err := crypto.SigToPub(self.hash(), self.Signature)
 	if err != nil {
-		glog.V(logger.Error).Infof("Could not get public key from signature: %v", err)
+		log.Error(fmt.Sprintf("Could not get public key from signature: %v", err))
 		return nil
 	}
 	return pub

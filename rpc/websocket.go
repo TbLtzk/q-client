@@ -25,8 +25,8 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
+
 	"golang.org/x/net/context"
 	"golang.org/x/net/websocket"
 	"gopkg.in/fatih/set.v0"
@@ -76,14 +76,14 @@ func wsHandshakeValidator(allowedOrigins []string) func(*websocket.Config, *http
 		}
 	}
 
-	glog.V(logger.Debug).Infof("Allowed origin(s) for WS RPC interface %v\n", origins.List())
+	log.Debug(fmt.Sprintf("Allowed origin(s) for WS RPC interface %v\n", origins.List()))
 
 	f := func(cfg *websocket.Config, req *http.Request) error {
 		origin := strings.ToLower(req.Header.Get("Origin"))
 		if allowAllOrigins || origins.Has(origin) {
 			return nil
 		}
-		glog.V(logger.Debug).Infof("origin '%s' not allowed on WS-RPC interface\n", origin)
+		log.Debug(fmt.Sprintf("origin '%s' not allowed on WS-RPC interface\n", origin))
 		return fmt.Errorf("origin %s not allowed", origin)
 	}
 

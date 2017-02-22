@@ -30,7 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -109,7 +109,7 @@ func runStateTests(chainConfig *params.ChainConfig, tests map[string]VmTest, ski
 
 	for name, test := range tests {
 		if skipTest[name] /*|| name != "JUMPDEST_Attack"*/ {
-			glog.Infoln("Skipping state test", name)
+			log.Info(fmt.Sprint("Skipping state test", name))
 			continue
 		}
 
@@ -118,7 +118,7 @@ func runStateTests(chainConfig *params.ChainConfig, tests map[string]VmTest, ski
 			return fmt.Errorf("%s: %s\n", name, err.Error())
 		}
 
-		//glog.Infoln("State test passed: ", name)
+		//log.Info(fmt.Sprint("State test passed: ", name))
 		//fmt.Println(string(statedb.Dump()))
 	}
 	return nil

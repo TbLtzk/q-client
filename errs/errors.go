@@ -16,11 +16,7 @@
 
 package errs
 
-import (
-	"fmt"
-
-	"gitlab.com/q-dev/q-client/logger/glog"
-)
+import "fmt"
 
 /*
 Errors implements an error handler providing standardised errors for a package.
@@ -79,10 +75,4 @@ func (self Error) Error() (message string) {
 		}
 	}
 	return self.message
-}
-
-func (self Error) Log(v glog.Verbose) {
-	if v {
-		v.Infoln(self)
-	}
 }

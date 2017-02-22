@@ -19,16 +19,15 @@
 package geth
 
 import (
+	"os"
 	"runtime"
 
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 func init() {
 	// Initialize the logger
-	glog.SetV(logger.Info)
-	glog.SetToStderr(true)
+	log.Root().SetHandler(log.LvlFilterHandler(log.LvlInfo, log.StreamHandler(os.Stderr, log.TerminalFormat())))
 
 	// Initialize the goroutine count
 	runtime.GOMAXPROCS(runtime.NumCPU())

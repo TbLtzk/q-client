@@ -17,10 +17,11 @@
 package rpc
 
 import (
+	"fmt"
 	"net"
 
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
+
 	"golang.org/x/net/context"
 )
 
@@ -37,7 +38,7 @@ func (srv *Server) ServeListener(l net.Listener) error {
 		if err != nil {
 			return err
 		}
-		glog.V(logger.Detail).Infoln("accepted conn", conn.RemoteAddr())
+		log.Trace(fmt.Sprint("accepted conn", conn.RemoteAddr()))
 		go srv.ServeCodec(NewJSONCodec(conn), OptionMethodInvocation|OptionSubscriptions)
 	}
 }

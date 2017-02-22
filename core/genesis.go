@@ -31,8 +31,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -92,7 +91,7 @@ func WriteGenesisBlock(chainDb ethdb.Database, reader io.Reader) (*types.Block, 
 	}, nil, nil, nil)
 
 	if block := GetBlock(chainDb, block.Hash(), block.NumberU64()); block != nil {
-		glog.V(logger.Info).Infoln("Genesis block already in chain. Writing canonical number")
+		log.Info(fmt.Sprint("Genesis block already in chain. Writing canonical number"))
 		err := WriteCanonicalHash(chainDb, block.Hash(), block.NumberU64())
 		if err != nil {
 			return nil, err
