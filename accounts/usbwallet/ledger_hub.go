@@ -27,6 +27,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/log"
 	"github.com/karalabe/hid"
 )
 
@@ -120,7 +121,7 @@ func (hub *LedgerHub) refreshWallets() {
 		}
 		// If there are no more wallets or the device is before the next, wrap new wallet
 		if len(hub.wallets) == 0 || hub.wallets[0].URL().Cmp(url) > 0 {
-			wallet := &ledgerWallet{url: &url, info: ledger}
+			wallet := &ledgerWallet{url: &url, info: ledger, logger: log.New("url", url)}
 
 			events = append(events, accounts.WalletEvent{Wallet: wallet, Arrive: true})
 			wallets = append(wallets, wallet)
