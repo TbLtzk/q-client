@@ -17,12 +17,12 @@
 package light
 
 import (
+	"fmt"
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"golang.org/x/net/context"
 )
 
@@ -239,9 +239,9 @@ func (self *LightState) GetOrNewStateObject(ctx context.Context, addr common.Add
 
 // newStateObject creates a state object whether it exists in the state or not
 func (self *LightState) newStateObject(addr common.Address) *StateObject {
-	if glog.V(logger.Debug) {
-		glog.Infof("(+) %x\n", addr)
-	}
+	log.Debug("", "msg", log.Lazy{Fn: func() string {
+		return fmt.Sprintf("(+) %x\n", addr)
+	}})
 
 	stateObject := NewStateObject(addr, self.odr)
 	self.stateObjects[addr.Str()] = stateObject

@@ -34,7 +34,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 )
@@ -146,14 +146,14 @@ func runBlockTests(homesteadBlock, daoForkBlock, gasPriceFork *big.Int, bt map[s
 
 	for name, test := range bt {
 		if skipTest[name] /*|| name != "CallingCanonicalContractFromFork_CALLCODE"*/ {
-			glog.Infoln("Skipping block test", name)
+			log.Info(fmt.Sprint("Skipping block test", name))
 			continue
 		}
 		// test the block
 		if err := runBlockTest(homesteadBlock, daoForkBlock, gasPriceFork, test); err != nil {
 			return fmt.Errorf("%s: %v", name, err)
 		}
-		glog.Infoln("Block test passed: ", name)
+		log.Info(fmt.Sprint("Block test passed: ", name))
 
 	}
 	return nil

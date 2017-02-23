@@ -29,7 +29,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -130,7 +130,7 @@ func runVmTests(tests map[string]VmTest, skipTests []string) error {
 
 	for name, test := range tests {
 		if skipTest[name] /*|| name != "exp0"*/ {
-			glog.Infoln("Skipping VM test", name)
+			log.Info(fmt.Sprint("Skipping VM test", name))
 			continue
 		}
 
@@ -138,7 +138,7 @@ func runVmTests(tests map[string]VmTest, skipTests []string) error {
 			return fmt.Errorf("%s %s", name, err.Error())
 		}
 
-		glog.Infoln("VM test passed: ", name)
+		log.Info(fmt.Sprint("VM test passed: ", name))
 		//fmt.Println(string(statedb.Dump()))
 	}
 	return nil

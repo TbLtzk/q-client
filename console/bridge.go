@@ -22,8 +22,7 @@ import (
 	"io"
 	"time"
 
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/rpc"
 	"github.com/robertkrimen/otto"
 )
@@ -306,7 +305,7 @@ func setError(resp *otto.Object, code int, msg string) {
 func throwJSException(msg interface{}) otto.Value {
 	val, err := otto.ToValue(msg)
 	if err != nil {
-		glog.V(logger.Error).Infof("Failed to serialize JavaScript exception %v: %v", msg, err)
+		log.Error(fmt.Sprintf("Failed to serialize JavaScript exception %v: %v", msg, err))
 	}
 	panic(val)
 }

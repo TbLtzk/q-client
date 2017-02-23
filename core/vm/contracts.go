@@ -18,11 +18,11 @@ package vm
 
 import (
 	"crypto/sha256"
+	"fmt"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 	"golang.org/x/crypto/ripemd160"
 )
@@ -75,14 +75,14 @@ func (c *ecrecover) Run(in []byte) []byte {
 
 	// tighter sig s values in homestead only apply to tx sigs
 	if common.Bytes2Big(in[32:63]).BitLen() > 0 || !crypto.ValidateSignatureValues(v, r, s, false) {
-		glog.V(logger.Detail).Infof("ECRECOVER error: v, r or s value invalid")
+		log.Trace(fmt.Sprintf("ECRECOVER error: v, r or s value invalid"))
 		return nil
 	}
 	// v needs to be at the end for libsecp256k1
 	pubKey, err := crypto.Ecrecover(in[:32], append(in[64:128], v))
 	// make sure the public key is a valid one
 	if err != nil {
-		glog.V(logger.Detail).Infoln("ECRECOVER error: ", err)
+		log.Trace(fmt.Sprint("ECRECOVER error: ", err))
 		return nil
 	}
 

@@ -25,8 +25,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -124,13 +123,13 @@ func (evm *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err e
 		}
 	}()
 
-	if glog.V(logger.Debug) {
-		glog.Infof("evm running: %x\n", codehash[:4])
-		tstart := time.Now()
-		defer func() {
-			glog.Infof("evm done: %x. time: %v\n", codehash[:4], time.Since(tstart))
-		}()
-	}
+	log.Debug("", "msg", log.Lazy{Fn: func() string {
+		return fmt.Sprintf("evm running: %x\n", codehash[:4])
+	}})
+	tstart := time.Now()
+	defer log.Debug("", "msg", log.Lazy{Fn: func() string {
+		return fmt.Sprintf("evm done: %x. time: %v\n", codehash[:4], time.Since(tstart))
+	}})
 
 	// The Interpreter main run loop (contextual). This loop runs until either an
 	// explicit STOP, RETURN or SELFDESTRUCT is executed, an error occurred during

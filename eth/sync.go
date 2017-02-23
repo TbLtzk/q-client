@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"fmt"
 	"math/rand"
 	"sync/atomic"
 	"time"
@@ -24,8 +25,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth/downloader"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 )
 
@@ -87,7 +87,7 @@ func (pm *ProtocolManager) txsyncLoop() {
 			delete(pending, s.p.ID())
 		}
 		// Send the pack in the background.
-		glog.V(logger.Detail).Infof("%v: sending %d transactions (%v)", s.p.Peer, len(pack.txs), size)
+		log.Trace(fmt.Sprintf("%v: sending %d transactions (%v)", s.p.Peer, len(pack.txs), size))
 		sending = true
 		go func() { done <- pack.p.SendTransactions(pack.txs) }()
 	}
@@ -117,7 +117,7 @@ func (pm *ProtocolManager) txsyncLoop() {
 			sending = false
 			// Stop tracking peers that cause send failures.
 			if err != nil {
-				glog.V(logger.Debug).Infof("%v: tx send failed: %v", pack.p.Peer, err)
+				log.Debug(fmt.Sprintf("%v: tx send failed: %v", pack.p.Peer, err))
 				delete(pending, pack.p.ID())
 			}
 			// Schedule the next send.
@@ -187,7 +187,7 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
 		// Disable fast sync if we indeed have something in our chain
 		if pm.blockchain.CurrentBlock().NumberU64() > 0 {
-			glog.V(logger.Info).Infof("fast sync complete, auto disabling")
+			log.Info(fmt.Sprintf("fast sync complete, auto disabling"))
 			atomic.StoreUint32(&pm.fastSync, 0)
 		}
 	}

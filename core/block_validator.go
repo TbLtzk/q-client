@@ -24,7 +24,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/pow"
 	"gopkg.in/fatih/set.v0"
@@ -169,7 +169,7 @@ func (v *BlockValidator) VerifyUncles(block, parent *types.Block) error {
 			for h := range ancestors {
 				branch += fmt.Sprintf("  O - %x\n  |\n", h)
 			}
-			glog.Infoln(branch)
+			log.Info(fmt.Sprint(branch))
 			return UncleError("uncle[%d](%x) is ancestor", i, hash[:4])
 		}
 

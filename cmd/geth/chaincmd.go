@@ -32,8 +32,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gopkg.in/urfave/cli.v1"
@@ -129,7 +128,7 @@ func initGenesis(ctx *cli.Context) error {
 	if err != nil {
 		utils.Fatalf("failed to write genesis block: %v", err)
 	}
-	glog.V(logger.Info).Infof("successfully wrote genesis block and/or chain rule set: %x", block.Hash())
+	log.Info(fmt.Sprintf("successfully wrote genesis block and/or chain rule set: %x", block.Hash()))
 	return nil
 }
 
@@ -257,7 +256,7 @@ func removeDB(ctx *cli.Context) error {
 }
 
 func upgradeDB(ctx *cli.Context) error {
-	glog.Infoln("Upgrading blockchain database")
+	log.Info(fmt.Sprint("Upgrading blockchain database"))
 
 	stack := utils.MakeNode(ctx, clientIdentifier, gitCommit)
 	chain, chainDb := utils.MakeChain(ctx, stack)
@@ -286,7 +285,7 @@ func upgradeDB(ctx *cli.Context) error {
 		utils.Fatalf("Import error %v (a backup is made in %s, use the import command to import it)", err, exportFile)
 	} else {
 		os.Remove(exportFile)
-		glog.Infoln("Import finished")
+		log.Info(fmt.Sprint("Import finished"))
 	}
 	return nil
 }

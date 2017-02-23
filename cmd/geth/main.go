@@ -34,8 +34,7 @@ import (
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethclient"
 	"gitlab.com/q-dev/q-client/internal/debug"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/params"
@@ -204,11 +203,11 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	}{uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch), clientIdentifier, runtime.Version(), runtime.GOOS}
 	extra, err := rlp.EncodeToBytes(clientInfo)
 	if err != nil {
-		glog.V(logger.Warn).Infoln("error setting canonical miner information:", err)
+		log.Warn(fmt.Sprint("error setting canonical miner information:", err))
 	}
 	if uint64(len(extra)) > params.MaximumExtraDataSize {
-		glog.V(logger.Warn).Infoln("error setting canonical miner information: extra exceeds", params.MaximumExtraDataSize)
-		glog.V(logger.Debug).Infof("extra: %x\n", extra)
+		log.Warn(fmt.Sprint("error setting canonical miner information: extra exceeds", params.MaximumExtraDataSize))
+		log.Debug(fmt.Sprintf("extra: %x\n", extra))
 		extra = nil
 	}
 	stack := utils.MakeNode(ctx, clientIdentifier, gitCommit)
@@ -273,7 +272,7 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		// Open and self derive any wallets already attached
 		for _, wallet := range stack.AccountManager().Wallets() {
 			if err := wallet.Open(""); err != nil {
-				glog.V(logger.Warn).Infof("Failed to open wallet %s: %v", wallet.URL(), err)
+				log.Warn(fmt.Sprintf("Failed to open wallet %s: %v", wallet.URL(), err))
 			} else {
 				wallet.SelfDerive(accounts.DefaultBaseDerivationPath, stateReader)
 			}
@@ -282,13 +281,13 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		for event := range events {
 			if event.Arrive {
 				if err := event.Wallet.Open(""); err != nil {
-					glog.V(logger.Info).Infof("New wallet appeared: %s, failed to open: %s", event.Wallet.URL(), err)
+					log.Info(fmt.Sprintf("New wallet appeared: %s, failed to open: %s", event.Wallet.URL(), err))
 				} else {
-					glog.V(logger.Info).Infof("New wallet appeared: %s, %s", event.Wallet.URL(), event.Wallet.Status())
+					log.Info(fmt.Sprintf("New wallet appeared: %s, %s", event.Wallet.URL(), event.Wallet.Status()))
 					event.Wallet.SelfDerive(accounts.DefaultBaseDerivationPath, stateReader)
 				}
 			} else {
-				glog.V(logger.Info).Infof("Old wallet dropped:  %s", event.Wallet.URL())
+				log.Info(fmt.Sprintf("Old wallet dropped:  %s", event.Wallet.URL()))
 				event.Wallet.Close()
 			}
 		}

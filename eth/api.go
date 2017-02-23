@@ -37,8 +37,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
@@ -113,7 +112,7 @@ func (s *PublicMinerAPI) GetWork() (work [3]string, err error) {
 	if work, err = s.agent.GetWork(); err == nil {
 		return
 	}
-	glog.V(logger.Debug).Infof("%v", err)
+	log.Debug(fmt.Sprintf("%v", err))
 	return work, fmt.Errorf("mining not ready")
 }
 

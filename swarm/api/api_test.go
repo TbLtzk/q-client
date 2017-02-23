@@ -17,13 +17,13 @@
 package api
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 )
 
@@ -76,7 +76,7 @@ func checkResponse(t *testing.T, resp *testResponse, exp *Response) {
 
 // func expResponse(content []byte, mimeType string, status int) *Response {
 func expResponse(content string, mimeType string, status int) *Response {
-	glog.V(logger.Detail).Infof("expected content (%v): %v ", len(content), content)
+	log.Trace(fmt.Sprintf("expected content (%v): %v ", len(content), content))
 	return &Response{mimeType, status, int64(len(content)), content}
 }
 
@@ -91,7 +91,7 @@ func testGet(t *testing.T, api *Api, bzzhash string) *testResponse {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	glog.V(logger.Detail).Infof("reader size: %v ", size)
+	log.Trace(fmt.Sprintf("reader size: %v ", size))
 	s := make([]byte, size)
 	_, err = reader.Read(s)
 	if err != io.EOF {

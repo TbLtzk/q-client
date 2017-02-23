@@ -36,8 +36,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/console"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/p2p/nat"
@@ -82,7 +81,7 @@ var (
 	testMode       = flag.Bool("t", false, "use of predefined parameters for diagnostics")
 	generateKey    = flag.Bool("k", false, "generate and show the private key")
 
-	argVerbosity = flag.Int("verbosity", logger.Warn, "log verbosity level")
+	argVerbosity = flag.Int("verbosity", int(log.LvlWarn), "log verbosity level")
 	argTTL       = flag.Uint("ttl", 30, "time-to-live for messages in seconds")
 	argWorkTime  = flag.Uint("work", 5, "work time in seconds")
 	argPoW       = flag.Float64("pow", whisper.MinimumPoW, "PoW for normal messages in float format (e.g. 2.7)")
@@ -153,8 +152,7 @@ func echo() {
 }
 
 func initialize() {
-	glog.SetV(*argVerbosity)
-	glog.SetToStderr(true)
+	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*argVerbosity), log.StreamHandler(os.Stderr, log.TerminalFormat())))
 
 	done = make(chan struct{})
 	var peers []*discover.Node

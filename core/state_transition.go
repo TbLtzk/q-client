@@ -18,12 +18,12 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/vm"
-	"gitlab.com/q-dev/q-client/logger"
-	"gitlab.com/q-dev/q-client/logger/glog"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -255,7 +255,7 @@ func (self *StateTransition) TransitionDb() (ret []byte, requiredGas, usedGas *b
 		ret, self.gas, vmerr = evm.Call(sender, self.to().Address(), self.data, self.gas, self.value)
 	}
 	if vmerr != nil {
-		glog.V(logger.Debug).Infoln("vm returned with error:", err)
+		log.Debug(fmt.Sprint("vm returned with error:", err))
 		// The only possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
