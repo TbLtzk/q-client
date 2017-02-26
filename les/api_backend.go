@@ -21,6 +21,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
@@ -95,7 +96,7 @@ func (b *LesApiBackend) GetEVM(ctx context.Context, msg core.Message, state etha
 	if err != nil {
 		return nil, nil, err
 	}
-	from.SetBalance(common.MaxBig)
+	from.SetBalance(math.MaxBig256)
 
 	vmstate := light.NewVMState(ctx, stateDb)
 	context := core.NewEVMContext(msg, header, b.eth.blockchain)

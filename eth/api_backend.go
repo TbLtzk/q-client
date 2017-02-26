@@ -21,6 +21,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
@@ -109,7 +110,7 @@ func (b *EthApiBackend) GetTd(blockHash common.Hash) *big.Int {
 func (b *EthApiBackend) GetEVM(ctx context.Context, msg core.Message, state ethapi.State, header *types.Header, vmCfg vm.Config) (*vm.EVM, func() error, error) {
 	statedb := state.(EthApiState).state
 	from := statedb.GetOrNewStateObject(msg.From())
-	from.SetBalance(common.MaxBig)
+	from.SetBalance(math.MaxBig256)
 	vmError := func() error { return nil }
 
 	context := core.NewEVMContext(msg, header, b.eth.BlockChain())

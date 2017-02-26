@@ -23,9 +23,11 @@ import (
 	"crypto/ecdsa"
 	"encoding/binary"
 	"fmt"
+	"math/big"
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/crypto/ecies"
 	"gitlab.com/q-dev/q-client/rlp"
@@ -66,7 +68,8 @@ func (self *Envelope) Seal(pow time.Duration) {
 		for i := 0; i < 1024; i++ {
 			binary.BigEndian.PutUint32(d[60:], nonce)
 
-			firstBit := common.FirstBitSet(common.BigD(crypto.Keccak256(d)))
+			d := new(big.Int).SetBytes(crypto.Keccak256(d))
+			firstBit := math.FirstBitSet(d)
 			if firstBit > bestBit {
 				self.Nonce, bestBit = nonce, firstBit
 			}

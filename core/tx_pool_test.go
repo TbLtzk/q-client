@@ -29,6 +29,7 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 func transaction(nonce uint64, gaslimit *big.Int, key *ecdsa.PrivateKey) *types.Transaction {
@@ -65,7 +66,7 @@ func TestStateChangeDuringPoolReset(t *testing.T) {
 	)
 
 	// setup pool with 2 transaction in it
-	statedb.SetBalance(address, new(big.Int).Mul(common.Big1, common.Ether))
+	statedb.SetBalance(address, new(big.Int).SetUint64(params.Ether))
 
 	tx0 := transaction(0, big.NewInt(100000), key)
 	tx1 := transaction(1, big.NewInt(100000), key)
@@ -82,7 +83,7 @@ func TestStateChangeDuringPoolReset(t *testing.T) {
 			statedb, _ = state.New(common.Hash{}, db)
 			// simulate that the new head block included tx0 and tx1
 			statedb.SetNonce(address, 2)
-			statedb.SetBalance(address, new(big.Int).Mul(common.Big1, common.Ether))
+			statedb.SetBalance(address, new(big.Int).SetUint64(params.Ether))
 			trigger = false
 		}
 		return stdb, nil

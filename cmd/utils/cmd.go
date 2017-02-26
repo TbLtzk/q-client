@@ -23,11 +23,9 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"regexp"
 	"runtime"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/internal/debug"
@@ -80,19 +78,6 @@ func StartNode(stack *node.Node) {
 		debug.Exit() // ensure trace and CPU profile data is flushed.
 		debug.LoudPanic("boom")
 	}()
-}
-
-func FormatTransactionData(data string) []byte {
-	d := common.StringToByteFunc(data, func(s string) (ret []byte) {
-		slice := regexp.MustCompile(`\n|\s`).Split(s, 1000000000)
-		for _, dataItem := range slice {
-			d := common.FormatData(dataItem)
-			ret = append(ret, d...)
-		}
-		return
-	})
-
-	return d
 }
 
 func ImportChain(chain *core.BlockChain, fn string) error {
