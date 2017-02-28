@@ -24,7 +24,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/trie"
 )
@@ -134,9 +133,6 @@ func (self *stateObject) markSuicided() {
 		self.onDirty(self.Address())
 		self.onDirty = nil
 	}
-	log.Debug("", "msg", log.Lazy{Fn: func() string {
-		return fmt.Sprintf("%x: #%d %v X\n", self.Address(), self.Nonce(), self.Balance())
-	}})
 }
 
 func (c *stateObject) touch() {
@@ -251,10 +247,6 @@ func (c *stateObject) AddBalance(amount *big.Int) {
 		return
 	}
 	c.SetBalance(new(big.Int).Add(c.Balance(), amount))
-
-	log.Debug("", "msg", log.Lazy{Fn: func() string {
-		return fmt.Sprintf("%x: #%d %v (+ %v)\n", c.Address(), c.Nonce(), c.Balance(), amount)
-	}})
 }
 
 // SubBalance removes amount from c's balance.
@@ -264,10 +256,6 @@ func (c *stateObject) SubBalance(amount *big.Int) {
 		return
 	}
 	c.SetBalance(new(big.Int).Sub(c.Balance(), amount))
-
-	log.Debug("", "msg", log.Lazy{Fn: func() string {
-		return fmt.Sprintf("%x: #%d %v (- %v)\n", c.Address(), c.Nonce(), c.Balance(), amount)
-	}})
 }
 
 func (self *stateObject) SetBalance(amount *big.Int) {
