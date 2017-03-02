@@ -27,7 +27,6 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
@@ -117,19 +116,6 @@ func newTransaction(nonce uint64, to *common.Address, amount, gasLimit, gasPrice
 	}
 
 	return &Transaction{data: d}
-}
-
-func pickSigner(rules params.Rules) Signer {
-	var signer Signer
-	switch {
-	case rules.IsEIP155:
-		signer = NewEIP155Signer(rules.ChainId)
-	case rules.IsHomestead:
-		signer = HomesteadSigner{}
-	default:
-		signer = FrontierSigner{}
-	}
-	return signer
 }
 
 // ChainId returns which chain id this transaction was signed for (if at all)

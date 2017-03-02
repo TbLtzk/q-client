@@ -19,6 +19,8 @@
 package geth
 
 import (
+	"encoding/json"
+
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/p2p/discv5"
 	"gitlab.com/q-dev/q-client/params"
@@ -60,7 +62,11 @@ func TestnetChainConfig() *ChainConfig {
 
 // TestnetGenesis returns the JSON spec to use for the Ethereum test network.
 func TestnetGenesis() string {
-	return core.DefaultTestnetGenesisBlock()
+	enc, err := json.Marshal(core.DefaultTestnetGenesisBlock())
+	if err != nil {
+		panic(err)
+	}
+	return string(enc)
 }
 
 // ChainConfig is the core config which determines the blockchain settings.
