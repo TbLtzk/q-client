@@ -28,7 +28,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
@@ -922,11 +921,11 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	}
 	chainConfig := MakeChainConfigFromDb(ctx, chainDb)
 
-	pow := pow.PoW(core.FakePow{})
+	seal := pow.PoW(pow.FakePow{})
 	if !ctx.GlobalBool(FakePoWFlag.Name) {
-		pow = ethash.New()
+		seal = pow.NewFullEthash("", "")
 	}
-	chain, err = core.NewBlockChain(chainDb, chainConfig, pow, new(event.TypeMux), vm.Config{EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name)})
+	chain, err = core.NewBlockChain(chainDb, chainConfig, seal, new(event.TypeMux), vm.Config{EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name)})
 	if err != nil {
 		Fatalf("Could not start chainmanager: %v", err)
 	}

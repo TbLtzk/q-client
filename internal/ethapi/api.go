@@ -25,7 +25,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
@@ -39,6 +38,7 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -1378,11 +1378,7 @@ func (api *PublicDebugAPI) SeedHash(ctx context.Context, number uint64) (string,
 	if block == nil {
 		return "", fmt.Errorf("block #%d not found", number)
 	}
-	hash, err := ethash.GetSeedHash(number)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("0x%x", hash), nil
+	return fmt.Sprintf("0x%x", pow.EthashSeedHash(number)), nil
 }
 
 // PrivateDebugAPI is the collection of Etheruem APIs exposed over the private

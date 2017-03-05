@@ -26,7 +26,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
@@ -36,6 +35,7 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
@@ -172,7 +172,7 @@ func runBlockTest(homesteadBlock, daoForkBlock, gasPriceFork *big.Int, test *Blo
 	core.WriteHeadBlockHash(db, test.Genesis.Hash())
 	evmux := new(event.TypeMux)
 	config := &params.ChainConfig{HomesteadBlock: homesteadBlock, DAOForkBlock: daoForkBlock, DAOForkSupport: true, EIP150Block: gasPriceFork}
-	chain, err := core.NewBlockChain(db, config, ethash.NewShared(), evmux, vm.Config{})
+	chain, err := core.NewBlockChain(db, config, pow.NewSharedEthash(), evmux, vm.Config{})
 	if err != nil {
 		return err
 	}

@@ -33,6 +33,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/pow"
 	"golang.org/x/net/context"
 )
 
@@ -62,7 +63,7 @@ type SimulatedBackend struct {
 func NewSimulatedBackend(accounts ...core.GenesisAccount) *SimulatedBackend {
 	database, _ := ethdb.NewMemDatabase()
 	core.WriteGenesisBlockForTesting(database, accounts...)
-	blockchain, _ := core.NewBlockChain(database, chainConfig, new(core.FakePow), new(event.TypeMux), vm.Config{})
+	blockchain, _ := core.NewBlockChain(database, chainConfig, new(pow.FakePow), new(event.TypeMux), vm.Config{})
 	backend := &SimulatedBackend{database: database, blockchain: blockchain}
 	backend.rollback()
 	return backend

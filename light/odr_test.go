@@ -33,6 +33,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/trie"
 	"golang.org/x/net/context"
@@ -247,7 +248,7 @@ func testChainGen(i int, block *core.BlockGen) {
 func testChainOdr(t *testing.T, protocol int, expFail uint64, fn odrTestFn) {
 	var (
 		evmux   = new(event.TypeMux)
-		pow     = new(core.FakePow)
+		pow     = new(pow.FakePow)
 		sdb, _  = ethdb.NewMemDatabase()
 		ldb, _  = ethdb.NewMemDatabase()
 		genesis = core.WriteGenesisBlockForTesting(sdb, core.GenesisAccount{Address: testBankAddress, Balance: testBankFunds})
