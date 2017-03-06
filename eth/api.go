@@ -29,7 +29,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/ethash"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/core"
@@ -40,7 +39,6 @@ import (
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
-	"gitlab.com/q-dev/q-client/rpc"
 	"golang.org/x/net/context"
 )
 
@@ -137,7 +135,6 @@ func NewPrivateMinerAPI(e *Ethereum) *PrivateMinerAPI {
 // Start the miner with the given number of threads. If threads is nil the number of
 // workers started is equal to the number of logical CPU's that are usable by this process.
 func (s *PrivateMinerAPI) Start(threads *int) (bool, error) {
-	s.e.StartAutoDAG()
 	var err error
 	if threads == nil {
 		err = s.e.StartMining(runtime.NumCPU())
@@ -173,25 +170,9 @@ func (s *PrivateMinerAPI) SetEtherbase(etherbase common.Address) bool {
 	return true
 }
 
-// StartAutoDAG starts auto DAG generation. This will prevent the DAG generating on epoch change
-// which will cause the node to stop mining during the generation process.
-func (s *PrivateMinerAPI) StartAutoDAG() bool {
-	s.e.StartAutoDAG()
-	return true
-}
-
-// StopAutoDAG stops auto DAG generation
-func (s *PrivateMinerAPI) StopAutoDAG() bool {
-	s.e.StopAutoDAG()
-	return true
-}
-
-// MakeDAG creates the new DAG for the given block number
-func (s *PrivateMinerAPI) MakeDAG(blockNr rpc.BlockNumber) (bool, error) {
-	if err := ethash.MakeDAG(uint64(blockNr.Int64()), ""); err != nil {
-		return false, err
-	}
-	return true, nil
+// GetHashrate returns the current hashrate of the miner.
+func (s *PrivateMinerAPI) GetHashrate() uint64 {
+	return uint64(s.e.miner.HashRate())
 }
 
 // PrivateAdminAPI is the collection of Etheruem full node-related APIs
