@@ -17,12 +17,11 @@
 package filters
 
 import (
+	"context"
 	"math/big"
 	"reflect"
 	"testing"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"

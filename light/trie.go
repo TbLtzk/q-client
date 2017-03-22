@@ -17,9 +17,10 @@
 package light
 
 import (
+	"context"
+
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/trie"
-	"golang.org/x/net/context"
 )
 
 // LightTrie is an ODR-capable wrapper around trie.SecureTrie

@@ -18,6 +18,7 @@ package light
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"math/big"
 
@@ -27,7 +28,6 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/rlp"
-	"golang.org/x/net/context"
 )
 
 var sha3_nil = crypto.Keccak256Hash(nil)

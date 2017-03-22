@@ -17,6 +17,7 @@
 package les
 
 import (
+	"context"
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/accounts"
@@ -33,7 +34,6 @@ import (
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rpc"
-	"golang.org/x/net/context"
 )
 
 type LesApiBackend struct {

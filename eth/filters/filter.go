@@ -17,10 +17,10 @@
 package filters
 
 import (
+	"context"
 	"math"
-	"time"
-
 	"math/big"
+	"time"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
@@ -28,7 +28,6 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/rpc"
-	"golang.org/x/net/context"
 )
 
 type Backend interface {

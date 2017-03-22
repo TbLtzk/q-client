@@ -18,6 +18,7 @@ package swarm
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"fmt"
 
@@ -35,7 +36,6 @@ import (
 	httpapi "gitlab.com/q-dev/q-client/swarm/api/http"
 	"gitlab.com/q-dev/q-client/swarm/network"
 	"gitlab.com/q-dev/q-client/swarm/storage"
-	"golang.org/x/net/context"
 )
 
 // the swarm stack

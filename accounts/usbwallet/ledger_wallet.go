@@ -21,6 +21,7 @@
 package usbwallet
 
 import (
+	"context"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -38,7 +39,6 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/rlp"
 	"github.com/karalabe/hid"
-	"golang.org/x/net/context"
 )
 
 // Maximum time between wallet health checks to detect USB unplugs.

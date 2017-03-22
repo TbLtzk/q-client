@@ -17,6 +17,7 @@
 package rpc
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"net"
@@ -31,7 +32,6 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"gitlab.com/q-dev/q-client/log"
-	"golang.org/x/net/context"
 )
 
 func TestClientRequest(t *testing.T) {

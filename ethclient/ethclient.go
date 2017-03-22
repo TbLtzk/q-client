@@ -18,6 +18,7 @@
 package ethclient
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -28,7 +29,6 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
-	"golang.org/x/net/context"
 )
 
 // Client defines typed wrappers for the Ethereum RPC API.

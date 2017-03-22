@@ -19,6 +19,7 @@
 package light
 
 import (
+	"context"
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
@@ -27,7 +28,6 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/rlp"
-	"golang.org/x/net/context"
 )
 
 // NoOdr is the default context passed to an ODR capable function when the ODR

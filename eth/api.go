@@ -19,6 +19,7 @@ package eth
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -39,7 +40,6 @@ import (
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
-	"golang.org/x/net/context"
 )
 
 const defaultTraceTimeout = 5 * time.Second

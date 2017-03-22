@@ -17,12 +17,11 @@
 package filters
 
 import (
+	"context"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"

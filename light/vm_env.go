@@ -17,12 +17,12 @@
 package light
 
 import (
+	"context"
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
-	"golang.org/x/net/context"
 )
 
 // VMState is a wrapper for the light state that holds the actual context and
