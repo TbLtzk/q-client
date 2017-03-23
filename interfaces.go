@@ -18,12 +18,12 @@
 package ethereum
 
 import (
+	"context"
 	"errors"
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
-	"golang.org/x/net/context"
 )
 
 // NotFound is returned by API methods if the requested item does not exist.

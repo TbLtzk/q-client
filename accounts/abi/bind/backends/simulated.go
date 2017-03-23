@@ -17,6 +17,7 @@
 package backends
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -34,7 +35,6 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/pow"
-	"golang.org/x/net/context"
 )
 
 // Default chain configuration which sets homestead phase at block 0 (i.e. no frontier)

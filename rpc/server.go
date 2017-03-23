@@ -17,14 +17,13 @@
 package rpc
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"runtime"
 	"sync/atomic"
 
 	"gitlab.com/q-dev/q-client/log"
-
-	"golang.org/x/net/context"
 	"gopkg.in/fatih/set.v0"
 )
 

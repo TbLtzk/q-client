@@ -17,12 +17,12 @@
 package les
 
 import (
+	"context"
 	"time"
 
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/light"
-	"golang.org/x/net/context"
 )
 
 const (
@@ -77,8 +77,8 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		return
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
 	pm.blockchain.(*light.LightChain).SyncCht(ctx)
-
 	pm.downloader.Synchronise(peer.id, peer.Head(), peer.Td(), downloader.LightSync)
 }

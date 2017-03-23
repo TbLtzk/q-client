@@ -17,12 +17,12 @@
 package downloader
 
 import (
+	"context"
 	"sync"
 
 	ethereum "github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/rpc"
-	"golang.org/x/net/context"
 )
 
 // PublicDownloaderAPI provides an API which gives information about the current synchronisation status.

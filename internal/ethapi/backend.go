@@ -18,6 +18,7 @@
 package ethapi
 
 import (
+	"context"
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/accounts"
@@ -30,7 +31,6 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rpc"
-	"golang.org/x/net/context"
 )
 
 // Backend interface provides the common API services (that are provided by

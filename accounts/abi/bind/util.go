@@ -17,13 +17,13 @@
 package bind
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/log"
-	"golang.org/x/net/context"
 )
 
 // WaitMined waits for tx to be mined on the blockchain.

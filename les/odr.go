@@ -17,6 +17,7 @@
 package les
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/binary"
 	"sync"
@@ -26,7 +27,6 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/log"
-	"golang.org/x/net/context"
 )
 
 var (

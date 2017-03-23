@@ -18,6 +18,7 @@ package ethapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -43,7 +44,6 @@ import (
 	"gitlab.com/q-dev/q-client/rpc"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"golang.org/x/net/context"
 )
 
 const (

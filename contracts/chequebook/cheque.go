@@ -26,6 +26,7 @@ package chequebook
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
@@ -43,7 +44,6 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/swarm/services/swap/swap"
-	"golang.org/x/net/context"
 )
 
 // TODO(zelig): watch peer solvency and notify of bouncing cheques

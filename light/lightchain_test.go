@@ -17,6 +17,7 @@
 package light
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"runtime"
@@ -30,7 +31,6 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/pow"
 	"github.com/hashicorp/golang-lru"
-	"golang.org/x/net/context"
 )
 
 // So we can deterministically seed different blockchains

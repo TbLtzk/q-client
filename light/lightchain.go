@@ -17,6 +17,7 @@
 package light
 
 import (
+	"context"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -32,7 +33,6 @@ import (
 	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/rlp"
 	"github.com/hashicorp/golang-lru"
-	"golang.org/x/net/context"
 )
 
 var (

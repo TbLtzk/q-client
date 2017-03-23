@@ -17,11 +17,11 @@
 package light
 
 import (
+	"context"
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
-	"golang.org/x/net/context"
 )
 
 // LightState is a memory representation of a state.

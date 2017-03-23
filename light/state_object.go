@@ -18,13 +18,13 @@ package light
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/rlp"
-	"golang.org/x/net/context"
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)

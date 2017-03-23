@@ -17,6 +17,7 @@
 package gasprice
 
 import (
+	"context"
 	"math/big"
 	"sort"
 	"sync"
@@ -24,7 +25,6 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/rpc"
-	"golang.org/x/net/context"
 )
 
 const (

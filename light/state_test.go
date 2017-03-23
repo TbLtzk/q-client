@@ -18,6 +18,7 @@ package light
 
 import (
 	"bytes"
+	"context"
 	"math/big"
 	"testing"
 
@@ -26,7 +27,6 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"golang.org/x/net/context"
 )
 
 func makeTestState() (common.Hash, ethdb.Database) {

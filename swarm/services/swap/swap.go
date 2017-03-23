@@ -17,6 +17,7 @@
 package swap
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
@@ -33,7 +34,6 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/swarm/services/swap/swap"
-	"golang.org/x/net/context"
 )
 
 // SwAP       Swarm Accounting Protocol with
