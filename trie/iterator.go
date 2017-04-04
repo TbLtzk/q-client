@@ -18,6 +18,7 @@ package trie
 
 import (
 	"bytes"
+
 	"gitlab.com/q-dev/q-client/common"
 )
 

@@ -25,6 +25,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/compiler"
 	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
@@ -39,7 +40,6 @@ import (
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/pow"
 	rpc "gitlab.com/q-dev/q-client/rpc"
 )
 
@@ -59,7 +59,7 @@ type LightEthereum struct {
 	ApiBackend *LesApiBackend
 
 	eventMux       *event.TypeMux
-	pow            pow.PoW
+	engine         consensus.Engine
 	accountManager *accounts.Manager
 	solcPath       string
 	solc           *compiler.Solidity
@@ -88,14 +88,12 @@ func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
 		chainConfig:    chainConfig,
 		eventMux:       ctx.EventMux,
 		accountManager: ctx.AccountManager,
-		pow:            eth.CreatePoW(ctx, config),
+		engine:         eth.CreateConsensusEngine(ctx, config, chainConfig, chainDb),
 		shutdownChan:   make(chan bool),
 		netVersionId:   config.NetworkId,
 		solcPath:       config.SolcPath,
 	}
-
-	eth.blockchain, err = light.NewLightChain(odr, eth.chainConfig, eth.pow, eth.eventMux)
-	if err != nil {
+	if eth.blockchain, err = light.NewLightChain(odr, eth.chainConfig, eth.engine, eth.eventMux); err != nil {
 		return nil, err
 	}
 	// Rewind the chain in case of an incompatible config upgrade.
@@ -106,7 +104,7 @@ func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
 	}
 
 	eth.txPool = light.NewTxPool(eth.chainConfig, eth.eventMux, eth.blockchain, eth.relay)
-	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.LightMode, config.NetworkId, eth.eventMux, eth.pow, eth.blockchain, nil, chainDb, odr, relay); err != nil {
+	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.LightMode, config.NetworkId, eth.eventMux, eth.engine, eth.blockchain, nil, chainDb, odr, relay); err != nil {
 		return nil, err
 	}
 	relay.ps = eth.protocolManager.peers

@@ -20,10 +20,10 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"gitlab.com/q-dev/q-client/core/asm"
 	cli "gopkg.in/urfave/cli.v1"
-	"strings"
 )
 
 var disasmCommand = cli.Command{

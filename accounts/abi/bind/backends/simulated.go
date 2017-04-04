@@ -27,6 +27,7 @@ import (
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
@@ -34,7 +35,6 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/pow"
 )
 
 // This nil assignment ensures compile time that SimulatedBackend implements bind.ContractBackend.
@@ -61,7 +61,7 @@ func NewSimulatedBackend(alloc core.GenesisAlloc) *SimulatedBackend {
 	database, _ := ethdb.NewMemDatabase()
 	genesis := core.Genesis{Config: params.AllProtocolChanges, Alloc: alloc}
 	genesis.MustCommit(database)
-	blockchain, _ := core.NewBlockChain(database, genesis.Config, new(pow.FakePow), new(event.TypeMux), vm.Config{})
+	blockchain, _ := core.NewBlockChain(database, genesis.Config, ethash.NewFaker(), new(event.TypeMux), vm.Config{})
 	backend := &SimulatedBackend{database: database, blockchain: blockchain, config: genesis.Config}
 	backend.rollback()
 	return backend

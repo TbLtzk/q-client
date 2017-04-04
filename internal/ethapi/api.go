@@ -31,6 +31,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
@@ -39,7 +40,6 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/pow"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -1378,7 +1378,7 @@ func (api *PublicDebugAPI) SeedHash(ctx context.Context, number uint64) (string,
 	if block == nil {
 		return "", fmt.Errorf("block #%d not found", number)
 	}
-	return fmt.Sprintf("0x%x", pow.EthashSeedHash(number)), nil
+	return fmt.Sprintf("0x%x", ethash.SeedHash(number)), nil
 }
 
 // PrivateDebugAPI is the collection of Etheruem APIs exposed over the private

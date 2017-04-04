@@ -25,13 +25,13 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/pow"
 )
 
 func BenchmarkInsertChain_empty_memdb(b *testing.B) {
@@ -176,7 +176,7 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 	// Time the insertion of the new chain.
 	// State and blocks are stored in the same DB.
 	evmux := new(event.TypeMux)
-	chainman, _ := NewBlockChain(db, gspec.Config, pow.FakePow{}, evmux, vm.Config{})
+	chainman, _ := NewBlockChain(db, gspec.Config, ethash.NewFaker(), evmux, vm.Config{})
 	defer chainman.Stop()
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -286,7 +286,7 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 		if err != nil {
 			b.Fatalf("error opening database at %v: %v", dir, err)
 		}
-		chain, err := NewBlockChain(db, params.TestChainConfig, pow.FakePow{}, new(event.TypeMux), vm.Config{})
+		chain, err := NewBlockChain(db, params.TestChainConfig, ethash.NewFaker(), new(event.TypeMux), vm.Config{})
 		if err != nil {
 			b.Fatalf("error creating chain: %v", err)
 		}

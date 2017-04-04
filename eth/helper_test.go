@@ -28,6 +28,7 @@ import (
 	"testing"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
@@ -37,7 +38,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/pow"
 )
 
 var (
@@ -50,22 +50,22 @@ var (
 // channels for different events.
 func newTestProtocolManager(fastSync bool, blocks int, generator func(int, *core.BlockGen), newtx chan<- []*types.Transaction) (*ProtocolManager, error) {
 	var (
-		evmux = new(event.TypeMux)
-		pow   = new(pow.FakePow)
-		db, _ = ethdb.NewMemDatabase()
-		gspec = &core.Genesis{
+		evmux  = new(event.TypeMux)
+		engine = ethash.NewFaker()
+		db, _  = ethdb.NewMemDatabase()
+		gspec  = &core.Genesis{
 			Config: params.TestChainConfig,
 			Alloc:  core.GenesisAlloc{testBank: {Balance: big.NewInt(1000000)}},
 		}
 		genesis       = gspec.MustCommit(db)
-		blockchain, _ = core.NewBlockChain(db, gspec.Config, pow, evmux, vm.Config{})
+		blockchain, _ = core.NewBlockChain(db, gspec.Config, engine, evmux, vm.Config{})
 	)
 	chain, _ := core.GenerateChain(gspec.Config, genesis, db, blocks, generator)
 	if _, err := blockchain.InsertChain(chain); err != nil {
 		panic(err)
 	}
 
-	pm, err := NewProtocolManager(gspec.Config, fastSync, NetworkId, 1000, evmux, &testTxPool{added: newtx}, pow, blockchain, db)
+	pm, err := NewProtocolManager(gspec.Config, fastSync, NetworkId, 1000, evmux, &testTxPool{added: newtx}, engine, blockchain, db)
 	if err != nil {
 		return nil, err
 	}

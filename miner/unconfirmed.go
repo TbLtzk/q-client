@@ -18,7 +18,6 @@ package miner
 
 import (
 	"container/ring"
-	"fmt"
 	"sync"
 
 	"gitlab.com/q-dev/q-client/common"
@@ -80,7 +79,7 @@ func (set *unconfirmedBlocks) Insert(index uint64, hash common.Hash) {
 		set.blocks.Move(-1).Link(item)
 	}
 	// Display a log for the user to notify of a new mined block unconfirmed
-	log.Info(fmt.Sprintf("🔨  mined potential block #%d [%x…], waiting for %d blocks to confirm", index, hash.Bytes()[:4], set.depth))
+	log.Info("🔨 mined potential block", "number", index, "hash", hash)
 }
 
 // Shift drops all unconfirmed blocks from the set which exceed the unconfirmed sets depth
@@ -100,11 +99,11 @@ func (set *unconfirmedBlocks) Shift(height uint64) {
 		header := set.chain.GetHeaderByNumber(next.index)
 		switch {
 		case header == nil:
-			log.Warn(fmt.Sprintf("failed to retrieve header of mined block #%d [%x…]", next.index, next.hash.Bytes()[:4]))
+			log.Warn("Failed to retrieve header of mined block", "number", next.index, "hash", next.hash)
 		case header.Hash() == next.hash:
-			log.Info(fmt.Sprintf("🔗  mined block #%d [%x…] reached canonical chain", next.index, next.hash.Bytes()[:4]))
+			log.Info("🔗 block reached canonical chain", "number", next.index, "hash", next.hash)
 		default:
-			log.Info(fmt.Sprintf("⑂ mined block #%d [%x…] became a side fork", next.index, next.hash.Bytes()[:4]))
+			log.Info("⑂ block  became a side fork", "number", next.index, "hash", next.hash)
 		}
 		// Drop the block out of the ring
 		if set.blocks.Value == set.blocks.Next().Value {

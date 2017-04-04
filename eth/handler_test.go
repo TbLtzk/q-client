@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
@@ -34,7 +35,6 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/pow"
 )
 
 var bigTxGas = new(big.Int).SetUint64(params.TxGas)
@@ -469,7 +469,7 @@ func testDAOChallenge(t *testing.T, localForked, remoteForked bool, timeout bool
 	// Create a DAO aware protocol manager
 	var (
 		evmux         = new(event.TypeMux)
-		pow           = new(pow.FakePow)
+		pow           = ethash.NewFaker()
 		db, _         = ethdb.NewMemDatabase()
 		config        = &params.ChainConfig{DAOForkBlock: big.NewInt(1), DAOForkSupport: localForked}
 		gspec         = &core.Genesis{Config: config}

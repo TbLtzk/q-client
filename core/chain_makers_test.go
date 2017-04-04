@@ -20,13 +20,13 @@ import (
 	"fmt"
 	"math/big"
 
+	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/pow"
 )
 
 func ExampleGenerateChain() {
@@ -81,7 +81,7 @@ func ExampleGenerateChain() {
 
 	// Import the chain. This runs all block validation rules.
 	evmux := &event.TypeMux{}
-	blockchain, _ := NewBlockChain(db, gspec.Config, pow.FakePow{}, evmux, vm.Config{})
+	blockchain, _ := NewBlockChain(db, gspec.Config, ethash.NewFaker(), evmux, vm.Config{})
 	if i, err := blockchain.InsertChain(chain); err != nil {
 		fmt.Printf("insert error (block %d): %v\n", chain[i].NumberU64(), err)
 		return
