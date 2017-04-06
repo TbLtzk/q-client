@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/log"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
@@ -654,7 +654,7 @@ func (f *Fetcher) insert(peer string, block *types.Block) {
 			propBroadcastOutTimer.UpdateSince(block.ReceivedAt)
 			go f.broadcastBlock(block, true)
 
-		case core.BlockFutureErr:
+		case consensus.ErrFutureBlock:
 			// Weird future block, don't fail, but neither propagate
 
 		default:
