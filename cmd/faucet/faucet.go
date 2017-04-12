@@ -41,11 +41,13 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/ethclient"
 	"gitlab.com/q-dev/q-client/ethstats"
 	"gitlab.com/q-dev/q-client/les"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
+	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/p2p/discv5"
 	"gitlab.com/q-dev/q-client/p2p/nat"
@@ -175,32 +177,29 @@ type faucet struct {
 func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network int, stats string, ks *keystore.KeyStore, index []byte) (*faucet, error) {
 	// Assemble the raw devp2p protocol stack
 	stack, err := node.New(&node.Config{
-		Name:             "geth",
-		Version:          params.Version,
-		DataDir:          filepath.Join(os.Getenv("HOME"), ".faucet"),
-		NAT:              nat.Any(),
-		DiscoveryV5:      true,
-		ListenAddr:       fmt.Sprintf(":%d", port),
-		DiscoveryV5Addr:  fmt.Sprintf(":%d", port+1),
-		MaxPeers:         25,
-		BootstrapNodesV5: enodes,
+		Name:    "geth",
+		Version: params.Version,
+		DataDir: filepath.Join(os.Getenv("HOME"), ".faucet"),
+		P2P: p2p.Config{
+			NAT:              nat.Any(),
+			NoDiscovery:      true,
+			DiscoveryV5:      true,
+			ListenAddr:       fmt.Sprintf(":%d", port),
+			DiscoveryV5Addr:  fmt.Sprintf(":%d", port+1),
+			MaxPeers:         25,
+			BootstrapNodesV5: enodes,
+		},
 	})
 	if err != nil {
 		return nil, err
 	}
 	// Assemble the Ethereum light client protocol
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return les.New(ctx, &eth.Config{
-			LightMode:          true,
-			NetworkId:          network,
-			Genesis:            genesis,
-			GasPrice:           big.NewInt(20 * params.Shannon),
-			GpoBlocks:          10,
-			GpoPercentile:      50,
-			EthashCacheDir:     "ethash",
-			EthashCachesInMem:  2,
-			EthashCachesOnDisk: 3,
-		})
+		cfg := eth.DefaultConfig
+		cfg.SyncMode = downloader.LightSync
+		cfg.NetworkId = network
+		cfg.Genesis = genesis
+		return les.New(ctx, &cfg)
 	}); err != nil {
 		return nil, err
 	}
