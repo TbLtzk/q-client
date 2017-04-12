@@ -14,37 +14,22 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// +build !linux,!darwin,!freebsd
+// +build linux darwin freebsd
 
-package api
+package fuse
 
 import (
-	"errors"
+	"bazil.org/fuse/fs"
 )
 
-var errNoFUSE = errors.New("FUSE is not supported on this platform")
+var (
+	_ fs.Node = (*SwarmDir)(nil)
+)
 
-func isFUSEUnsupportedError(err error) bool {
-	return err == errNoFUSE
+type SwarmRoot struct {
+	root *SwarmDir
 }
 
-type MountInfo struct {
-	MountPoint   string
-	ManifestHash string
-}
-
-func (self *SwarmFS) Mount(mhash, mountpoint string) (*MountInfo, error) {
-	return nil, errNoFUSE
-}
-
-func (self *SwarmFS) Unmount(mountpoint string) (bool, error) {
-	return false, errNoFUSE
-}
-
-func (self *SwarmFS) Listmounts() ([]*MountInfo, error) {
-	return nil, errNoFUSE
-}
-
-func (self *SwarmFS) Stop() error {
-	return nil
+func (filesystem *SwarmRoot) Root() (fs.Node, error) {
+	return filesystem.root, nil
 }

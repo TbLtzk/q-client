@@ -14,30 +14,38 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package api
+// +build !linux,!darwin,!freebsd
+
+package fuse
 
 import (
-	"sync"
-	"time"
+	"errors"
 )
 
-const (
-	Swarmfs_Version = "0.1"
-	mountTimeout    = time.Second * 5
-	maxFuseMounts   = 5
-)
+var errNoFUSE = errors.New("FUSE is not supported on this platform")
 
-type SwarmFS struct {
-	swarmApi     *Api
-	activeMounts map[string]*MountInfo
-	activeLock   *sync.RWMutex
+func isFUSEUnsupportedError(err error) bool {
+	return err == errNoFUSE
 }
 
-func NewSwarmFS(api *Api) *SwarmFS {
-	swarmfs := &SwarmFS{
-		swarmApi:     api,
-		activeLock:   &sync.RWMutex{},
-		activeMounts: map[string]*MountInfo{},
-	}
-	return swarmfs
+type MountInfo struct {
+	MountPoint     string
+	StartManifest  string
+	LatestManifest string
+}
+
+func (self *SwarmFS) Mount(mhash, mountpoint string) (*MountInfo, error) {
+	return nil, errNoFUSE
+}
+
+func (self *SwarmFS) Unmount(mountpoint string) (bool, error) {
+	return false, errNoFUSE
+}
+
+func (self *SwarmFS) Listmounts() ([]*MountInfo, error) {
+	return nil, errNoFUSE
+}
+
+func (self *SwarmFS) Stop() error {
+	return nil
 }
