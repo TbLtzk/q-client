@@ -27,6 +27,7 @@ import (
 	"gitlab.com/q-dev/q-client/contracts/chequebook"
 	"gitlab.com/q-dev/q-client/contracts/ens"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/ethclient"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
@@ -134,9 +135,13 @@ func NewSwarm(ctx *node.ServiceContext, backend chequebook.Backend, config *api.
 	// set up high level api
 	transactOpts := bind.NewKeyedTransactor(self.privateKey)
 
-	self.dns, err = ens.NewENS(transactOpts, config.EnsRoot, self.backend)
-	if err != nil {
-		return nil, err
+	if backend == (*ethclient.Client)(nil) {
+		log.Warn("No ENS, please specify non-empty --ethapi to use domain name resolution")
+	} else {
+		self.dns, err = ens.NewENS(transactOpts, config.EnsRoot, self.backend)
+		if err != nil {
+			return nil, err
+		}
 	}
 	log.Debug(fmt.Sprintf("-> Swarm Domain Name Registrar @ address %v", config.EnsRoot.Hex()))
 
