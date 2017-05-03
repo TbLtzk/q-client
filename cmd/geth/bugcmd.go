@@ -29,11 +29,12 @@ import (
 	"gitlab.com/q-dev/q-client/cmd/internal/browser"
 	"gitlab.com/q-dev/q-client/params"
 
+	"gitlab.com/q-dev/q-client/cmd/utils"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
 var bugCommand = cli.Command{
-	Action:    reportBug,
+	Action:    utils.MigrateFlags(reportBug),
 	Name:      "bug",
 	Usage:     "opens a window to report a bug on the geth repo",
 	ArgsUsage: " ",
