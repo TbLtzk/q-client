@@ -27,6 +27,7 @@ import (
 	"unsafe"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/bitutil"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/log"
@@ -142,7 +143,7 @@ func generateCache(dest []uint32, epoch uint64, seed []byte) {
 				dstOff = j * hashBytes
 				xorOff = (binary.LittleEndian.Uint32(cache[dstOff:]) % uint32(rows)) * hashBytes
 			)
-			xorBytes(temp, cache[srcOff:srcOff+hashBytes], cache[xorOff:xorOff+hashBytes])
+			bitutil.XORBytes(temp, cache[srcOff:srcOff+hashBytes], cache[xorOff:xorOff+hashBytes])
 			keccak512(cache[dstOff:], temp)
 
 			atomic.AddUint32(&progress, 1)
