@@ -17,8 +17,6 @@
 package core
 
 import (
-	"math/big"
-
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 )
@@ -66,8 +64,6 @@ type ChainUncleEvent struct {
 }
 
 type ChainHeadEvent struct{ Block *types.Block }
-
-type GasPriceChanged struct{ Price *big.Int }
 
 // Mining operation events
 type StartMining struct{}
