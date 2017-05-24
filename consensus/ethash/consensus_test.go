@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -71,7 +72,11 @@ func TestCalcDifficulty(t *testing.T) {
 	config := &params.ChainConfig{HomesteadBlock: big.NewInt(1150000)}
 	for name, test := range tests {
 		number := new(big.Int).Sub(test.CurrentBlocknumber, big.NewInt(1))
-		diff := CalcDifficulty(config, test.CurrentTimestamp, test.ParentTimestamp, number, test.ParentDifficulty)
+		diff := CalcDifficulty(config, test.CurrentTimestamp, &types.Header{
+			Number:     number,
+			Time:       new(big.Int).SetUint64(test.ParentTimestamp),
+			Difficulty: test.ParentDifficulty,
+		})
 		if diff.Cmp(test.CurrentDifficulty) != 0 {
 			t.Error(name, "failed. Expected", test.CurrentDifficulty, "and calculated", diff)
 		}
