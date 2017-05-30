@@ -19,18 +19,19 @@
 package fuse
 
 import (
-	"bazil.org/fuse"
-	"bazil.org/fuse/fs"
 	"errors"
 	"fmt"
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/swarm/api"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"bazil.org/fuse"
+	"bazil.org/fuse/fs"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/swarm/api"
 )
 
 var (
@@ -203,7 +204,7 @@ func (self *SwarmFS) Unmount(mountpoint string) (*MountInfo, error) {
 	}
 	err = fuse.Unmount(cleanedMountPoint)
 	if err != nil {
-		err1 := externalUnMount(cleanedMountPoint)
+		err1 := externalUnmount(cleanedMountPoint)
 		if err1 != nil {
 			errStr := fmt.Sprintf("UnMount error: %v", err)
 			log.Warn(errStr)
