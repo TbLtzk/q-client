@@ -16,16 +16,7 @@
 
 package whisperv5
 
-import (
-	"bytes"
-	"encoding/json"
-	"testing"
-	"time"
-
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/hexutil"
-)
-
+/*
 func TestBasic(t *testing.T) {
 	var id string = "test"
 	w := New()
@@ -678,3 +669,4 @@ func TestSubscribe(t *testing.T) {
 		api.Unsubscribe(s)
 	}
 }
+*/
