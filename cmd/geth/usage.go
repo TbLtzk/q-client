@@ -24,7 +24,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/internal/debug"
-	"gitlab.com/q-dev/q-client/whisper/whisperv5"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -190,7 +189,7 @@ var AppHelpFlagGroups = []flagGroup{
 	},
 	{
 		Name:  "Whisper (EXPERIMENTAL)",
-		Flags: whisperv5.Flags,
+		Flags: whisperFlags,
 	},
 	{
 		Name: "DEPRECATED",
