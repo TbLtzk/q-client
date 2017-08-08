@@ -20,7 +20,6 @@ import (
 	"context"
 	"math"
 	"math/big"
-	"time"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
@@ -41,8 +40,6 @@ type Backend interface {
 type Filter struct {
 	backend   Backend
 	useMipMap bool
-
-	created time.Time
 
 	db         ethdb.Database
 	begin, end int64
