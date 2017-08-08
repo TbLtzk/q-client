@@ -8,6 +8,8 @@ import (
 	"gitlab.com/q-dev/q-client/common/hexutil"
 )
 
+var _ = (*newMessageOverride)(nil)
+
 func (n NewMessage) MarshalJSON() ([]byte, error) {
 	type NewMessage struct {
 		SymKeyID   string        `json:"symKeyID"`

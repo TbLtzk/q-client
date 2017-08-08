@@ -8,6 +8,8 @@ import (
 	"gitlab.com/q-dev/q-client/common/hexutil"
 )
 
+var _ = (*messageOverride)(nil)
+
 func (m Message) MarshalJSON() ([]byte, error) {
 	type Message struct {
 		Sig       hexutil.Bytes `json:"sig,omitempty"`
