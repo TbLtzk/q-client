@@ -19,7 +19,6 @@ package storage
 import (
 	"fmt"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"gitlab.com/q-dev/q-client/log"
@@ -40,7 +39,6 @@ type NetStore struct {
 	hashfunc   Hasher
 	localStore *LocalStore
 	cloud      CloudStore
-	lock       sync.Mutex
 }
 
 // backend engine for cloud store
@@ -134,6 +132,4 @@ func (self *NetStore) Get(key Key) (*Chunk, error) {
 }
 
 // Close netstore
-func (self *NetStore) Close() {
-	return
-}
+func (self *NetStore) Close() {}
