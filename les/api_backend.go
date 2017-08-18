@@ -19,6 +19,7 @@ package les
 import (
 	"context"
 	"math/big"
+	"time"
 
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
@@ -28,6 +29,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/eth/downloader"
+	"gitlab.com/q-dev/q-client/eth/filters"
 	"gitlab.com/q-dev/q-client/eth/gasprice"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
@@ -170,4 +172,20 @@ func (b *LesApiBackend) EventMux() *event.TypeMux {
 
 func (b *LesApiBackend) AccountManager() *accounts.Manager {
 	return b.eth.accountManager
+}
+
+func (b *LesApiBackend) GetBloomBits(ctx context.Context, bitIdx uint64, sectionIdxList []uint64) ([][]byte, error) {
+	return nil, nil // implemented in a subsequent PR
+}
+
+func (b *LesApiBackend) BloomBitsSections() uint64 {
+	return 0
+}
+
+func (b *LesApiBackend) BloomBitsConfig() filters.BloomConfig {
+	return filters.BloomConfig{
+		SectionSize:    32768,
+		MaxRequestLen:  16,
+		MaxRequestWait: time.Microsecond * 100,
+	}
 }
