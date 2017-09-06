@@ -24,6 +24,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/bloombits"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
@@ -193,4 +194,15 @@ func (b *EthApiBackend) EventMux() *event.TypeMux {
 
 func (b *EthApiBackend) AccountManager() *accounts.Manager {
 	return b.eth.AccountManager()
+}
+
+func (b *EthApiBackend) BloomStatus() (uint64, uint64) {
+	sections, _, _ := b.eth.bloomIndexer.Sections()
+	return params.BloomBitsBlocks, sections
+}
+
+func (b *EthApiBackend) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {
+	for i := 0; i < bloomFilterThreads; i++ {
+		go session.Multiplex(bloomRetrievalBatch, bloomRetrievalWait, b.eth.bloomRequests)
+	}
 }
