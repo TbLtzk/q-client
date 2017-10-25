@@ -27,6 +27,7 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/crypto/secp256k1"
 	"gitlab.com/q-dev/q-client/rlp"
@@ -219,3 +220,9 @@ type CodeData []struct {
 }
 
 type proofsData [][]rlp.RawValue
+
+type txStatus struct {
+	Status core.TxStatus
+	Lookup *core.TxLookupEntry
+	Error  error
+}

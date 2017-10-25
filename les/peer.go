@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/les/flowcontrol"
@@ -233,8 +232,8 @@ func (p *peer) SendHelperTrieProofs(reqID, bv uint64, resp HelperTrieResps) erro
 }
 
 // SendTxStatus sends a batch of transaction status records, corresponding to the ones requested.
-func (p *peer) SendTxStatus(reqID, bv uint64, status []core.TxStatusData) error {
-	return sendResponse(p.rw, TxStatusMsg, reqID, bv, status)
+func (p *peer) SendTxStatus(reqID, bv uint64, stats []txStatus) error {
+	return sendResponse(p.rw, TxStatusMsg, reqID, bv, stats)
 }
 
 // RequestHeadersByHash fetches a batch of blocks' headers corresponding to the
