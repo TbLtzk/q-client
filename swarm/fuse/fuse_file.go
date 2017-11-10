@@ -19,15 +19,16 @@
 package fuse
 
 import (
-	"bazil.org/fuse"
-	"bazil.org/fuse/fs"
 	"errors"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/swarm/storage"
-	"golang.org/x/net/context"
 	"io"
 	"os"
 	"sync"
+
+	"bazil.org/fuse"
+	"bazil.org/fuse/fs"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/swarm/storage"
+	"golang.org/x/net/context"
 )
 
 const (
@@ -87,7 +88,7 @@ func (file *SwarmFile) Attr(ctx context.Context, a *fuse.Attr) error {
 		if err != nil {
 			log.Warn("Couldnt get size of file %s : %v", file.path, err)
 		}
-		file.fileSize = int64(size)
+		file.fileSize = size
 	}
 	a.Size = uint64(file.fileSize)
 	return nil

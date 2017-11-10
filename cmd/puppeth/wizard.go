@@ -28,7 +28,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
@@ -231,7 +230,7 @@ func (w *wizard) readDefaultFloat(def float64) float64 {
 // line and returns it. The input will not be echoed.
 func (w *wizard) readPassword() string {
 	fmt.Printf("> ")
-	text, err := terminal.ReadPassword(int(syscall.Stdin))
+	text, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
 		log.Crit("Failed to read password", "err", err)
 	}
