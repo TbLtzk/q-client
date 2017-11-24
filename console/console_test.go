@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/internal/jsre"
@@ -96,7 +97,9 @@ func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 	ethConf := &eth.Config{
 		Genesis:   core.DeveloperGenesisBlock(15, common.Address{}),
 		Etherbase: common.HexToAddress(testAddress),
-		PowTest:   true,
+		Ethash: ethash.Config{
+			PowMode: ethash.ModeTest,
+		},
 	}
 	if confOverride != nil {
 		confOverride(ethConf)
