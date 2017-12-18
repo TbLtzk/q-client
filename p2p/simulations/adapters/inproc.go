@@ -24,6 +24,7 @@ import (
 	"sync"
 
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
@@ -82,7 +83,8 @@ func (s *SimAdapter) NewNode(config *NodeConfig) (Node, error) {
 			Dialer:          s,
 			EnableMsgEvents: true,
 		},
-		NoUSB: true,
+		NoUSB:  true,
+		Logger: log.New("node.id", id.String()),
 	})
 	if err != nil {
 		return nil, err
