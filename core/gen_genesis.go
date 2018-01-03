@@ -13,6 +13,8 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 )
 
+var _ = (*genesisSpecMarshaling)(nil)
+
 func (g Genesis) MarshalJSON() ([]byte, error) {
 	type Genesis struct {
 		Config     *params.ChainConfig                         `json:"config"`
