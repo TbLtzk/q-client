@@ -29,6 +29,7 @@ import (
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/external"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/accounts/scwallet"
 	"gitlab.com/q-dev/q-client/accounts/usbwallet"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -503,6 +504,12 @@ func makeAccountManager(conf *Config) (*accounts.Manager, string, error) {
 			} else {
 				backends = append(backends, trezorhub)
 			}
+		}
+		// Start a smart card hub
+		if schub, err := scwallet.NewHub(scwallet.Scheme, keydir); err != nil {
+			log.Warn(fmt.Sprintf("Failed to start smart card hub, disabling: %v", err))
+		} else {
+			backends = append(backends, schub)
 		}
 	}
 
