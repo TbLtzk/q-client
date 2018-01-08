@@ -11,6 +11,8 @@ import (
 	"gitlab.com/q-dev/q-client/common/hexutil"
 )
 
+var _ = (*txdataMarshaling)(nil)
+
 func (t txdata) MarshalJSON() ([]byte, error) {
 	type txdata struct {
 		AccountNonce hexutil.Uint64  `json:"nonce"    gencodec:"required"`

@@ -10,6 +10,8 @@ import (
 	"gitlab.com/q-dev/q-client/common/hexutil"
 )
 
+var _ = (*receiptMarshaling)(nil)
+
 func (r Receipt) MarshalJSON() ([]byte, error) {
 	type Receipt struct {
 		PostState         hexutil.Bytes  `json:"root"`
