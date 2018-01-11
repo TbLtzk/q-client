@@ -31,6 +31,7 @@ import (
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/fdlimit"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
@@ -721,10 +722,10 @@ func setIPC(ctx *cli.Context, cfg *node.Config) {
 // makeDatabaseHandles raises out the number of allowed file handles per process
 // for Geth and returns half of the allowance to assign to the database.
 func makeDatabaseHandles() int {
-	if err := raiseFdLimit(2048); err != nil {
+	if err := fdlimit.Raise(2048); err != nil {
 		Fatalf("Failed to raise file descriptor allowance: %v", err)
 	}
-	limit, err := getFdLimit()
+	limit, err := fdlimit.Current()
 	if err != nil {
 		Fatalf("Failed to retrieve file descriptor allowance: %v", err)
 	}
