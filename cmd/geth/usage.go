@@ -22,10 +22,11 @@ import (
 	"io"
 	"sort"
 
+	"strings"
+
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/internal/debug"
 	"gopkg.in/urfave/cli.v1"
-	"strings"
 )
 
 // AppHelpTemplate is the test template for the default, global app help topic.
@@ -74,6 +75,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.TestnetFlag,
 			utils.RinkebyFlag,
 			utils.SyncModeFlag,
+			utils.GCModeFlag,
 			utils.EthStatsURLFlag,
 			utils.IdentityFlag,
 			utils.LightServFlag,
@@ -127,6 +129,8 @@ var AppHelpFlagGroups = []flagGroup{
 		Name: "PERFORMANCE TUNING",
 		Flags: []cli.Flag{
 			utils.CacheFlag,
+			utils.CacheDatabaseFlag,
+			utils.CacheGCFlag,
 			utils.TrieCacheGenFlag,
 		},
 	},

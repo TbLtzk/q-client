@@ -22,8 +22,8 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/rlp"
-	"gitlab.com/q-dev/q-client/trie"
 )
 
 // NodeSet stores a set of trie nodes. It implements trie.Database and can also
@@ -99,7 +99,7 @@ func (db *NodeSet) NodeList() NodeList {
 }
 
 // Store writes the contents of the set to the given database
-func (db *NodeSet) Store(target trie.Database) {
+func (db *NodeSet) Store(target ethdb.Putter) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
@@ -108,11 +108,11 @@ func (db *NodeSet) Store(target trie.Database) {
 	}
 }
 
-// NodeList stores an ordered list of trie nodes. It implements trie.DatabaseWriter.
+// NodeList stores an ordered list of trie nodes. It implements ethdb.Putter.
 type NodeList []rlp.RawValue
 
 // Store writes the contents of the list to the given database
-func (n NodeList) Store(db trie.Database) {
+func (n NodeList) Store(db ethdb.Putter) {
 	for _, node := range n {
 		db.Put(crypto.Keccak256(node), node)
 	}
