@@ -20,9 +20,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/math"
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -121,11 +119,6 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 	// Don't bother with the execution if there's no code.
 	if len(contract.Code) == 0 {
 		return nil, nil
-	}
-
-	codehash := contract.CodeHash // codehash is used when doing jump dest caching
-	if codehash == (common.Hash{}) {
-		codehash = crypto.Keccak256Hash(contract.Code)
 	}
 
 	var (
