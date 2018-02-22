@@ -26,7 +26,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
-	whisper "gitlab.com/q-dev/q-client/whisper/whisperv5"
+	whisper "gitlab.com/q-dev/q-client/whisper/whisperv6"
 )
 
 const powRequirement = 0.00001

@@ -26,7 +26,7 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/rlp"
-	whisper "gitlab.com/q-dev/q-client/whisper/whisperv5"
+	whisper "gitlab.com/q-dev/q-client/whisper/whisperv6"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
