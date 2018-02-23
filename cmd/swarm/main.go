@@ -43,6 +43,7 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/swarm"
 	bzzapi "gitlab.com/q-dev/q-client/swarm/api"
+	swarmmetrics "gitlab.com/q-dev/q-client/swarm/metrics"
 
 	"gopkg.in/urfave/cli.v1"
 )
@@ -359,9 +360,14 @@ DEPRECATED: use 'swarm db clean'.
 		DeprecatedEnsAddrFlag,
 	}
 	app.Flags = append(app.Flags, debug.Flags...)
+	app.Flags = append(app.Flags, swarmmetrics.Flags...)
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
-		return debug.Setup(ctx)
+		if err := debug.Setup(ctx); err != nil {
+			return err
+		}
+		swarmmetrics.Setup(ctx)
+		return nil
 	}
 	app.After = func(ctx *cli.Context) error {
 		debug.Exit()
