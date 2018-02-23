@@ -24,10 +24,10 @@ import (
 
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/rcrowley/go-metrics"
 )
 
 // PrivateAdminAPI is the collection of administrative API methods exposed only

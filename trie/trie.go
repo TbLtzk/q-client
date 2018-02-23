@@ -24,7 +24,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
-	"github.com/rcrowley/go-metrics"
+	"gitlab.com/q-dev/q-client/metrics"
 )
 
 var (

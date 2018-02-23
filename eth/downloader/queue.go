@@ -28,7 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/log"
-	"github.com/rcrowley/go-metrics"
+	"gitlab.com/q-dev/q-client/metrics"
 	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 )
 
