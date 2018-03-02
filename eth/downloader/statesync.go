@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/ethdb"
@@ -465,5 +466,8 @@ func (s *stateSync) updateStats(written, duplicate, unexpected int, duration tim
 
 	if written > 0 || duplicate > 0 || unexpected > 0 {
 		log.Info("Imported new state entries", "count", written, "elapsed", common.PrettyDuration(duration), "processed", s.d.syncStatsState.processed, "pending", s.d.syncStatsState.pending, "retry", len(s.tasks), "duplicate", s.d.syncStatsState.duplicate, "unexpected", s.d.syncStatsState.unexpected)
+	}
+	if written > 0 {
+		core.WriteTrieSyncProgress(s.d.stateDB, s.d.syncStatsState.processed)
 	}
 }
