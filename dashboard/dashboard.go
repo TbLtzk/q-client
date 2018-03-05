@@ -36,10 +36,10 @@ import (
 
 	"github.com/elastic/gosigar"
 	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/rcrowley/go-metrics"
 	"golang.org/x/net/websocket"
 )
 

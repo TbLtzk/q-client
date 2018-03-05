@@ -27,12 +27,13 @@ import (
 
 	ethereum "github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/params"
-	"github.com/rcrowley/go-metrics"
 )
 
 var (
@@ -221,7 +222,10 @@ func New(mode SyncMode, stateDb ethdb.Database, mux *event.TypeMux, chain BlockC
 		quitCh:         make(chan struct{}),
 		stateCh:        make(chan dataPack),
 		stateSyncStart: make(chan *stateSync),
-		trackStateReq:  make(chan *stateReq),
+		syncStatsState: stateSyncStats{
+			processed: core.GetTrieSyncProgress(stateDb),
+		},
+		trackStateReq: make(chan *stateReq),
 	}
 	go dl.qosTuner()
 	go dl.stateFetcher()

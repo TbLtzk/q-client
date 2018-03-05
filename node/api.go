@@ -24,10 +24,10 @@ import (
 
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/rcrowley/go-metrics"
 )
 
 // PrivateAdminAPI is the collection of administrative API methods exposed only
@@ -308,6 +308,11 @@ func (api *PublicDebugAPI) Metrics(raw bool) (map[string]interface{}, error) {
 		// Fill the counter with the metric details, formatting if requested
 		if raw {
 			switch metric := metric.(type) {
+			case metrics.Counter:
+				root[name] = map[string]interface{}{
+					"Overall": float64(metric.Count()),
+				}
+
 			case metrics.Meter:
 				root[name] = map[string]interface{}{
 					"AvgRate01Min": metric.Rate1(),
@@ -338,6 +343,11 @@ func (api *PublicDebugAPI) Metrics(raw bool) (map[string]interface{}, error) {
 			}
 		} else {
 			switch metric := metric.(type) {
+			case metrics.Counter:
+				root[name] = map[string]interface{}{
+					"Overall": float64(metric.Count()),
+				}
+
 			case metrics.Meter:
 				root[name] = map[string]interface{}{
 					"Avg01Min": format(metric.Rate1()*60, metric.Rate1()),
