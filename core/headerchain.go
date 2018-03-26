@@ -23,6 +23,7 @@ import (
 	"math"
 	"math/big"
 	mrand "math/rand"
+	"sync/atomic"
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
@@ -32,7 +33,6 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 	"github.com/hashicorp/golang-lru"
-	"sync/atomic"
 )
 
 const (
