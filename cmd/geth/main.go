@@ -28,7 +28,6 @@ import (
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/console"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethclient"
@@ -46,8 +45,6 @@ const (
 var (
 	// Git SHA1 commit hash of the release (set via linker flags)
 	gitCommit = ""
-	// Ethereum address of the Geth release oracle.
-	relOracle = common.HexToAddress("0xfa7b9770ca4cb04296cac84f37736d4041251cdf")
 	// The app that holds all commands and flags.
 	app = utils.NewApp(gitCommit, "the go-ethereum command line interface")
 	// flags that configure the node
