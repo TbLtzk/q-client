@@ -18,12 +18,13 @@
 package consensus
 
 import (
+	"math/big"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rpc"
-	"math/big"
 )
 
 // ChainReader defines a small collection of methods needed to access the local

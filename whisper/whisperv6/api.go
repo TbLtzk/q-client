@@ -32,10 +32,6 @@ import (
 	"gitlab.com/q-dev/q-client/rpc"
 )
 
-const (
-	filterTimeout = 300 // filters are considered timeout out after filterTimeout seconds
-)
-
 // List of errors
 var (
 	ErrSymAsym              = errors.New("specify either a symmetric or an asymmetric key")

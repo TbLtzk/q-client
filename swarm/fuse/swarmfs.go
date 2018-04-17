@@ -17,9 +17,10 @@
 package fuse
 
 import (
-	"gitlab.com/q-dev/q-client/swarm/api"
 	"sync"
 	"time"
+
+	"gitlab.com/q-dev/q-client/swarm/api"
 )
 
 const (
