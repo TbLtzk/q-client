@@ -18,15 +18,15 @@ package common
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"math/rand"
 	"reflect"
+	"strings"
 
-	"encoding/json"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/crypto/sha3"
-	"strings"
 )
 
 const (

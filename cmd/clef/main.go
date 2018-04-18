@@ -23,17 +23,18 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"os/user"
 	"path/filepath"
 	"runtime"
 	"strings"
 
-	"encoding/hex"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -44,7 +45,6 @@ import (
 	"gitlab.com/q-dev/q-client/signer/rules"
 	"gitlab.com/q-dev/q-client/signer/storage"
 	"gopkg.in/urfave/cli.v1"
-	"os/signal"
 )
 
 // ExternalApiVersion -- see extapi_changelog.md
@@ -435,7 +435,7 @@ func signer(c *cli.Context) error {
 			ipcApiUrl = filepath.Join(configDir, "clef.ipc")
 		}
 
-		listener, _, err := rpc.StartIPCEndpoint(func() bool { return true }, ipcApiUrl, rpcApi)
+		listener, _, err := rpc.StartIPCEndpoint(ipcApiUrl, rpcApi)
 		if err != nil {
 			utils.Fatalf("Could not start IPC api: %v", err)
 		}
