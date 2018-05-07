@@ -29,6 +29,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
@@ -271,15 +272,13 @@ func ImportPreimages(db *ethdb.LDBDatabase, fn string) error {
 		// Accumulate the preimages and flush when enough ws gathered
 		preimages[crypto.Keccak256Hash(blob)] = common.CopyBytes(blob)
 		if len(preimages) > 1024 {
-			if err := core.WritePreimages(db, 0, preimages); err != nil {
-				return err
-			}
+			rawdb.WritePreimages(db, 0, preimages)
 			preimages = make(map[common.Hash][]byte)
 		}
 	}
 	// Flush the last batch preimage data
 	if len(preimages) > 0 {
-		return core.WritePreimages(db, 0, preimages)
+		rawdb.WritePreimages(db, 0, preimages)
 	}
 	return nil
 }
