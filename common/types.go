@@ -29,6 +29,7 @@ import (
 	"gitlab.com/q-dev/q-client/crypto/sha3"
 )
 
+// Lengths of hashes and addresses in bytes.
 const (
 	HashLength    = 32
 	AddressLength = 20
