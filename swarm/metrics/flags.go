@@ -20,9 +20,9 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/log"
 	gethmetrics "gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/metrics/influxdb"
+	"gitlab.com/q-dev/q-client/swarm/log"
 	"gopkg.in/urfave/cli.v1"
 )
 
