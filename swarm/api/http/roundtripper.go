@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/swarm/log"
 )
 
 /*
