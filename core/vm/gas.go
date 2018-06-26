@@ -22,6 +22,7 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 )
 
+// Gas costs
 const (
 	GasQuickStep   uint64 = 2
 	GasFastestStep uint64 = 3
