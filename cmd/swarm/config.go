@@ -38,7 +38,7 @@ import (
 	bzzapi "gitlab.com/q-dev/q-client/swarm/api"
 )
 
-const SWARM_VERSION = "0.3"
+const SWARM_VERSION = "0.3.1-unstable"
 
 var (
 	//flag definition for the dumpconfig command
