@@ -16,6 +16,7 @@
 package storage
 
 import (
+	"context"
 	"sync"
 
 	"gitlab.com/q-dev/q-client/swarm/log"
@@ -37,7 +38,7 @@ func PutChunks(store *LocalStore, chunks ...*Chunk) {
 		}
 	}()
 	for _, c := range chunks {
-		go store.Put(c)
+		go store.Put(context.TODO(), c)
 	}
 	wg.Wait()
 }
