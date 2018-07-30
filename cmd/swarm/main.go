@@ -39,11 +39,11 @@ import (
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discover"
-	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/swarm"
 	bzzapi "gitlab.com/q-dev/q-client/swarm/api"
 	swarmmetrics "gitlab.com/q-dev/q-client/swarm/metrics"
 	"gitlab.com/q-dev/q-client/swarm/tracing"
+	sv "gitlab.com/q-dev/q-client/swarm/version"
 
 	"gopkg.in/urfave/cli.v1"
 )
@@ -216,7 +216,7 @@ var defaultNodeConfig = node.DefaultConfig
 // This init function sets defaults so cmd/swarm can run alongside geth.
 func init() {
 	defaultNodeConfig.Name = clientIdentifier
-	defaultNodeConfig.Version = params.VersionWithCommit(gitCommit)
+	defaultNodeConfig.Version = sv.VersionWithCommit(gitCommit)
 	defaultNodeConfig.P2P.ListenAddr = ":30399"
 	defaultNodeConfig.IPCPath = "bzzd.ipc"
 	// Set flag defaults for --help display.
@@ -516,7 +516,8 @@ func main() {
 }
 
 func version(ctx *cli.Context) error {
-	fmt.Println("Version:", SWARM_VERSION)
+	fmt.Println(strings.Title(clientIdentifier))
+	fmt.Println("Version:", sv.VersionWithMeta)
 	if gitCommit != "" {
 		fmt.Println("Git Commit:", gitCommit)
 	}
