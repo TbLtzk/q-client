@@ -30,6 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/contracts/ens"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/swarm/chunk"
 	"gitlab.com/q-dev/q-client/swarm/multihash"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 )
@@ -776,14 +777,11 @@ func TestValidatorInStore(t *testing.T) {
 
 	// set up resource handler and add is as a validator to the localstore
 	rhParams := &HandlerParams{}
-	rh, err := NewHandler(rhParams)
-	if err != nil {
-		t.Fatal(err)
-	}
+	rh := NewHandler(rhParams)
 	store.Validators = append(store.Validators, rh)
 
 	// create content addressed chunks, one good, one faulty
-	chunks := storage.GenerateRandomChunks(storage.DefaultChunkSize, 2)
+	chunks := storage.GenerateRandomChunks(chunk.DefaultSize, 2)
 	goodChunk := chunks[0]
 	badChunk := chunks[1]
 	badChunk.SData = goodChunk.SData
