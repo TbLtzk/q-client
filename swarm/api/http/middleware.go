@@ -9,6 +9,7 @@ import (
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/swarm/api"
 	"gitlab.com/q-dev/q-client/swarm/log"
+	"gitlab.com/q-dev/q-client/swarm/sctx"
 	"gitlab.com/q-dev/q-client/swarm/spancontext"
 	"github.com/pborman/uuid"
 )
@@ -30,6 +31,15 @@ func SetRequestID(h http.Handler) http.Handler {
 		r = r.WithContext(SetRUID(r.Context(), uuid.New()[:8]))
 		metrics.GetOrRegisterCounter(fmt.Sprintf("http.request.%s", r.Method), nil).Inc(1)
 		log.Info("created ruid for request", "ruid", GetRUID(r.Context()), "method", r.Method, "url", r.RequestURI)
+
+		h.ServeHTTP(w, r)
+	})
+}
+
+func SetRequestHost(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r = r.WithContext(sctx.SetHost(r.Context(), r.Host))
+		log.Info("setting request host", "ruid", GetRUID(r.Context()), "host", sctx.GetHost(r.Context()))
 
 		h.ServeHTTP(w, r)
 	})
@@ -87,7 +97,7 @@ func RecoverPanic(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Error("panic recovery!", "stack trace", debug.Stack(), "url", r.URL.String(), "headers", r.Header)
+				log.Error("panic recovery!", "stack trace", string(debug.Stack()), "url", r.URL.String(), "headers", r.Header)
 			}
 		}()
 		h.ServeHTTP(w, r)
