@@ -29,6 +29,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/mclock"
+	"gitlab.com/q-dev/q-client/common/prque"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/state"
@@ -43,7 +44,6 @@ import (
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/trie"
 	"github.com/hashicorp/golang-lru"
-	"gopkg.in/karalabe/cookiejar.v2/collections/prque"
 )
 
 var (
@@ -151,7 +151,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		chainConfig:  chainConfig,
 		cacheConfig:  cacheConfig,
 		db:           db,
-		triegc:       prque.New(),
+		triegc:       prque.New(nil),
 		stateCache:   state.NewDatabase(db),
 		quit:         make(chan struct{}),
 		bodyCache:    bodyCache,
@@ -915,7 +915,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	} else {
 		// Full but not archive node, do proper garbage collection
 		triedb.Reference(root, common.Hash{}) // metadata reference to keep trie alive
-		bc.triegc.Push(root, -float32(block.NumberU64()))
+		bc.triegc.Push(root, -int64(block.NumberU64()))
 
 		if current := block.NumberU64(); current > triesInMemory {
 			// If we exceeded our memory allowance, flush matured singleton nodes to disk
