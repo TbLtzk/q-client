@@ -34,7 +34,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/discover"
 	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
 	"gitlab.com/q-dev/q-client/swarm/api"
-	"gitlab.com/q-dev/q-client/swarm/network"
 	"gitlab.com/q-dev/q-client/swarm/network/simulation"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 	colorable "github.com/mattn/go-colorable"
@@ -293,7 +292,7 @@ func testSwarmNetwork(t *testing.T, o *testSwarmNetworkOptions, steps ...testSwa
 			if err != nil {
 				return nil, cleanup, err
 			}
-			bucket.Store(simulation.BucketKeyKademlia, swarm.bzz.Hive.Overlay.(*network.Kademlia))
+			bucket.Store(simulation.BucketKeyKademlia, swarm.bzz.Hive.Kademlia)
 			log.Info("new swarm", "bzzKey", config.BzzKey, "baseAddr", fmt.Sprintf("%x", swarm.bzz.BaseAddr()))
 			return swarm, cleanup, nil
 		},
