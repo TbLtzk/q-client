@@ -22,8 +22,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/p2p/discover"
-
+	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 )
 
@@ -43,7 +42,7 @@ type mockNetFetcher struct{}
 
 func (m *mockNetFetcher) Request(ctx context.Context) {
 }
-func (m *mockNetFetcher) Offer(ctx context.Context, source *discover.NodeID) {
+func (m *mockNetFetcher) Offer(ctx context.Context, source *enode.ID) {
 }
 
 func newFakeNetFetcher(context.Context, storage.Address, *sync.Map) storage.NetFetcher {

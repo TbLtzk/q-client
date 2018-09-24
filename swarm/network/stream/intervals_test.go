@@ -30,7 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/p2p/discover"
+	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
 	"gitlab.com/q-dev/q-client/swarm/network"
 	"gitlab.com/q-dev/q-client/swarm/network/simulation"
@@ -62,10 +62,9 @@ func testIntervals(t *testing.T, live bool, history *Range, skipCheck bool) {
 
 	sim := simulation.New(map[string]simulation.ServiceFunc{
 		"intervalsStreamer": func(ctx *adapters.ServiceContext, bucket *sync.Map) (s node.Service, cleanup func(), err error) {
-
-			id := ctx.Config.ID
-			addr := network.NewAddrFromNodeID(id)
-			store, datadir, err := createTestLocalStorageForID(id, addr)
+			n := ctx.Config.Node()
+			addr := network.NewAddr(n)
+			store, datadir, err := createTestLocalStorageForID(n.ID(), addr)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -83,7 +82,7 @@ func testIntervals(t *testing.T, live bool, history *Range, skipCheck bool) {
 			delivery := NewDelivery(kad, netStore)
 			netStore.NewNetFetcherFunc = network.NewFetcherFactory(delivery.RequestFromPeers, true).New
 
-			r := NewRegistry(addr, delivery, netStore, state.NewInmemoryStore(), &RegistryOptions{
+			r := NewRegistry(addr.ID(), delivery, netStore, state.NewInmemoryStore(), &RegistryOptions{
 				SkipCheck: skipCheck,
 			})
 			bucket.Store(bucketKeyRegistry, r)
@@ -281,7 +280,7 @@ func testIntervals(t *testing.T, live bool, history *Range, skipCheck bool) {
 	}
 }
 
-func getHashes(ctx context.Context, r *Registry, peerID discover.NodeID, s Stream) (chan []byte, error) {
+func getHashes(ctx context.Context, r *Registry, peerID enode.ID, s Stream) (chan []byte, error) {
 	peer := r.getPeer(peerID)
 
 	client, err := peer.getClient(ctx, s)
@@ -294,7 +293,7 @@ func getHashes(ctx context.Context, r *Registry, peerID discover.NodeID, s Strea
 	return c.hashes, nil
 }
 
-func enableNotifications(r *Registry, peerID discover.NodeID, s Stream) error {
+func enableNotifications(r *Registry, peerID enode.ID, s Stream) error {
 	peer := r.getPeer(peerID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
