@@ -27,12 +27,12 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth/downloader"
-	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/params"
@@ -344,11 +344,15 @@ func testGetNodeData(t *testing.T, protocol int) {
 
 	// Fetch for now the entire chain db
 	hashes := []common.Hash{}
-	for _, key := range db.Keys() {
-		if len(key) == len(common.Hash{}) {
+
+	it := db.NewIterator()
+	for it.Next() {
+		if key := it.Key(); len(key) == common.HashLength {
 			hashes = append(hashes, common.BytesToHash(key))
 		}
 	}
+	it.Release()
+
 	p2p.Send(peer.app, 0x0d, hashes)
 	msg, err := peer.app.ReadMsg()
 	if err != nil {
@@ -367,7 +371,7 @@ func testGetNodeData(t *testing.T, protocol int) {
 			t.Errorf("data hash mismatch: have %x, want %x", hash, want)
 		}
 	}
-	statedb := ethdb.NewMemDatabase()
+	statedb := rawdb.NewMemoryDatabase()
 	for i := 0; i < len(data); i++ {
 		statedb.Put(hashes[i].Bytes(), data[i])
 	}
@@ -469,7 +473,7 @@ func testDAOChallenge(t *testing.T, localForked, remoteForked bool, timeout bool
 	var (
 		evmux   = new(event.TypeMux)
 		pow     = ethash.NewFaker()
-		db      = ethdb.NewMemDatabase()
+		db      = rawdb.NewMemoryDatabase()
 		config  = &params.ChainConfig{DAOForkBlock: big.NewInt(1), DAOForkSupport: localForked}
 		gspec   = &core.Genesis{Config: config}
 		genesis = gspec.MustCommit(db)
@@ -550,7 +554,7 @@ func testBroadcastBlock(t *testing.T, totalPeers, broadcastExpected int) {
 	var (
 		evmux   = new(event.TypeMux)
 		pow     = ethash.NewFaker()
-		db      = ethdb.NewMemDatabase()
+		db      = rawdb.NewMemoryDatabase()
 		config  = &params.ChainConfig{}
 		gspec   = &core.Genesis{Config: config}
 		genesis = gspec.MustCommit(db)

@@ -1,21 +1,19 @@
 package les
 
 import (
+	"crypto/ecdsa"
 	"fmt"
+	"math/big"
+	"net"
 	"reflect"
 	"testing"
 	"time"
 
-	"net"
-
-	"crypto/ecdsa"
-	"math/big"
-
 	"gitlab.com/q-dev/q-client/common/mclock"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/enode"
@@ -198,7 +196,7 @@ func connectPeers(full, light pairPeer, version int) (*peer, *peer, error) {
 
 // newFullPeerPair creates node with full sync mode
 func newFullPeerPair(t *testing.T, index int, numberOfblocks int, chainGen func(int, *core.BlockGen)) pairPeer {
-	db := ethdb.NewMemDatabase()
+	db := rawdb.NewMemoryDatabase()
 
 	pmFull := newTestProtocolManagerMust(t, false, numberOfblocks, chainGen, nil, nil, db, nil)
 
@@ -220,7 +218,7 @@ func newLightPeer(t *testing.T, ulcConfig *eth.ULCConfig) pairPeer {
 	peers := newPeerSet()
 	dist := newRequestDistributor(peers, make(chan struct{}), &mclock.System{})
 	rm := newRetrieveManager(peers, dist, nil)
-	ldb := ethdb.NewMemDatabase()
+	ldb := rawdb.NewMemoryDatabase()
 
 	odr := NewLesOdr(ldb, light.DefaultClientIndexerConfig, rm)
 
