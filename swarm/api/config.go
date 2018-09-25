@@ -27,7 +27,7 @@ import (
 	"gitlab.com/q-dev/q-client/contracts/ens"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/node"
-	"gitlab.com/q-dev/q-client/p2p/discover"
+	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/swarm/log"
 	"gitlab.com/q-dev/q-client/swarm/network"
 	"gitlab.com/q-dev/q-client/swarm/pss"
@@ -119,7 +119,7 @@ func (c *Config) Init(prvKey *ecdsa.PrivateKey) {
 
 	c.PublicKey = pubkeyhex
 	c.BzzKey = keyhex
-	c.NodeID = discover.PubkeyID(&prvKey.PublicKey).String()
+	c.NodeID = enode.PubkeyToIDV4(&prvKey.PublicKey).String()
 
 	if c.SwapEnabled {
 		c.Swap.Init(c.Contract, prvKey)

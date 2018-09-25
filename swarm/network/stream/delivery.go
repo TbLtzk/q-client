@@ -23,7 +23,7 @@ import (
 	"fmt"
 
 	"gitlab.com/q-dev/q-client/metrics"
-	"gitlab.com/q-dev/q-client/p2p/discover"
+	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/swarm/log"
 	"gitlab.com/q-dev/q-client/swarm/network"
 	"gitlab.com/q-dev/q-client/swarm/spancontext"
@@ -47,7 +47,7 @@ var (
 type Delivery struct {
 	chunkStore storage.SyncChunkStore
 	kad        *network.Kademlia
-	getPeer    func(discover.NodeID) *Peer
+	getPeer    func(enode.ID) *Peer
 }
 
 func NewDelivery(kad *network.Kademlia, chunkStore storage.SyncChunkStore) *Delivery {
@@ -213,7 +213,7 @@ func (d *Delivery) handleChunkDeliveryMsg(ctx context.Context, sp *Peer, req *Ch
 }
 
 // RequestFromPeers sends a chunk retrieve request to
-func (d *Delivery) RequestFromPeers(ctx context.Context, req *network.Request) (*discover.NodeID, chan struct{}, error) {
+func (d *Delivery) RequestFromPeers(ctx context.Context, req *network.Request) (*enode.ID, chan struct{}, error) {
 	requestFromPeersCount.Inc(1)
 	var sp *Peer
 	spID := req.Source

@@ -27,7 +27,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/p2p/discover"
+	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/swarm/log"
 )
 
@@ -111,8 +111,7 @@ func testProtocol(t *testing.T) {
 	}
 
 	// add right peer's public key as protocol peer on left
-	nid, _ := discover.HexID("0x00") // this hack is needed to satisfy the p2p method
-	p := p2p.NewPeer(nid, fmt.Sprintf("%x", common.FromHex(loaddrhex)), []p2p.Cap{})
+	p := p2p.NewPeer(enode.ID{}, fmt.Sprintf("%x", common.FromHex(loaddrhex)), []p2p.Cap{})
 	_, err = pssprotocols[lnodeinfo.ID].protocol.AddPeer(p, PingTopic, true, rpubkey)
 	if err != nil {
 		t.Fatal(err)

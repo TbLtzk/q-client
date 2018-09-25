@@ -13,7 +13,7 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
-	"gitlab.com/q-dev/q-client/p2p/discover"
+	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/simulations"
 	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
 	"gitlab.com/q-dev/q-client/swarm/network"
@@ -203,12 +203,11 @@ func TestStart(t *testing.T) {
 
 func newServices(allowRaw bool) adapters.Services {
 	stateStore := state.NewInmemoryStore()
-	kademlias := make(map[discover.NodeID]*network.Kademlia)
-	kademlia := func(id discover.NodeID) *network.Kademlia {
+	kademlias := make(map[enode.ID]*network.Kademlia)
+	kademlia := func(id enode.ID) *network.Kademlia {
 		if k, ok := kademlias[id]; ok {
 			return k
 		}
-		addr := network.NewAddrFromNodeID(id)
 		params := network.NewKadParams()
 		params.MinProxBinSize = 2
 		params.MaxBinSize = 3
@@ -216,7 +215,7 @@ func newServices(allowRaw bool) adapters.Services {
 		params.MaxRetries = 1000
 		params.RetryExponent = 2
 		params.RetryInterval = 1000000
-		kademlias[id] = network.NewKademlia(addr.Over(), params)
+		kademlias[id] = network.NewKademlia(id[:], params)
 		return kademlias[id]
 	}
 	return adapters.Services{
@@ -238,7 +237,7 @@ func newServices(allowRaw bool) adapters.Services {
 			return ps, nil
 		},
 		"bzz": func(ctx *adapters.ServiceContext) (node.Service, error) {
-			addr := network.NewAddrFromNodeID(ctx.Config.ID)
+			addr := network.NewAddr(ctx.Config.Node())
 			hp := network.NewHiveParams()
 			hp.Discovery = false
 			config := &network.BzzConfig{
