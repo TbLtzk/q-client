@@ -50,7 +50,7 @@ import (
 	"gitlab.com/q-dev/q-client/swarm/state"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 	"gitlab.com/q-dev/q-client/swarm/storage/mock"
-	"gitlab.com/q-dev/q-client/swarm/storage/mru"
+	"gitlab.com/q-dev/q-client/swarm/storage/feeds"
 	"gitlab.com/q-dev/q-client/swarm/tracing"
 )
 
@@ -186,10 +186,10 @@ func NewSwarm(config *api.Config, mockStore *mock.NodeStore) (self *Swarm, err e
 	// Swarm Hash Merklised Chunking for Arbitrary-length Document/File storage
 	self.fileStore = storage.NewFileStore(self.netStore, self.config.FileStoreParams)
 
-	var feedsHandler *mru.Handler
-	fhParams := &mru.HandlerParams{}
+	var feedsHandler *feeds.Handler
+	fhParams := &feeds.HandlerParams{}
 
-	feedsHandler = mru.NewHandler(fhParams)
+	feedsHandler = feeds.NewHandler(fhParams)
 	feedsHandler.SetStore(self.netStore)
 
 	lstore.Validators = []storage.ChunkValidator{

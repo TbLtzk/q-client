@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package mru
+package feeds
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ import (
 	"strconv"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/swarm/storage/mru/lookup"
+	"gitlab.com/q-dev/q-client/swarm/storage/feeds/lookup"
 
 	"gitlab.com/q-dev/q-client/swarm/storage"
 )

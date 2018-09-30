@@ -16,7 +16,7 @@
 
 // Handler is the API for Feeds
 // It enables creating, updating, syncing and retrieving feed updates and their data
-package mru
+package feeds
 
 import (
 	"bytes"
@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/swarm/storage/mru/lookup"
+	"gitlab.com/q-dev/q-client/swarm/storage/feeds/lookup"
 
 	"gitlab.com/q-dev/q-client/swarm/log"
 	"gitlab.com/q-dev/q-client/swarm/storage"
