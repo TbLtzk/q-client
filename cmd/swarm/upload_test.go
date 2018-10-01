@@ -32,7 +32,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/log"
 	swarm "gitlab.com/q-dev/q-client/swarm/api/client"
-	colorable "github.com/mattn/go-colorable"
+	"github.com/mattn/go-colorable"
 )
 
 var loglevel = flag.Int("loglevel", 3, "verbosity of logs")
