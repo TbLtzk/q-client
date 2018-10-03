@@ -26,11 +26,11 @@ import (
 	"testing"
 
 	"gitlab.com/q-dev/q-client/swarm/api"
-	"gitlab.com/q-dev/q-client/swarm/storage/feeds/lookup"
+	"gitlab.com/q-dev/q-client/swarm/storage/feed/lookup"
 	"gitlab.com/q-dev/q-client/swarm/testutil"
 
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/swarm/storage/feeds"
+	"gitlab.com/q-dev/q-client/swarm/storage/feed"
 
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/log"
@@ -65,7 +65,7 @@ func TestCLIFeedUpdate(t *testing.T) {
 	}
 
 	// compose a topic. We'll be doing quotes about Miguel de Cervantes
-	var topic feeds.Topic
+	var topic feed.Topic
 	subject := []byte("Miguel de Cervantes")
 	copy(topic[:], subject[:])
 	name := "quotes"
@@ -95,19 +95,19 @@ func TestCLIFeedUpdate(t *testing.T) {
 
 	// build the same topic as before, this time
 	// we use NewTopic to create a topic automatically.
-	topic, err = feeds.NewTopic(name, subject)
+	topic, err = feed.NewTopic(name, subject)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Feed configures whose updates we will be looking up.
-	fd := feeds.Feed{
+	fd := feed.Feed{
 		Topic: topic,
 		User:  address,
 	}
 
 	// Build a query to get the latest update
-	query := feeds.NewQueryLatest(&fd, lookup.NoClue)
+	query := feed.NewQueryLatest(&fd, lookup.NoClue)
 
 	// retrieve content!
 	reader, err := client.QueryFeed(query, "")
@@ -139,7 +139,7 @@ func TestCLIFeedUpdate(t *testing.T) {
 	cmd.ExpectExit()
 
 	// verify we can deserialize the result as a valid JSON
-	var request feeds.Request
+	var request feed.Request
 	err = json.Unmarshal([]byte(matches[0]), &request)
 	if err != nil {
 		t.Fatal(err)

@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"gitlab.com/q-dev/q-client/swarm/log"
-	"gitlab.com/q-dev/q-client/swarm/storage/feeds/lookup"
+	"gitlab.com/q-dev/q-client/swarm/storage/feed/lookup"
 )
 
 type Data struct {

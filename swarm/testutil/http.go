@@ -25,7 +25,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/swarm/api"
 	"gitlab.com/q-dev/q-client/swarm/storage"
-	"gitlab.com/q-dev/q-client/swarm/storage/feeds"
+	"gitlab.com/q-dev/q-client/swarm/storage/feed"
 )
 
 type TestServer interface {
@@ -54,8 +54,8 @@ func NewTestSwarmServer(t *testing.T, serverFunc func(*api.API) TestServer, reso
 		t.Fatal(err)
 	}
 
-	rhparams := &feeds.HandlerParams{}
-	rh, err := feeds.NewTestHandler(feedsDir, rhparams)
+	rhparams := &feed.HandlerParams{}
+	rh, err := feed.NewTestHandler(feedsDir, rhparams)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func NewTestSwarmServer(t *testing.T, serverFunc func(*api.API) TestServer, reso
 		},
 		CurrentTime: 42,
 	}
-	feeds.TimestampProvider = tss
+	feed.TimestampProvider = tss
 	return tss
 }
 
@@ -92,6 +92,6 @@ func (t *TestSwarmServer) Close() {
 	t.cleanup()
 }
 
-func (t *TestSwarmServer) Now() feeds.Timestamp {
-	return feeds.Timestamp{Time: t.CurrentTime}
+func (t *TestSwarmServer) Now() feed.Timestamp {
+	return feed.Timestamp{Time: t.CurrentTime}
 }

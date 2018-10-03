@@ -3,7 +3,7 @@ package lookup_test
 import (
 	"testing"
 
-	"gitlab.com/q-dev/q-client/swarm/storage/feeds/lookup"
+	"gitlab.com/q-dev/q-client/swarm/storage/feed/lookup"
 )
 
 func TestMarshallers(t *testing.T) {

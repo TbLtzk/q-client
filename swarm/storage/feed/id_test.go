@@ -1,9 +1,9 @@
-package feeds
+package feed
 
 import (
 	"testing"
 
-	"gitlab.com/q-dev/q-client/swarm/storage/feeds/lookup"
+	"gitlab.com/q-dev/q-client/swarm/storage/feed/lookup"
 )
 
 func getTestID() *ID {
