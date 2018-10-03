@@ -13,32 +13,24 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+package feed
 
-package mru
+import (
+	"testing"
+)
 
-import "gitlab.com/q-dev/q-client/common/hexutil"
-
-type binarySerializer interface {
-	binaryPut(serializedData []byte) error
-	binaryLength() int
-	binaryGet(serializedData []byte) error
+func getTestFeed() *Feed {
+	topic, _ := NewTopic("world news report, every hour", nil)
+	return &Feed{
+		Topic: topic,
+		User:  newCharlieSigner().Address(),
+	}
 }
 
-// Values interface represents a string key-value store
-// useful for building query strings
-type Values interface {
-	Get(key string) string
-	Set(key, value string)
+func TestFeedSerializerDeserializer(t *testing.T) {
+	testBinarySerializerRecovery(t, getTestFeed(), "0x776f726c64206e657773207265706f72742c20657665727920686f7572000000876a8936a7cd0b79ef0735ad0896c1afe278781c")
 }
 
-type valueSerializer interface {
-	FromValues(values Values) error
-	AppendValues(values Values)
-}
-
-// Hex serializes the structure and converts it to a hex string
-func Hex(bin binarySerializer) string {
-	b := make([]byte, bin.binaryLength())
-	bin.binaryPut(b)
-	return hexutil.Encode(b)
+func TestFeedSerializerLengthCheck(t *testing.T) {
+	testBinarySerializerLengthCheck(t, getTestFeed())
 }
