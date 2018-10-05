@@ -64,6 +64,30 @@ const tmplSourceGo = `
 
 package {{.Package}}
 
+import (
+	"math/big"
+	"strings"
+
+	ethereum "github.com/ethereum/go-ethereum"
+	"gitlab.com/q-dev/q-client/accounts/abi"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/event"
+)
+
+// Reference imports to suppress errors if they are not otherwise used.
+var (
+	_ = big.NewInt
+	_ = strings.NewReader
+	_ = ethereum.NotFound
+	_ = abi.U256
+	_ = bind.Bind
+	_ = common.Big1
+	_ = types.BloomLookup
+	_ = event.NewSubscription
+)
+
 {{range $contract := .Contracts}}
 	// {{.Type}}ABI is the input ABI used to generate the binding from.
 	const {{.Type}}ABI = "{{.InputABI}}"
