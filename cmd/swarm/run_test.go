@@ -42,7 +42,6 @@ import (
 	"gitlab.com/q-dev/q-client/swarm"
 	"gitlab.com/q-dev/q-client/swarm/api"
 	swarmhttp "gitlab.com/q-dev/q-client/swarm/api/http"
-	"gitlab.com/q-dev/q-client/swarm/testutil"
 )
 
 var loglevel = flag.Int("loglevel", 3, "verbosity of logs")
@@ -58,7 +57,7 @@ func init() {
 	})
 }
 
-func serverFunc(api *api.API) testutil.TestServer {
+func serverFunc(api *api.API) swarmhttp.TestServer {
 	return swarmhttp.NewServer(api, "")
 }
 func TestMain(m *testing.M) {

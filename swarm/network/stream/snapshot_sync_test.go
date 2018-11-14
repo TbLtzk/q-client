@@ -17,9 +17,7 @@ package stream
 
 import (
 	"context"
-	crand "crypto/rand"
 	"fmt"
-	"io"
 	"os"
 	"runtime"
 	"sync"
@@ -39,6 +37,7 @@ import (
 	"gitlab.com/q-dev/q-client/swarm/state"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 	mockdb "gitlab.com/q-dev/q-client/swarm/storage/mock/db"
+	"gitlab.com/q-dev/q-client/swarm/testutil"
 )
 
 const MaxTimeout = 600
@@ -603,7 +602,7 @@ func uploadFileToSingleNodeStore(id enode.ID, chunkCount int, lstore *storage.Lo
 	size := chunkSize
 	var rootAddrs []storage.Address
 	for i := 0; i < chunkCount; i++ {
-		rk, wait, err := fileStore.Store(context.TODO(), io.LimitReader(crand.Reader, int64(size)), int64(size), false)
+		rk, wait, err := fileStore.Store(context.TODO(), testutil.RandomReader(i, size), int64(size), false)
 		if err != nil {
 			return nil, err
 		}
