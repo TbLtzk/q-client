@@ -35,7 +35,8 @@ import (
 	"gitlab.com/q-dev/q-client/swarm/network/simulation"
 	"gitlab.com/q-dev/q-client/swarm/state"
 	"gitlab.com/q-dev/q-client/swarm/storage"
-	mockdb "gitlab.com/q-dev/q-client/swarm/storage/mock/db"
+	"gitlab.com/q-dev/q-client/swarm/storage/mock"
+	mockmem "gitlab.com/q-dev/q-client/swarm/storage/mock/mem"
 	"gitlab.com/q-dev/q-client/swarm/testutil"
 )
 
@@ -48,7 +49,7 @@ func TestSyncerSimulation(t *testing.T) {
 	testSyncBetweenNodes(t, 16, 1, dataChunkCount, true, 1)
 }
 
-func createMockStore(globalStore *mockdb.GlobalStore, id enode.ID, addr *network.BzzAddr) (lstore storage.ChunkStore, datadir string, err error) {
+func createMockStore(globalStore mock.GlobalStorer, id enode.ID, addr *network.BzzAddr) (lstore storage.ChunkStore, datadir string, err error) {
 	address := common.BytesToAddress(id.Bytes())
 	mockStore := globalStore.NewNodeStore(address)
 	params := storage.NewDefaultLocalStoreParams()
@@ -70,8 +71,7 @@ func testSyncBetweenNodes(t *testing.T, nodes, conns, chunkCount int, skipCheck 
 	sim := simulation.New(map[string]simulation.ServiceFunc{
 		"streamer": func(ctx *adapters.ServiceContext, bucket *sync.Map) (s node.Service, cleanup func(), err error) {
 			var store storage.ChunkStore
-			var globalStore *mockdb.GlobalStore
-			var gDir, datadir string
+			var datadir string
 
 			node := ctx.Config.Node()
 			addr := network.NewAddr(node)
@@ -79,11 +79,7 @@ func testSyncBetweenNodes(t *testing.T, nodes, conns, chunkCount int, skipCheck 
 			addr.OAddr[0] = byte(0)
 
 			if *useMockStore {
-				gDir, globalStore, err = createGlobalStore()
-				if err != nil {
-					return nil, nil, fmt.Errorf("Something went wrong; using mockStore enabled but globalStore is nil")
-				}
-				store, datadir, err = createMockStore(globalStore, node.ID(), addr)
+				store, datadir, err = createMockStore(mockmem.NewGlobalStore(), node.ID(), addr)
 			} else {
 				store, datadir, err = createTestLocalStorageForID(node.ID(), addr)
 			}
@@ -94,13 +90,6 @@ func testSyncBetweenNodes(t *testing.T, nodes, conns, chunkCount int, skipCheck 
 			cleanup = func() {
 				store.Close()
 				os.RemoveAll(datadir)
-				if *useMockStore {
-					err := globalStore.Close()
-					if err != nil {
-						log.Error("Error closing global store! %v", "err", err)
-					}
-					os.RemoveAll(gDir)
-				}
 			}
 			localStore := store.(*storage.LocalStore)
 			netStore, err := storage.NewNetStore(localStore, nil)
