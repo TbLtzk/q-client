@@ -18,14 +18,8 @@ package simulation_test
 
 import (
 	"context"
-	"fmt"
-	"sync"
-	"time"
 
 	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/node"
-	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
-	"gitlab.com/q-dev/q-client/swarm/network"
 	"gitlab.com/q-dev/q-client/swarm/network/simulation"
 )
 
@@ -35,7 +29,8 @@ import (
 func ExampleSimulation_WaitTillHealthy() {
 
 	log.Error("temporarily disabled as simulations.WaitTillHealthy cannot be trusted")
-	return
+
+	/* Commented out to avoid go vet errors/warnings
 
 	sim := simulation.New(map[string]simulation.ServiceFunc{
 		"bzz": func(ctx *adapters.ServiceContext, b *sync.Map) (node.Service, func(), error) {
@@ -75,6 +70,8 @@ func ExampleSimulation_WaitTillHealthy() {
 	}
 
 	// continue with the test
+
+	*/
 }
 
 // Watch all peer events in the simulation network, buy receiving from a channel.
