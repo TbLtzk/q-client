@@ -35,7 +35,6 @@ import (
 	p2ptest "gitlab.com/q-dev/q-client/p2p/testing"
 	"gitlab.com/q-dev/q-client/swarm/network"
 	"gitlab.com/q-dev/q-client/swarm/network/simulation"
-	"gitlab.com/q-dev/q-client/swarm/pot"
 	"gitlab.com/q-dev/q-client/swarm/state"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 	"gitlab.com/q-dev/q-client/swarm/testutil"
@@ -57,7 +56,7 @@ var (
 	bucketKeyRegistry  = simulation.BucketKey("registry")
 
 	chunkSize = 4096
-	pof       = pot.DefaultPof(256)
+	pof       = network.Pof
 )
 
 func init() {
