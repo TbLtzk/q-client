@@ -17,13 +17,10 @@
 package intervals
 
 import (
-	"errors"
 	"testing"
 
 	"gitlab.com/q-dev/q-client/swarm/state"
 )
-
-var ErrNotFound = errors.New("not found")
 
 // TestInmemoryStore tests basic functionality of InmemoryStore.
 func TestInmemoryStore(t *testing.T) {
