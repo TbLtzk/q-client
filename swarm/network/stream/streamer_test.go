@@ -24,8 +24,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/q-client/crypto/sha3"
 	p2ptest "gitlab.com/q-dev/q-client/p2p/testing"
+	"golang.org/x/crypto/sha3"
 )
 
 func TestStreamerSubscribe(t *testing.T) {

@@ -29,7 +29,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/enode"
@@ -40,6 +39,7 @@ import (
 	"gitlab.com/q-dev/q-client/swarm/pot"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 	whisper "gitlab.com/q-dev/q-client/whisper/whisperv5"
+	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -187,7 +187,7 @@ func NewPss(k *network.Kademlia, params *PssParams) (*Pss, error) {
 
 		hashPool: sync.Pool{
 			New: func() interface{} {
-				return sha3.NewKeccak256()
+				return sha3.NewLegacyKeccak256()
 			},
 		},
 	}

@@ -33,11 +33,11 @@ import (
 
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/crypto/ecies"
-	"gitlab.com/q-dev/q-client/crypto/sha3"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/swarm/api"
 	swarmapi "gitlab.com/q-dev/q-client/swarm/api/client"
 	"gitlab.com/q-dev/q-client/swarm/testutil"
+	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -598,7 +598,7 @@ func TestKeypairSanity(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		hasher := sha3.NewKeccak256()
+		hasher := sha3.NewLegacyKeccak256()
 		hasher.Write(salt)
 		shared, err := hex.DecodeString(sharedSecret)
 		if err != nil {
