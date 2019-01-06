@@ -35,7 +35,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
 	"gitlab.com/q-dev/q-client/rpc"
-	colorable "github.com/mattn/go-colorable"
+	"github.com/mattn/go-colorable"
 )
 
 var (
@@ -294,6 +294,7 @@ var testServices = adapters.Services{
 }
 
 func testHTTPServer(t *testing.T) (*Network, *httptest.Server) {
+	t.Helper()
 	adapter := adapters.NewSimAdapter(testServices)
 	network := NewNetwork(adapter, &NetworkConfig{
 		DefaultService: "test",
