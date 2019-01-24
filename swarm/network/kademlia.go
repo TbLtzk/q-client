@@ -27,6 +27,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/swarm/log"
 	"gitlab.com/q-dev/q-client/swarm/pot"
+	sv "gitlab.com/q-dev/q-client/swarm/version"
 )
 
 /*
@@ -552,6 +553,9 @@ func (k *Kademlia) string() string {
 	var rows []string
 
 	rows = append(rows, "=========================================================================")
+	if len(sv.GitCommit) > 0 {
+		rows = append(rows, fmt.Sprintf("commit hash: %s", sv.GitCommit))
+	}
 	rows = append(rows, fmt.Sprintf("%v KΛÐΞMLIΛ hive: queen's address: %x", time.Now().UTC().Format(time.UnixDate), k.BaseAddr()[:3]))
 	rows = append(rows, fmt.Sprintf("population: %d (%d), NeighbourhoodSize: %d, MinBinSize: %d, MaxBinSize: %d", k.conns.Size(), k.addrs.Size(), k.NeighbourhoodSize, k.MinBinSize, k.MaxBinSize))
 
