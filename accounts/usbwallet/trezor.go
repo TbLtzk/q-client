@@ -28,7 +28,7 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/accounts/usbwallet/internal/trezor"
+	"gitlab.com/q-dev/q-client/accounts/usbwallet/trezor"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/core/types"
