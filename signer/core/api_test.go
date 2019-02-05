@@ -29,7 +29,6 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/accounts/keystore"
-	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/core/types"
@@ -135,7 +134,7 @@ func setup(t *testing.T) (*SignerAPI, chan string) {
 
 	db, err := NewAbiDBFromFile("../../cmd/clef/4byte.json")
 	if err != nil {
-		utils.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 	var (
 		ui  = &HeadlessUI{controller}
