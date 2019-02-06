@@ -18,12 +18,11 @@ package core
 
 import (
 	"fmt"
-	"strings"
-	"testing"
-
 	"io/ioutil"
 	"math/big"
 	"reflect"
+	"strings"
+	"testing"
 
 	"gitlab.com/q-dev/q-client/accounts/abi"
 	"gitlab.com/q-dev/q-client/common"

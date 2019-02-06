@@ -19,9 +19,8 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
-
 	"math/big"
+	"strings"
 
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
