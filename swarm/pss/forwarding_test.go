@@ -12,7 +12,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/protocols"
 	"gitlab.com/q-dev/q-client/swarm/network"
 	"gitlab.com/q-dev/q-client/swarm/pot"
-	whisper "gitlab.com/q-dev/q-client/whisper/whisperv5"
+	whisper "gitlab.com/q-dev/q-client/whisper/whisperv6"
 )
 
 type testCase struct {

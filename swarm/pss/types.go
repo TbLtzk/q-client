@@ -26,7 +26,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/swarm/storage"
-	whisper "gitlab.com/q-dev/q-client/whisper/whisperv5"
+	whisper "gitlab.com/q-dev/q-client/whisper/whisperv6"
 )
 
 const (

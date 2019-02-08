@@ -50,7 +50,7 @@ import (
 	"gitlab.com/q-dev/q-client/swarm/network"
 	"gitlab.com/q-dev/q-client/swarm/pot"
 	"gitlab.com/q-dev/q-client/swarm/state"
-	whisper "gitlab.com/q-dev/q-client/whisper/whisperv5"
+	whisper "gitlab.com/q-dev/q-client/whisper/whisperv6"
 )
 
 var (
