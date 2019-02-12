@@ -22,35 +22,10 @@ import (
 	"math/big"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/core/types"
 )
-
-type Accounts []Account
-
-func (as Accounts) String() string {
-	var output []string
-	for _, a := range as {
-		output = append(output, a.String())
-	}
-	return strings.Join(output, "\n")
-}
-
-type Account struct {
-	Typ     string         `json:"type"`
-	URL     accounts.URL   `json:"url"`
-	Address common.Address `json:"address"`
-}
-
-func (a Account) String() string {
-	s, err := json.Marshal(a)
-	if err == nil {
-		return string(s)
-	}
-	return err.Error()
-}
 
 type ValidationInfo struct {
 	Typ     string `json:"type"`
