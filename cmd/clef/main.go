@@ -44,6 +44,7 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
+	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/signer/core"
@@ -82,6 +83,11 @@ var (
 		Name:  "configdir",
 		Value: DefaultConfigDir(),
 		Usage: "Directory for Clef configuration",
+	}
+	chainIdFlag = cli.Int64Flag{
+		Name:  "chainid",
+		Value: params.MainnetChainConfig.ChainID.Int64(),
+		Usage: "Chain id to use for signing (1=mainnet, 3=ropsten, 4=rinkeby, 5=Goerli)",
 	}
 	rpcPortFlag = cli.IntFlag{
 		Name:  "rpcport",
@@ -178,7 +184,7 @@ func init() {
 		logLevelFlag,
 		keystoreFlag,
 		configdirFlag,
-		utils.NetworkIdFlag,
+		chainIdFlag,
 		utils.LightKDFFlag,
 		utils.NoUSBFlag,
 		utils.RPCListenAddrFlag,
@@ -402,9 +408,13 @@ func signer(c *cli.Context) error {
 			}
 		}
 	}
+	log.Info("Starting signer", "chainid", c.GlobalInt64(chainIdFlag.Name),
+		"keystore", c.GlobalString(keystoreFlag.Name),
+		"light-kdf", c.GlobalBool(utils.LightKDFFlag.Name),
+		"advanced", c.GlobalBool(advancedMode.Name))
 
 	apiImpl := core.NewSignerAPI(
-		c.GlobalInt64(utils.NetworkIdFlag.Name),
+		c.GlobalInt64(chainIdFlag.Name),
 		c.GlobalString(keystoreFlag.Name),
 		c.GlobalBool(utils.NoUSBFlag.Name),
 		ui, db,
