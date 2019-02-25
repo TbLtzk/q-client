@@ -7,7 +7,6 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/les/flowcontrol"
 	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
@@ -25,8 +24,7 @@ var (
 
 //ulc connects to trusted peer and send announceType=announceTypeSigned
 func TestPeerHandshakeSetAnnounceTypeToAnnounceTypeSignedForTrustedPeer(t *testing.T) {
-
-	var id enode.ID = newNodeID(t).ID()
+	id := newNodeID(t).ID()
 
 	//peer to connect(on ulc side)
 	p := peer{
@@ -74,7 +72,7 @@ func TestPeerHandshakeSetAnnounceTypeToAnnounceTypeSignedForTrustedPeer(t *testi
 }
 
 func TestPeerHandshakeAnnounceTypeSignedForTrustedPeersPeerNotInTrusted(t *testing.T) {
-	var id enode.ID = newNodeID(t).ID()
+	id := newNodeID(t).ID()
 	p := peer{
 		Peer:    p2p.NewPeer(id, "test peer", []p2p.Cap{}),
 		version: protocol_version,
@@ -118,7 +116,7 @@ func TestPeerHandshakeAnnounceTypeSignedForTrustedPeersPeerNotInTrusted(t *testi
 }
 
 func TestPeerHandshakeDefaultAllRequests(t *testing.T) {
-	var id enode.ID = newNodeID(t).ID()
+	id := newNodeID(t).ID()
 
 	s := generateLesServer()
 
@@ -147,7 +145,7 @@ func TestPeerHandshakeDefaultAllRequests(t *testing.T) {
 }
 
 func TestPeerHandshakeServerSendOnlyAnnounceRequestsHeaders(t *testing.T) {
-	var id enode.ID = newNodeID(t).ID()
+	id := newNodeID(t).ID()
 
 	s := generateLesServer()
 	s.onlyAnnounce = true
@@ -181,7 +179,7 @@ func TestPeerHandshakeServerSendOnlyAnnounceRequestsHeaders(t *testing.T) {
 	}
 }
 func TestPeerHandshakeClientReceiveOnlyAnnounceRequestsHeaders(t *testing.T) {
-	var id enode.ID = newNodeID(t).ID()
+	id := newNodeID(t).ID()
 
 	p := peer{
 		Peer:    p2p.NewPeer(id, "test peer", []p2p.Cap{}),
@@ -212,7 +210,7 @@ func TestPeerHandshakeClientReceiveOnlyAnnounceRequestsHeaders(t *testing.T) {
 }
 
 func TestPeerHandshakeClientReturnErrorOnUselessPeer(t *testing.T) {
-	var id enode.ID = newNodeID(t).ID()
+	id := newNodeID(t).ID()
 
 	p := peer{
 		Peer:    p2p.NewPeer(id, "test peer", []p2p.Cap{}),
