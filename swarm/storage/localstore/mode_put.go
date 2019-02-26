@@ -17,8 +17,8 @@
 package localstore
 
 import (
+	"gitlab.com/q-dev/q-client/swarm/chunk"
 	"gitlab.com/q-dev/q-client/swarm/shed"
-	"gitlab.com/q-dev/q-client/swarm/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -53,7 +53,7 @@ func (db *DB) NewPutter(mode ModePut) *Putter {
 
 // Put stores the Chunk to database and depending
 // on the Putter mode, it updates required indexes.
-func (p *Putter) Put(ch storage.Chunk) (err error) {
+func (p *Putter) Put(ch chunk.Chunk) (err error) {
 	return p.db.put(p.mode, chunkToItem(ch))
 }
 

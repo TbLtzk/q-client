@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/log"
-	ch "gitlab.com/q-dev/q-client/swarm/chunk"
+	"gitlab.com/q-dev/q-client/swarm/chunk"
 	"github.com/mattn/go-colorable"
 )
 
@@ -94,7 +94,7 @@ func mput(store ChunkStore, n int, f func(i int64) Chunk) (hs []Chunk, err error
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 	for i := int64(0); i < int64(n); i++ {
-		chunk := f(ch.DefaultSize)
+		chunk := f(chunk.DefaultSize)
 		go func() {
 			select {
 			case errc <- store.Put(ctx, chunk):
