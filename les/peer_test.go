@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/mclock"
 	"gitlab.com/q-dev/q-client/les/flowcontrol"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rlp"
@@ -34,7 +35,7 @@ func TestPeerHandshakeSetAnnounceTypeToAnnounceTypeSignedForTrustedPeer(t *testi
 		rw: &rwStub{
 			WriteHook: func(recvList keyValueList) {
 				//checking that ulc sends to peer allowedRequests=onlyAnnounceRequests and announceType = announceTypeSigned
-				recv := recvList.decode()
+				recv, _ := recvList.decode()
 				var reqType uint64
 
 				err := recv.get("announceType", &reqType)
@@ -79,7 +80,7 @@ func TestPeerHandshakeAnnounceTypeSignedForTrustedPeersPeerNotInTrusted(t *testi
 		rw: &rwStub{
 			WriteHook: func(recvList keyValueList) {
 				//checking that ulc sends to peer allowedRequests=noRequests and announceType != announceTypeSigned
-				recv := recvList.decode()
+				recv, _ := recvList.decode()
 				var reqType uint64
 
 				err := recv.get("announceType", &reqType)
@@ -237,17 +238,11 @@ func TestPeerHandshakeClientReturnErrorOnUselessPeer(t *testing.T) {
 
 func generateLesServer() *LesServer {
 	s := &LesServer{
-		defParams: &flowcontrol.ServerParams{
+		defParams: flowcontrol.ServerParams{
 			BufLimit:    uint64(300000000),
 			MinRecharge: uint64(50000),
 		},
-		fcManager: flowcontrol.NewClientManager(1, 2, 3),
-		fcCostStats: &requestCostStats{
-			stats: make(map[uint64]*linReg, len(reqList)),
-		},
-	}
-	for _, code := range reqList {
-		s.fcCostStats.stats[code] = &linReg{cnt: 100}
+		fcManager: flowcontrol.NewClientManager(nil, &mclock.System{}),
 	}
 	return s
 }
