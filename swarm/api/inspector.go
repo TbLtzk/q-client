@@ -18,6 +18,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 
 	"gitlab.com/q-dev/q-client/swarm/network"
 	"gitlab.com/q-dev/q-client/swarm/storage"
@@ -36,6 +37,14 @@ func NewInspector(api *API, hive *network.Hive, netStore *storage.NetStore) *Ins
 // Hive prints the kademlia table
 func (inspector *Inspector) Hive() string {
 	return inspector.hive.String()
+}
+
+func (inspector *Inspector) ListKnown() []string {
+	res := []string{}
+	for _, v := range inspector.hive.Kademlia.ListKnown() {
+		res = append(res, fmt.Sprintf("%v", v))
+	}
+	return res
 }
 
 type HasInfo struct {
