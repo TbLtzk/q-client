@@ -24,10 +24,10 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -400,7 +400,7 @@ func TestClique(t *testing.T) {
 			copy(genesis.ExtraData[extraVanity+j*common.AddressLength:], signer[:])
 		}
 		// Create a pristine blockchain with the genesis injected
-		db := ethdb.NewMemDatabase()
+		db := rawdb.NewMemoryDatabase()
 		genesis.Commit(db)
 
 		// Assemble a chain of headers from the cast votes

@@ -31,10 +31,10 @@ import (
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/tests"
@@ -155,6 +155,7 @@ func TestPrestateTracerCreate2(t *testing.T) {
 		GasPrice:    big.NewInt(1),
 	}
 	alloc := core.GenesisAlloc{}
+
 	// The code pushes 'deadbeef' into memory, then the other params, and calls CREATE2, then returns
 	// the address
 	alloc[common.HexToAddress("0x00000000000000000000000000000000deadbeef")] = core.GenesisAccount{
@@ -167,7 +168,8 @@ func TestPrestateTracerCreate2(t *testing.T) {
 		Code:    []byte{},
 		Balance: big.NewInt(500000000000000),
 	}
-	statedb := tests.MakePreState(ethdb.NewMemDatabase(), alloc)
+	statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), alloc)
+
 	// Create the tracer, the EVM environment and run it
 	tracer, err := New("prestateTracer")
 	if err != nil {
@@ -240,7 +242,7 @@ func TestCallTracer(t *testing.T) {
 				GasLimit:    uint64(test.Context.GasLimit),
 				GasPrice:    tx.GasPrice(),
 			}
-			statedb := tests.MakePreState(ethdb.NewMemDatabase(), test.Genesis.Alloc)
+			statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc)
 
 			// Create the tracer, the EVM environment and run it
 			tracer, err := New("callTracer")

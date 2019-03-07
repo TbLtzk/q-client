@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/common/mclock"
-	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/core/rawdb"
 )
 
 func TestFreeClientPoolL10C100(t *testing.T) {
@@ -44,7 +44,7 @@ const testFreeClientPoolTicks = 500000
 func testFreeClientPool(t *testing.T, connLimit, clientCount int) {
 	var (
 		clock       mclock.Simulated
-		db          = ethdb.NewMemDatabase()
+		db          = rawdb.NewMemoryDatabase()
 		connected   = make([]bool, clientCount)
 		connTicks   = make([]int, clientCount)
 		disconnCh   = make(chan int, clientCount)
