@@ -18,12 +18,15 @@ package network
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/swarm/storage"
+	"gitlab.com/q-dev/q-client/swarm/tracing"
+	"github.com/opentracing/opentracing-go"
 )
 
 const (
@@ -317,6 +320,14 @@ func (f *Fetcher) doRequest(gone chan *enode.ID, peersToSkip *sync.Map, sources 
 		case <-quit:
 			gone <- sourceID
 		case <-f.ctx.Done():
+		}
+
+		// finish the request span
+		spanId := fmt.Sprintf("stream.send.request.%v.%v", *sourceID, req.Addr)
+		span := tracing.ShiftSpanByKey(spanId)
+
+		if span != nil {
+			defer span.(opentracing.Span).Finish()
 		}
 	}()
 	return sources, nil
