@@ -26,7 +26,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 	"gitlab.com/q-dev/q-client/swarm/tracing"
-	"github.com/opentracing/opentracing-go"
+	olog "github.com/opentracing/opentracing-go/log"
 )
 
 const (
@@ -327,7 +327,8 @@ func (f *Fetcher) doRequest(gone chan *enode.ID, peersToSkip *sync.Map, sources 
 		span := tracing.ShiftSpanByKey(spanId)
 
 		if span != nil {
-			defer span.(opentracing.Span).Finish()
+			span.LogFields(olog.String("finish", "from doRequest"))
+			span.Finish()
 		}
 	}()
 	return sources, nil
