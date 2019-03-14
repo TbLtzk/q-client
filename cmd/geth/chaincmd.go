@@ -35,7 +35,6 @@ import (
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/trie"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -260,9 +259,6 @@ func importChain(ctx *cli.Context) error {
 		utils.Fatalf("Failed to read database iostats: %v", err)
 	}
 	fmt.Println(ioStats)
-
-	fmt.Printf("Trie cache misses:  %d\n", trie.CacheMisses())
-	fmt.Printf("Trie cache unloads: %d\n\n", trie.CacheUnloads())
 
 	// Print the memory statistics used by the importing
 	mem := new(runtime.MemStats)
