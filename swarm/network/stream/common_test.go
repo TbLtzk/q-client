@@ -30,6 +30,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
@@ -183,7 +184,13 @@ func newStreamerTester(registryOptions *RegistryOptions) (*p2ptest.ProtocolTeste
 		streamer.Close()
 		removeDataDir()
 	}
-	protocolTester := p2ptest.NewProtocolTester(addr.ID(), 1, streamer.runProtocol)
+	prvkey, err := crypto.GenerateKey()
+	if err != nil {
+		removeDataDir()
+		return nil, nil, nil, nil, err
+	}
+
+	protocolTester := p2ptest.NewProtocolTester(prvkey, 1, streamer.runProtocol)
 
 	err = waitForPeers(streamer, 10*time.Second, 1)
 	if err != nil {

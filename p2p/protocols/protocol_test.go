@@ -27,6 +27,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/rlp"
 
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
@@ -144,8 +145,11 @@ func newProtocol(pp *p2ptest.TestPeerPool) func(*p2p.Peer, p2p.MsgReadWriter) er
 }
 
 func protocolTester(pp *p2ptest.TestPeerPool) *p2ptest.ProtocolTester {
-	conf := adapters.RandomNodeConfig()
-	return p2ptest.NewProtocolTester(conf.ID, 2, newProtocol(pp))
+	prvkey, err := crypto.GenerateKey()
+	if err != nil {
+		panic(err)
+	}
+	return p2ptest.NewProtocolTester(prvkey, 2, newProtocol(pp))
 }
 
 func protoHandshakeExchange(id enode.ID, proto *protoHandshake) []p2ptest.Exchange {
@@ -260,9 +264,12 @@ func TestProtocolHook(t *testing.T) {
 		return peer.Run(handle)
 	}
 
-	conf := adapters.RandomNodeConfig()
-	tester := p2ptest.NewProtocolTester(conf.ID, 2, runFunc)
-	err := tester.TestExchanges(p2ptest.Exchange{
+	prvkey, err := crypto.GenerateKey()
+	if err != nil {
+		panic(err)
+	}
+	tester := p2ptest.NewProtocolTester(prvkey, 2, runFunc)
+	err = tester.TestExchanges(p2ptest.Exchange{
 		Expects: []p2ptest.Expect{
 			{
 				Code: 0,

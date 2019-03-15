@@ -28,6 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/enr"
 	"gitlab.com/q-dev/q-client/p2p/simulations/pipes"
 	"gitlab.com/q-dev/q-client/rpc"
 )
@@ -71,8 +72,13 @@ func (s *SimAdapter) NewNode(config *NodeConfig) (Node, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
-	// check a node with the ID doesn't already exist
 	id := config.ID
+	// verify that the node has a private key in the config
+	if config.PrivateKey == nil {
+		return nil, fmt.Errorf("node is missing private key: %s", id)
+	}
+
+	// check a node with the ID doesn't already exist
 	if _, exists := s.nodes[id]; exists {
 		return nil, fmt.Errorf("node already exists: %s", id)
 	}
@@ -86,6 +92,24 @@ func (s *SimAdapter) NewNode(config *NodeConfig) (Node, error) {
 			return nil, fmt.Errorf("unknown node service %q", service)
 		}
 	}
+
+	// dialer in simulations based on ENR records
+	// doesn't work unless we explicitly set localhost record
+	ip := enr.IP(net.IPv4(127, 0, 0, 1))
+	config.Record.Set(&ip)
+	tcpPort := enr.TCP(0)
+	config.Record.Set(&tcpPort)
+
+	err := enode.SignV4(&config.Record, config.PrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("unable to generate ENR: %v", err)
+	}
+	nod, err := enode.New(enode.V4ID{}, &config.Record)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create enode: %v", err)
+	}
+	log.Trace("simnode new", "record", config.Record)
+	config.node = nod
 
 	n, err := node.New(&node.Config{
 		P2P: p2p.Config{
