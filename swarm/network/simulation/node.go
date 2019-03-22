@@ -17,18 +17,26 @@
 package simulation
 
 import (
+	"bytes"
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"sync"
 	"time"
 
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/simulations"
 	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
 	"gitlab.com/q-dev/q-client/swarm/network"
+)
+
+var (
+	BucketKeyBzzPrivateKey BucketKey = "bzzprivkey"
 )
 
 // NodeIDs returns NodeIDs for all nodes in the network.
@@ -104,13 +112,15 @@ func (s *Simulation) AddNode(opts ...AddNodeOption) (id enode.ID, err error) {
 	// for now we have no way of setting bootnodes or lightnodes in sims
 	// so we just let them be set to false
 	// they should perhaps be possible to override them with AddNodeOption
-	enodeParams := &network.EnodeParams{
-		PrivateKey: conf.PrivateKey,
-	}
-	record, err := network.NewEnodeRecord(enodeParams)
+	bzzPrivateKey, err := BzzPrivateKeyFromConfig(conf)
 	if err != nil {
 		return enode.ID{}, err
 	}
+
+	enodeParams := &network.EnodeParams{
+		PrivateKey: bzzPrivateKey,
+	}
+	record, err := network.NewEnodeRecord(enodeParams)
 	conf.Record = *record
 
 	// Add the bzz address to the node config
@@ -118,6 +128,8 @@ func (s *Simulation) AddNode(opts ...AddNodeOption) (id enode.ID, err error) {
 	if err != nil {
 		return id, err
 	}
+	s.buckets[node.ID()] = new(sync.Map)
+	s.SetNodeItem(node.ID(), BucketKeyBzzPrivateKey, bzzPrivateKey)
 
 	return node.ID(), s.Net.Start(node.ID())
 }
@@ -314,4 +326,16 @@ func (s *Simulation) StopRandomNodes(count int) (ids []enode.ID, err error) {
 // seed the random generator for Simulation.randomNode.
 func init() {
 	rand.Seed(time.Now().UnixNano())
+}
+
+// derive a private key for swarm for the node key
+// returns the private key used to generate the bzz key
+func BzzPrivateKeyFromConfig(conf *adapters.NodeConfig) (*ecdsa.PrivateKey, error) {
+	// pad the seed key some arbitrary data as ecdsa.GenerateKey takes 40 bytes seed data
+	privKeyBuf := append(crypto.FromECDSA(conf.PrivateKey), []byte{0x62, 0x7a, 0x7a, 0x62, 0x7a, 0x7a, 0x62, 0x7a}...)
+	bzzPrivateKey, err := ecdsa.GenerateKey(crypto.S256(), bytes.NewReader(privKeyBuf))
+	if err != nil {
+		return nil, err
+	}
+	return bzzPrivateKey, nil
 }
