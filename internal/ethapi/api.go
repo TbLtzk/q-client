@@ -28,6 +28,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/accounts/scwallet"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/common/math"
@@ -44,6 +45,7 @@ import (
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/tyler-smith/go-bip39"
 )
 
 const (
@@ -469,6 +471,48 @@ func (s *PrivateAccountAPI) EcRecover(ctx context.Context, data, sig hexutil.Byt
 // and will be removed in the future. It primary goal is to give clients time to update.
 func (s *PrivateAccountAPI) SignAndSendTransaction(ctx context.Context, args SendTxArgs, passwd string) (common.Hash, error) {
 	return s.SendTransaction(ctx, args, passwd)
+}
+
+// InitializeWallet initializes a new wallet at the provided URL, by generating and returning a new private key.
+func (s *PrivateAccountAPI) InitializeWallet(ctx context.Context, url string) (string, error) {
+	wallet, err := s.am.Wallet(url)
+	if err != nil {
+		return "", err
+	}
+
+	entropy, err := bip39.NewEntropy(256)
+	if err != nil {
+		return "", err
+	}
+
+	mnemonic, err := bip39.NewMnemonic(entropy)
+	if err != nil {
+		return "", err
+	}
+
+	seed := bip39.NewSeed(mnemonic, "")
+
+	switch wallet := wallet.(type) {
+	case *scwallet.Wallet:
+		return mnemonic, wallet.Initialize(seed)
+	default:
+		return "", fmt.Errorf("Specified wallet does not support initialization")
+	}
+}
+
+// Unpair deletes a pairing between wallet and geth.
+func (s *PrivateAccountAPI) Unpair(ctx context.Context, url string, pin string) error {
+	wallet, err := s.am.Wallet(url)
+	if err != nil {
+		return err
+	}
+
+	switch wallet := wallet.(type) {
+	case *scwallet.Wallet:
+		return wallet.Unpair([]byte(pin))
+	default:
+		return fmt.Errorf("Specified wallet does not support pairing")
+	}
 }
 
 // PublicBlockChainAPI provides an API to access the Ethereum blockchain.
