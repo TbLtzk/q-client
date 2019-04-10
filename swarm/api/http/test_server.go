@@ -26,6 +26,7 @@ import (
 	"gitlab.com/q-dev/q-client/swarm/api"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 	"gitlab.com/q-dev/q-client/swarm/storage/feed"
+	"gitlab.com/q-dev/q-client/swarm/storage/localstore"
 )
 
 type TestServer interface {
@@ -37,16 +38,12 @@ func NewTestSwarmServer(t *testing.T, serverFunc func(*api.API) TestServer, reso
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	storeParams := storage.NewDefaultLocalStoreParams()
-	storeParams.DbCapacity = 5000000
-	storeParams.CacheCapacity = 5000
-	storeParams.Init(swarmDir)
-	localStore, err := storage.NewLocalStore(storeParams, nil)
+	localStore, err := localstore.New(dir, make([]byte, 32), nil)
 	if err != nil {
 		os.RemoveAll(swarmDir)
 		t.Fatal(err)
 	}
+
 	fileStore := storage.NewFileStore(localStore, storage.NewFileStoreParams())
 	// Swarm feeds test setup
 	feedsDir, err := ioutil.TempDir("", "swarm-feeds-test")

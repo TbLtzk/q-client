@@ -25,6 +25,7 @@ import (
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
+	"gitlab.com/q-dev/q-client/swarm/chunk"
 	"gitlab.com/q-dev/q-client/swarm/log"
 	"gitlab.com/q-dev/q-client/swarm/network/simulation"
 	"gitlab.com/q-dev/q-client/swarm/state"
@@ -278,8 +279,8 @@ func runRetrievalTest(t *testing.T, chunkCount int, nodeCount int) error {
 		if !ok {
 			return fmt.Errorf("No localstore")
 		}
-		lstore := item.(*storage.LocalStore)
-		conf.hashes, err = uploadFileToSingleNodeStore(node.ID(), chunkCount, lstore)
+		store := item.(chunk.Store)
+		conf.hashes, err = uploadFileToSingleNodeStore(node.ID(), chunkCount, store)
 		if err != nil {
 			return err
 		}

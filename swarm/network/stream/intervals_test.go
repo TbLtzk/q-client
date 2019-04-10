@@ -29,6 +29,7 @@ import (
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
+	"gitlab.com/q-dev/q-client/swarm/chunk"
 	"gitlab.com/q-dev/q-client/swarm/network/simulation"
 	"gitlab.com/q-dev/q-client/swarm/state"
 	"gitlab.com/q-dev/q-client/swarm/storage"
@@ -287,11 +288,11 @@ func enableNotifications(r *Registry, peerID enode.ID, s Stream) error {
 
 type testExternalClient struct {
 	hashes               chan []byte
-	store                storage.SyncChunkStore
+	store                chunk.FetchStore
 	enableNotificationsC chan struct{}
 }
 
-func newTestExternalClient(store storage.SyncChunkStore) *testExternalClient {
+func newTestExternalClient(store chunk.FetchStore) *testExternalClient {
 	return &testExternalClient{
 		hashes:               make(chan []byte),
 		store:                store,
