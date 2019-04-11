@@ -25,6 +25,8 @@ import (
 	"sort"
 	"testing"
 
+	"gitlab.com/q-dev/q-client/swarm/testutil"
+
 	"gitlab.com/q-dev/q-client/swarm/storage"
 	"gitlab.com/q-dev/q-client/swarm/storage/feed/lookup"
 
@@ -43,7 +45,13 @@ func serverFunc(api *api.API) swarmhttp.TestServer {
 func TestClientUploadDownloadRaw(t *testing.T) {
 	testClientUploadDownloadRaw(false, t)
 }
+
 func TestClientUploadDownloadRawEncrypted(t *testing.T) {
+	if testutil.RaceEnabled {
+		t.Skip("flaky with -race on Travis")
+		// See: https://github.com/ethersphere/go-ethereum/issues/1254
+	}
+
 	testClientUploadDownloadRaw(true, t)
 }
 
