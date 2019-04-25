@@ -27,12 +27,11 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/swarm/testutil"
-
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/swarm/chunk"
 	"gitlab.com/q-dev/q-client/swarm/log"
 	"gitlab.com/q-dev/q-client/swarm/storage/mock/mem"
+	"gitlab.com/q-dev/q-client/swarm/testutil"
 	ldberrors "github.com/syndtr/goleveldb/leveldb/errors"
 )
 
@@ -606,6 +605,10 @@ func TestLDBStoreCollectGarbageAccessUnlikeIndex(t *testing.T) {
 }
 
 func TestCleanIndex(t *testing.T) {
+	if testutil.RaceEnabled {
+		t.Skip("disabled because it times out with race detector")
+	}
+
 	capacity := 5000
 	n := 3
 
