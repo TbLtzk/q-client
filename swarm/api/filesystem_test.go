@@ -25,13 +25,14 @@ import (
 	"testing"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/swarm/chunk"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 )
 
 var testDownloadDir, _ = ioutil.TempDir(os.TempDir(), "bzz-test")
 
 func testFileSystem(t *testing.T, f func(*FileSystem, bool)) {
-	testAPI(t, func(api *API, toEncrypt bool) {
+	testAPI(t, func(api *API, _ *chunk.Tags, toEncrypt bool) {
 		f(NewFileSystem(api), toEncrypt)
 	})
 }

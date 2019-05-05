@@ -26,6 +26,7 @@ import (
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/contracts/ens"
+	"gitlab.com/q-dev/q-client/swarm/chunk"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -77,7 +78,7 @@ func hash(ctx *cli.Context) {
 	defer f.Close()
 
 	stat, _ := f.Stat()
-	fileStore := storage.NewFileStore(&storage.FakeChunkStore{}, storage.NewFileStoreParams())
+	fileStore := storage.NewFileStore(&storage.FakeChunkStore{}, storage.NewFileStoreParams(), chunk.NewTags())
 	addr, _, err := fileStore.Store(context.TODO(), f, stat.Size(), false)
 	if err != nil {
 		utils.Fatalf("%v\n", err)

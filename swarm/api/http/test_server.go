@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"gitlab.com/q-dev/q-client/swarm/api"
+	"gitlab.com/q-dev/q-client/swarm/chunk"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 	"gitlab.com/q-dev/q-client/swarm/storage/feed"
 	"gitlab.com/q-dev/q-client/swarm/storage/localstore"
@@ -44,7 +45,9 @@ func NewTestSwarmServer(t *testing.T, serverFunc func(*api.API) TestServer, reso
 		t.Fatal(err)
 	}
 
-	fileStore := storage.NewFileStore(localStore, storage.NewFileStoreParams())
+	tags := chunk.NewTags()
+	fileStore := storage.NewFileStore(localStore, storage.NewFileStoreParams(), tags)
+
 	// Swarm feeds test setup
 	feedsDir, err := ioutil.TempDir("", "swarm-feeds-test")
 	if err != nil {
@@ -56,12 +59,13 @@ func NewTestSwarmServer(t *testing.T, serverFunc func(*api.API) TestServer, reso
 		t.Fatal(err)
 	}
 
-	swarmApi := api.NewAPI(fileStore, resolver, feeds.Handler, nil)
+	swarmApi := api.NewAPI(fileStore, resolver, feeds.Handler, nil, tags)
 	apiServer := httptest.NewServer(serverFunc(swarmApi))
 
 	tss := &TestSwarmServer{
 		Server:    apiServer,
 		FileStore: fileStore,
+		Tags:      tags,
 		dir:       swarmDir,
 		Hasher:    storage.MakeHashFunc(storage.DefaultHash)(),
 		cleanup: func() {
@@ -81,6 +85,7 @@ type TestSwarmServer struct {
 	*httptest.Server
 	Hasher      storage.SwarmHash
 	FileStore   *storage.FileStore
+	Tags        *chunk.Tags
 	dir         string
 	cleanup     func()
 	CurrentTime uint64

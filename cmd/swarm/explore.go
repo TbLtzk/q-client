@@ -23,6 +23,7 @@ import (
 	"os"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/swarm/chunk"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -47,7 +48,7 @@ func hashes(ctx *cli.Context) {
 	}
 	defer f.Close()
 
-	fileStore := storage.NewFileStore(&storage.FakeChunkStore{}, storage.NewFileStoreParams())
+	fileStore := storage.NewFileStore(&storage.FakeChunkStore{}, storage.NewFileStoreParams(), chunk.NewTags())
 	refs, err := fileStore.GetAllReferences(context.TODO(), f, false)
 	if err != nil {
 		utils.Fatalf("%v\n", err)
