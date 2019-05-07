@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/rlp"
@@ -81,7 +80,7 @@ func (t *Trie) Prove(key []byte, fromLevel uint, proofDb ethdb.Writer) error {
 			} else {
 				enc, _ := rlp.EncodeToBytes(n)
 				if !ok {
-					hash = crypto.Keccak256(enc)
+					hash = hasher.makeHashNode(enc)
 				}
 				proofDb.Put(hash, enc)
 			}
@@ -104,6 +103,8 @@ func (t *SecureTrie) Prove(key []byte, fromLevel uint, proofDb ethdb.Writer) err
 // VerifyProof checks merkle proofs. The given proof must contain the value for
 // key in a trie with the given root hash. VerifyProof returns an error if the
 // proof contains invalid trie nodes or the wrong value.
+//
+// Note, the method assumes that all key-values in proofDb satisfy key = hash(value).
 func VerifyProof(rootHash common.Hash, key []byte, proofDb ethdb.Reader) (value []byte, nodes int, err error) {
 	key = keybytesToHex(key)
 	wantHash := rootHash
