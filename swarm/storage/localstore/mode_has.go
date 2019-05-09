@@ -22,17 +22,11 @@ import (
 
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/swarm/chunk"
-	"gitlab.com/q-dev/q-client/swarm/spancontext"
-	olog "github.com/opentracing/opentracing-go/log"
 )
 
 // Has returns true if the chunk is stored in database.
 func (db *DB) Has(ctx context.Context, addr chunk.Address) (bool, error) {
 	metricName := "localstore.Has"
-
-	ctx, sp := spancontext.StartSpan(ctx, metricName)
-	defer sp.Finish()
-	sp.LogFields(olog.String("ref", addr.String()))
 
 	metrics.GetOrRegisterCounter(metricName, nil).Inc(1)
 	defer totalTimeMetric(metricName, time.Now())
