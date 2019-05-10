@@ -31,6 +31,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/swarm/api"
+	"gitlab.com/q-dev/q-client/swarm/chunk"
 	"gitlab.com/q-dev/q-client/swarm/storage"
 	"gitlab.com/q-dev/q-client/swarm/testutil"
 	colorable "github.com/mattn/go-colorable"
@@ -1614,11 +1615,11 @@ func TestFUSE(t *testing.T) {
 	}
 	defer os.RemoveAll(datadir)
 
-	fileStore, err := storage.NewLocalFileStore(datadir, make([]byte, 32))
+	fileStore, err := storage.NewLocalFileStore(datadir, make([]byte, 32), chunk.NewTags())
 	if err != nil {
 		t.Fatal(err)
 	}
-	ta := &testAPI{api: api.NewAPI(fileStore, nil, nil, nil)}
+	ta := &testAPI{api: api.NewAPI(fileStore, nil, nil, nil, chunk.NewTags())}
 
 	//run a short suite of tests
 	//approx time: 28s

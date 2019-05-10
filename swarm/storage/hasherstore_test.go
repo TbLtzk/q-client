@@ -21,9 +21,9 @@ import (
 	"context"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/swarm/storage/encryption"
-
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/swarm/chunk"
+	"gitlab.com/q-dev/q-client/swarm/storage/encryption"
 )
 
 func TestHasherStore(t *testing.T) {
@@ -43,7 +43,7 @@ func TestHasherStore(t *testing.T) {
 
 	for _, tt := range tests {
 		chunkStore := NewMapChunkStore()
-		hasherStore := NewHasherStore(chunkStore, MakeHashFunc(DefaultHash), tt.toEncrypt)
+		hasherStore := NewHasherStore(chunkStore, MakeHashFunc(DefaultHash), tt.toEncrypt, chunk.NewTag(0, "test-tag", 0))
 
 		// Put two random chunks into the hasherStore
 		chunkData1 := GenerateRandomChunk(int64(tt.chunkLength)).Data()
@@ -107,7 +107,7 @@ func TestHasherStore(t *testing.T) {
 		}
 
 		// Check if chunk data in store is encrypted or not
-		chunkInStore, err := chunkStore.Get(ctx, hash1)
+		chunkInStore, err := chunkStore.Get(ctx, chunk.ModeGetRequest, hash1)
 		if err != nil {
 			t.Fatalf("Expected no error got \"%v\"", err)
 		}
