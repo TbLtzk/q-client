@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/metrics"
 	gethmetrics "gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/metrics/influxdb"
 	"gitlab.com/q-dev/q-client/swarm/log"
@@ -91,7 +92,10 @@ func Setup(ctx *cli.Context) {
 		)
 
 		// Start system runtime metrics collection
-		go gethmetrics.CollectProcessMetrics(2 * time.Second)
+		go gethmetrics.CollectProcessMetrics(4 * time.Second)
+
+		gethmetrics.RegisterRuntimeMemStats(metrics.DefaultRegistry)
+		go gethmetrics.CaptureRuntimeMemStats(metrics.DefaultRegistry, 4*time.Second)
 
 		tagsMap := utils.SplitTagsFlag(ctx.GlobalString(MetricsInfluxDBTagsFlag.Name))
 
