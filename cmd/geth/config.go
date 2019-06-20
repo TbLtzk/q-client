@@ -30,7 +30,6 @@ import (
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/dashboard"
 	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/graphql"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/params"
 	whisper "gitlab.com/q-dev/q-client/whisper/whisperv6"
@@ -177,14 +176,10 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 		}
 		utils.RegisterShhService(stack, &cfg.Shh)
 	}
-
-	// Configure GraphQL if required
+	// Configure GraphQL if requested
 	if ctx.GlobalIsSet(utils.GraphQLEnabledFlag.Name) {
-		if err := graphql.RegisterGraphQLService(stack, cfg.Node.GraphQLEndpoint(), cfg.Node.GraphQLCors, cfg.Node.GraphQLVirtualHosts, cfg.Node.HTTPTimeouts); err != nil {
-			utils.Fatalf("Failed to register the Ethereum service: %v", err)
-		}
+		utils.RegisterGraphQLService(stack, cfg.Node.GraphQLEndpoint(), cfg.Node.GraphQLCors, cfg.Node.GraphQLVirtualHosts, cfg.Node.HTTPTimeouts)
 	}
-
 	// Add the Ethereum Stats daemon if requested.
 	if cfg.Ethstats.URL != "" {
 		utils.RegisterEthStatsService(stack, cfg.Ethstats.URL)
