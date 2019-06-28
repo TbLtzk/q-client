@@ -475,11 +475,12 @@ var bindTests = []struct {
 		`
 			"gitlab.com/q-dev/q-client/accounts/abi/bind"
 			"gitlab.com/q-dev/q-client/accounts/abi/bind/backends"
+			"gitlab.com/q-dev/q-client/core"
 			"gitlab.com/q-dev/q-client/common"
 		`,
 		`
 			// Create a simulator and wrap a non-deployed contract
-			sim := backends.NewSimulatedBackend(nil, uint64(10000000000))
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{}, uint64(10000000000))
 
 			nonexistent, err := NewNonExistent(common.Address{}, sim)
 			if err != nil {

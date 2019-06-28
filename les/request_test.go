@@ -28,7 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/light"
 )
 
-var testBankSecureTrieKey = secAddr(testBankAddress)
+var testBankSecureTrieKey = secAddr(bankAddr)
 
 func secAddr(addr common.Address) []byte {
 	return crypto.Keccak256(addr[:])
