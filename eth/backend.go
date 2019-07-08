@@ -47,6 +47,7 @@ import (
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/p2p/enr"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
@@ -66,7 +67,9 @@ type Ethereum struct {
 	config *Config
 
 	// Channel for shutting down the service
-	shutdownChan chan bool // Channel for shutting down the Ethereum
+	shutdownChan chan bool
+
+	server *p2p.Server
 
 	// Handlers
 	txPool          *core.TxPool
@@ -496,7 +499,7 @@ func (s *Ethereum) EventMux() *event.TypeMux           { return s.eventMux }
 func (s *Ethereum) Engine() consensus.Engine           { return s.engine }
 func (s *Ethereum) ChainDb() ethdb.Database            { return s.chainDb }
 func (s *Ethereum) IsListening() bool                  { return true } // Always listening
-func (s *Ethereum) EthVersion() int                    { return int(s.protocolManager.SubProtocols[0].Version) }
+func (s *Ethereum) EthVersion() int                    { return int(ProtocolVersions[0]) }
 func (s *Ethereum) NetVersion() uint64                 { return s.networkID }
 func (s *Ethereum) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
 func (s *Ethereum) Synced() bool                       { return atomic.LoadUint32(&s.protocolManager.acceptTxs) == 1 }
@@ -505,15 +508,22 @@ func (s *Ethereum) ArchiveMode() bool                  { return s.config.NoPruni
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.
 func (s *Ethereum) Protocols() []p2p.Protocol {
-	if s.lesServer == nil {
-		return s.protocolManager.SubProtocols
+	protos := make([]p2p.Protocol, len(ProtocolVersions))
+	for i, vsn := range ProtocolVersions {
+		protos[i] = s.protocolManager.makeProtocol(vsn)
+		protos[i].Attributes = []enr.Entry{s.currentEthEntry()}
 	}
-	return append(s.protocolManager.SubProtocols, s.lesServer.Protocols()...)
+	if s.lesServer != nil {
+		protos = append(protos, s.lesServer.Protocols()...)
+	}
+	return protos
 }
 
 // Start implements node.Service, starting all internal goroutines needed by the
 // Ethereum protocol implementation.
 func (s *Ethereum) Start(srvr *p2p.Server) error {
+	s.startEthEntryUpdate(srvr.LocalNode())
+
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers(params.BloomBitsBlocks)
 
