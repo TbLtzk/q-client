@@ -30,6 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discv5"
 	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/enr"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rpc"
 )
@@ -136,12 +137,17 @@ func (s *LesServer) APIs() []rpc.API {
 }
 
 func (s *LesServer) Protocols() []p2p.Protocol {
-	return s.makeProtocols(ServerProtocolVersions, s.handler.runPeer, func(id enode.ID) interface{} {
+	ps := s.makeProtocols(ServerProtocolVersions, s.handler.runPeer, func(id enode.ID) interface{} {
 		if p := s.peers.Peer(peerIdToString(id)); p != nil {
 			return p.Info()
 		}
 		return nil
 	})
+	// Add "les" ENR entries.
+	for i := range ps {
+		ps[i].Attributes = []enr.Entry{&lesEntry{}}
+	}
+	return ps
 }
 
 // Start starts the LES server
