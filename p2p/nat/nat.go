@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/log"
-	"github.com/jackpal/go-nat-pmp"
+	natpmp "github.com/jackpal/go-nat-pmp"
 )
 
 // An implementation of nat.Interface can map local ports to ports
