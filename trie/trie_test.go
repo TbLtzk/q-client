@@ -31,7 +31,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethdb/leveldb"
 	"gitlab.com/q-dev/q-client/ethdb/memorydb"
 	"gitlab.com/q-dev/q-client/rlp"
@@ -315,16 +314,6 @@ func TestLargeValue(t *testing.T) {
 	trie.Update([]byte("key1"), []byte{99, 99, 99, 99})
 	trie.Update([]byte("key2"), bytes.Repeat([]byte{1}, 32))
 	trie.Hash()
-}
-
-type countingDB struct {
-	ethdb.KeyValueStore
-	gets map[string]int
-}
-
-func (db *countingDB) Get(key []byte) ([]byte, error) {
-	db.gets[string(key)]++
-	return db.KeyValueStore.Get(key)
 }
 
 // randTest performs random trie operations.
