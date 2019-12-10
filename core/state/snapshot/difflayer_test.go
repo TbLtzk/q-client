@@ -18,7 +18,6 @@ package snapshot
 
 import (
 	"bytes"
-	"math/big"
 	"math/rand"
 	"testing"
 
@@ -26,20 +25,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb/memorydb"
-	"gitlab.com/q-dev/q-client/rlp"
 )
-
-func randomAccount() []byte {
-	root := randomHash()
-	a := Account{
-		Balance:  big.NewInt(rand.Int63()),
-		Nonce:    rand.Uint64(),
-		Root:     root[:],
-		CodeHash: emptyCode[:],
-	}
-	data, _ := rlp.EncodeToBytes(a)
-	return data
-}
 
 // TestMergeBasics tests some simple merges
 func TestMergeBasics(t *testing.T) {
