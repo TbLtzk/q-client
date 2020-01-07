@@ -27,6 +27,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/les/checkpointoracle"
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/discv5"
@@ -63,7 +64,7 @@ type lesCommons struct {
 	peers                        *peerSet
 	chainReader                  chainReader
 	chtIndexer, bloomTrieIndexer *core.ChainIndexer
-	oracle                       *checkpointOracle
+	oracle                       *checkpointoracle.CheckpointOracle
 
 	closeCh chan struct{}
 	wg      sync.WaitGroup

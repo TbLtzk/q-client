@@ -36,6 +36,7 @@ import (
 	"gitlab.com/q-dev/q-client/eth/gasprice"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
+	"gitlab.com/q-dev/q-client/les/checkpointoracle"
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
@@ -123,7 +124,7 @@ func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
 	if oracle == nil {
 		oracle = params.CheckpointOracles[genesisHash]
 	}
-	leth.oracle = newCheckpointOracle(oracle, leth.localCheckpoint)
+	leth.oracle = checkpointoracle.New(oracle, leth.localCheckpoint)
 
 	// Note: AddChildIndexer starts the update process for the child
 	leth.bloomIndexer.AddChildIndexer(leth.bloomTrieIndexer)
@@ -275,5 +276,5 @@ func (s *LightEthereum) SetContractBackend(backend bind.ContractBackend) {
 	if s.oracle == nil {
 		return
 	}
-	s.oracle.start(backend)
+	s.oracle.Start(backend)
 }

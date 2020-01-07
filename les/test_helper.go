@@ -39,6 +39,7 @@ import (
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/les/checkpointoracle"
 	"gitlab.com/q-dev/q-client/les/flowcontrol"
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/p2p"
@@ -174,7 +175,7 @@ func newTestClientHandler(backend *backends.SimulatedBackend, odr *LesOdr, index
 			Alloc:    core.GenesisAlloc{bankAddr: {Balance: bankFunds}},
 			GasLimit: 100000000,
 		}
-		oracle *checkpointOracle
+		oracle *checkpointoracle.CheckpointOracle
 	)
 	genesis := gspec.MustCommit(db)
 	chain, _ := light.NewLightChain(odr, gspec.Config, engine, nil)
@@ -194,7 +195,7 @@ func newTestClientHandler(backend *backends.SimulatedBackend, odr *LesOdr, index
 				BloomRoot:    light.GetBloomTrieRoot(db, index, sectionHead),
 			}
 		}
-		oracle = newCheckpointOracle(checkpointConfig, getLocal)
+		oracle = checkpointoracle.New(checkpointConfig, getLocal)
 	}
 	client := &LightEthereum{
 		lesCommons: lesCommons{
@@ -218,7 +219,7 @@ func newTestClientHandler(backend *backends.SimulatedBackend, odr *LesOdr, index
 	client.handler = newClientHandler(ulcServers, ulcFraction, nil, client)
 
 	if client.oracle != nil {
-		client.oracle.start(backend)
+		client.oracle.Start(backend)
 	}
 	return client.handler
 }
@@ -230,7 +231,7 @@ func newTestServerHandler(blocks int, indexers []*core.ChainIndexer, db ethdb.Da
 			Alloc:    core.GenesisAlloc{bankAddr: {Balance: bankFunds}},
 			GasLimit: 100000000,
 		}
-		oracle *checkpointOracle
+		oracle *checkpointoracle.CheckpointOracle
 	)
 	genesis := gspec.MustCommit(db)
 
@@ -257,7 +258,7 @@ func newTestServerHandler(blocks int, indexers []*core.ChainIndexer, db ethdb.Da
 				BloomRoot:    light.GetBloomTrieRoot(db, index, sectionHead),
 			}
 		}
-		oracle = newCheckpointOracle(checkpointConfig, getLocal)
+		oracle = checkpointoracle.New(checkpointConfig, getLocal)
 	}
 	server := &LesServer{
 		lesCommons: lesCommons{
@@ -284,7 +285,7 @@ func newTestServerHandler(blocks int, indexers []*core.ChainIndexer, db ethdb.Da
 	server.clientPool.setLimits(10000, 10000) // Assign enough capacity for clientpool
 	server.handler = newServerHandler(server, simulation.Blockchain(), db, txpool, func() bool { return true })
 	if server.oracle != nil {
-		server.oracle.start(simulation)
+		server.oracle.Start(simulation)
 	}
 	server.servingQueue.setThreads(4)
 	server.handler.start()

@@ -24,6 +24,7 @@ import (
 	"gitlab.com/q-dev/q-client/common/mclock"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/les/checkpointoracle"
 	"gitlab.com/q-dev/q-client/les/flowcontrol"
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/log"
@@ -96,7 +97,7 @@ func NewLesServer(e *eth.Ethereum, config *eth.Config) (*LesServer, error) {
 	if oracle == nil {
 		oracle = params.CheckpointOracles[e.BlockChain().Genesis().Hash()]
 	}
-	srv.oracle = newCheckpointOracle(oracle, srv.localCheckpoint)
+	srv.oracle = checkpointoracle.New(oracle, srv.localCheckpoint)
 
 	// Initialize server capacity management fields.
 	srv.defParams = flowcontrol.ServerParams{
@@ -216,7 +217,7 @@ func (s *LesServer) SetContractBackend(backend bind.ContractBackend) {
 	if s.oracle == nil {
 		return
 	}
-	s.oracle.start(backend)
+	s.oracle.Start(backend)
 }
 
 // capacityManagement starts an event handler loop that updates the recharge curve of
