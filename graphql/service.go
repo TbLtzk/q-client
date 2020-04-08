@@ -23,6 +23,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rpc"
 	"github.com/graph-gophers/graphql-go"
@@ -68,7 +69,18 @@ func (s *Service) Start(server *p2p.Server) error {
 	if s.listener, err = net.Listen("tcp", s.endpoint); err != nil {
 		return err
 	}
-	go rpc.NewHTTPServer(s.cors, s.vhosts, s.timeouts, s.handler).Serve(s.listener)
+	// create handler stack and wrap the graphql handler
+	handler := node.NewHTTPHandlerStack(s.handler, s.cors, s.vhosts)
+	// make sure timeout values are meaningful
+	node.CheckTimeouts(&s.timeouts)
+	// create http server
+	httpSrv := &http.Server{
+		Handler:      handler,
+		ReadTimeout:  s.timeouts.ReadTimeout,
+		WriteTimeout: s.timeouts.WriteTimeout,
+		IdleTimeout:  s.timeouts.IdleTimeout,
+	}
+	go httpSrv.Serve(s.listener)
 	log.Info("GraphQL endpoint opened", "url", fmt.Sprintf("http://%s", s.endpoint))
 	return nil
 }
