@@ -31,7 +31,6 @@ import (
 	"unicode"
 
 	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/accounts/abi"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/common/math"
@@ -587,7 +586,7 @@ func (typedData *TypedData) EncodePrimitiveValue(encType string, encValue interf
 		if err != nil {
 			return nil, err
 		}
-		return abi.U256(b), nil
+		return math.U256Bytes(b), nil
 	}
 	return nil, fmt.Errorf("unrecognized type '%s'", encType)
 
