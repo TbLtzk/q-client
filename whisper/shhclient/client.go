@@ -19,7 +19,7 @@ package shhclient
 import (
 	"context"
 
-	"github.com/ethereum/go-ethereum"
+	ethereum "github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/rpc"
 	whisper "gitlab.com/q-dev/q-client/whisper/whisperv6"
