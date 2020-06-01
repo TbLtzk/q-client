@@ -22,11 +22,11 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/internal/ethapi"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rpc"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/go-ethereum/internal/ethapi"
+	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/go-ethereum/rpc"
 )
 
 var maxPrice = big.NewInt(500 * params.GWei)

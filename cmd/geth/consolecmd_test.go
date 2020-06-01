@@ -27,7 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/params"
+	"gitlab.com/q-dev/go-ethereum/params"
 )
 
 const (

@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 func BenchmarkCutOriginal(b *testing.B) {

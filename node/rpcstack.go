@@ -25,7 +25,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/log"
+	"gitlab.com/q-dev/go-ethereum/log"
 	"github.com/rs/cors"
 )
 

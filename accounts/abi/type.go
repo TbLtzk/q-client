@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 // Type enumerator

@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/light"
+	"gitlab.com/q-dev/go-ethereum/light"
 )
 
 var (
