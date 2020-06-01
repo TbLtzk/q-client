@@ -23,7 +23,7 @@ import (
 	"os"
 	"runtime/trace"
 
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 // StartGoTrace turns on tracing, writing to the given file.

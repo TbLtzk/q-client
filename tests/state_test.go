@@ -23,7 +23,7 @@ import (
 	"reflect"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/core/vm"
+	"gitlab.com/q-dev/go-ethereum/core/vm"
 )
 
 func TestState(t *testing.T) {

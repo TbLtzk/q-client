@@ -25,17 +25,17 @@ import (
 	"testing"
 	"time"
 
-	ethereum "github.com/ethereum/go-ethereum"
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/consensus/ethash"
-	"gitlab.com/q-dev/q-client/core"
-	"gitlab.com/q-dev/q-client/core/bloombits"
-	"gitlab.com/q-dev/q-client/core/rawdb"
-	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/rpc"
+	ethereum "gitlab.com/q-dev/go-ethereum"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/consensus/ethash"
+	"gitlab.com/q-dev/go-ethereum/core"
+	"gitlab.com/q-dev/go-ethereum/core/bloombits"
+	"gitlab.com/q-dev/go-ethereum/core/rawdb"
+	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/go-ethereum/ethdb"
+	"gitlab.com/q-dev/go-ethereum/event"
+	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/go-ethereum/rpc"
 )
 
 type testBackend struct {

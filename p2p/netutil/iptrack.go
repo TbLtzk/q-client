@@ -19,7 +19,7 @@ package netutil
 import (
 	"time"
 
-	"gitlab.com/q-dev/q-client/common/mclock"
+	"gitlab.com/q-dev/go-ethereum/common/mclock"
 )
 
 // IPTracker predicts the external endpoint, i.e. IP address and port, of the local host

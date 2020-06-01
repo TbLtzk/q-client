@@ -25,10 +25,10 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/internal/testlog"
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/go-ethereum/internal/testlog"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 // Tests whether remote HTTP servers are correctly notified of new work.

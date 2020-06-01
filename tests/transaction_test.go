@@ -19,7 +19,7 @@ package tests
 import (
 	"testing"
 
-	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/go-ethereum/params"
 )
 
 func TestTransaction(t *testing.T) {

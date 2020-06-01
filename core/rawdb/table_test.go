@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/go-ethereum/ethdb"
 )
 
 func TestTableDatabase(t *testing.T)            { testTableDatabase(t, "prefix") }

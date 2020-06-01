@@ -24,10 +24,10 @@ import (
 	"strings"
 	"syscall"
 
-	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/console"
-	"gitlab.com/q-dev/q-client/node"
-	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/go-ethereum/cmd/utils"
+	"gitlab.com/q-dev/go-ethereum/console"
+	"gitlab.com/q-dev/go-ethereum/node"
+	"gitlab.com/q-dev/go-ethereum/rpc"
 	"gopkg.in/urfave/cli.v1"
 )
 

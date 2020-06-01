@@ -24,12 +24,12 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum"
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/hexutil"
-	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/rlp"
-	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/go-ethereum"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/common/hexutil"
+	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/go-ethereum/rpc"
 )
 
 // Client defines typed wrappers for the Ethereum RPC API.

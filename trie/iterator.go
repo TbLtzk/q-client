@@ -21,8 +21,8 @@ import (
 	"container/heap"
 	"errors"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 )
 
 // Iterator is a key-value trie iterator that traverses a Trie.

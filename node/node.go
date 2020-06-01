@@ -28,14 +28,14 @@ import (
 	"strings"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/core/rawdb"
-	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/internal/debug"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/go-ethereum/accounts"
+	"gitlab.com/q-dev/go-ethereum/core/rawdb"
+	"gitlab.com/q-dev/go-ethereum/ethdb"
+	"gitlab.com/q-dev/go-ethereum/event"
+	"gitlab.com/q-dev/go-ethereum/internal/debug"
+	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/go-ethereum/p2p"
+	"gitlab.com/q-dev/go-ethereum/rpc"
 	"github.com/prometheus/tsdb/fileutil"
 )
 

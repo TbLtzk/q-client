@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/common/hexutil"
-	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/go-ethereum/common/hexutil"
+	"gitlab.com/q-dev/go-ethereum/crypto"
 )
 
 type bytesBacked interface {

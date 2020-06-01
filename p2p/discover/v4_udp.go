@@ -29,12 +29,12 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/p2p/enode"
-	"gitlab.com/q-dev/q-client/p2p/enr"
-	"gitlab.com/q-dev/q-client/p2p/netutil"
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/go-ethereum/p2p/enode"
+	"gitlab.com/q-dev/go-ethereum/p2p/enr"
+	"gitlab.com/q-dev/go-ethereum/p2p/netutil"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 )
 
 // Errors

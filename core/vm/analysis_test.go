@@ -19,7 +19,7 @@ package vm
 import (
 	"testing"
 
-	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/go-ethereum/crypto"
 )
 
 func TestJumpDestAnalysis(t *testing.T) {

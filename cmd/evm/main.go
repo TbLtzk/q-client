@@ -22,7 +22,7 @@ import (
 	"math/big"
 	"os"
 
-	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/go-ethereum/cmd/utils"
 	"gopkg.in/urfave/cli.v1"
 )
 

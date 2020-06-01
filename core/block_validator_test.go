@@ -21,11 +21,11 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/q-client/consensus/ethash"
-	"gitlab.com/q-dev/q-client/core/rawdb"
-	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/core/vm"
-	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/go-ethereum/consensus/ethash"
+	"gitlab.com/q-dev/go-ethereum/core/rawdb"
+	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/go-ethereum/core/vm"
+	"gitlab.com/q-dev/go-ethereum/params"
 )
 
 // Tests that simple header verification works, for both good and bad blocks.

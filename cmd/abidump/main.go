@@ -23,8 +23,8 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/signer/core"
-	"gitlab.com/q-dev/q-client/signer/fourbyte"
+	"gitlab.com/q-dev/go-ethereum/signer/core"
+	"gitlab.com/q-dev/go-ethereum/signer/fourbyte"
 )
 
 func init() {

@@ -19,8 +19,8 @@ package discover
 import (
 	crand "crypto/rand"
 
-	"gitlab.com/q-dev/q-client/common/mclock"
-	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/go-ethereum/common/mclock"
+	"gitlab.com/q-dev/go-ethereum/p2p/enode"
 	"github.com/hashicorp/golang-lru/simplelru"
 )
 

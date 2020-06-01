@@ -20,8 +20,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 )
 
 func decodeEncode(input []byte, val interface{}, i int) {

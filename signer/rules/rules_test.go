@@ -22,13 +22,13 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/hexutil"
-	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/internal/ethapi"
-	"gitlab.com/q-dev/q-client/signer/core"
-	"gitlab.com/q-dev/q-client/signer/storage"
+	"gitlab.com/q-dev/go-ethereum/accounts"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/common/hexutil"
+	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/go-ethereum/internal/ethapi"
+	"gitlab.com/q-dev/go-ethereum/signer/core"
+	"gitlab.com/q-dev/go-ethereum/signer/storage"
 )
 
 const JS = `

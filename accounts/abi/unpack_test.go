@@ -26,7 +26,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 

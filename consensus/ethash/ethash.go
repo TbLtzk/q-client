@@ -34,10 +34,10 @@ import (
 	"unsafe"
 
 	mmap "github.com/edsrzf/mmap-go"
-	"gitlab.com/q-dev/q-client/consensus"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/metrics"
-	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/go-ethereum/consensus"
+	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/go-ethereum/metrics"
+	"gitlab.com/q-dev/go-ethereum/rpc"
 	"github.com/hashicorp/golang-lru/simplelru"
 )
 

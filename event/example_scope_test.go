@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/go-ethereum/event"
 )
 
 // This example demonstrates how SubscriptionScope can be used to control the lifetime of

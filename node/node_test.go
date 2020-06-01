@@ -25,9 +25,9 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/go-ethereum/p2p"
+	"gitlab.com/q-dev/go-ethereum/rpc"
 
 	"github.com/stretchr/testify/assert"
 )

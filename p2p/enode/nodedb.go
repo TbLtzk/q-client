@@ -26,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"

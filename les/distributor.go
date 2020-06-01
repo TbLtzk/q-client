@@ -21,8 +21,8 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common/mclock"
-	"gitlab.com/q-dev/q-client/les/utils"
+	"gitlab.com/q-dev/go-ethereum/common/mclock"
+	"gitlab.com/q-dev/go-ethereum/les/utils"
 )
 
 // requestDistributor implements a mechanism that distributes requests to

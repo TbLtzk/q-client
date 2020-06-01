@@ -19,7 +19,7 @@
 package downloader
 
 import (
-	"gitlab.com/q-dev/q-client/metrics"
+	"gitlab.com/q-dev/go-ethereum/metrics"
 )
 
 var (

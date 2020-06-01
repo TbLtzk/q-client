@@ -19,8 +19,8 @@ package client
 import (
 	"sync"
 
-	"gitlab.com/q-dev/q-client/p2p/enode"
-	"gitlab.com/q-dev/q-client/p2p/nodestate"
+	"gitlab.com/q-dev/go-ethereum/p2p/enode"
+	"gitlab.com/q-dev/go-ethereum/p2p/nodestate"
 )
 
 // QueueIterator returns nodes from the specified selectable set in the same order as

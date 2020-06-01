@@ -22,11 +22,11 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/ethdb/memorydb"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/rlp"
-	"gitlab.com/q-dev/q-client/trie"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/ethdb/memorydb"
+	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/go-ethereum/trie"
 )
 
 // trieKV represents a trie key-value pair

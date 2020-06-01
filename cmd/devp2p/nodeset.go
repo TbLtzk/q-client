@@ -25,8 +25,8 @@ import (
 	"sort"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/p2p/enode"
 )
 
 const jsonIndent = "    "

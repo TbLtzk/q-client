@@ -27,8 +27,8 @@ import (
 	"net"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/p2p/enr"
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/p2p/enr"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 )
 
 var errMissingPrefix = errors.New("missing 'enr:' prefix for base64-encoded record")

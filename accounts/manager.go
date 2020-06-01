@@ -21,8 +21,8 @@ import (
 	"sort"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/event"
 )
 
 // Config contains the settings of the global account manager.

@@ -16,7 +16,7 @@
 
 package discv5
 
-import "gitlab.com/q-dev/q-client/metrics"
+import "gitlab.com/q-dev/go-ethereum/metrics"
 
 var (
 	ingressTrafficMeter = metrics.NewRegisteredMeter("discv5/InboundTraffic", nil)

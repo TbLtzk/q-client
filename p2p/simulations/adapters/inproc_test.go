@@ -23,7 +23,7 @@ import (
 	"sync"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/p2p/simulations/pipes"
+	"gitlab.com/q-dev/go-ethereum/p2p/simulations/pipes"
 )
 
 func TestTCPPipe(t *testing.T) {

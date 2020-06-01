@@ -19,8 +19,8 @@ package miner
 import (
 	"testing"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/core/types"
 )
 
 // noopChainRetriever is an implementation of headerRetriever that always

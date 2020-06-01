@@ -24,8 +24,8 @@ import (
 	"runtime"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/go-ethereum/p2p"
 )
 
 // Tests that datadirs can be successfully created, be them manually configured

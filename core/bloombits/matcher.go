@@ -26,8 +26,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common/bitutil"
-	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/go-ethereum/common/bitutil"
+	"gitlab.com/q-dev/go-ethereum/crypto"
 )
 
 // bloomIndexes represents the bit indexes inside the bloom filter that belong

@@ -19,7 +19,7 @@ package vm
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 // ContractRef is a reference to the contract's backing object

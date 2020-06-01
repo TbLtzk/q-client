@@ -19,8 +19,8 @@ package leveldb
 import (
 	"testing"
 
-	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/ethdb/dbtest"
+	"gitlab.com/q-dev/go-ethereum/ethdb"
+	"gitlab.com/q-dev/go-ethereum/ethdb/dbtest"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
 )

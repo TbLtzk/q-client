@@ -27,7 +27,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 // TestPack tests the general pack/unpack tests in packing_test.go

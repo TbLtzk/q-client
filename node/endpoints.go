@@ -21,8 +21,8 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/go-ethereum/rpc"
 )
 
 // StartHTTPEndpoint starts the HTTP RPC endpoint.

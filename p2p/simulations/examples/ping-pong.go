@@ -25,13 +25,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/node"
-	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/p2p/enode"
-	"gitlab.com/q-dev/q-client/p2p/simulations"
-	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
-	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/go-ethereum/node"
+	"gitlab.com/q-dev/go-ethereum/p2p"
+	"gitlab.com/q-dev/go-ethereum/p2p/enode"
+	"gitlab.com/q-dev/go-ethereum/p2p/simulations"
+	"gitlab.com/q-dev/go-ethereum/p2p/simulations/adapters"
+	"gitlab.com/q-dev/go-ethereum/rpc"
 )
 
 var adapterType = flag.String("adapter", "sim", `node adapter to use (one of "sim", "exec" or "docker")`)

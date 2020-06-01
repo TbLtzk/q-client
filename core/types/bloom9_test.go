@@ -54,7 +54,7 @@ func TestBloom(t *testing.T) {
 import (
 	"testing"
 
-	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/go-ethereum/core/state"
 )
 
 func TestBloom9(t *testing.T) {

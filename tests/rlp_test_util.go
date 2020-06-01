@@ -24,7 +24,7 @@ import (
 	"math/big"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 )
 
 // RLPTest is the JSON structure of a single RLP test.

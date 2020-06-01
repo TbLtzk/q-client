@@ -23,7 +23,7 @@ import (
 	"reflect"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 // precompiledTest defines the input/output pairs for precompiled contract tests.

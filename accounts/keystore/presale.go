@@ -25,8 +25,8 @@ import (
 	"errors"
 	"fmt"
 
-	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/go-ethereum/accounts"
+	"gitlab.com/q-dev/go-ethereum/crypto"
 	"github.com/pborman/uuid"
 	"golang.org/x/crypto/pbkdf2"
 )

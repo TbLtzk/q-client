@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 const (

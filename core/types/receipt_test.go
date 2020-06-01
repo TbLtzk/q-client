@@ -23,10 +23,10 @@ import (
 	"reflect"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 )
 
 func TestLegacyReceiptDecoding(t *testing.T) {

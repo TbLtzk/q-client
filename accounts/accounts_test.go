@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/go-ethereum/common/hexutil"
 )
 
 func TestTextHash(t *testing.T) {

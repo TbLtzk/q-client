@@ -25,7 +25,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 // ipcListen will create a Unix socket on the given endpoint.

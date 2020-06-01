@@ -23,8 +23,8 @@ import (
 	"math/big"
 	"reflect"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/crypto"
 )
 
 // MakeTopics converts a filter query argument list into a filter topic set.

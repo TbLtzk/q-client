@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/go-ethereum/p2p/enode"
 )
 
 // lookup performs a network search for nodes close to the given target. It approaches the

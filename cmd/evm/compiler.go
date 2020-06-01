@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"gitlab.com/q-dev/q-client/cmd/evm/internal/compiler"
+	"gitlab.com/q-dev/go-ethereum/cmd/evm/internal/compiler"
 
 	cli "gopkg.in/urfave/cli.v1"
 )

@@ -19,7 +19,7 @@ package snapshot
 import (
 	"bytes"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 // hashes is a helper to implement sort.Interface.

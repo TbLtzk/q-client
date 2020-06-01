@@ -19,9 +19,9 @@ package state
 import (
 	"fmt"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/trie"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/ethdb"
+	"gitlab.com/q-dev/go-ethereum/trie"
 	lru "github.com/hashicorp/golang-lru"
 )
 

@@ -24,10 +24,10 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core/state"
-	"gitlab.com/q-dev/q-client/core/vm"
-	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/core/state"
+	"gitlab.com/q-dev/go-ethereum/core/vm"
+	"gitlab.com/q-dev/go-ethereum/params"
 )
 
 type account struct{}

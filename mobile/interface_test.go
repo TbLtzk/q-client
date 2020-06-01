@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 func TestInterfaceGetSet(t *testing.T) {

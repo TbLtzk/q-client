@@ -17,7 +17,7 @@
 package vm
 
 import (
-	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/go-ethereum/params"
 )
 
 type (

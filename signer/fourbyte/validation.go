@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/signer/core"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/signer/core"
 )
 
 // ValidateTransaction does a number of checks on the supplied transaction, and

@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/hexutil"
-	"gitlab.com/q-dev/q-client/common/math"
-	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/common/hexutil"
+	"gitlab.com/q-dev/go-ethereum/common/math"
+	"gitlab.com/q-dev/go-ethereum/core/types"
 )
 
 var _ = (*btHeaderMarshaling)(nil)

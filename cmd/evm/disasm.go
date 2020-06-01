@@ -22,7 +22,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/core/asm"
+	"gitlab.com/q-dev/go-ethereum/core/asm"
 	cli "gopkg.in/urfave/cli.v1"
 )
 

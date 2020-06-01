@@ -19,8 +19,8 @@ package runtime_test
 import (
 	"fmt"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core/vm/runtime"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/core/vm/runtime"
 )
 
 func ExampleExecute() {

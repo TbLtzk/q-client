@@ -19,8 +19,8 @@
 package geth
 
 import (
-	"gitlab.com/q-dev/q-client/whisper/shhclient"
-	whisper "gitlab.com/q-dev/q-client/whisper/whisperv6"
+	"gitlab.com/q-dev/go-ethereum/whisper/shhclient"
+	whisper "gitlab.com/q-dev/go-ethereum/whisper/whisperv6"
 )
 
 // WhisperClient provides access to the Ethereum APIs.

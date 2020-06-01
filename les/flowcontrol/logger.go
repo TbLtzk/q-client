@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common/mclock"
+	"gitlab.com/q-dev/go-ethereum/common/mclock"
 )
 
 // logger collects events in string format and discards events older than the

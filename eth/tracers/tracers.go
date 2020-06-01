@@ -21,7 +21,7 @@ import (
 	"strings"
 	"unicode"
 
-	"gitlab.com/q-dev/q-client/eth/tracers/internal/tracers"
+	"gitlab.com/q-dev/go-ethereum/eth/tracers/internal/tracers"
 )
 
 // all contains all the built in JavaScript tracers by name.

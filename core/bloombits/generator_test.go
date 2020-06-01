@@ -21,7 +21,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/go-ethereum/core/types"
 )
 
 // Tests that batched bloom bits are correctly rotated from the input bloom

@@ -23,8 +23,8 @@ import (
 	"math/rand"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common/mclock"
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/common/mclock"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 const (

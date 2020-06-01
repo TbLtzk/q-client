@@ -26,7 +26,7 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 )
 
 var (

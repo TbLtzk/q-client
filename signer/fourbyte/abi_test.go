@@ -22,8 +22,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/accounts/abi"
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/accounts/abi"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 func verify(t *testing.T, jsondata, calldata string, exp []interface{}) {

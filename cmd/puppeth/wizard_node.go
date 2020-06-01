@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/q-dev/q-client/accounts/keystore"
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 // deployNode creates a new node configuration based on some user input.

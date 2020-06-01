@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common/mclock"
+	"gitlab.com/q-dev/go-ethereum/common/mclock"
 )
 
 type testDistReq struct {

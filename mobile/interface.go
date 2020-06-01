@@ -22,7 +22,7 @@ import (
 	"errors"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 // Interface represents a wrapped version of Go's interface{}, with the capacity

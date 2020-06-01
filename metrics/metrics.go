@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 // Enabled is checked by the constructor functions for all of the

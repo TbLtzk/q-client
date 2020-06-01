@@ -19,8 +19,8 @@ package memorydb
 import (
 	"testing"
 
-	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/ethdb/dbtest"
+	"gitlab.com/q-dev/go-ethereum/ethdb"
+	"gitlab.com/q-dev/go-ethereum/ethdb/dbtest"
 )
 
 func TestMemoryDB(t *testing.T) {

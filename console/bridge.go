@@ -25,12 +25,12 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
-	"gitlab.com/q-dev/q-client/accounts/scwallet"
-	"gitlab.com/q-dev/q-client/accounts/usbwallet"
-	"gitlab.com/q-dev/q-client/common/hexutil"
-	"gitlab.com/q-dev/q-client/console/prompt"
-	"gitlab.com/q-dev/q-client/internal/jsre"
-	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/go-ethereum/accounts/scwallet"
+	"gitlab.com/q-dev/go-ethereum/accounts/usbwallet"
+	"gitlab.com/q-dev/go-ethereum/common/hexutil"
+	"gitlab.com/q-dev/go-ethereum/console/prompt"
+	"gitlab.com/q-dev/go-ethereum/internal/jsre"
+	"gitlab.com/q-dev/go-ethereum/rpc"
 )
 
 // bridge is a collection of JavaScript utility methods to bride the .js runtime

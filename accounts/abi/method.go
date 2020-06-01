@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/go-ethereum/crypto"
 )
 
 // FunctionType represents different types of functions a contract might have.

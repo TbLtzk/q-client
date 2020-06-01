@@ -26,14 +26,14 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/consensus/ethash"
-	"gitlab.com/q-dev/q-client/console/prompt"
-	"gitlab.com/q-dev/q-client/core"
-	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/internal/jsre"
-	"gitlab.com/q-dev/q-client/miner"
-	"gitlab.com/q-dev/q-client/node"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/consensus/ethash"
+	"gitlab.com/q-dev/go-ethereum/console/prompt"
+	"gitlab.com/q-dev/go-ethereum/core"
+	"gitlab.com/q-dev/go-ethereum/eth"
+	"gitlab.com/q-dev/go-ethereum/internal/jsre"
+	"gitlab.com/q-dev/go-ethereum/miner"
+	"gitlab.com/q-dev/go-ethereum/node"
 )
 
 const (

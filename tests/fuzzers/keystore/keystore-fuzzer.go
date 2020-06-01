@@ -19,7 +19,7 @@ package keystore
 import (
 	"os"
 
-	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
 )
 
 func Fuzz(input []byte) int {

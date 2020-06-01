@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sort"
 
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 // deployEthstats queries the user for various input on deploying an ethstats

@@ -21,8 +21,8 @@ package geth
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/ethclient"
+	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/go-ethereum/ethclient"
 )
 
 // EthereumClient provides access to the Ethereum APIs.

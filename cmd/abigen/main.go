@@ -25,12 +25,12 @@ import (
 	"regexp"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/accounts/abi"
-	"gitlab.com/q-dev/q-client/accounts/abi/bind"
-	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/common/compiler"
-	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/accounts/abi"
+	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
+	"gitlab.com/q-dev/go-ethereum/cmd/utils"
+	"gitlab.com/q-dev/go-ethereum/common/compiler"
+	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/go-ethereum/log"
 	"gopkg.in/urfave/cli.v1"
 )
 

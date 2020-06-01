@@ -22,8 +22,8 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common/mclock"
-	"gitlab.com/q-dev/q-client/common/prque"
+	"gitlab.com/q-dev/go-ethereum/common/mclock"
+	"gitlab.com/q-dev/go-ethereum/common/prque"
 )
 
 // cmNodeFields are ClientNode fields used by the client manager

@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 var (

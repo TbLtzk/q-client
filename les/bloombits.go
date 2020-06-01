@@ -19,8 +19,8 @@ package les
 import (
 	"time"
 
-	"gitlab.com/q-dev/q-client/common/bitutil"
-	"gitlab.com/q-dev/q-client/light"
+	"gitlab.com/q-dev/go-ethereum/common/bitutil"
+	"gitlab.com/q-dev/go-ethereum/light"
 )
 
 const (

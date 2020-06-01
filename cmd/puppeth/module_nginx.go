@@ -24,7 +24,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 // nginxDockerfile is theis the Dockerfile required to build an nginx reverse-

@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"time"
 
-	"gitlab.com/q-dev/q-client/metrics"
+	"gitlab.com/q-dev/go-ethereum/metrics"
 )
 
 // a regexp for extracting the unit from time.Duration.String

@@ -23,8 +23,8 @@ import (
 	"strings"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/ethdb"
 )
 
 var (

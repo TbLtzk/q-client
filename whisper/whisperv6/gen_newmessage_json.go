@@ -5,7 +5,7 @@ package whisperv6
 import (
 	"encoding/json"
 
-	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/go-ethereum/common/hexutil"
 )
 
 var _ = (*newMessageOverride)(nil)

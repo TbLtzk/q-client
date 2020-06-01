@@ -25,7 +25,7 @@ import (
 	"strings"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/log"
 	"github.com/rs/cors"
 )
 

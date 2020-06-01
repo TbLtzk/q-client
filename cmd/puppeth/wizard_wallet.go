@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 // deployWallet creates a new web wallet based on some user input.

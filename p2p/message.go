@@ -25,9 +25,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/p2p/enode"
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/event"
+	"gitlab.com/q-dev/go-ethereum/p2p/enode"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 )
 
 // Msg defines the structure of a p2p message.

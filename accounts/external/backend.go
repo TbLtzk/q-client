@@ -21,16 +21,16 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ethereum/go-ethereum"
-	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/hexutil"
-	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/internal/ethapi"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/rpc"
-	"gitlab.com/q-dev/q-client/signer/core"
+	"gitlab.com/q-dev/go-ethereum"
+	"gitlab.com/q-dev/go-ethereum/accounts"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/common/hexutil"
+	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/go-ethereum/event"
+	"gitlab.com/q-dev/go-ethereum/internal/ethapi"
+	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/go-ethereum/rpc"
+	"gitlab.com/q-dev/go-ethereum/signer/core"
 )
 
 type ExternalBackend struct {

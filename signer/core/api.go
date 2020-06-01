@@ -25,16 +25,16 @@ import (
 	"os"
 	"reflect"
 
-	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/accounts/keystore"
-	"gitlab.com/q-dev/q-client/accounts/scwallet"
-	"gitlab.com/q-dev/q-client/accounts/usbwallet"
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/hexutil"
-	"gitlab.com/q-dev/q-client/internal/ethapi"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/rlp"
-	"gitlab.com/q-dev/q-client/signer/storage"
+	"gitlab.com/q-dev/go-ethereum/accounts"
+	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
+	"gitlab.com/q-dev/go-ethereum/accounts/scwallet"
+	"gitlab.com/q-dev/go-ethereum/accounts/usbwallet"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/common/hexutil"
+	"gitlab.com/q-dev/go-ethereum/internal/ethapi"
+	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/go-ethereum/signer/storage"
 )
 
 const (

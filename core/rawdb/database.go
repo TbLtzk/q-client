@@ -23,11 +23,11 @@ import (
 	"os"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/ethdb/leveldb"
-	"gitlab.com/q-dev/q-client/ethdb/memorydb"
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/ethdb"
+	"gitlab.com/q-dev/go-ethereum/ethdb/leveldb"
+	"gitlab.com/q-dev/go-ethereum/ethdb/memorydb"
+	"gitlab.com/q-dev/go-ethereum/log"
 	"github.com/olekukonko/tablewriter"
 )
 

@@ -20,11 +20,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/hexutil"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/rlp"
-	"gitlab.com/q-dev/q-client/trie"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/common/hexutil"
+	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/go-ethereum/trie"
 )
 
 // DumpAccount represents an account in the state.

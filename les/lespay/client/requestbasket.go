@@ -19,8 +19,8 @@ package client
 import (
 	"io"
 
-	"gitlab.com/q-dev/q-client/les/utils"
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/les/utils"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 )
 
 const basketFactor = 1000000 // reference basket amount and value scale factor

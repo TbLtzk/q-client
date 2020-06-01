@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/log"
 	natpmp "github.com/jackpal/go-nat-pmp"
 )
 

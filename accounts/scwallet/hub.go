@@ -41,10 +41,10 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/accounts"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/event"
+	"gitlab.com/q-dev/go-ethereum/log"
 	pcsc "github.com/gballet/go-libpcsclite"
 )
 

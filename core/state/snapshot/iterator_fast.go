@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"sort"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 // weightedIterator is a iterator with an assigned weight. It is used to prioritise

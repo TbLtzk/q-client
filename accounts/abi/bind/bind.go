@@ -30,8 +30,8 @@ import (
 	"text/template"
 	"unicode"
 
-	"gitlab.com/q-dev/q-client/accounts/abi"
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/accounts/abi"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 // Lang is a target programming language selector to generate bindings for.

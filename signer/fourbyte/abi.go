@@ -23,8 +23,8 @@ import (
 	"regexp"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/accounts/abi"
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/accounts/abi"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 // decodedCallData is an internal type to represent a method call parsed according

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 // manageServers displays a list of servers the user can disconnect from, and an

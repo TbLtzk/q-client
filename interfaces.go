@@ -22,8 +22,8 @@ import (
 	"errors"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/core/types"
 )
 
 // NotFound is returned by API methods if the requested item does not exist.

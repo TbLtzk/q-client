@@ -23,8 +23,8 @@ import (
 	"strings"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/core"
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/core"
+	"gitlab.com/q-dev/go-ethereum/log"
 	"github.com/olekukonko/tablewriter"
 )
 

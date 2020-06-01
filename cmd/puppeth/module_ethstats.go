@@ -25,7 +25,7 @@ import (
 	"strings"
 	"text/template"
 
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 // ethstatsDockerfile is the Dockerfile required to build an ethstats backend

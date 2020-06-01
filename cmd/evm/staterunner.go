@@ -23,10 +23,10 @@ import (
 	"io/ioutil"
 	"os"
 
-	"gitlab.com/q-dev/q-client/core/state"
-	"gitlab.com/q-dev/q-client/core/vm"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/tests"
+	"gitlab.com/q-dev/go-ethereum/core/state"
+	"gitlab.com/q-dev/go-ethereum/core/vm"
+	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/go-ethereum/tests"
 
 	cli "gopkg.in/urfave/cli.v1"
 )

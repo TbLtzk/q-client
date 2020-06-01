@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/common/math"
 )
 
 var _ = (*difficultyTestMarshaling)(nil)

@@ -24,8 +24,8 @@ import (
 	"testing"
 	"testing/quick"
 
-	"gitlab.com/q-dev/q-client/p2p/enr"
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/p2p/enr"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 	"github.com/stretchr/testify/assert"
 )
 

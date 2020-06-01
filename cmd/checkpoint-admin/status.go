@@ -19,8 +19,8 @@ package main
 import (
 	"fmt"
 
-	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/cmd/utils"
+	"gitlab.com/q-dev/go-ethereum/common"
 	"gopkg.in/urfave/cli.v1"
 )
 

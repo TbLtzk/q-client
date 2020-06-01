@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/go-ethereum/params"
 )
 
 // Forks table defines supported forks and their chain config.

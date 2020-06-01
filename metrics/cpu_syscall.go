@@ -21,7 +21,7 @@ package metrics
 import (
 	"syscall"
 
-	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 // getProcessCPUTime retrieves the process' CPU time since program startup.

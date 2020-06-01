@@ -19,7 +19,7 @@ package ethapi
 import (
 	"sync"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 type AddrLocker struct {

@@ -20,8 +20,8 @@ import (
 	"bytes"
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 )
 
 // Account is a modified version of a state.Account, where the root is replaced

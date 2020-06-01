@@ -19,7 +19,7 @@ package snapshot
 import (
 	"bytes"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 // binaryIterator is a simplistic iterator to step over the accounts or storage

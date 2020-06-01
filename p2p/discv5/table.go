@@ -25,7 +25,7 @@ import (
 	"net"
 	"sort"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 const (

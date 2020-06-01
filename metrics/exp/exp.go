@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/metrics"
-	"gitlab.com/q-dev/q-client/metrics/prometheus"
+	"gitlab.com/q-dev/go-ethereum/metrics"
+	"gitlab.com/q-dev/go-ethereum/metrics/prometheus"
 )
 
 type exp struct {

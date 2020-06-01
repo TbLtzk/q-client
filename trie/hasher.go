@@ -20,7 +20,7 @@ import (
 	"hash"
 	"sync"
 
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 	"golang.org/x/crypto/sha3"
 )
 

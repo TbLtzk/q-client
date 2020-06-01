@@ -19,7 +19,7 @@ package tests
 import (
 	"testing"
 
-	"gitlab.com/q-dev/q-client/core/vm"
+	"gitlab.com/q-dev/go-ethereum/core/vm"
 )
 
 func TestVM(t *testing.T) {

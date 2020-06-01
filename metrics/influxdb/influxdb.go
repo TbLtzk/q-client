@@ -5,8 +5,8 @@ import (
 	uurl "net/url"
 	"time"
 
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/metrics"
+	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/go-ethereum/metrics"
 	"github.com/influxdata/influxdb/client"
 )
 

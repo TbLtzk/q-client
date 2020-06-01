@@ -22,8 +22,8 @@ import (
 	"reflect"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/rlp"
 )
 
 // from bcValidBlockTest.json, "SimpleTx"

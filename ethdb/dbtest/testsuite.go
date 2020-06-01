@@ -22,7 +22,7 @@ import (
 	"sort"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/go-ethereum/ethdb"
 )
 
 // TestDatabaseSuite runs a suite of tests against a KeyValueStore database

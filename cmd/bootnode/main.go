@@ -24,14 +24,14 @@ import (
 	"net"
 	"os"
 
-	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/p2p/discover"
-	"gitlab.com/q-dev/q-client/p2p/discv5"
-	"gitlab.com/q-dev/q-client/p2p/enode"
-	"gitlab.com/q-dev/q-client/p2p/nat"
-	"gitlab.com/q-dev/q-client/p2p/netutil"
+	"gitlab.com/q-dev/go-ethereum/cmd/utils"
+	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/go-ethereum/p2p/discover"
+	"gitlab.com/q-dev/go-ethereum/p2p/discv5"
+	"gitlab.com/q-dev/go-ethereum/p2p/enode"
+	"gitlab.com/q-dev/go-ethereum/p2p/nat"
+	"gitlab.com/q-dev/go-ethereum/p2p/netutil"
 )
 
 func main() {

@@ -19,7 +19,7 @@ package p2p
 import (
 	"container/heap"
 
-	"gitlab.com/q-dev/q-client/common/mclock"
+	"gitlab.com/q-dev/go-ethereum/common/mclock"
 )
 
 // expHeap tracks strings and their expiry time.

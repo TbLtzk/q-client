@@ -22,7 +22,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/go-ethereum/common"
 )
 
 type keyStorePlain struct {

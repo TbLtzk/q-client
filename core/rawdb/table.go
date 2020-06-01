@@ -17,7 +17,7 @@
 package rawdb
 
 import (
-	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/go-ethereum/ethdb"
 )
 
 // table is a wrapper around a database that prefixes each key access with a pre-

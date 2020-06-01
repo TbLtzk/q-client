@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 
-	"gitlab.com/q-dev/q-client/core/asm"
+	"gitlab.com/q-dev/go-ethereum/core/asm"
 )
 
 func Compile(fn string, src []byte, debug bool) (string, error) {
