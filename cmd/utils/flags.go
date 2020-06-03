@@ -56,6 +56,7 @@ import (
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/p2p/discv5"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/nat"
 	"gitlab.com/q-dev/q-client/p2p/netutil"
@@ -167,6 +168,10 @@ var (
 	GoerliFlag = cli.BoolFlag{
 		Name:  "goerli",
 		Usage: "Görli network: pre-configured proof-of-authority test network",
+	}
+	YoloV1Flag = cli.BoolFlag{
+		Name:  "yolov1",
+		Usage: "YOLOv1 network: pre-configured proof-of-authority shortlived test network.",
 	}
 	RinkebyFlag = cli.BoolFlag{
 		Name:  "rinkeby",
@@ -743,6 +748,9 @@ func MakeDataDir(ctx *cli.Context) string {
 		if ctx.GlobalBool(GoerliFlag.Name) {
 			return filepath.Join(path, "goerli")
 		}
+		if ctx.GlobalBool(YoloV1Flag.Name) {
+			return filepath.Join(path, "yolo-v1")
+		}
 		return path
 	}
 	Fatalf("Cannot determine default data directory, please set manually (--datadir)")
@@ -795,6 +803,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = params.RinkebyBootnodes
 	case ctx.GlobalBool(GoerliFlag.Name):
 		urls = params.GoerliBootnodes
+	case ctx.GlobalBool(YoloV1Flag.Name):
+		urls = params.YoloV1Bootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -808,6 +818,42 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 				continue
 			}
 			cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
+		}
+	}
+}
+
+// setBootstrapNodesV5 creates a list of bootstrap nodes from the command line
+// flags, reverting to pre-configured ones if none have been specified.
+func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
+	urls := params.MainnetBootnodes
+	switch {
+	case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(LegacyBootnodesV5Flag.Name):
+		if ctx.GlobalIsSet(LegacyBootnodesV5Flag.Name) {
+			urls = splitAndTrim(ctx.GlobalString(LegacyBootnodesV5Flag.Name))
+		} else {
+			urls = splitAndTrim(ctx.GlobalString(BootnodesFlag.Name))
+		}
+	case ctx.GlobalBool(RopstenFlag.Name):
+		urls = params.RopstenBootnodes
+	case ctx.GlobalBool(RinkebyFlag.Name):
+		urls = params.RinkebyBootnodes
+	case ctx.GlobalBool(GoerliFlag.Name):
+		urls = params.GoerliBootnodes
+	case ctx.GlobalBool(YoloV1Flag.Name):
+		urls = params.YoloV1Bootnodes
+	case cfg.BootstrapNodesV5 != nil:
+		return // already set, don't apply defaults.
+	}
+
+	cfg.BootstrapNodesV5 = make([]*discv5.Node, 0, len(urls))
+	for _, url := range urls {
+		if url != "" {
+			node, err := discv5.ParseNode(url)
+			if err != nil {
+				log.Error("Bootstrap URL invalid", "enode", url, "err", err)
+				continue
+			}
+			cfg.BootstrapNodesV5 = append(cfg.BootstrapNodesV5, node)
 		}
 	}
 }
@@ -1224,6 +1270,8 @@ func setDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "rinkeby")
 	case ctx.GlobalBool(GoerliFlag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "goerli")
+	case ctx.GlobalBool(YoloV1Flag.Name) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "yolo-v1")
 	}
 }
 
@@ -1431,7 +1479,7 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
-	CheckExclusive(ctx, DeveloperFlag, LegacyTestnetFlag, RopstenFlag, RinkebyFlag, GoerliFlag)
+	CheckExclusive(ctx, DeveloperFlag, LegacyTestnetFlag, RopstenFlag, RinkebyFlag, GoerliFlag, YoloV1Flag)
 	CheckExclusive(ctx, LegacyLightServFlag, LightServeFlag, SyncModeFlag, "light")
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
 	CheckExclusive(ctx, GCModeFlag, "archive", TxLookupLimitFlag)
@@ -1536,6 +1584,11 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		}
 		cfg.Genesis = core.DefaultGoerliGenesisBlock()
 		setDNSDiscoveryDefaults(cfg, params.GoerliGenesisHash)
+	case ctx.GlobalBool(YoloV1Flag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 133519467574833 // "yolov1"
+		}
+		cfg.Genesis = core.DefaultYoloV1GenesisBlock()
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
@@ -1718,6 +1771,8 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultRinkebyGenesisBlock()
 	case ctx.GlobalBool(GoerliFlag.Name):
 		genesis = core.DefaultGoerliGenesisBlock()
+	case ctx.GlobalBool(YoloV1Flag.Name):
+		genesis = core.DefaultYoloV1GenesisBlock()
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
 	}
