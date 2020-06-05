@@ -7,6 +7,7 @@ variables:
   BUILD_DOCKERFILE: Dockerfile
 
 stages:
+  - test
   - build
 
 # build and publish docker image to the registry
@@ -25,3 +26,14 @@ build:
     - version=$(test -z $CI_COMMIT_TAG && echo $CI_COMMIT_SHA || echo $CI_COMMIT_TAG)
     - docker build --build-arg version="$version" -t $BUILD_IMAGE -f $BUILD_DOCKERFILE .
     - docker push $BUILD_IMAGE
+
+test:
+  image: golang:1.14
+  stage: test
+  tags:
+    - gitlab-org-docker
+  only:
+    - master
+    - merge_requests
+  script:
+    - go test ./...
