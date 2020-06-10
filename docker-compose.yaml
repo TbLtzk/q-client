@@ -1,0 +1,22 @@
+version: "3"
+
+services:
+  bootnode:
+    image: registry.gitlab.com/q-dev/go-ethereum:alltools
+    hostname: geth-bootnode
+    container_name: geth-bootnode
+    ports:
+      - 30301:30301/udp
+    entrypoint: ["bootnode", "-nodekey=boot.key"]
+    volumes:
+      - /.eth/boot.key:/boot.key
+    networks:
+      chainnet:
+        ipv4_address: 172.25.0.101
+
+networks:
+  chainnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/24
