@@ -4,7 +4,7 @@ services:
 variables:
   IMAGE_NAME: registry.gitlab.com/q-dev/go-ethereum
   BUILD_IMAGE: $IMAGE_NAME:$CI_COMMIT_SHA
-  BUILD_DOCKERFILE: Dockerfile
+  BUILD_DOCKERFILE: Dockerfile.alltools
 
 stages:
   - test
