@@ -59,7 +59,6 @@ deploy_devnet:
   only:
     - master
   script:
-    - go test ./...
     - apk add openssh
     - mkdir -p ~/.ssh
     - echo "${DEV_SSH_PRIVATE_KEY}" | tr -d '\r' >> ~/.ssh/id_rsa
