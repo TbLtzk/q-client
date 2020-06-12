@@ -21,9 +21,9 @@ import (
 	"net"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gitlab.com/q-dev/go-ethereum/crypto"
 	"gitlab.com/q-dev/go-ethereum/p2p/enr"
-	"github.com/stretchr/testify/assert"
 )
 
 func newLocalNodeForTesting() (*LocalNode, *DB) {

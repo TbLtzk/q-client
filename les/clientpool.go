@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/common/mclock"
 	"gitlab.com/q-dev/go-ethereum/common/prque"
@@ -32,7 +33,6 @@ import (
 	"gitlab.com/q-dev/go-ethereum/log"
 	"gitlab.com/q-dev/go-ethereum/p2p/enode"
 	"gitlab.com/q-dev/go-ethereum/rlp"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 const (

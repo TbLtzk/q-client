@@ -30,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/common/mclock"
 	"gitlab.com/q-dev/go-ethereum/consensus"
@@ -41,7 +42,6 @@ import (
 	"gitlab.com/q-dev/go-ethereum/log"
 	"gitlab.com/q-dev/go-ethereum/p2p"
 	"gitlab.com/q-dev/go-ethereum/rpc"
-	"github.com/gorilla/websocket"
 )
 
 const (

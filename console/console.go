@@ -29,13 +29,13 @@ import (
 	"syscall"
 
 	"github.com/dop251/goja"
+	"github.com/mattn/go-colorable"
+	"github.com/peterh/liner"
 	"gitlab.com/q-dev/go-ethereum/console/prompt"
 	"gitlab.com/q-dev/go-ethereum/internal/jsre"
 	"gitlab.com/q-dev/go-ethereum/internal/jsre/deps"
 	"gitlab.com/q-dev/go-ethereum/internal/web3ext"
 	"gitlab.com/q-dev/go-ethereum/rpc"
-	"github.com/mattn/go-colorable"
-	"github.com/peterh/liner"
 )
 
 var (

@@ -19,9 +19,9 @@ package discover
 import (
 	crand "crypto/rand"
 
+	"github.com/hashicorp/golang-lru/simplelru"
 	"gitlab.com/q-dev/go-ethereum/common/mclock"
 	"gitlab.com/q-dev/go-ethereum/p2p/enode"
-	"github.com/hashicorp/golang-lru/simplelru"
 )
 
 // The sessionCache keeps negotiated encryption keys and

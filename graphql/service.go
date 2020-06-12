@@ -21,13 +21,13 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/graph-gophers/graphql-go"
+	"github.com/graph-gophers/graphql-go/relay"
 	"gitlab.com/q-dev/go-ethereum/internal/ethapi"
 	"gitlab.com/q-dev/go-ethereum/log"
 	"gitlab.com/q-dev/go-ethereum/node"
 	"gitlab.com/q-dev/go-ethereum/p2p"
 	"gitlab.com/q-dev/go-ethereum/rpc"
-	"github.com/graph-gophers/graphql-go"
-	"github.com/graph-gophers/graphql-go/relay"
 )
 
 // Service encapsulates a GraphQL service.

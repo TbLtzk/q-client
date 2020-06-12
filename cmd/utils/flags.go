@@ -32,6 +32,7 @@ import (
 	"text/template"
 	"time"
 
+	pcsclite "github.com/gballet/go-libpcsclite"
 	"gitlab.com/q-dev/go-ethereum/accounts"
 	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
 	"gitlab.com/q-dev/go-ethereum/common"
@@ -62,7 +63,6 @@ import (
 	"gitlab.com/q-dev/go-ethereum/params"
 	"gitlab.com/q-dev/go-ethereum/rpc"
 	whisper "gitlab.com/q-dev/go-ethereum/whisper/whisperv6"
-	pcsclite "github.com/gballet/go-libpcsclite"
 	cli "gopkg.in/urfave/cli.v1"
 )
 

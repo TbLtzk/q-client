@@ -29,6 +29,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mattn/go-colorable"
 	"gitlab.com/q-dev/go-ethereum/event"
 	"gitlab.com/q-dev/go-ethereum/log"
 	"gitlab.com/q-dev/go-ethereum/node"
@@ -36,7 +37,6 @@ import (
 	"gitlab.com/q-dev/go-ethereum/p2p/enode"
 	"gitlab.com/q-dev/go-ethereum/p2p/simulations/adapters"
 	"gitlab.com/q-dev/go-ethereum/rpc"
-	"github.com/mattn/go-colorable"
 )
 
 func TestMain(m *testing.M) {

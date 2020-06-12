@@ -24,6 +24,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/gorilla/websocket"
 	"gitlab.com/q-dev/go-ethereum/event"
 	"gitlab.com/q-dev/go-ethereum/log"
 	"gitlab.com/q-dev/go-ethereum/node"
@@ -31,7 +32,6 @@ import (
 	"gitlab.com/q-dev/go-ethereum/p2p/enode"
 	"gitlab.com/q-dev/go-ethereum/p2p/simulations/pipes"
 	"gitlab.com/q-dev/go-ethereum/rpc"
-	"github.com/gorilla/websocket"
 )
 
 // SimAdapter is a NodeAdapter which creates in-memory simulation nodes and
