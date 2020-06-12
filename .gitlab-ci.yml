@@ -8,6 +8,7 @@ variables:
 
 stages:
   - test
+  - lint
   - build
 
 # build and publish docker image to the registry
@@ -37,3 +38,14 @@ test:
     - merge_requests
   script:
     - go test ./...
+
+lint:
+  image: golang:1.14
+  stage: test
+  tags:
+    - gitlab-org-docker
+  only:
+    - master
+    - merge_requests
+  script:
+    - go run build/ci.go lint
