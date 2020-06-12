@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/tyler-smith/go-bip39"
 	"gitlab.com/q-dev/go-ethereum/accounts"
 	"gitlab.com/q-dev/go-ethereum/accounts/abi"
 	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
@@ -45,7 +46,6 @@ import (
 	"gitlab.com/q-dev/go-ethereum/params"
 	"gitlab.com/q-dev/go-ethereum/rlp"
 	"gitlab.com/q-dev/go-ethereum/rpc"
-	"github.com/tyler-smith/go-bip39"
 )
 
 // PublicEthereumAPI provides an API to access Ethereum related information.

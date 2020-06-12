@@ -26,12 +26,12 @@ import (
 
 	cli "gopkg.in/urfave/cli.v1"
 
+	"github.com/naoina/toml"
 	"gitlab.com/q-dev/go-ethereum/cmd/utils"
 	"gitlab.com/q-dev/go-ethereum/eth"
 	"gitlab.com/q-dev/go-ethereum/node"
 	"gitlab.com/q-dev/go-ethereum/params"
 	whisper "gitlab.com/q-dev/go-ethereum/whisper/whisperv6"
-	"github.com/naoina/toml"
 )
 
 var (

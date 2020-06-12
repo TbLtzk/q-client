@@ -24,11 +24,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/steakknife/bloomfilter"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/ethdb"
 	"gitlab.com/q-dev/go-ethereum/log"
 	"gitlab.com/q-dev/go-ethereum/metrics"
-	"github.com/steakknife/bloomfilter"
 )
 
 var (

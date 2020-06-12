@@ -28,6 +28,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/common/mclock"
 	"gitlab.com/q-dev/go-ethereum/common/prque"
@@ -44,7 +45,6 @@ import (
 	"gitlab.com/q-dev/go-ethereum/params"
 	"gitlab.com/q-dev/go-ethereum/rlp"
 	"gitlab.com/q-dev/go-ethereum/trie"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 var (

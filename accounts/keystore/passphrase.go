@@ -38,11 +38,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pborman/uuid"
 	"gitlab.com/q-dev/go-ethereum/accounts"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/common/math"
 	"gitlab.com/q-dev/go-ethereum/crypto"
-	"github.com/pborman/uuid"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
 )

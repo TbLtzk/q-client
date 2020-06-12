@@ -23,10 +23,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pborman/uuid"
 	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
 	"gitlab.com/q-dev/go-ethereum/cmd/utils"
 	"gitlab.com/q-dev/go-ethereum/crypto"
-	"github.com/pborman/uuid"
 	"gopkg.in/urfave/cli.v1"
 )
 

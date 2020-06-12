@@ -19,10 +19,10 @@ package state
 import (
 	"fmt"
 
+	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/ethdb"
 	"gitlab.com/q-dev/go-ethereum/trie"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 const (

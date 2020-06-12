@@ -23,9 +23,9 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/mattn/go-colorable"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/log"
-	"github.com/mattn/go-colorable"
 )
 
 func TestEncryption(t *testing.T) {

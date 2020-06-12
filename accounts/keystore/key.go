@@ -29,10 +29,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pborman/uuid"
 	"gitlab.com/q-dev/go-ethereum/accounts"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/crypto"
-	"github.com/pborman/uuid"
 )
 
 const (

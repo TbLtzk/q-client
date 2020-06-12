@@ -35,6 +35,8 @@ import (
 	"strings"
 	"time"
 
+	colorable "github.com/mattn/go-colorable"
+	"github.com/mattn/go-isatty"
 	"gitlab.com/q-dev/go-ethereum/accounts"
 	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
 	"gitlab.com/q-dev/go-ethereum/cmd/utils"
@@ -53,8 +55,6 @@ import (
 	"gitlab.com/q-dev/go-ethereum/signer/fourbyte"
 	"gitlab.com/q-dev/go-ethereum/signer/rules"
 	"gitlab.com/q-dev/go-ethereum/signer/storage"
-	colorable "github.com/mattn/go-colorable"
-	"github.com/mattn/go-isatty"
 	"gopkg.in/urfave/cli.v1"
 )
 

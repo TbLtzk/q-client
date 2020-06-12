@@ -27,13 +27,13 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/crypto"
 	"gitlab.com/q-dev/go-ethereum/log"
 	"gitlab.com/q-dev/go-ethereum/p2p"
 	"gitlab.com/q-dev/go-ethereum/rlp"
 	"gitlab.com/q-dev/go-ethereum/rpc"
-	"github.com/syndtr/goleveldb/leveldb/errors"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/sync/syncmap"
 )

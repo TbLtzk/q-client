@@ -27,8 +27,8 @@ import (
 	"sync"
 
 	mapset "github.com/deckarep/golang-set"
-	"gitlab.com/q-dev/go-ethereum/log"
 	"github.com/gorilla/websocket"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 const (

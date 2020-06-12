@@ -26,9 +26,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/steakknife/bloomfilter"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/rlp"
-	"github.com/steakknife/bloomfilter"
 )
 
 var (

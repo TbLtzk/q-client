@@ -21,8 +21,8 @@ package keystore
 import (
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/log"
 	"github.com/rjeczalik/notify"
+	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 type watcher struct {

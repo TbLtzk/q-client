@@ -26,12 +26,12 @@ import (
 	"sync"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/go-ethereum/common/mclock"
 	"gitlab.com/q-dev/go-ethereum/crypto"
 	"gitlab.com/q-dev/go-ethereum/log"
 	"gitlab.com/q-dev/go-ethereum/p2p/enode"
 	"gitlab.com/q-dev/go-ethereum/p2p/enr"
-	lru "github.com/hashicorp/golang-lru"
 	"golang.org/x/time/rate"
 )
 

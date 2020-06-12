@@ -41,6 +41,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"gitlab.com/q-dev/go-ethereum/accounts"
 	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
 	"gitlab.com/q-dev/go-ethereum/common"
@@ -58,7 +59,6 @@ import (
 	"gitlab.com/q-dev/go-ethereum/p2p/enode"
 	"gitlab.com/q-dev/go-ethereum/p2p/nat"
 	"gitlab.com/q-dev/go-ethereum/params"
-	"github.com/gorilla/websocket"
 )
 
 var (

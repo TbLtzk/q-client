@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/consensus"
 	"gitlab.com/q-dev/go-ethereum/core/rawdb"
@@ -33,7 +34,6 @@ import (
 	"gitlab.com/q-dev/go-ethereum/ethdb"
 	"gitlab.com/q-dev/go-ethereum/log"
 	"gitlab.com/q-dev/go-ethereum/params"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 const (
