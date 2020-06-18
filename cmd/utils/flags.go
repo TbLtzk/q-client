@@ -1120,7 +1120,7 @@ func MakePasswordList(ctx *cli.Context) []string {
 	return lines
 }
 
-func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
+func setP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	setNodeKey(ctx, cfg)
 	setNAT(ctx, cfg)
 	setListenAddress(ctx, cfg)
@@ -1197,7 +1197,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 
 // SetNodeConfig applies node-related command line flags to the config.
 func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
-	SetP2PConfig(ctx, &cfg.P2P)
+	setP2PConfig(ctx, &cfg.P2P)
 	setIPC(ctx, cfg)
 	setHTTP(ctx, cfg)
 	setGraphQL(ctx, cfg)
