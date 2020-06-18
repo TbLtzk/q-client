@@ -115,6 +115,9 @@ type Config struct {
 	// allowed to connect, even above the peer limit.
 	TrustedNodes []*enode.Node
 
+	// RootNodes is a list of root nodes to connect to.
+	RootNodes []*enode.Node
+
 	// Connectivity can be restricted to certain IP networks.
 	// If this option is set to a non-nil value, only hosts which match one of the
 	// IP networks contained in the list are considered.
