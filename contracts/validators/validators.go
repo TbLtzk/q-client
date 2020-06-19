@@ -28,4 +28,5 @@ func (validators *Validators) GetValidatorsList() ([]common.Address, error) {
 
 func (validators *Validators) DelegateStakeToValidator(address common.Address, amount *big.Int) error {
 	//TODO:implement
+	return nil
 }
