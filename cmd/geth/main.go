@@ -28,6 +28,8 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/q-dev/go-ethereum/contracts/system"
+
 	"github.com/elastic/gosigar"
 	"gitlab.com/q-dev/go-ethereum/accounts"
 	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
@@ -396,6 +398,8 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		}
 		lesService.SetContractBackend(ethClient)
 	}
+
+	system.DeploySystemContracts(ethClient)
 
 	go func() {
 		// Open any wallets already attached
