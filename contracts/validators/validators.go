@@ -1,10 +1,11 @@
 package validators
 
 import (
+	"math/big"
+
 	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/contracts/validators/contract"
-	"math/big"
 )
 
 // Validators is a Go wrapper around an on-chain validator contract.
