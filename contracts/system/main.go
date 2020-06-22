@@ -3,7 +3,7 @@ package system
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/contracts/checkpointvalidators/contract"
+	"gitlab.com/q-dev/go-ethereum/contracts/validators/contract"
 
 	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
 	"gitlab.com/q-dev/go-ethereum/common"
@@ -28,8 +28,10 @@ func DeploySystemContracts(client *ethclient.Client) {
 
 	privateKey, err := crypto.HexToECDSA(privateKeyHex)
 	if err != nil {
-		utils.Fatalf("Failed to deploy checkpoint oracle %v", err)
+		utils.Fatalf("Failed to decode private key %v", err)
 	}
+
+	// TODO add checking of deployed contracts (skip already deployed)
 
 	// setup clef signer, create an abigen transactor and an RPC client
 	transactor := &bind.TransactOpts{
@@ -44,9 +46,10 @@ func DeploySystemContracts(client *ethclient.Client) {
 	for _, sysContract := range contracts {
 		address, tx, _, err := sysContract(transactor, client)
 		if err != nil {
-			log.Warn("Failed to system contract oracle", "error", err)
+			log.Warn("Failed deploy to system contract", "error", err)
 		}
 		log.Info("Deployed system contract", "address", address, "tx", tx.Hash().Hex())
+		// TODO save somewhere addresses of created contracts (global var?)
 
 		transactor.Nonce.Add(transactor.Nonce, big.NewInt(1))
 	}
