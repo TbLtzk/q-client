@@ -12,23 +12,22 @@ import (
 
 	"gitlab.com/q-dev/go-ethereum/ethclient"
 
-	"gitlab.com/q-dev/go-ethereum/cmd/utils"
-
 	"gitlab.com/q-dev/go-ethereum/log"
 )
 
 // address 532c69263800e1f1cdb72acae555a85864146986
 const privateKeyHex = "e4160a6c21bc6c70a93f07c42c540fcaaf4ab973b75e12a6dbe2b415a933cd6a"
 
-type deployFunc func(*bind.TransactOpts, bind.ContractBackend) (common.Address, *types.Transaction, *contract.Validators, error)
+type deployAndSaveFunc func(*bind.TransactOpts, bind.ContractBackend) (common.Address, *types.Transaction, error)
 
-var contracts = []deployFunc{contract.DeployValidators}
+var contracts = []deployAndSaveFunc{deployAndSaveValidators}
+var ValidatorContractAddress common.Address
 
 func DeploySystemContracts(client *ethclient.Client) {
-
 	privateKey, err := crypto.HexToECDSA(privateKeyHex)
 	if err != nil {
-		utils.Fatalf("Failed to decode private key %v", err)
+		log.Error("Failed to decode private key")
+		panic(err)
 	}
 
 	// TODO add checking of deployed contracts (skip already deployed)
@@ -45,16 +44,22 @@ func DeploySystemContracts(client *ethclient.Client) {
 	}
 
 	for _, sysContract := range contracts {
-		address, tx, _, err := sysContract(transactor, client)
+		address, tx, err := sysContract(transactor, client)
 		if err != nil {
 			log.Warn("Failed deploy to system contract", "error", err)
 		} else {
 			log.Info("System contract is deployed ", "address", address, "tx", tx.Hash().Hex())
 		}
 
-		// TODO save somewhere addresses of created contracts (global var?)
-
 		transactor.Nonce.Add(transactor.Nonce, big.NewInt(1))
 	}
 
+}
+
+func deployAndSaveValidators(transactor *bind.TransactOpts, backend bind.ContractBackend,
+) (common.Address, *types.Transaction, error) {
+	address, tx, _, err := contract.DeployValidators(transactor, backend)
+	ValidatorContractAddress = address
+
+	return address, tx, err
 }

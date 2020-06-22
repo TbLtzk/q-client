@@ -33,6 +33,8 @@ import (
 	"time"
 	"unsafe"
 
+	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
+
 	mmap "github.com/edsrzf/mmap-go"
 	"github.com/hashicorp/golang-lru/simplelru"
 	"gitlab.com/q-dev/go-ethereum/consensus"
@@ -679,4 +681,8 @@ func (ethash *Ethash) APIs(chain consensus.ChainReader) []rpc.API {
 // dataset.
 func SeedHash(block uint64) []byte {
 	return seedHash(block)
+}
+
+func (ethash *Ethash) SetContractBackend(bind.ContractBackend) {
+	panic("contract backed is not supported for ethash")
 }
