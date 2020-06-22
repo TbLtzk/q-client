@@ -40,15 +40,18 @@ func DeploySystemContracts(client *ethclient.Client) {
 		) (*types.Transaction, error) {
 			return types.SignTx(tx, types.HomesteadSigner{}, privateKey)
 		},
-		Nonce: big.NewInt(0),
+		Nonce:    big.NewInt(0),
+		GasLimit: 123456791011, // Just to make it works on dev net
 	}
 
 	for _, sysContract := range contracts {
 		address, tx, _, err := sysContract(transactor, client)
 		if err != nil {
 			log.Warn("Failed deploy to system contract", "error", err)
+		} else {
+			log.Info("System contract is deployed ", "address", address, "tx", tx.Hash().Hex())
 		}
-		log.Info("Deployed system contract", "address", address, "tx", tx.Hash().Hex())
+
 		// TODO save somewhere addresses of created contracts (global var?)
 
 		transactor.Nonce.Add(transactor.Nonce, big.NewInt(1))
