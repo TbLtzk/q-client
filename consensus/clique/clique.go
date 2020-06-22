@@ -26,6 +26,12 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/q-dev/go-ethereum/contracts/system"
+
+	"gitlab.com/q-dev/go-ethereum/contracts/validators/contract"
+
+	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
+
 	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/go-ethereum/accounts"
 	"gitlab.com/q-dev/go-ethereum/common"
@@ -166,6 +172,10 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	return signer, nil
 }
 
+type ValidatorsProvider interface {
+	GetValidatorsList() ([]common.Address, error)
+}
+
 // Clique is the proof-of-authority consensus engine proposed to support the
 // Ethereum testnet following the Ropsten attacks.
 type Clique struct {
@@ -182,7 +192,8 @@ type Clique struct {
 	lock   sync.RWMutex   // Protects the signer fields
 
 	// The fields below are for testing only
-	fakeDiff bool // Skip difficulty verifications
+	fakeDiff           bool // Skip difficulty verifications
+	validatorsProvider ValidatorsProvider
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
@@ -203,6 +214,7 @@ func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
 		recents:    recents,
 		signatures: signatures,
 		proposals:  make(map[common.Address]bool),
+		// validatorsProvider: todo mocked validator privider (from genesis)
 	}
 }
 
@@ -409,7 +421,7 @@ func (c *Clique) snapshot(chain consensus.ChainReader, number uint64, hash commo
 	for i := 0; i < len(headers)/2; i++ {
 		headers[i], headers[len(headers)-1-i] = headers[len(headers)-1-i], headers[i]
 	}
-	snap, err := snap.apply(headers)
+	snap, err := snap.apply(headers, number, c.validatorsProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -734,5 +746,17 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 	})
 	if err != nil {
 		panic("can't encode: " + err.Error())
+	}
+}
+
+func (c *Clique) SetContractBackend(b bind.ContractBackend) {
+	caller, err := contract.NewValidatorsCaller(system.ValidatorContractAddress, b)
+	if err != nil {
+		log.Error("Failed to create new validator caller: %v")
+		panic(err)
+	}
+
+	c.validatorsProvider = &contract.ValidatorsCallerSession{
+		Contract: caller,
 	}
 }

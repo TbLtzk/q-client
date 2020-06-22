@@ -400,6 +400,11 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	}
 
 	system.DeploySystemContracts(ethClient)
+	var ethService *eth.Ethereum
+	if err := stack.Service(&ethService); err != nil {
+		utils.Fatalf("Failed to retrieve ethereum service: %v", err)
+	}
+	ethService.Engine().SetContractBackend(ethClient)
 
 	go func() {
 		// Open any wallets already attached
