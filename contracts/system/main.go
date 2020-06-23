@@ -58,8 +58,12 @@ func DeploySystemContracts(client *ethclient.Client) {
 
 func deployAndSaveValidators(transactor *bind.TransactOpts, backend bind.ContractBackend,
 ) (common.Address, *types.Transaction, error) {
-	address, tx, _, err := contract.DeployValidators(transactor, backend)
-	ValidatorContractAddress = address
+	var tx *types.Transaction
+	var err error
+	ValidatorContractAddress, tx, _, err = contract.DeployValidators(transactor, backend)
+	if err != nil {
+		ValidatorContractAddress = crypto.CreateAddress(transactor.From, transactor.Nonce.Uint64())
+	}
 
-	return address, tx, err
+	return ValidatorContractAddress, tx, err
 }
