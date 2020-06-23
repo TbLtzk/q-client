@@ -26,6 +26,8 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/q-dev/go-ethereum/core/rawdb"
+
 	"gitlab.com/q-dev/go-ethereum/contracts/system"
 
 	"gitlab.com/q-dev/go-ethereum/contracts/validators/contract"
@@ -176,6 +178,19 @@ type ValidatorsProvider interface {
 	GetValidatorsList() ([]common.Address, error)
 }
 
+type MockedValidatorProvider struct {
+	extra []byte
+}
+
+func (p *MockedValidatorProvider) GetValidatorsList() ([]common.Address, error) {
+	signers := make([]common.Address, (len(p.extra)-extraVanity-extraSeal)/common.AddressLength)
+	for i := 0; i < len(signers); i++ {
+		copy(signers[i][:], p.extra[extraVanity+i*common.AddressLength:])
+	}
+
+	return signers, nil
+}
+
 // Clique is the proof-of-authority consensus engine proposed to support the
 // Ethereum testnet following the Ropsten attacks.
 type Clique struct {
@@ -198,7 +213,7 @@ type Clique struct {
 
 // New creates a Clique proof-of-authority consensus engine with the initial
 // signers set to the ones provided by the user.
-func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
+func New(config *params.CliqueConfig, db ethdb.Database, genesisHash common.Hash) *Clique {
 	// Set any missing consensus parameters to their defaults
 	conf := *config
 	if conf.Epoch == 0 {
@@ -208,13 +223,15 @@ func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
 	recents, _ := lru.NewARC(inmemorySnapshots)
 	signatures, _ := lru.NewARC(inmemorySignatures)
 
+	header := rawdb.ReadHeader(db, genesisHash, 0)
+
 	return &Clique{
-		config:     &conf,
-		db:         db,
-		recents:    recents,
-		signatures: signatures,
-		proposals:  make(map[common.Address]bool),
-		// validatorsProvider: todo mocked validator privider (from genesis)
+		config:             &conf,
+		db:                 db,
+		recents:            recents,
+		signatures:         signatures,
+		proposals:          make(map[common.Address]bool),
+		validatorsProvider: &MockedValidatorProvider{extra: header.Extra},
 	}
 }
 
