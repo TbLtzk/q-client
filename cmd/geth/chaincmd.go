@@ -26,6 +26,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitlab.com/q-dev/go-ethereum/crypto"
+
 	"gitlab.com/q-dev/go-ethereum/cmd/utils"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/console/prompt"
@@ -235,6 +237,8 @@ func initGenesis(ctx *cli.Context) error {
 	if err := json.NewDecoder(file).Decode(genesis); err != nil {
 		utils.Fatalf("invalid genesis file: %v", err)
 	}
+	fillSystemContractAddresses(genesis)
+
 	// Open an initialise both full and light databases
 	stack := makeFullNode(ctx)
 	defer stack.Close()
@@ -252,6 +256,18 @@ func initGenesis(ctx *cli.Context) error {
 		log.Info("Successfully wrote genesis state", "database", name, "hash", hash)
 	}
 	return nil
+}
+
+func fillSystemContractAddresses(genesis *core.Genesis) {
+	systemAddresses := []*common.Address{
+		&genesis.Config.Clique.SystemContracts.Validators,
+		&genesis.Config.Clique.SystemContracts.ConstitutionParams,
+	}
+
+	for nonce := range systemAddresses {
+		addr := crypto.CreateAddress(genesis.Coinbase, uint64(nonce))
+		systemAddresses[nonce] = &addr
+	}
 }
 
 func dumpGenesis(ctx *cli.Context) error {

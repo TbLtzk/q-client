@@ -28,8 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/contracts/system"
-
 	"github.com/elastic/gosigar"
 	"gitlab.com/q-dev/go-ethereum/accounts"
 	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
@@ -398,13 +396,6 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		}
 		lesService.SetContractBackend(ethClient)
 	}
-
-	system.DeploySystemContracts(ethClient)
-	var ethService *eth.Ethereum
-	if err := stack.Service(&ethService); err != nil {
-		utils.Fatalf("Failed to retrieve ethereum service: %v", err)
-	}
-	ethService.Engine().SetContractBackend(ethClient)
 
 	go func() {
 		// Open any wallets already attached
