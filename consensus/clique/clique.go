@@ -19,6 +19,7 @@ package clique
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"math/big"
@@ -767,9 +768,17 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 }
 
 func (c *Clique) SetContractBackend(b bind.ContractBackend) {
-	caller, err := contract.NewValidatorsCaller(system.ValidatorContractAddress, b)
+	_, err := b.CodeAt(context.TODO(), c.config.SystemContracts.Validators, nil)
 	if err != nil {
-		log.Error("Failed to create new validator caller: %v")
+		log.Warn("Failed to create new validator caller: %v", err)
+		time.Sleep(3 * time.Second)
+		go c.SetContractBackend(b)
+		return
+	}
+
+	caller, err := contract.NewValidatorsCaller(c.config.SystemContracts.Validators, b)
+	if err != nil {
+		log.Error("Failed to create new validator caller: %v", err)
 		panic(err)
 	}
 

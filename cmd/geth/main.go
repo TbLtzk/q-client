@@ -378,6 +378,11 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	}
 	ethClient := ethclient.NewClient(rpcClient)
 
+	var ethService *eth.Ethereum
+	if err := stack.Service(&ethService); err != nil {
+		utils.Fatalf("Failed to retrieve ethereum service: %v", err)
+	}
+	go ethService.Engine().SetContractBackend(ethClient)
 	// Set contract backend for ethereum service if local node
 	// is serving LES requests.
 	if ctx.GlobalInt(utils.LegacyLightServFlag.Name) > 0 || ctx.GlobalInt(utils.LightServeFlag.Name) > 0 {
