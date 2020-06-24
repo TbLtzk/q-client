@@ -768,9 +768,9 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 }
 
 func (c *Clique) SetContractBackend(b bind.ContractBackend) {
-	_, err := b.CodeAt(context.TODO(), c.config.SystemContracts.Validators, nil)
-	if err != nil {
-		log.Warn("Failed to create new validator caller: %v", err)
+	resp, err := b.CodeAt(context.TODO(), c.config.SystemContracts.Validators, nil)
+	if (err != nil) || (len(resp) == 0) {
+		log.Warn("Failed to check validator contract", "err", err, "resp", resp, "addr", c.config.SystemContracts.Validators)
 		time.Sleep(3 * time.Second)
 		go c.SetContractBackend(b)
 		return
@@ -778,7 +778,7 @@ func (c *Clique) SetContractBackend(b bind.ContractBackend) {
 
 	caller, err := contract.NewValidatorsCaller(c.config.SystemContracts.Validators, b)
 	if err != nil {
-		log.Error("Failed to create new validator caller: %v", err)
+		log.Error("Failed to create new validator caller", "err", err)
 		panic(err)
 	}
 

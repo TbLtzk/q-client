@@ -265,8 +265,7 @@ func fillSystemContractAddresses(genesis *core.Genesis) {
 	}
 
 	for nonce := range systemAddresses {
-		addr := crypto.CreateAddress(genesis.Coinbase, uint64(nonce))
-		systemAddresses[nonce] = &addr
+		*systemAddresses[nonce] = crypto.CreateAddress(genesis.Coinbase, uint64(nonce))
 	}
 }
 
