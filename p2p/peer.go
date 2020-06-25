@@ -118,6 +118,20 @@ type Peer struct {
 	events *event.Feed
 }
 
+func newPeer(log log.Logger, conn *conn, protocols []Protocol) *Peer {
+	protomap := matchProtocols(protocols, conn.caps, conn)
+	p := &Peer{
+		rw:       conn,
+		running:  protomap,
+		created:  mclock.Now(),
+		disc:     make(chan DiscReason),
+		protoErr: make(chan error, len(protomap)+1), // protocols + pingLoop
+		closed:   make(chan struct{}),
+		log:      log.New("id", conn.node.ID(), "conn", conn.flags),
+	}
+	return p
+}
+
 // NewPeer returns a peer for testing purposes.
 func NewPeer(id enode.ID, name string, caps []Cap) *Peer {
 	pipe, _ := net.Pipe()
@@ -177,20 +191,6 @@ func (p *Peer) String() string {
 // Inbound returns true if the peer is an inbound connection
 func (p *Peer) Inbound() bool {
 	return p.rw.is(inboundConn)
-}
-
-func newPeer(log log.Logger, conn *conn, protocols []Protocol) *Peer {
-	protomap := matchProtocols(protocols, conn.caps, conn)
-	p := &Peer{
-		rw:       conn,
-		running:  protomap,
-		created:  mclock.Now(),
-		disc:     make(chan DiscReason),
-		protoErr: make(chan error, len(protomap)+1), // protocols + pingLoop
-		closed:   make(chan struct{}),
-		log:      log.New("id", conn.node.ID(), "conn", conn.flags),
-	}
-	return p
 }
 
 func (p *Peer) Log() log.Logger {
