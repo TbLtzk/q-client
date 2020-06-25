@@ -101,7 +101,19 @@ type ProtocolManager struct {
 
 // NewProtocolManager returns a new Ethereum sub protocol manager. The Ethereum sub protocol manages peers capable
 // with the Ethereum network.
-func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCheckpoint, mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool, engine consensus.Engine, blockchain *core.BlockChain, chaindb ethdb.Database, cacheLimit int, whitelist map[uint64]common.Hash) (*ProtocolManager, error) {
+func NewProtocolManager(
+	config *params.ChainConfig,
+	checkpoint *params.TrustedCheckpoint,
+	mode downloader.SyncMode,
+	networkID uint64,
+	mux *event.TypeMux,
+	txpool txPool,
+	engine consensus.Engine,
+	blockchain *core.BlockChain,
+	chaindb ethdb.Database,
+	cacheLimit int,
+	whitelist map[uint64]common.Hash,
+) (*ProtocolManager, error) {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
 		networkID:  networkID,
@@ -204,6 +216,45 @@ func NewProtocolManager(config *params.ChainConfig, checkpoint *params.TrustedCh
 	return manager, nil
 }
 
+func (pm *ProtocolManager) Start(maxPeers int) {
+	pm.maxPeers = maxPeers
+
+	// broadcast transactions
+	pm.wg.Add(1)
+	pm.txsCh = make(chan core.NewTxsEvent, txChanSize)
+	pm.txsSub = pm.txpool.SubscribeNewTxsEvent(pm.txsCh)
+	go pm.txBroadcastLoop()
+
+	// broadcast mined blocks
+	pm.wg.Add(1)
+	pm.minedBlockSub = pm.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	go pm.minedBroadcastLoop()
+
+	// start sync handlers
+	pm.wg.Add(2)
+	go pm.chainSync.loop()
+	go pm.txsyncLoop64() // TODO(karalabe): Legacy initial tx echange, drop with eth/64.
+}
+
+func (pm *ProtocolManager) Stop() {
+	pm.txsSub.Unsubscribe()        // quits txBroadcastLoop
+	pm.minedBlockSub.Unsubscribe() // quits blockBroadcastLoop
+
+	// Quit chainSync and txsync64.
+	// After this is done, no new peers will be accepted.
+	close(pm.quitSync)
+	pm.wg.Wait()
+
+	// Disconnect existing sessions.
+	// This also closes the gate for any new registrations on the peer set.
+	// sessions which are already established but not added to pm.peers yet
+	// will exit when they try to register.
+	pm.peers.Close()
+	pm.peerWG.Wait()
+
+	log.Info("Ethereum protocol stopped")
+}
+
 func (pm *ProtocolManager) makeProtocol(version uint) p2p.Protocol {
 	length, ok := protocolLengths[version]
 	if !ok {
@@ -248,45 +299,6 @@ func (pm *ProtocolManager) removePeer(id string) {
 	if peer != nil {
 		peer.Peer.Disconnect(p2p.DiscUselessPeer)
 	}
-}
-
-func (pm *ProtocolManager) Start(maxPeers int) {
-	pm.maxPeers = maxPeers
-
-	// broadcast transactions
-	pm.wg.Add(1)
-	pm.txsCh = make(chan core.NewTxsEvent, txChanSize)
-	pm.txsSub = pm.txpool.SubscribeNewTxsEvent(pm.txsCh)
-	go pm.txBroadcastLoop()
-
-	// broadcast mined blocks
-	pm.wg.Add(1)
-	pm.minedBlockSub = pm.eventMux.Subscribe(core.NewMinedBlockEvent{})
-	go pm.minedBroadcastLoop()
-
-	// start sync handlers
-	pm.wg.Add(2)
-	go pm.chainSync.loop()
-	go pm.txsyncLoop64() // TODO(karalabe): Legacy initial tx echange, drop with eth/64.
-}
-
-func (pm *ProtocolManager) Stop() {
-	pm.txsSub.Unsubscribe()        // quits txBroadcastLoop
-	pm.minedBlockSub.Unsubscribe() // quits blockBroadcastLoop
-
-	// Quit chainSync and txsync64.
-	// After this is done, no new peers will be accepted.
-	close(pm.quitSync)
-	pm.wg.Wait()
-
-	// Disconnect existing sessions.
-	// This also closes the gate for any new registrations on the peer set.
-	// sessions which are already established but not added to pm.peers yet
-	// will exit when they try to register.
-	pm.peers.Close()
-	pm.peerWG.Wait()
-
-	log.Info("Ethereum protocol stopped")
 }
 
 func (pm *ProtocolManager) newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter, getPooledTx func(hash common.Hash) *types.Transaction) *peer {
@@ -393,416 +405,470 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	case msg.Code == StatusMsg:
 		// Status messages should never arrive after the handshake
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
-
-	// Block header query, collect the requested headers and reply
 	case msg.Code == GetBlockHeadersMsg:
-		// Decode the complex header query
-		var query getBlockHeadersData
-		if err := msg.Decode(&query); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		hashMode := query.Origin.Hash != (common.Hash{})
-		first := true
-		maxNonCanonical := uint64(100)
-
-		// Gather headers until the fetch or network limits is reached
-		var (
-			bytes   common.StorageSize
-			headers []*types.Header
-			unknown bool
-		)
-		for !unknown && len(headers) < int(query.Amount) && bytes < softResponseLimit && len(headers) < downloader.MaxHeaderFetch {
-			// Retrieve the next header satisfying the query
-			var origin *types.Header
-			if hashMode {
-				if first {
-					first = false
-					origin = pm.blockchain.GetHeaderByHash(query.Origin.Hash)
-					if origin != nil {
-						query.Origin.Number = origin.Number.Uint64()
-					}
-				} else {
-					origin = pm.blockchain.GetHeader(query.Origin.Hash, query.Origin.Number)
-				}
-			} else {
-				origin = pm.blockchain.GetHeaderByNumber(query.Origin.Number)
-			}
-			if origin == nil {
-				break
-			}
-			headers = append(headers, origin)
-			bytes += estHeaderRlpSize
-
-			// Advance to the next header of the query
-			switch {
-			case hashMode && query.Reverse:
-				// Hash based traversal towards the genesis block
-				ancestor := query.Skip + 1
-				if ancestor == 0 {
-					unknown = true
-				} else {
-					query.Origin.Hash, query.Origin.Number = pm.blockchain.GetAncestor(query.Origin.Hash, query.Origin.Number, ancestor, &maxNonCanonical)
-					unknown = (query.Origin.Hash == common.Hash{})
-				}
-			case hashMode && !query.Reverse:
-				// Hash based traversal towards the leaf block
-				var (
-					current = origin.Number.Uint64()
-					next    = current + query.Skip + 1
-				)
-				if next <= current {
-					infos, _ := json.MarshalIndent(p.Peer.Info(), "", "  ")
-					p.Log().Warn("GetBlockHeaders skip overflow attack", "current", current, "skip", query.Skip, "next", next, "attacker", infos)
-					unknown = true
-				} else {
-					if header := pm.blockchain.GetHeaderByNumber(next); header != nil {
-						nextHash := header.Hash()
-						expOldHash, _ := pm.blockchain.GetAncestor(nextHash, next, query.Skip+1, &maxNonCanonical)
-						if expOldHash == query.Origin.Hash {
-							query.Origin.Hash, query.Origin.Number = nextHash, next
-						} else {
-							unknown = true
-						}
-					} else {
-						unknown = true
-					}
-				}
-			case query.Reverse:
-				// Number based traversal towards the genesis block
-				if query.Origin.Number >= query.Skip+1 {
-					query.Origin.Number -= query.Skip + 1
-				} else {
-					unknown = true
-				}
-
-			case !query.Reverse:
-				// Number based traversal towards the leaf block
-				query.Origin.Number += query.Skip + 1
-			}
-		}
-		return p.SendBlockHeaders(headers)
-
+		// Block header query, collect the requested headers and reply
+		return pm.handleGetBlockHeadersMsg(p, msg)
 	case msg.Code == BlockHeadersMsg:
-		// A batch of headers arrived to one of our previous requests
-		var headers []*types.Header
-		if err := msg.Decode(&headers); err != nil {
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		// If no headers were received, but we're expencting a checkpoint header, consider it that
-		if len(headers) == 0 && p.syncDrop != nil {
-			// Stop the timer either way, decide later to drop or not
-			p.syncDrop.Stop()
-			p.syncDrop = nil
-
-			// If we're doing a fast sync, we must enforce the checkpoint block to avoid
-			// eclipse attacks. Unsynced nodes are welcome to connect after we're done
-			// joining the network
-			if atomic.LoadUint32(&pm.fastSync) == 1 {
-				p.Log().Warn("Dropping unsynced node during fast sync", "addr", p.RemoteAddr(), "type", p.Name())
-				return errors.New("unsynced node cannot serve fast sync")
-			}
-		}
-		// Filter out any explicitly requested headers, deliver the rest to the downloader
-		filter := len(headers) == 1
-		if filter {
-			// If it's a potential sync progress check, validate the content and advertised chain weight
-			if p.syncDrop != nil && headers[0].Number.Uint64() == pm.checkpointNumber {
-				// Disable the sync drop timer
-				p.syncDrop.Stop()
-				p.syncDrop = nil
-
-				// Validate the header and either drop the peer or continue
-				if headers[0].Hash() != pm.checkpointHash {
-					return errors.New("checkpoint hash mismatch")
-				}
-				return nil
-			}
-			// Otherwise if it's a whitelisted block, validate against the set
-			if want, ok := pm.whitelist[headers[0].Number.Uint64()]; ok {
-				if hash := headers[0].Hash(); want != hash {
-					p.Log().Info("Whitelist mismatch, dropping peer", "number", headers[0].Number.Uint64(), "hash", hash, "want", want)
-					return errors.New("whitelist block mismatch")
-				}
-				p.Log().Debug("Whitelist block verified", "number", headers[0].Number.Uint64(), "hash", want)
-			}
-			// Irrelevant of the fork checks, send the header to the fetcher just in case
-			headers = pm.blockFetcher.FilterHeaders(p.id, headers, time.Now())
-		}
-		if len(headers) > 0 || !filter {
-			err := pm.downloader.DeliverHeaders(p.id, headers)
-			if err != nil {
-				log.Debug("Failed to deliver headers", "err", err)
-			}
-		}
-
+		return pm.handleBlockHeadersMsg(p, msg)
 	case msg.Code == GetBlockBodiesMsg:
-		// Decode the retrieval message
-		msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
-		if _, err := msgStream.List(); err != nil {
-			return err
-		}
-		// Gather blocks until the fetch or network limits is reached
-		var (
-			hash   common.Hash
-			bytes  int
-			bodies []rlp.RawValue
-		)
-		for bytes < softResponseLimit && len(bodies) < downloader.MaxBlockFetch {
-			// Retrieve the hash of the next block
-			if err := msgStream.Decode(&hash); err == rlp.EOL {
-				break
-			} else if err != nil {
-				return errResp(ErrDecode, "msg %v: %v", msg, err)
-			}
-			// Retrieve the requested block body, stopping if enough was found
-			if data := pm.blockchain.GetBodyRLP(hash); len(data) != 0 {
-				bodies = append(bodies, data)
-				bytes += len(data)
-			}
-		}
-		return p.SendBlockBodiesRLP(bodies)
-
+		return pm.handleGetBlockBodiesMsg(p, msg)
 	case msg.Code == BlockBodiesMsg:
-		// A batch of block bodies arrived to one of our previous requests
-		var request blockBodiesData
-		if err := msg.Decode(&request); err != nil {
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		// Deliver them all to the downloader for queuing
-		transactions := make([][]*types.Transaction, len(request))
-		uncles := make([][]*types.Header, len(request))
-
-		for i, body := range request {
-			transactions[i] = body.Transactions
-			uncles[i] = body.Uncles
-		}
-		// Filter out any explicitly requested bodies, deliver the rest to the downloader
-		filter := len(transactions) > 0 || len(uncles) > 0
-		if filter {
-			transactions, uncles = pm.blockFetcher.FilterBodies(p.id, transactions, uncles, time.Now())
-		}
-		if len(transactions) > 0 || len(uncles) > 0 || !filter {
-			err := pm.downloader.DeliverBodies(p.id, transactions, uncles)
-			if err != nil {
-				log.Debug("Failed to deliver bodies", "err", err)
-			}
-		}
-
+		return pm.handleBlockBodiesMsg(p, msg)
 	case p.version >= eth63 && msg.Code == GetNodeDataMsg:
-		// Decode the retrieval message
-		msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
-		if _, err := msgStream.List(); err != nil {
-			return err
-		}
-		// Gather state data until the fetch or network limits is reached
-		var (
-			hash  common.Hash
-			bytes int
-			data  [][]byte
-		)
-		for bytes < softResponseLimit && len(data) < downloader.MaxStateFetch {
-			// Retrieve the hash of the next state entry
-			if err := msgStream.Decode(&hash); err == rlp.EOL {
-				break
-			} else if err != nil {
-				return errResp(ErrDecode, "msg %v: %v", msg, err)
-			}
-			// Retrieve the requested state entry, stopping if enough was found
-			if entry, err := pm.blockchain.TrieNode(hash); err == nil {
-				data = append(data, entry)
-				bytes += len(entry)
-			}
-		}
-		return p.SendNodeData(data)
-
+		return pm.handleGetNodeDataMsg(p, msg)
 	case p.version >= eth63 && msg.Code == NodeDataMsg:
-		// A batch of node state data arrived to one of our previous requests
-		var data [][]byte
-		if err := msg.Decode(&data); err != nil {
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		// Deliver all to the downloader
-		if err := pm.downloader.DeliverNodeData(p.id, data); err != nil {
-			log.Debug("Failed to deliver node state data", "err", err)
-		}
-
+		return pm.handleNodeDataMsg(p, msg)
 	case p.version >= eth63 && msg.Code == GetReceiptsMsg:
-		// Decode the retrieval message
-		msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
-		if _, err := msgStream.List(); err != nil {
-			return err
-		}
-		// Gather state data until the fetch or network limits is reached
-		var (
-			hash     common.Hash
-			bytes    int
-			receipts []rlp.RawValue
-		)
-		for bytes < softResponseLimit && len(receipts) < downloader.MaxReceiptFetch {
-			// Retrieve the hash of the next block
-			if err := msgStream.Decode(&hash); err == rlp.EOL {
-				break
-			} else if err != nil {
-				return errResp(ErrDecode, "msg %v: %v", msg, err)
-			}
-			// Retrieve the requested block's receipts, skipping if unknown to us
-			results := pm.blockchain.GetReceiptsByHash(hash)
-			if results == nil {
-				if header := pm.blockchain.GetHeaderByHash(hash); header == nil || header.ReceiptHash != types.EmptyRootHash {
-					continue
-				}
-			}
-			// If known, encode and queue for response packet
-			if encoded, err := rlp.EncodeToBytes(results); err != nil {
-				log.Error("Failed to encode receipt", "err", err)
-			} else {
-				receipts = append(receipts, encoded)
-				bytes += len(encoded)
-			}
-		}
-		return p.SendReceiptsRLP(receipts)
-
+		return pm.handleGetReceiptsMsg(p, msg)
 	case p.version >= eth63 && msg.Code == ReceiptsMsg:
-		// A batch of receipts arrived to one of our previous requests
-		var receipts [][]*types.Receipt
-		if err := msg.Decode(&receipts); err != nil {
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		// Deliver all to the downloader
-		if err := pm.downloader.DeliverReceipts(p.id, receipts); err != nil {
-			log.Debug("Failed to deliver receipts", "err", err)
-		}
-
+		return pm.handleReceiptsMsg(p, msg)
 	case msg.Code == NewBlockHashesMsg:
-		var announces newBlockHashesData
-		if err := msg.Decode(&announces); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		// Mark the hashes as present at the remote node
-		for _, block := range announces {
-			p.MarkBlock(block.Hash)
-		}
-		// Schedule all the unknown hashes for retrieval
-		unknown := make(newBlockHashesData, 0, len(announces))
-		for _, block := range announces {
-			if !pm.blockchain.HasBlock(block.Hash, block.Number) {
-				unknown = append(unknown, block)
-			}
-		}
-		for _, block := range unknown {
-			pm.blockFetcher.Notify(p.id, block.Hash, block.Number, time.Now(), p.RequestOneHeader, p.RequestBodies)
-		}
-
+		return pm.handleNewBlockHashesMsg(p, msg)
 	case msg.Code == NewBlockMsg:
-		// Retrieve and decode the propagated block
-		var request newBlockData
-		if err := msg.Decode(&request); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		if hash := types.CalcUncleHash(request.Block.Uncles()); hash != request.Block.UncleHash() {
-			log.Warn("Propagated block has invalid uncles", "have", hash, "exp", request.Block.UncleHash())
-			break // TODO(karalabe): return error eventually, but wait a few releases
-		}
-		if hash := types.DeriveSha(request.Block.Transactions()); hash != request.Block.TxHash() {
-			log.Warn("Propagated block has invalid body", "have", hash, "exp", request.Block.TxHash())
-			break // TODO(karalabe): return error eventually, but wait a few releases
-		}
-		if err := request.sanityCheck(); err != nil {
-			return err
-		}
-		request.Block.ReceivedAt = msg.ReceivedAt
-		request.Block.ReceivedFrom = p
-
-		// Mark the peer as owning the block and schedule it for import
-		p.MarkBlock(request.Block.Hash())
-		pm.blockFetcher.Enqueue(p.id, request.Block)
-
-		// Assuming the block is importable by the peer, but possibly not yet done so,
-		// calculate the head hash and TD that the peer truly must have.
-		var (
-			trueHead = request.Block.ParentHash()
-			trueTD   = new(big.Int).Sub(request.TD, request.Block.Difficulty())
-		)
-		// Update the peer's total difficulty if better than the previous
-		if _, td := p.Head(); trueTD.Cmp(td) > 0 {
-			p.SetHead(trueHead, trueTD)
-			pm.chainSync.handlePeerEvent(p)
-		}
-
+		return pm.handleNewBlockMsg(p, msg)
 	case msg.Code == NewPooledTransactionHashesMsg && p.version >= eth65:
-		// New transaction announcement arrived, make sure we have
-		// a valid and fresh chain to handle them
-		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
-			break
-		}
-		var hashes []common.Hash
-		if err := msg.Decode(&hashes); err != nil {
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		// Schedule all the unknown hashes for retrieval
-		for _, hash := range hashes {
-			p.MarkTransaction(hash)
-		}
-		pm.txFetcher.Notify(p.id, hashes)
-
+		return pm.handleNewPooledTxHashesMsg(p, msg)
 	case msg.Code == GetPooledTransactionsMsg && p.version >= eth65:
-		// Decode the retrieval message
-		msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
-		if _, err := msgStream.List(); err != nil {
-			return err
-		}
-		// Gather transactions until the fetch or network limits is reached
-		var (
-			hash   common.Hash
-			bytes  int
-			hashes []common.Hash
-			txs    []rlp.RawValue
-		)
-		for bytes < softResponseLimit {
-			// Retrieve the hash of the next block
-			if err := msgStream.Decode(&hash); err == rlp.EOL {
-				break
-			} else if err != nil {
-				return errResp(ErrDecode, "msg %v: %v", msg, err)
-			}
-			// Retrieve the requested transaction, skipping if unknown to us
-			tx := pm.txpool.Get(hash)
-			if tx == nil {
-				continue
-			}
-			// If known, encode and queue for response packet
-			if encoded, err := rlp.EncodeToBytes(tx); err != nil {
-				log.Error("Failed to encode transaction", "err", err)
-			} else {
-				hashes = append(hashes, hash)
-				txs = append(txs, encoded)
-				bytes += len(encoded)
-			}
-		}
-		return p.SendPooledTransactionsRLP(hashes, txs)
-
+		return pm.handleGetPooledTxsMsg(p, msg)
 	case msg.Code == TransactionMsg || (msg.Code == PooledTransactionsMsg && p.version >= eth65):
-		// Transactions arrived, make sure we have a valid and fresh chain to handle them
-		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
-			break
-		}
-		// Transactions can be processed, parse all of them and deliver to the pool
-		var txs []*types.Transaction
-		if err := msg.Decode(&txs); err != nil {
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		for i, tx := range txs {
-			// Validate and mark the remote transaction
-			if tx == nil {
-				return errResp(ErrDecode, "transaction %d is nil", i)
-			}
-			p.MarkTransaction(tx.Hash())
-		}
-		pm.txFetcher.Enqueue(p.id, txs, msg.Code == PooledTransactionsMsg)
-
+		return pm.handleTxMsg(p, msg)
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}
+}
+
+func (pm *ProtocolManager) handleGetBlockHeadersMsg(p *peer, msg p2p.Msg) error {
+	// Decode the complex header query
+	var query getBlockHeadersData
+	if err := msg.Decode(&query); err != nil {
+		return errResp(ErrDecode, "%v: %v", msg, err)
+	}
+	hashMode := query.Origin.Hash != (common.Hash{})
+	first := true
+	maxNonCanonical := uint64(100)
+
+	// Gather headers until the fetch or network limits is reached
+	var (
+		bytes   common.StorageSize
+		headers []*types.Header
+		unknown bool
+	)
+	for !unknown && len(headers) < int(query.Amount) && bytes < softResponseLimit && len(headers) < downloader.MaxHeaderFetch {
+		// Retrieve the next header satisfying the query
+		var origin *types.Header
+		if hashMode {
+			if first {
+				first = false
+				origin = pm.blockchain.GetHeaderByHash(query.Origin.Hash)
+				if origin != nil {
+					query.Origin.Number = origin.Number.Uint64()
+				}
+			} else {
+				origin = pm.blockchain.GetHeader(query.Origin.Hash, query.Origin.Number)
+			}
+		} else {
+			origin = pm.blockchain.GetHeaderByNumber(query.Origin.Number)
+		}
+		if origin == nil {
+			break
+		}
+		headers = append(headers, origin)
+		bytes += estHeaderRlpSize
+
+		// Advance to the next header of the query
+		switch {
+		case hashMode && query.Reverse:
+			// Hash based traversal towards the genesis block
+			ancestor := query.Skip + 1
+			if ancestor == 0 {
+				unknown = true
+			} else {
+				query.Origin.Hash, query.Origin.Number = pm.blockchain.GetAncestor(query.Origin.Hash, query.Origin.Number, ancestor, &maxNonCanonical)
+				unknown = (query.Origin.Hash == common.Hash{})
+			}
+		case hashMode && !query.Reverse:
+			// Hash based traversal towards the leaf block
+			var (
+				current = origin.Number.Uint64()
+				next    = current + query.Skip + 1
+			)
+			if next <= current {
+				infos, _ := json.MarshalIndent(p.Peer.Info(), "", "  ")
+				p.Log().Warn("GetBlockHeaders skip overflow attack", "current", current, "skip", query.Skip, "next", next, "attacker", infos)
+				unknown = true
+			} else {
+				if header := pm.blockchain.GetHeaderByNumber(next); header != nil {
+					nextHash := header.Hash()
+					expOldHash, _ := pm.blockchain.GetAncestor(nextHash, next, query.Skip+1, &maxNonCanonical)
+					if expOldHash == query.Origin.Hash {
+						query.Origin.Hash, query.Origin.Number = nextHash, next
+					} else {
+						unknown = true
+					}
+				} else {
+					unknown = true
+				}
+			}
+		case query.Reverse:
+			// Number based traversal towards the genesis block
+			if query.Origin.Number >= query.Skip+1 {
+				query.Origin.Number -= query.Skip + 1
+			} else {
+				unknown = true
+			}
+
+		case !query.Reverse:
+			// Number based traversal towards the leaf block
+			query.Origin.Number += query.Skip + 1
+		}
+	}
+	return p.SendBlockHeaders(headers)
+}
+
+func (pm *ProtocolManager) handleBlockHeadersMsg(p *peer, msg p2p.Msg) error {
+	// A batch of headers arrived to one of our previous requests
+	var headers []*types.Header
+	if err := msg.Decode(&headers); err != nil {
+		return errResp(ErrDecode, "msg %v: %v", msg, err)
+	}
+	// If no headers were received, but we're expencting a checkpoint header, consider it that
+	if len(headers) == 0 && p.syncDrop != nil {
+		// Stop the timer either way, decide later to drop or not
+		p.syncDrop.Stop()
+		p.syncDrop = nil
+
+		// If we're doing a fast sync, we must enforce the checkpoint block to avoid
+		// eclipse attacks. Unsynced nodes are welcome to connect after we're done
+		// joining the network
+		if atomic.LoadUint32(&pm.fastSync) == 1 {
+			p.Log().Warn("Dropping unsynced node during fast sync", "addr", p.RemoteAddr(), "type", p.Name())
+			return errors.New("unsynced node cannot serve fast sync")
+		}
+	}
+	// Filter out any explicitly requested headers, deliver the rest to the downloader
+	filter := len(headers) == 1
+	if filter {
+		// If it's a potential sync progress check, validate the content and advertised chain weight
+		if p.syncDrop != nil && headers[0].Number.Uint64() == pm.checkpointNumber {
+			// Disable the sync drop timer
+			p.syncDrop.Stop()
+			p.syncDrop = nil
+
+			// Validate the header and either drop the peer or continue
+			if headers[0].Hash() != pm.checkpointHash {
+				return errors.New("checkpoint hash mismatch")
+			}
+			return nil
+		}
+		// Otherwise if it's a whitelisted block, validate against the set
+		if want, ok := pm.whitelist[headers[0].Number.Uint64()]; ok {
+			if hash := headers[0].Hash(); want != hash {
+				p.Log().Info("Whitelist mismatch, dropping peer", "number", headers[0].Number.Uint64(), "hash", hash, "want", want)
+				return errors.New("whitelist block mismatch")
+			}
+			p.Log().Debug("Whitelist block verified", "number", headers[0].Number.Uint64(), "hash", want)
+		}
+		// Irrelevant of the fork checks, send the header to the fetcher just in case
+		headers = pm.blockFetcher.FilterHeaders(p.id, headers, time.Now())
+	}
+	if len(headers) > 0 || !filter {
+		err := pm.downloader.DeliverHeaders(p.id, headers)
+		if err != nil {
+			log.Debug("Failed to deliver headers", "err", err)
+		}
+	}
+
+	return nil
+}
+
+func (pm *ProtocolManager) handleGetBlockBodiesMsg(p *peer, msg p2p.Msg) error {
+	// Decode the retrieval message
+	msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
+	if _, err := msgStream.List(); err != nil {
+		return err
+	}
+	// Gather blocks until the fetch or network limits is reached
+	var (
+		hash   common.Hash
+		bytes  int
+		bodies []rlp.RawValue
+	)
+	for bytes < softResponseLimit && len(bodies) < downloader.MaxBlockFetch {
+		// Retrieve the hash of the next block
+		if err := msgStream.Decode(&hash); err == rlp.EOL {
+			break
+		} else if err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		// Retrieve the requested block body, stopping if enough was found
+		if data := pm.blockchain.GetBodyRLP(hash); len(data) != 0 {
+			bodies = append(bodies, data)
+			bytes += len(data)
+		}
+	}
+
+	return p.SendBlockBodiesRLP(bodies)
+}
+
+func (pm *ProtocolManager) handleBlockBodiesMsg(p *peer, msg p2p.Msg) error {
+	// A batch of block bodies arrived to one of our previous requests
+	var request blockBodiesData
+	if err := msg.Decode(&request); err != nil {
+		return errResp(ErrDecode, "msg %v: %v", msg, err)
+	}
+	// Deliver them all to the downloader for queuing
+	transactions := make([][]*types.Transaction, len(request))
+	uncles := make([][]*types.Header, len(request))
+
+	for i, body := range request {
+		transactions[i] = body.Transactions
+		uncles[i] = body.Uncles
+	}
+	// Filter out any explicitly requested bodies, deliver the rest to the downloader
+	filter := len(transactions) > 0 || len(uncles) > 0
+	if filter {
+		transactions, uncles = pm.blockFetcher.FilterBodies(p.id, transactions, uncles, time.Now())
+	}
+	if len(transactions) > 0 || len(uncles) > 0 || !filter {
+		err := pm.downloader.DeliverBodies(p.id, transactions, uncles)
+		if err != nil {
+			log.Debug("Failed to deliver bodies", "err", err)
+		}
+	}
+
+	return nil
+}
+
+func (pm *ProtocolManager) handleGetNodeDataMsg(p *peer, msg p2p.Msg) error {
+	// Decode the retrieval message
+	msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
+	if _, err := msgStream.List(); err != nil {
+		return err
+	}
+	// Gather state data until the fetch or network limits is reached
+	var (
+		hash  common.Hash
+		bytes int
+		data  [][]byte
+	)
+	for bytes < softResponseLimit && len(data) < downloader.MaxStateFetch {
+		// Retrieve the hash of the next state entry
+		if err := msgStream.Decode(&hash); err == rlp.EOL {
+			break
+		} else if err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		// Retrieve the requested state entry, stopping if enough was found
+		if entry, err := pm.blockchain.TrieNode(hash); err == nil {
+			data = append(data, entry)
+			bytes += len(entry)
+		}
+	}
+	return p.SendNodeData(data)
+}
+
+func (pm *ProtocolManager) handleNodeDataMsg(p *peer, msg p2p.Msg) error {
+	// A batch of node state data arrived to one of our previous requests
+	var data [][]byte
+	if err := msg.Decode(&data); err != nil {
+		return errResp(ErrDecode, "msg %v: %v", msg, err)
+	}
+	// Deliver all to the downloader
+	if err := pm.downloader.DeliverNodeData(p.id, data); err != nil {
+		log.Debug("Failed to deliver node state data", "err", err)
+	}
+
+	return nil
+}
+
+func (pm *ProtocolManager) handleGetReceiptsMsg(p *peer, msg p2p.Msg) error {
+	// Decode the retrieval message
+	msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
+	if _, err := msgStream.List(); err != nil {
+		return err
+	}
+	// Gather state data until the fetch or network limits is reached
+	var (
+		hash     common.Hash
+		bytes    int
+		receipts []rlp.RawValue
+	)
+	for bytes < softResponseLimit && len(receipts) < downloader.MaxReceiptFetch {
+		// Retrieve the hash of the next block
+		if err := msgStream.Decode(&hash); err == rlp.EOL {
+			break
+		} else if err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		// Retrieve the requested block's receipts, skipping if unknown to us
+		results := pm.blockchain.GetReceiptsByHash(hash)
+		if results == nil {
+			if header := pm.blockchain.GetHeaderByHash(hash); header == nil || header.ReceiptHash != types.EmptyRootHash {
+				continue
+			}
+		}
+		// If known, encode and queue for response packet
+		if encoded, err := rlp.EncodeToBytes(results); err != nil {
+			log.Error("Failed to encode receipt", "err", err)
+		} else {
+			receipts = append(receipts, encoded)
+			bytes += len(encoded)
+		}
+	}
+	return p.SendReceiptsRLP(receipts)
+}
+
+func (pm *ProtocolManager) handleReceiptsMsg(p *peer, msg p2p.Msg) error {
+	// A batch of receipts arrived to one of our previous requests
+	var receipts [][]*types.Receipt
+	if err := msg.Decode(&receipts); err != nil {
+		return errResp(ErrDecode, "msg %v: %v", msg, err)
+	}
+	// Deliver all to the downloader
+	if err := pm.downloader.DeliverReceipts(p.id, receipts); err != nil {
+		log.Debug("Failed to deliver receipts", "err", err)
+	}
+
+	return nil
+}
+
+func (pm *ProtocolManager) handleNewBlockHashesMsg(p *peer, msg p2p.Msg) error {
+	var announces newBlockHashesData
+	if err := msg.Decode(&announces); err != nil {
+		return errResp(ErrDecode, "%v: %v", msg, err)
+	}
+	// Mark the hashes as present at the remote node
+	for _, block := range announces {
+		p.MarkBlock(block.Hash)
+	}
+	// Schedule all the unknown hashes for retrieval
+	unknown := make(newBlockHashesData, 0, len(announces))
+	for _, block := range announces {
+		if !pm.blockchain.HasBlock(block.Hash, block.Number) {
+			unknown = append(unknown, block)
+		}
+	}
+	for _, block := range unknown {
+		pm.blockFetcher.Notify(p.id, block.Hash, block.Number, time.Now(), p.RequestOneHeader, p.RequestBodies)
+	}
+
+	return nil
+}
+
+func (pm *ProtocolManager) handleNewBlockMsg(p *peer, msg p2p.Msg) error {
+	// Retrieve and decode the propagated block
+	var request newBlockData
+	if err := msg.Decode(&request); err != nil {
+		return errResp(ErrDecode, "%v: %v", msg, err)
+	}
+	if hash := types.CalcUncleHash(request.Block.Uncles()); hash != request.Block.UncleHash() {
+		log.Warn("Propagated block has invalid uncles", "have", hash, "exp", request.Block.UncleHash())
+		return nil // TODO(karalabe): return error eventually, but wait a few releases
+	}
+	if hash := types.DeriveSha(request.Block.Transactions()); hash != request.Block.TxHash() {
+		log.Warn("Propagated block has invalid body", "have", hash, "exp", request.Block.TxHash())
+		return nil // TODO(karalabe): return error eventually, but wait a few releases
+	}
+	if err := request.sanityCheck(); err != nil {
+		return err
+	}
+	request.Block.ReceivedAt = msg.ReceivedAt
+	request.Block.ReceivedFrom = p
+
+	// Mark the peer as owning the block and schedule it for import
+	p.MarkBlock(request.Block.Hash())
+	pm.blockFetcher.Enqueue(p.id, request.Block)
+
+	// Assuming the block is importable by the peer, but possibly not yet done so,
+	// calculate the head hash and TD that the peer truly must have.
+	var (
+		trueHead = request.Block.ParentHash()
+		trueTD   = new(big.Int).Sub(request.TD, request.Block.Difficulty())
+	)
+	// Update the peer's total difficulty if better than the previous
+	if _, td := p.Head(); trueTD.Cmp(td) > 0 {
+		p.SetHead(trueHead, trueTD)
+		pm.chainSync.handlePeerEvent(p)
+	}
+
+	return nil
+}
+
+func (pm *ProtocolManager) handleNewPooledTxHashesMsg(p *peer, msg p2p.Msg) error {
+	// New transaction announcement arrived, make sure we have
+	// a valid and fresh chain to handle them
+	if atomic.LoadUint32(&pm.acceptTxs) == 0 {
+		return nil
+	}
+	var hashes []common.Hash
+	if err := msg.Decode(&hashes); err != nil {
+		return errResp(ErrDecode, "msg %v: %v", msg, err)
+	}
+	// Schedule all the unknown hashes for retrieval
+	for _, hash := range hashes {
+		p.MarkTransaction(hash)
+	}
+
+	_ = pm.txFetcher.Notify(p.id, hashes)
+	return nil
+}
+
+func (pm *ProtocolManager) handleGetPooledTxsMsg(p *peer, msg p2p.Msg) error {
+	// Decode the retrieval message
+	msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
+	if _, err := msgStream.List(); err != nil {
+		return err
+	}
+	// Gather transactions until the fetch or network limits is reached
+	var (
+		hash   common.Hash
+		bytes  int
+		hashes []common.Hash
+		txs    []rlp.RawValue
+	)
+	for bytes < softResponseLimit {
+		// Retrieve the hash of the next block
+		if err := msgStream.Decode(&hash); err == rlp.EOL {
+			break
+		} else if err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		// Retrieve the requested transaction, skipping if unknown to us
+		tx := pm.txpool.Get(hash)
+		if tx == nil {
+			continue
+		}
+		// If known, encode and queue for response packet
+		if encoded, err := rlp.EncodeToBytes(tx); err != nil {
+			log.Error("Failed to encode transaction", "err", err)
+		} else {
+			hashes = append(hashes, hash)
+			txs = append(txs, encoded)
+			bytes += len(encoded)
+		}
+	}
+	return p.SendPooledTransactionsRLP(hashes, txs)
+}
+
+func (pm *ProtocolManager) handleTxMsg(p *peer, msg p2p.Msg) error {
+	// Transactions arrived, make sure we have a valid and fresh chain to handle them
+	if atomic.LoadUint32(&pm.acceptTxs) == 0 {
+		return nil
+	}
+	// Transactions can be processed, parse all of them and deliver to the pool
+	var txs []*types.Transaction
+	if err := msg.Decode(&txs); err != nil {
+		return errResp(ErrDecode, "msg %v: %v", msg, err)
+	}
+	for i, tx := range txs {
+		// Validate and mark the remote transaction
+		if tx == nil {
+			return errResp(ErrDecode, "transaction %d is nil", i)
+		}
+		p.MarkTransaction(tx.Hash())
+	}
+
+	_ = pm.txFetcher.Enqueue(p.id, txs, msg.Code == PooledTransactionsMsg)
 	return nil
 }
 

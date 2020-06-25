@@ -61,8 +61,6 @@ var (
 		utils.UnlockedAccountFlag,
 		utils.PasswordFileFlag,
 		utils.BootnodesFlag,
-		utils.LegacyBootnodesV4Flag,
-		utils.LegacyBootnodesV5Flag,
 		utils.DataDirFlag,
 		utils.AncientFlag,
 		utils.KeyStoreDirFlag,
