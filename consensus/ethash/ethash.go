@@ -684,5 +684,5 @@ func SeedHash(block uint64) []byte {
 }
 
 func (ethash *Ethash) SetContractBackend(bind.ContractBackend) {
-	panic("contract backed is not supported for ethash")
+	log.Warn("contract backed is not supported for ethash")
 }
