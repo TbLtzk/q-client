@@ -53,7 +53,7 @@ type Genesis struct {
 	GasLimit   uint64              `json:"gasLimit"   gencodec:"required"`
 	Difficulty *big.Int            `json:"difficulty" gencodec:"required"`
 	Mixhash    common.Hash         `json:"mixHash"`
-	Coinbase   common.Address      `json:"coinbase"`
+	Coinbase   common.Address      `json:"coinbase"` // is used for system contracts
 	Alloc      GenesisAlloc        `json:"alloc"      gencodec:"required"`
 
 	// These fields are used for consensus tests. Please don't use them

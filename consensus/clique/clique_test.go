@@ -37,13 +37,9 @@ import (
 // empty one **also completes** the empty one, ending up in a known-block error.
 func TestReimportMirroredState(t *testing.T) {
 	// Initialize a Clique chain with a single signer
-	var (
-		db     = rawdb.NewMemoryDatabase()
-		key, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-		addr   = crypto.PubkeyToAddress(key.PublicKey)
-		engine = New(params.AllCliqueProtocolChanges.Clique, db)
-		signer = new(types.HomesteadSigner)
-	)
+	db := rawdb.NewMemoryDatabase()
+	key, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	addr := crypto.PubkeyToAddress(key.PublicKey)
 	genspec := &core.Genesis{
 		ExtraData: make([]byte, extraVanity+common.AddressLength+extraSeal),
 		Alloc: map[common.Address]core.GenesisAccount{
@@ -52,6 +48,10 @@ func TestReimportMirroredState(t *testing.T) {
 	}
 	copy(genspec.ExtraData[extraVanity:], addr[:])
 	genesis := genspec.MustCommit(db)
+	var (
+		engine = New(params.AllCliqueProtocolChanges.Clique, db, genesis.Hash())
+		signer = new(types.HomesteadSigner)
+	)
 
 	// Generate a batch of blocks, each properly signed
 	chain, _ := core.NewBlockChain(db, nil, params.AllCliqueProtocolChanges, engine, vm.Config{}, nil, nil)

@@ -19,8 +19,6 @@ package main
 import (
 	"crypto/rand"
 	"math/big"
-	"os"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -72,7 +70,7 @@ at block: 0 ({{niltime}})
 }
 
 // Tests that a console can be attached to a running node via various means.
-func TestIPCAttachWelcome(t *testing.T) {
+/*func TestIPCAttachWelcome(t *testing.T) {
 	// Configure the instance for IPC attachment
 	coinbase := "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
 	var ipc string
@@ -97,7 +95,7 @@ func TestIPCAttachWelcome(t *testing.T) {
 	waitForEndpoint(t, ipc, 3*time.Second)
 	testAttachWelcome(t, geth, "ipc:"+ipc, ipcAPIs)
 
-}
+}*/
 
 func TestHTTPAttachWelcome(t *testing.T) {
 	coinbase := "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
