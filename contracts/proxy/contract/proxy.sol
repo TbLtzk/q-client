@@ -19,7 +19,6 @@ contract ValidatorsProxy {
 
     constructor(address contr) public {
         ownerAddress = msg.sender;
-        _isContract(contr);
         delegateContract = Validators(contr);
     }
 
@@ -33,6 +32,7 @@ contract ValidatorsProxy {
     }
 
     function changeDelegateContract(address contr) payable _isOwner public {
+        _isContract(contr);
         delegateContract = Validators(contr);
     }
 
