@@ -19,9 +19,6 @@ package clique
 import (
 	"bytes"
 	"encoding/json"
-	"sort"
-
-	"github.com/pkg/errors"
 
 	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/go-ethereum/common"
@@ -35,10 +32,10 @@ type Snapshot struct {
 	config   *params.CliqueConfig // Consensus engine parameters to fine tune behavior
 	sigcache *lru.ARCCache        // Cache of recent block signatures to speed up ecrecover
 
-	Number  uint64                      `json:"number"`  // Block number where the snapshot was created
-	Hash    common.Hash                 `json:"hash"`    // Block hash where the snapshot was created
-	Signers map[common.Address]struct{} `json:"signers"` // Set of authorized signers at this moment
-	Recents map[uint64]common.Address   `json:"recents"` // Set of recent signers for spam protections
+	Number  uint64                    `json:"number"`  // Block number where the snapshot was created
+	Hash    common.Hash               `json:"hash"`    // Block hash where the snapshot was created
+	Signers []common.Address          `json:"signers"` // Set of authorized signers at this moment
+	Recents map[uint64]common.Address `json:"recents"` // Set of recent signers for spam protections
 }
 
 // signersAscending implements the sort interface to allow sorting a list of addresses
@@ -57,11 +54,8 @@ func newSnapshot(config *params.CliqueConfig, sigcache *lru.ARCCache, number uin
 		sigcache: sigcache,
 		Number:   number,
 		Hash:     hash,
-		Signers:  make(map[common.Address]struct{}),
+		Signers:  signers,
 		Recents:  make(map[uint64]common.Address),
-	}
-	for _, signer := range signers {
-		snap.Signers[signer] = struct{}{}
 	}
 	return snap
 }
@@ -98,11 +92,8 @@ func (s *Snapshot) copy() *Snapshot {
 		sigcache: s.sigcache,
 		Number:   s.Number,
 		Hash:     s.Hash,
-		Signers:  make(map[common.Address]struct{}),
+		Signers:  s.Signers,
 		Recents:  make(map[uint64]common.Address),
-	}
-	for signer := range s.Signers {
-		cpy.Signers[signer] = struct{}{}
 	}
 	for block, signer := range s.Recents {
 		cpy.Recents[block] = signer
@@ -114,32 +105,20 @@ func (s *Snapshot) copy() *Snapshot {
 // validVote returns whether it makes sense to cast the specified vote in the
 // given snapshot context (e.g. don't try to add an already authorized signer).
 func (s *Snapshot) validVote(address common.Address, authorize bool) bool {
-	_, signer := s.Signers[address]
+	signer := s.Signers[0] == address
 	return (signer && !authorize) || (!signer && authorize)
 }
 
 // apply creates a new authorization snapshot by applying the given headers to
 // the original one.
-func (s *Snapshot) apply(headers []*types.Header, number uint64, provider ValidatorsProvider) (*Snapshot, error) {
+func (s *Snapshot) apply(headers []*types.Header, number uint64) (*Snapshot, error) {
 	// Allow passing in no headers for cleaner code
 	if len(headers) == 0 {
-		return s, nil
-	}
-	if number%s.config.Epoch != 0 {
 		return s, nil
 	}
 
 	// Iterate through the headers and create a new snapshot
 	snap := s.copy()
-
-	signers, err := provider.GetValidatorsList()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get validators list")
-	}
-	snap.Signers = make(map[common.Address]struct{}, len(signers))
-	for _, signer := range signers {
-		snap.Signers[signer] = struct{}{}
-	}
 
 	snap.Number += uint64(len(headers))
 	snap.Hash = headers[len(headers)-1].Hash()
@@ -149,12 +128,17 @@ func (s *Snapshot) apply(headers []*types.Header, number uint64, provider Valida
 
 // signers retrieves the list of authorized signers in ascending order.
 func (s *Snapshot) signers() []common.Address {
-	sigs := make([]common.Address, 0, len(s.Signers))
-	for sig := range s.Signers {
-		sigs = append(sigs, sig)
+	return s.Signers
+}
+
+func (s *Snapshot) CheckSigner(address common.Address) bool {
+	for _, signer := range s.Signers {
+		if signer == address {
+			return true
+		}
 	}
-	sort.Sort(signersAscending(sigs))
-	return sigs
+
+	return false
 }
 
 // inturn returns if a signer at a given block height is in-turn or not.
