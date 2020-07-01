@@ -319,6 +319,7 @@ type CliqueConfig struct {
 
 type SystemContractsAddresses struct {
 	Validators         common.Address `json:"validators"`
+	ValidatorsProxy    common.Address `json:"validators"`
 	ConstitutionParams common.Address `json:"constitution_params"`
 	RewardReceiver     common.Address `json:"constitution_params"`
 }
