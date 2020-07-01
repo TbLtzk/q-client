@@ -319,9 +319,9 @@ type CliqueConfig struct {
 
 type SystemContractsAddresses struct {
 	Validators         common.Address `json:"validators"`
-	ValidatorsProxy    common.Address `json:"validators"`
+	ValidatorsProxy    common.Address `json:"validators_proxy"`
 	ConstitutionParams common.Address `json:"constitution_params"`
-	RewardReceiver     common.Address `json:"constitution_params"`
+	RewardReceiver     common.Address `json:"reward_receiver"`
 }
 
 // String implements the stringer interface, returning the consensus engine details.
