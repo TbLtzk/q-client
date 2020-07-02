@@ -161,6 +161,19 @@ func (tab *Table) ReadRandomNodes(buf []*enode.Node) (n int) {
 	return copy(buf, nodes)
 }
 
+// getAllNodes returns all available nodes.
+func (tab *Table) getAllNodes() []*node {
+	tab.mutex.Lock()
+	defer tab.mutex.Unlock()
+
+	var result []*node
+	for _, bucket := range tab.buckets {
+		result = append(result, bucket.entries...)
+	}
+
+	return result
+}
+
 // getNode returns the node with the given ID or nil if it isn't in the table.
 func (tab *Table) getNode(id enode.ID) *enode.Node {
 	tab.mutex.Lock()

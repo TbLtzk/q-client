@@ -17,6 +17,9 @@ geth:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
 
+install:
+	cp build/bin/geth /usr/local/bin
+
 all:
 	$(GORUN) build/ci.go install
 
