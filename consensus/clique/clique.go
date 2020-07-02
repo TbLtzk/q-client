@@ -62,6 +62,8 @@ const (
 
 // Clique proof-of-authority protocol constants.
 var (
+	CliqueBlockReward = big.NewInt(5e+18) // Block reward in wei for successfully mining a block
+
 	epochLength = uint64(30000) // Default number of blocks after which to checkpoint and reset the pending votes
 
 	extraVanity = 32                     // Fixed number of extra-data prefix bytes reserved for signer vanity
@@ -560,7 +562,7 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given.
 func (c *Clique) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) {
-	// No block rewards in PoA, so the state remains as is and uncles are dropped
+	accumulateRewards(state, header)
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 }
@@ -568,7 +570,8 @@ func (c *Clique) Finalize(chain consensus.ChainReader, header *types.Header, sta
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,
 // nor block rewards given, and returns the final block.
 func (c *Clique) FinalizeAndAssemble(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	// No block rewards in PoA, so the state remains as is and uncles are dropped
+	// uncles are dropped
+	accumulateRewards(state, header)
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 
@@ -766,4 +769,9 @@ func (c *Clique) SetContractBackend(b bind.ContractBackend) {
 	c.validatorsProvider = &contract.ValidatorsCallerSession{
 		Contract: caller,
 	}
+}
+
+// AccumulateRewards credits the coinbase of the given block with the mining reward
+func accumulateRewards(state *state.StateDB, header *types.Header) {
+	state.AddBalance(header.Coinbase, CliqueBlockReward)
 }
