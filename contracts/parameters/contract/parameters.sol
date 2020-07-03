@@ -18,7 +18,9 @@ contract parameters {
     uint rootNodesNativeAppsFeeShare;
     uint rootNodesCoinbaseSubsidyShare;
 
-    constructor() public{
+    address coinbaseAddress;
+
+    constructor(address coinbaseAddress) public{
         title = "Q Constitution Parameter List";
         version_hash = "0BAB4BDC7C50E87F51273A1CD95D9588508349797C38432F788970693F40BF87";
 
@@ -34,6 +36,8 @@ contract parameters {
         rootNodesTransactionFeeShare = 3333;
         rootNodesNativeAppsFeeShare = 3333;
         rootNodesCoinbaseSubsidyShare = 3333;
+
+        coinbaseAddress = coinbaseAddress;
     }
 
     function setQTokenHoldersTransactionFeeShare(uint feeShare) public {
@@ -82,6 +86,10 @@ contract parameters {
 
     function setRootNodesCoinbaseSubsidyShare(uint feeShare) public {
         rootNodesCoinbaseSubsidyShare = feeShare;
+    }
+
+    function setCoinbaseAddress(address _coinbaseAddress) public {
+        coinbaseAddress = _coinbaseAddress;
     }
 
     function getQTokenHoldersTransactionFeeShare() public view returns (uint) {
@@ -140,7 +148,11 @@ contract parameters {
         version_hash = hash;
     }
 
-    function getDecimal()public view returns(uint){
+    function getDecimal() public view returns (uint){
         return decimal;
+    }
+
+    function getCoinbaseAddress() public view returns (address){
+        return coinbaseAddress;
     }
 }

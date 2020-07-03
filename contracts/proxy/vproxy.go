@@ -3,7 +3,6 @@ package proxy
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/accounts/abi"
 	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/contracts/proxy/contract"
@@ -11,7 +10,6 @@ import (
 )
 
 type ValidatorsProxy struct {
-	abi      abi.ABI
 	address  common.Address
 	contract *contract.ValidatorsProxy
 }
