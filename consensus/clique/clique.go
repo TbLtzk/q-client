@@ -173,6 +173,18 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	return signer, nil
 }
 
+type ParametersProvider interface {
+	GetCoinbaseAddress() (common.Address, error)
+}
+
+type MockedParametersProvider struct {
+	coinbase common.Address
+}
+
+func (p *MockedParametersProvider) GetCoinbaseAddress() (common.Address, error) {
+	return p.coinbase, nil
+}
+
 type ValidatorsProvider interface {
 	GetValidatorsList() ([]common.Address, error)
 }
@@ -208,6 +220,7 @@ type Clique struct {
 	// The fields below are for testing only
 	fakeDiff           bool // Skip difficulty verifications
 	validatorsProvider ValidatorsProvider
+	parametersProvider ParametersProvider
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
@@ -224,6 +237,7 @@ func New(config *params.CliqueConfig, db ethdb.Database, genesisHash common.Hash
 
 	header := rawdb.ReadHeader(db, genesisHash, 0)
 	valPro := &MockedValidatorProvider{extra: header.Extra}
+	parPro := &MockedParametersProvider{coinbase: config.SystemContracts.RewardReceiver}
 
 	return &Clique{
 		config:             &conf,
@@ -232,6 +246,7 @@ func New(config *params.CliqueConfig, db ethdb.Database, genesisHash common.Hash
 		signatures:         signatures,
 		proposals:          make(map[common.Address]bool),
 		validatorsProvider: valPro,
+		parametersProvider: parPro,
 	}
 }
 
@@ -529,7 +544,10 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 	header.Difficulty = CalcDifficulty(snap, c.signer)
 
 	// Set coinbase to predefined reward receiver
-	header.Coinbase = c.config.SystemContracts.RewardReceiver
+	header.Coinbase, err = c.parametersProvider.GetCoinbaseAddress()
+	if err != nil {
+		return err
+	}
 
 	// Ensure the extra data has all its components
 	if len(header.Extra) < extraVanity {
