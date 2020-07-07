@@ -29,9 +29,7 @@ import (
 
 	"gitlab.com/q-dev/go-ethereum/core/rawdb"
 
-	"gitlab.com/q-dev/go-ethereum/contracts/system"
-
-	"gitlab.com/q-dev/go-ethereum/contracts/validators/contract"
+	"gitlab.com/q-dev/system-contracts/generated"
 
 	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
 
@@ -778,13 +776,13 @@ func (c *Clique) SetContractBackend(b bind.ContractBackend) {
 		return
 	}
 
-	caller, err := contract.NewValidatorsCaller(c.config.SystemContracts.Validators, b)
+	caller, err := generated.NewValidatorsCaller(c.config.SystemContracts.Validators, b)
 	if err != nil {
 		log.Error("Failed to create new validator caller", "err", err)
 		panic(err)
 	}
 
-	c.validatorsProvider = &contract.ValidatorsCallerSession{
+	c.validatorsProvider = &generated.ValidatorsCallerSession{
 		Contract: caller,
 	}
 }
