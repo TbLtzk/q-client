@@ -262,8 +262,8 @@ func fillSystemContractAddresses(genesis *core.Genesis) {
 	systemAddresses := []*common.Address{
 		&genesis.Config.Clique.SystemContracts.Validators,
 		&genesis.Config.Clique.SystemContracts.ValidatorsProxy,
-		&genesis.Config.Clique.SystemContracts.ConstitutionParams,
 		&genesis.Config.Clique.SystemContracts.RewardReceiver,
+		&genesis.Config.Clique.SystemContracts.ConstitutionParams,
 	}
 
 	for nonce := range systemAddresses {
