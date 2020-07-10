@@ -17,12 +17,18 @@
 package clique
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"sort"
+	"testing"
 
 	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/core"
+	"gitlab.com/q-dev/go-ethereum/core/rawdb"
 	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/go-ethereum/core/vm"
 	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/go-ethereum/params"
 )
 
 // testerAccountPool is a pool to maintain currently active tester accounts,
@@ -32,12 +38,12 @@ type testerAccountPool struct {
 	accounts map[string]*ecdsa.PrivateKey
 }
 
-/*func newTesterAccountPool() *testerAccountPool {
+func newTesterAccountPool() *testerAccountPool {
 	return &testerAccountPool{
 		accounts: make(map[string]*ecdsa.PrivateKey),
 	}
 }
-*/
+
 // checkpoint creates a Clique checkpoint signer section from the provided list
 // of authorized signers and embeds it into the provided header.
 func (ap *testerAccountPool) checkpoint(header *types.Header, signers []string) {
@@ -78,9 +84,19 @@ func (ap *testerAccountPool) sign(header *types.Header, signer string) {
 	copy(header.Extra[len(header.Extra)-extraSeal:], sig)
 }
 
+// testerVote represents a single block signed by a parcitular account, where
+// the account may or may not have cast a Clique vote.
+type testerVote struct {
+	signer     string
+	voted      string
+	auth       bool
+	checkpoint []string
+	newbatch   bool
+}
+
 // Tests that Clique signer voting is evaluated correctly for various simple and
 // complex scenarios, as well as that a few special corner cases fail correctly.
-/*func TestClique(t *testing.T) {
+func TestClique(t *testing.T) {
 	// Define the various voting scenarios to test
 	tests := []struct {
 		epoch   uint64
@@ -385,7 +401,7 @@ func (ap *testerAccountPool) sign(header *types.Header, signer string) {
 		}
 		// Create a pristine blockchain with the genesis injected
 		db := rawdb.NewMemoryDatabase()
-		block, _ := genesis.Commit(db)
+		genesis.Commit(db)
 
 		// Assemble a chain of headers from the cast votes
 		config := *params.TestChainConfig
@@ -393,7 +409,7 @@ func (ap *testerAccountPool) sign(header *types.Header, signer string) {
 			Period: 1,
 			Epoch:  tt.epoch,
 		}
-		engine := New(config.Clique, db, block.Hash())
+		engine := New(config.Clique, db)
 		engine.fakeDiff = true
 
 		blocks, _ := core.GenerateChain(&config, genesis.ToBlock(db), engine, db, len(tt.votes), func(j int, gen *core.BlockGen) {
@@ -485,4 +501,4 @@ func (ap *testerAccountPool) sign(header *types.Header, signer string) {
 			}
 		}
 	}
-}*/
+}
