@@ -261,8 +261,6 @@ func initGenesis(ctx *cli.Context) error {
 func fillSystemContractAddresses(genesis *core.Genesis) {
 	systemAddresses := []*common.Address{
 		&genesis.Config.Clique.SystemContracts.Validators,
-		&genesis.Config.Clique.SystemContracts.ValidatorsProxy,
-		&genesis.Config.Clique.SystemContracts.RewardReceiver,
 		&genesis.Config.Clique.SystemContracts.ConstitutionParams,
 	}
 
