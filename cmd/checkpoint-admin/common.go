@@ -111,6 +111,7 @@ func newContract(client *rpc.Client) (common.Address, *checkpointoracle.Checkpoi
 // newClefSigner sets up a clef backend and returns a clef transaction signer.
 func newClefSigner(ctx *cli.Context) *bind.TransactOpts {
 	panic("not supported for q node")
+
 	/*clef, err := external.NewExternalSigner(ctx.String(clefURLFlag.Name))
 	if err != nil {
 		utils.Fatalf("Failed to create clef signer %v", err)

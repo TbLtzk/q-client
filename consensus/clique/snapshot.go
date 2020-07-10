@@ -126,6 +126,13 @@ func (s *Snapshot) apply(headers []*types.Header, number uint64) (*Snapshot, err
 	return snap, nil
 }
 
+func (s *Snapshot) setSigners(newSigners []common.Address) {
+	s.Signers = make(map[common.Address]struct{}, len(newSigners))
+	for _, signer := range newSigners {
+		s.Signers[signer] = struct{}{}
+	}
+}
+
 // signers retrieves the list of authorized signers in ascending order.
 func (s *Snapshot) signers() []common.Address {
 	return s.Signers

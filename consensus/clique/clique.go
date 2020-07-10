@@ -27,11 +27,8 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/core/rawdb"
-
-	"gitlab.com/q-dev/system-contracts/generated"
-
 	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
+	"gitlab.com/q-dev/go-ethereum/contracts/validators/contract"
 
 	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/go-ethereum/accounts"
@@ -171,33 +168,8 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	return signer, nil
 }
 
-type ParametersProvider interface {
-	GetCoinbaseAddress() (common.Address, error)
-}
-
-type MockedParametersProvider struct {
-	coinbase common.Address
-}
-
-func (p *MockedParametersProvider) GetCoinbaseAddress() (common.Address, error) {
-	return p.coinbase, nil
-}
-
 type ValidatorsProvider interface {
 	GetValidatorsList() ([]common.Address, error)
-}
-
-type MockedValidatorProvider struct {
-	extra []byte
-}
-
-func (p *MockedValidatorProvider) GetValidatorsList() ([]common.Address, error) {
-	signers := make([]common.Address, (len(p.extra)-extraVanity-extraSeal)/common.AddressLength)
-	for i := 0; i < len(signers); i++ {
-		copy(signers[i][:], p.extra[extraVanity+i*common.AddressLength:])
-	}
-
-	return signers, nil
 }
 
 // Clique is the proof-of-authority consensus engine proposed to support the
@@ -218,7 +190,6 @@ type Clique struct {
 	// The fields below are for testing only
 	fakeDiff           bool // Skip difficulty verifications
 	validatorsProvider ValidatorsProvider
-	parametersProvider ParametersProvider
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
@@ -373,6 +344,16 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainReader, header *type
 	}
 	// If the block is a checkpoint block, verify the signer list
 	if number%c.config.Epoch == 0 {
+		if c.validatorsProvider != nil {
+			signers, err := c.validatorsProvider.GetValidatorsList()
+			if err != nil {
+				log.Error("failed to get validators list from smart contract", "error", err, "step", "verify")
+				return err // todo wrap error
+			}
+
+			snap.setSigners(signers)
+		}
+
 		signers := make([]byte, len(snap.Signers)*common.AddressLength)
 		for i, signer := range snap.signers() {
 			copy(signers[i*common.AddressLength:], signer[:])
@@ -554,6 +535,16 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 	header.Extra = header.Extra[:extraVanity]
 
 	if number%c.config.Epoch == 0 {
+		if c.validatorsProvider != nil {
+			signers, err := c.validatorsProvider.GetValidatorsList()
+			if err != nil {
+				log.Error("failed to get validators list from smart contract", "error", err, "step", "prepare")
+				return err // todo wrap error
+			}
+
+			snap.setSigners(signers)
+		}
+
 		for _, signer := range snap.signers() {
 			header.Extra = append(header.Extra, signer[:]...)
 		}
@@ -776,18 +767,13 @@ func (c *Clique) SetContractBackend(b bind.ContractBackend) {
 		return
 	}
 
-	caller, err := generated.NewValidatorsCaller(c.config.SystemContracts.Validators, b)
+	caller, err := contract.NewValidatorsCaller(c.config.SystemContracts.Validators, b)
 	if err != nil {
 		log.Error("Failed to create new validator caller", "err", err)
 		panic(err)
 	}
 
-	c.validatorsProvider = &generated.ValidatorsCallerSession{
+	c.validatorsProvider = &contract.ValidatorsCallerSession{
 		Contract: caller,
 	}
-}
-
-// AccumulateRewards credits the coinbase of the given block with the mining reward
-func accumulateRewards(state *state.StateDB, header *types.Header) {
-	state.AddBalance(header.Coinbase, CliqueBlockReward)
 }

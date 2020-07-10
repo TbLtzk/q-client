@@ -1778,8 +1778,8 @@ func (api *PublicDebugAPI) GetBlockRlp(ctx context.Context, number uint64) (stri
 	copy(signer[:], crypto.Keccak256(pubkey[1:])[12:])
 
 	return signer, nil
-}*/
-
+}
+*/
 // PrintBlock retrieves a block and returns its pretty printed form.
 func (api *PublicDebugAPI) PrintBlock(ctx context.Context, number uint64) (string, error) {
 	block, _ := api.b.BlockByNumber(ctx, rpc.BlockNumber(number))
