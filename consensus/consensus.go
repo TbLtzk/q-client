@@ -20,8 +20,6 @@ package consensus
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
-
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/core/state"
 	"gitlab.com/q-dev/go-ethereum/core/types"
@@ -116,8 +114,6 @@ type Engine interface {
 
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
-
-	SetContractBackend(bind.ContractBackend)
 }
 
 // PoW is a consensus engine based on proof-of-work.

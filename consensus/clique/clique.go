@@ -19,16 +19,12 @@ package clique
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"io"
 	"math/big"
 	"math/rand"
 	"sync"
 	"time"
-
-	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
-	"gitlab.com/q-dev/go-ethereum/contracts/validators/contract"
 
 	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/go-ethereum/accounts"
@@ -131,6 +127,10 @@ var (
 	// the previous block's timestamp + the minimum block period.
 	errInvalidTimestamp = errors.New("invalid timestamp")
 
+	// errInvalidVotingChain is returned if an authorization list is attempted to
+	// be modified via out-of-range or non-contiguous headers.
+	errInvalidVotingChain = errors.New("invalid voting chain")
+
 	// errUnauthorizedSigner is returned if a header is signed by a non-authorized entity.
 	errUnauthorizedSigner = errors.New("unauthorized signer")
 
@@ -168,8 +168,16 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	return signer, nil
 }
 
-type ValidatorsProvider interface {
-	GetValidatorsList() ([]common.Address, error)
+type ParametersProvider interface {
+	GetCoinbaseAddress() (common.Address, error)
+}
+
+type MockedParametersProvider struct {
+	coinbase common.Address
+}
+
+func (p *MockedParametersProvider) GetCoinbaseAddress() (common.Address, error) {
+	return p.coinbase, nil
 }
 
 // Clique is the proof-of-authority consensus engine proposed to support the
@@ -189,12 +197,12 @@ type Clique struct {
 
 	// The fields below are for testing only
 	fakeDiff           bool // Skip difficulty verifications
-	validatorsProvider ValidatorsProvider
+	parametersProvider ParametersProvider
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
 // signers set to the ones provided by the user.
-func New(config *params.CliqueConfig, db ethdb.Database, genesisHash common.Hash) *Clique {
+func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
 	// Set any missing consensus parameters to their defaults
 	conf := *config
 	if conf.Epoch == 0 {
@@ -204,18 +212,13 @@ func New(config *params.CliqueConfig, db ethdb.Database, genesisHash common.Hash
 	recents, _ := lru.NewARC(inmemorySnapshots)
 	signatures, _ := lru.NewARC(inmemorySignatures)
 
-	header := rawdb.ReadHeader(db, genesisHash, 0)
-	valPro := &MockedValidatorProvider{extra: header.Extra}
-	parPro := &MockedParametersProvider{coinbase: config.SystemContracts.RewardReceiver}
-
 	return &Clique{
 		config:             &conf,
 		db:                 db,
 		recents:            recents,
 		signatures:         signatures,
 		proposals:          make(map[common.Address]bool),
-		validatorsProvider: valPro,
-		parametersProvider: parPro,
+		parametersProvider: &MockedParametersProvider{coinbase: config.SystemContracts.RewardReceiver},
 	}
 }
 
@@ -435,7 +438,7 @@ func (c *Clique) snapshot(chain consensus.ChainReader, number uint64, hash commo
 	for i := 0; i < len(headers)/2; i++ {
 		headers[i], headers[len(headers)-1-i] = headers[len(headers)-1-i], headers[i]
 	}
-	snap, err := snap.apply(headers, number, c.validatorsProvider)
+	snap, err := snap.apply(headers)
 	if err != nil {
 		return nil, err
 	}
@@ -755,22 +758,7 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 	}
 }
 
-func (c *Clique) SetContractBackend(b bind.ContractBackend) {
-	resp, err := b.CodeAt(context.TODO(), c.config.SystemContracts.Validators, nil)
-	if (err != nil) || (len(resp) == 0) {
-		log.Warn("Failed to check validator contract", "err", err, "resp", resp, "addr", c.config.SystemContracts.Validators)
-		time.Sleep(3 * time.Second)
-		go c.SetContractBackend(b)
-		return
-	}
-
-	caller, err := contract.NewValidatorsCaller(c.config.SystemContracts.Validators, b)
-	if err != nil {
-		log.Error("Failed to create new validator caller", "err", err)
-		panic(err)
-	}
-
-	c.validatorsProvider = &contract.ValidatorsCallerSession{
-		Contract: caller,
-	}
+// AccumulateRewards credits the coinbase of the given block with the mining reward
+func accumulateRewards(state *state.StateDB, header *types.Header) {
+	state.AddBalance(header.Coinbase, CliqueBlockReward)
 }

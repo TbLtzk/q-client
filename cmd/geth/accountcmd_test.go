@@ -201,7 +201,7 @@ Password: {{.InputLine "foobar"}}
 	}
 }
 
-/*func TestUnlockFlagWrongPassword(t *testing.T) {
+func TestUnlockFlagWrongPassword(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	geth := runGeth(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "0", "--port", "0",
@@ -218,7 +218,7 @@ Password: {{.InputLine "wrong3"}}
 Fatal: Failed to unlock account f466859ead1932d743d622cb74fc058882e8648a (could not decrypt key with given password)
 `)
 }
-*/
+
 // https://github.com/ethereum/go-ethereum/issues/1785
 func TestUnlockFlagMultiIndex(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
