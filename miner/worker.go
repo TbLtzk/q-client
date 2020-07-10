@@ -24,11 +24,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/consensus/misc"
-
 	mapset "github.com/deckarep/golang-set"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/consensus"
+	"gitlab.com/q-dev/go-ethereum/consensus/misc"
 	"gitlab.com/q-dev/go-ethereum/core"
 	"gitlab.com/q-dev/go-ethereum/core/state"
 	"gitlab.com/q-dev/go-ethereum/core/types"
@@ -968,10 +967,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			return
 		}
 	}
-	err = w.commit(nil, w.fullTaskHook, true, tstart)
-	if err != nil {
-		log.Error("failed to commit block", "err", err)
-	}
+	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
