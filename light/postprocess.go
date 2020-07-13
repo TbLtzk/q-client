@@ -25,7 +25,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/bitutil"
 	"gitlab.com/q-dev/q-client/core"
