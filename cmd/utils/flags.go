@@ -49,6 +49,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethstats"
 	"gitlab.com/q-dev/q-client/graphql"
+	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/les"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
@@ -67,30 +68,6 @@ import (
 	cli "gopkg.in/urfave/cli.v1"
 )
 
-var (
-	CommandHelpTemplate = `{{.cmd.Name}}{{if .cmd.Subcommands}} command{{end}}{{if .cmd.Flags}} [command options]{{end}} [arguments...]
-{{if .cmd.Description}}{{.cmd.Description}}
-{{end}}{{if .cmd.Subcommands}}
-SUBCOMMANDS:
-  {{range .cmd.Subcommands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
-  {{end}}{{end}}{{if .categorizedFlags}}
-{{range $idx, $categorized := .categorizedFlags}}{{$categorized.Name}} OPTIONS:
-{{range $categorized.Flags}}{{"\t"}}{{.}}
-{{end}}
-{{end}}{{end}}`
-
-	OriginCommandHelpTemplate = `{{.Name}}{{if .Subcommands}} command{{end}}{{if .Flags}} [command options]{{end}} [arguments...]
-{{if .Description}}{{.Description}}
-{{end}}{{if .Subcommands}}
-SUBCOMMANDS:
-  {{range .Subcommands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
-  {{end}}{{end}}{{if .Flags}}
-OPTIONS:
-{{range $.Flags}}   {{.}}
-{{end}}
-{{end}}`
-)
-
 func init() {
 	cli.AppHelpTemplate = `{{.Name}} {{if .Flags}}[global options] {{end}}command{{if .Flags}} [command options]{{end}} [arguments...]
 
@@ -104,19 +81,8 @@ GLOBAL OPTIONS:
    {{range .Flags}}{{.}}
    {{end}}{{end}}
 `
-	cli.CommandHelpTemplate = CommandHelpTemplate
+	cli.CommandHelpTemplate = flags.CommandHelpTemplate
 	cli.HelpPrinter = printHelp
-}
-
-// NewApp creates an app with sane defaults.
-func NewApp(gitCommit, gitDate, usage string) *cli.App {
-	app := cli.NewApp()
-	app.Name = filepath.Base(os.Args[0])
-	app.Author = ""
-	app.Email = ""
-	app.Version = params.VersionWithCommit(gitCommit, gitDate)
-	app.Usage = usage
-	return app
 }
 
 func printHelp(out io.Writer, templ string, data interface{}) {
