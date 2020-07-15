@@ -46,10 +46,10 @@ build:
   stage: build
   tags:
     - gitlab-org-docker
-  only:
-    - master
-    - latest
-    - /^v\d+\.\d+\.\d+$/ # semver tags
+#  only:
+#    - master
+#    - latest
+#    - /^v\d+\.\d+\.\d+$/ # semver tags
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
     - apk add --no-cache git make musl-dev go
