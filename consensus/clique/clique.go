@@ -198,6 +198,7 @@ type Clique struct {
 	// The fields below are for testing only
 	fakeDiff           bool // Skip difficulty verifications
 	parametersProvider ParametersProvider
+	contractBackend    bind.ContractBackend
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
@@ -350,14 +351,10 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainReader, header *type
 	}
 	// If the block is a checkpoint block, verify the signer list
 	if number%c.config.Epoch == 0 {
-		if c.validatorsProvider != nil {
-			signers, err := c.validatorsProvider.GetValidatorsList()
-			if err != nil {
-				log.Error("failed to get validators list from smart contract", "error", err, "step", "verify")
-				return err // todo wrap error
-			}
-
-			snap.setSigners(signers)
+		err = c.ensureSignersActual(snap)
+		if err != nil {
+			log.Error("failed to ensure that signers are actual", "error", err, "step", "verify")
+			return err // todo wrap error
 		}
 
 		signers := make([]byte, len(snap.Signers)*common.AddressLength)
@@ -371,6 +368,36 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainReader, header *type
 	}
 	// All basic checks passed, verify the seal and return
 	return c.verifySeal(chain, header, parents)
+}
+
+func (c *Clique) ensureSignersActual(snap *Snapshot) error {
+	if c.validatorsProvider != nil {
+		signers, err := c.validatorsProvider.GetValidatorsList()
+		if err != nil {
+			log.Error("failed to get validators list from smart contract", "error", err)
+			return err // todo wrap error
+		}
+
+		snap.setSigners(signers)
+	} else if c.contractBackend != nil {
+		resp, err := c.contractBackend.CodeAt(context.TODO(), c.config.SystemContracts.Validators, nil)
+		if (err != nil) || (len(resp) == 0) {
+			log.Warn("Failed to check validator contract", "err", err, "resp", resp, "addr", c.config.SystemContracts.Validators)
+			return nil
+		}
+
+		caller, err := generated.NewValidatorsCaller(c.config.SystemContracts.Validators, c.contractBackend)
+		if err != nil {
+			log.Error("Failed to create new validator caller", "err", err)
+			return err // todo wrap error
+		}
+
+		c.validatorsProvider = &generated.ValidatorsCallerSession{
+			Contract: caller,
+		}
+	}
+
+	return nil
 }
 
 // snapshot retrieves the authorization snapshot at a given point in time.
@@ -539,14 +566,10 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 	header.Extra = header.Extra[:extraVanity]
 
 	if number%c.config.Epoch == 0 {
-		if c.validatorsProvider != nil {
-			signers, err := c.validatorsProvider.GetValidatorsList()
-			if err != nil {
-				log.Error("failed to get validators list from smart contract", "error", err, "step", "prepare")
-				return err // todo wrap error
-			}
-
-			snap.setSigners(signers)
+		err = c.ensureSignersActual(snap)
+		if err != nil {
+			log.Error("failed to ensure that signers are actual", "error", err, "step", "prepare")
+			return err // todo wrap error
 		}
 
 		for _, signer := range snap.signers() {
@@ -756,6 +779,10 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 	if err != nil {
 		panic("can't encode: " + err.Error())
 	}
+}
+
+func (c *Clique) SetContractBackend(b bind.ContractBackend) {
+	c.contractBackend = b
 }
 
 // AccumulateRewards credits the coinbase of the given block with the mining reward
