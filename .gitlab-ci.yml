@@ -81,7 +81,7 @@ deploy_devnet:
     - chmod 600 ~/.ssh/id_rsa
     - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
     - sed -i "s@{{ .Image }}@${BUILD_IMAGE}@g" docker-compose.yaml    # replace image in docker-compose
-    - scp docker-compose.yaml ubuntu@$DEV_HOST:~/docker-compose.yaml
+    - scp docker-compose.yaml ubuntu@$DEV_HOST:~/developer-edition/docker-compose.yaml
     - ssh ubuntu@$DEV_HOST "docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
                             && cd developer-edition
                             && docker-compose down
