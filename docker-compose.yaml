@@ -4,55 +4,112 @@ services:
   bootnode:
     image: {{ .Image }}
     container_name: bootnode
-    entrypoint: ["bootnode", "-nodekey=/bootnode/boot.key", "-verbosity=9" , "-addr=172.25.0.100:30301"]
+    environment:
+      - DATADIR=/data
+      - IP=172.25.0.100
+      - GENESIS_PATH=qdevnet.json
+    entrypoint: ["/bin/sh","./bootnode.sh"]
+    # "bootnode", "-nodekey=/bootnode/boot.key", "-verbosity=9" , "-addr=172.25.0.100:30301"
     volumes:
-      - /opt/eth/bootnode:/bootnode
+      - ./configs/qdevnet.json:/qdevnet.json
+      - ./bootnode.sh:/bootnode.sh
+      - bootnode_v:/data
+    ports:
+      - 30301:30301
     networks:
       chainnet:
         ipv4_address: 172.25.0.100
-
-  node-1:
-    image: {{ .Image }}
-    container_name: node-1
-    depends_on:
-      - bootnode
-    ports:
-      - 8000:8545
-      - 30303:30303
-    entrypoint: ["geth", "--datadir=/node1", "--networkid=128",  "--http", "--http.port=8545", "--http.addr=0.0.0.0", "--verbosity=9", "--nat=extip:172.25.0.101",  "--bootnodes=enode://85967845980e7bfb091d0fa373265a070f79e14785f3d3be4478490225c5ce53e6e5f1e348157fb09e03842499f6785f5e99dd408e2d4428a756b61775e89d11@172.25.0.100:30301", "--nousb"]
-    volumes:
-      - /opt/eth/node1:/node1
-    networks:
-      chainnet:
-        ipv4_address: 172.25.0.101
 
   miner-1:
     image: {{ .Image }}
     container_name: miner-1
     depends_on:
       - bootnode
-    ports:
-      - 30304:30303
-    entrypoint: ["geth", "--datadir=/data", "--unlock=36ce8a088e7ffacb0dbc6473fbd27f3844666ea0", "--password=/data/pwd.txt", "--nat=extip:172.25.0.102", "--mine", "--miner.threads=1", "--syncmode=full", "--networkid=128",  "--verbosity=3",  "--bootnodes=enode://85967845980e7bfb091d0fa373265a070f79e14785f3d3be4478490225c5ce53e6e5f1e348157fb09e03842499f6785f5e99dd408e2d4428a756b61775e89d11@172.25.0.100:30301", "--nousb"]
+    environment:
+      - SLEEP=1
+      - ACCOUNT_ADDR=64d4edefe8ba86d3588b213b0a053e7b910cad68
+      - DATADIR=/data
+      - PASS_PATH=/data/keystore/pwd.txt
+      - IP=172.25.0.101
+      - GENESIS_PATH=qdevnet.json
+      - BOOTNODE_ADDR=enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@172.25.0.100:30301
+    entrypoint: ["/bin/sh","./entrypoint.sh"]
     volumes:
-      - /opt/eth/miner1:/data
+      - ./configs/miner1/keystore:/data/keystore
+      - ./entrypoint.sh:/entrypoint.sh
+      - ./configs/qdevnet.json:/qdevnet.json
+      - miner1:/data
+    ports:
+      - 8545:8545
+      - 30303:30303
     networks:
       chainnet:
-        ipv4_address: 172.25.0.102
+        ipv4_address: 172.25.0.101
 
   miner-2:
     image: {{ .Image }}
     container_name: miner-2
     depends_on:
       - bootnode
+      - miner-1
+    environment:
+      - SLEEP=20
+      - ACCOUNT_ADDR=6a39b688d591ea00c9ea69658438794204b5cc62
+      - DATADIR=/data
+      - PASS_PATH=/data/keystore/pwd.txt
+      - IP=172.25.0.102
+      - GENESIS_PATH=qdevnet.json
+      - BOOTNODE_ADDR=enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@172.25.0.100:30301
+    entrypoint: ["/bin/sh","./entrypoint.sh"]
+    volumes:
+      - ./configs/miner2/keystore:/data/keystore
+      - ./entrypoint.sh:/entrypoint.sh
+      - ./configs/qdevnet.json:/qdevnet.json
+      - miner2:/data
+    ports:
+      - 30304:30303
+    networks:
+      chainnet:
+        ipv4_address: 172.25.0.102
+
+  miner-3:
+    image: {{ .Image }}
+    container_name: miner-3
+    depends_on:
+      - bootnode
+      - miner-1
+      - miner-2
+    environment:
+      - SLEEP=40
+      - ACCOUNT_ADDR=4a14d788d86d021670ebcece1196631d66595984
+      - DATADIR=/data
+      - PASS_PATH=/data/keystore/pwd.txt
+      - IP=172.25.0.103
+      - GENESIS_PATH=qdevnet.json
+      - BOOTNODE_ADDR=enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@172.25.0.100:30301
+    entrypoint: ["/bin/sh","./entrypoint.sh"]
+    volumes:
+      - ./configs/miner3/keystore:/data/keystore
+      - ./entrypoint.sh:/entrypoint.sh
+      - ./configs/qdevnet.json:/qdevnet.json
+      - miner3:/data
     ports:
       - 30305:30303
-    entrypoint: ["geth", "--datadir=/data", "--unlock=c16ed238e9df13fdb4386acec0015d988b18cc12", "--password=/data/pwd.txt", "--nat=extip:172.25.0.103", "--mine", "--miner.threads=1", "--syncmode=full", "--networkid=128",  "--verbosity=3",  "--bootnodes=enode://a2c0a4f48c1a706f1150fce06e1c705c7bcbacc49d47b33eed62e30e7a75e36b9839224d69f3d4072dc91bd9e34b6b6547474dfd9b3431a8e8a0b5c4af3dd18d@172.25.0.100:30301", "--nousb"]
-    volumes:
-      - /opt/eth/miner2:/data
     networks:
       chainnet:
         ipv4_address: 172.25.0.103
+
+  explorer:
+    image: alethio/ethereum-lite-explorer
+    depends_on:
+      - miner-1
+      - miner-2
+      - miner-3
+      - bootnode
+    environment:
+      - APP_NODE_URL=http://localhost:8545
+    ports:
+      - 80:80
 
 networks:
   chainnet:
@@ -60,3 +117,9 @@ networks:
     ipam:
       config:
         - subnet: 172.25.0.0/24
+
+volumes:
+  bootnode_v:
+  miner1:
+  miner2:
+  miner3:

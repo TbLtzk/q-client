@@ -83,6 +83,7 @@ deploy_devnet:
     - sed -i "s@{{ .Image }}@${BUILD_IMAGE}@g" docker-compose.yaml    # replace image in docker-compose
     - scp docker-compose.yaml ubuntu@$DEV_HOST:~/docker-compose.yaml
     - ssh ubuntu@$DEV_HOST "docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
+                            && cd developer-edition
                             && docker-compose down
                             && docker image prune -a -f
                             && docker-compose up -d"
