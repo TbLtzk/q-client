@@ -1,7 +1,12 @@
 # Build Geth in a stock Go builder container
 FROM golang:1.14.4-alpine3.12 as builder
 
+RUN apk add --no-cache make gcc musl-dev linux-headers git
+
 ADD . /go-ethereum
+RUN git config --global url."https://goeth:tsFPEcgkiLN69SKwzRK5@gitlab.com/".insteadOf https://gitlab.com/
+RUN go env -w GOPRIVATE=gitlab.com/q-dev/*
+RUN cd /go-ethereum && make geth
 
 # Pull Geth into a second stage deploy alpine container
 FROM alpine:3.12.0
