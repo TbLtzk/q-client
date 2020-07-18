@@ -308,8 +308,15 @@ func (t *UDPv4) LookupPubkey(key *ecdsa.PublicKey) []*enode.Node {
 }
 
 // RandomNodes is an iterator yielding nodes from a random walk of the DHT.
-func (t *UDPv4) RandomNodes() enode.Iterator {
-	return newLookupIterator(t.closeCtx, t.newRandomLookup)
+// delay prevents resources overuse in small networks.
+func (t *UDPv4) RandomNodes(delay time.Duration) enode.Iterator {
+	return newLookupIterator(t.closeCtx, func(ctx context.Context) *lookup {
+		if delay > 0 {
+			time.Sleep(delay)
+		}
+
+		return t.newRandomLookup(ctx)
+	})
 }
 
 // BootstrapIterator queries all known nodes for their peers
@@ -352,7 +359,7 @@ func (t *UDPv4) findnode(toid enode.ID, toaddr *net.UDPAddr, target encPubkey) (
 	// Add a matcher for 'neighbours' replies to the pending reply queue. The matcher is
 	// active until enough nodes have been received.
 	nodes := make([]*node, 0, bucketSize)
-	nreceived := 0
+	var nreceived uint
 	rm := t.pending(toid, toaddr.IP, p_neighborsV4, func(r interface{}) (matched bool, requestDone bool) {
 		reply := r.(*neighborsV4)
 		for _, rn := range reply.Nodes {
@@ -364,7 +371,7 @@ func (t *UDPv4) findnode(toid enode.ID, toaddr *net.UDPAddr, target encPubkey) (
 			}
 			nodes = append(nodes, n)
 		}
-		return true, nreceived >= bucketSize
+		return true, nreceived >= bucketSize || nreceived == reply.TotalCount
 	})
 	t.send(toaddr, toid, &findnodeV4{
 		Target:     target,

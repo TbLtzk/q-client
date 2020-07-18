@@ -62,6 +62,15 @@ type (
 	neighborsV4 struct {
 		Nodes      []rpcNode
 		Expiration uint64
+
+		// TotalCount of nodes that a requesting peer should receive.
+		// Note: without this number, the requesting peer was waiting
+		// for more than bucketSize nodes even if responding peer
+		// sent everything it had and then dropped responder as timed out.
+		// Because of this, peers with small number of items in table
+		// didn't participate in discovery. ¯\_(ツ)_/¯
+		TotalCount uint
+
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
@@ -216,7 +225,11 @@ func (req *findnodeV4) handle(t *UDPv4, from *net.UDPAddr, fromID enode.ID, mac 
 
 	// Send neighbors in chunks with at most maxNeighbors per packet
 	// to stay below the packet size limit.
-	p := neighborsV4{Expiration: uint64(time.Now().Add(expiration).Unix())}
+	p := neighborsV4{
+		Expiration: uint64(time.Now().Add(expiration).Unix()),
+		TotalCount: uint(len(closest)),
+	}
+
 	var sent bool
 	for _, n := range closest {
 		if netutil.CheckRelayIP(from.IP, n.IP()) == nil {

@@ -596,11 +596,9 @@ func (srv *Server) setupDiscovery() error {
 		srv.ntab = ntab
 		srv.discmix.AddSource(ntab.BootstrapIterator())
 
-		// TODO: fix if possible.
-		// Disabled since neighbors packet matcher
-		// drops all peers with insufficient number of known peers in the table,
-		// so discovery doesnt't work properly anyway.
-		//srv.discmix.AddSource(ntab.RandomNodes())
+		// added timeout in order to avoid too many findnode
+		// packets in small networks
+		srv.discmix.AddSource(ntab.RandomNodes(discmixTimeout / 2))
 	}
 
 	// Discovery V5
