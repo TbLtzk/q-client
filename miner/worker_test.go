@@ -200,6 +200,7 @@ func testGenerateBlockAndImport(t *testing.T, isClique bool) {
 	if isClique {
 		chainConfig = params.AllCliqueProtocolChanges
 		chainConfig.Clique = &params.CliqueConfig{Period: 1, Epoch: 30000}
+		chainConfig.Clique.SystemContracts.RewardReceiver = common.HexToAddress("92C35a964624D9cbF90c2A0525e116093FAF867E")
 		engine = clique.New(chainConfig.Clique, db)
 	} else {
 		chainConfig = params.AllEthashProtocolChanges
@@ -355,6 +356,7 @@ func TestRegenerateMiningBlockEthash(t *testing.T) {
 }
 
 func TestRegenerateMiningBlockClique(t *testing.T) {
+	cliqueChainConfig.Clique.SystemContracts.RewardReceiver = common.HexToAddress("92C35a964624D9cbF90c2A0525e116093FAF867E")
 	testRegenerateMiningBlock(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase()))
 }
 
