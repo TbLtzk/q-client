@@ -226,7 +226,8 @@ func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (c *Clique) Author(header *types.Header) (common.Address, error) {
-	return ecrecover(header, c.signatures)
+	return c.parametersProvider.GetCoinbaseAddress()
+	//return ecrecover(header, c.signatures)
 }
 
 // VerifyHeader checks whether a header conforms to the consensus rules.
@@ -614,10 +615,10 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given.
 func (c *Clique) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) {
-	/*err := c.accumulateRewards(state, header)
+	err := c.accumulateRewards(state, header)
 	if err != nil {
 		log.Error("failed to get accumulate reward, error does not returned, be aware of some bugs!!!")
-	}*/
+	}
 
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
@@ -627,11 +628,11 @@ func (c *Clique) Finalize(chain consensus.ChainReader, header *types.Header, sta
 // nor block rewards given, and returns the final block.
 func (c *Clique) FinalizeAndAssemble(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	// uncles are dropped
-	/*err := c.accumulateRewards(state, header)
+	err := c.accumulateRewards(state, header)
 	if err != nil {
 		log.Error("failed to get accumulate reward")
 		return nil, err // todo wrap error
-	}*/
+	}
 
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
@@ -814,18 +815,17 @@ func (c *Clique) SetContractBackend(b bind.ContractBackend) {
 
 // AccumulateRewards credits the coinbase of the given block with the mining reward
 func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) error {
-	if header.Number.Uint64()%c.config.Epoch == 0 {
+	/*if header.Number.Uint64()%c.config.Epoch == 0 {
 		return nil
-	}
-
-	/*var err error
-	header.Coinbase, err = c.parametersProvider.GetCoinbaseAddress()
-	if err != nil {
-		log.Error("failed to get coinbase address")
-		return err // todo wrap error
 	}*/
 
-	state.AddBalance(header.Coinbase, CliqueBlockReward)
+	receiver, err := c.Author(header)
+	if err != nil {
+		log.Error("failed to get author on reward accumulation", "error", err)
+		return err
+	}
+
+	state.AddBalance(receiver, CliqueBlockReward)
 
 	return nil
 }

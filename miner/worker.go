@@ -874,6 +874,12 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			return
 		}
 		header.Coinbase = w.coinbase
+		var err error
+		w.coinbase, err = w.engine.Author(header)
+		if err != nil {
+			log.Error("failed to get author of future block", "error", err)
+		}
+		log.Info("updated coinbase", "address", w.coinbase.String())
 	}
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
