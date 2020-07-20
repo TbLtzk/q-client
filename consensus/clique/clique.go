@@ -815,10 +815,6 @@ func (c *Clique) SetContractBackend(b bind.ContractBackend) {
 
 // AccumulateRewards credits the coinbase of the given block with the mining reward
 func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) error {
-	/*if header.Number.Uint64()%c.config.Epoch == 0 {
-		return nil
-	}*/
-
 	receiver, err := c.Author(header)
 	if err != nil {
 		log.Error("failed to get author on reward accumulation", "error", err)
