@@ -273,9 +273,9 @@ func (c *Clique) verifyHeader(chain consensus.ChainReader, header *types.Header,
 	checkpoint := (number % c.config.Epoch) == 0
 
 	// TODO: do we really need this check?
-	//if checkpoint && header.Coinbase != (common.Address{}) {
-	//	return errInvalidCheckpointBeneficiary
-	//}
+	if checkpoint && header.Coinbase != (common.Address{}) {
+		return errInvalidCheckpointBeneficiary
+	}
 
 	// Nonces must be 0x00..0 or 0xff..f, zeroes enforced on checkpoints
 	if !bytes.Equal(header.Nonce[:], nonceAuthVote) && !bytes.Equal(header.Nonce[:], nonceDropVote) {
@@ -351,12 +351,6 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainReader, header *type
 	}
 	// If the block is a checkpoint block, verify the signer list
 	if number%c.config.Epoch == 0 {
-		err = c.ensureSignersActual(snap)
-		if err != nil {
-			log.Error("failed to ensure that signers are actual", "error", err, "step", "verify")
-			return err // todo wrap error
-		}
-
 		signers := make([]byte, len(snap.Signers)*common.AddressLength)
 		for i, signer := range snap.signers() {
 			copy(signers[i*common.AddressLength:], signer[:])
@@ -370,7 +364,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainReader, header *type
 	return c.verifySeal(chain, header, parents)
 }
 
-func (c *Clique) ensureSignersActual(snap *Snapshot) error {
+func (c *Clique) updateProposals() error {
 	if c.validatorsProvider != nil {
 		signers, err := c.validatorsProvider.GetValidatorsList()
 		if err != nil {
@@ -378,7 +372,10 @@ func (c *Clique) ensureSignersActual(snap *Snapshot) error {
 			return err // todo wrap error
 		}
 
-		snap.setSigners(signers)
+		c.proposals = make(map[common.Address]bool, len(signers))
+		for _, signer := range signers {
+			c.proposals[signer] = true
+		}
 	} else if c.contractBackend != nil {
 		resp, err := c.contractBackend.CodeAt(context.TODO(), c.config.SystemContracts.Validators, nil)
 		if (err != nil) || (len(resp) == 0) {
@@ -395,6 +392,8 @@ func (c *Clique) ensureSignersActual(snap *Snapshot) error {
 		c.validatorsProvider = &generated.ValidatorsCallerSession{
 			Contract: caller,
 		}
+
+		return c.updateProposals()
 	}
 
 	return nil
@@ -544,20 +543,39 @@ func (c *Clique) verifySeal(chain consensus.ChainReader, header *types.Header, p
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
 func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) error {
+	// If the block isn't a checkpoint, cast a random vote (good enough for now)
+	header.Coinbase = common.Address{}
+	header.Nonce = types.BlockNonce{}
+
 	number := header.Number.Uint64()
 	// Assemble the voting snapshot to check which votes make sense
 	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil)
 	if err != nil {
 		return err
 	}
+	if number%c.config.Epoch != 0 {
+		c.lock.RLock()
+
+		// Gather all the proposals that make sense voting on
+		addresses := make([]common.Address, 0, len(c.proposals))
+		for address, authorize := range c.proposals {
+			if snap.validVote(address, authorize) {
+				addresses = append(addresses, address)
+			}
+		}
+		// If there's pending proposals, cast a vote on them
+		if len(addresses) > 0 {
+			header.Coinbase = addresses[rand.Intn(len(addresses))]
+			if c.proposals[header.Coinbase] {
+				copy(header.Nonce[:], nonceAuthVote)
+			} else {
+				copy(header.Nonce[:], nonceDropVote)
+			}
+		}
+		c.lock.RUnlock()
+	}
 	// Set the correct difficulty
 	header.Difficulty = CalcDifficulty(snap, c.signer)
-
-	// Set coinbase to predefined reward receiver
-	header.Coinbase, err = c.parametersProvider.GetCoinbaseAddress()
-	if err != nil {
-		return err
-	}
 
 	// Ensure the extra data has all its components
 	if len(header.Extra) < extraVanity {
@@ -566,9 +584,9 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 	header.Extra = header.Extra[:extraVanity]
 
 	if number%c.config.Epoch == 0 {
-		err = c.ensureSignersActual(snap)
+		err = c.updateProposals()
 		if err != nil {
-			log.Error("failed to ensure that signers are actual", "error", err, "step", "prepare")
+			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return err // todo wrap error
 		}
 
@@ -596,7 +614,11 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given.
 func (c *Clique) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) {
-	accumulateRewards(state, header)
+	/*err := c.accumulateRewards(state, header)
+	if err != nil {
+		log.Error("failed to get accumulate reward, error does not returned, be aware of some bugs!!!")
+	}*/
+
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 }
@@ -605,7 +627,12 @@ func (c *Clique) Finalize(chain consensus.ChainReader, header *types.Header, sta
 // nor block rewards given, and returns the final block.
 func (c *Clique) FinalizeAndAssemble(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	// uncles are dropped
-	accumulateRewards(state, header)
+	/*err := c.accumulateRewards(state, header)
+	if err != nil {
+		log.Error("failed to get accumulate reward")
+		return nil, err // todo wrap error
+	}*/
+
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 
@@ -786,6 +813,19 @@ func (c *Clique) SetContractBackend(b bind.ContractBackend) {
 }
 
 // AccumulateRewards credits the coinbase of the given block with the mining reward
-func accumulateRewards(state *state.StateDB, header *types.Header) {
+func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) error {
+	if header.Number.Uint64()%c.config.Epoch == 0 {
+		return nil
+	}
+
+	/*var err error
+	header.Coinbase, err = c.parametersProvider.GetCoinbaseAddress()
+	if err != nil {
+		log.Error("failed to get coinbase address")
+		return err // todo wrap error
+	}*/
+
 	state.AddBalance(header.Coinbase, CliqueBlockReward)
+
+	return nil
 }
