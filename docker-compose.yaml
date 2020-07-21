@@ -34,7 +34,6 @@ services:
     image: {{ .Image }}
     container_name: miner-1-init
     environment:
-      - SLEEP=5
       - DATADIR=/data
       - GENESIS_PATH=qdevnet.json
     entrypoint: ["/bin/sh","./entrypoint.sh"]
@@ -48,7 +47,6 @@ services:
     image: {{ .Image }}
     container_name: miner-2-init
     environment:
-      - SLEEP=10
       - DATADIR=/data
       - GENESIS_PATH=qdevnet.json
     entrypoint: ["/bin/sh","./entrypoint.sh"]
@@ -62,7 +60,6 @@ services:
     image: {{ .Image }}
     container_name: miner-3-init
     environment:
-      - SLEEP=15
       - DATADIR=/data
       - GENESIS_PATH=qdevnet.json
     entrypoint: ["/bin/sh","./entrypoint.sh"]
@@ -124,7 +121,6 @@ services:
       - bootnode
       - miner-3-init
     environment:
-      - SLEEP=40
       - ACCOUNT_ADDR=4a14d788d86d021670ebcece1196631d66595984
       - DATADIR=/data
       - PASS_PATH=/data/keystore/pwd.txt
@@ -148,7 +144,7 @@ services:
       - miner-3
       - bootnode
     environment:
-      - APP_NODE_URL=http://localhost:8545
+      - APP_NODE_URL=http://54.187.245.252:8545
     ports:
       - 80:80
 
