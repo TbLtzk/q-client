@@ -912,8 +912,11 @@ func (srv *Server) checkInboundConn(fd net.Conn, remoteIP net.IP) error {
 	srv.inboundHistory.expire(now, nil)
 
 	// TODO: this is due to devnet deployment (hopefully, tmp)
-	me, _ := srv.NAT.ExternalIP()
-	if !netutil.IsLAN(remoteIP) && srv.inboundHistory.contains(remoteIP.String()) && me.String() != remoteIP.String() {
+	var me net.IP
+	if srv.NAT != nil {
+		me, _ = srv.NAT.ExternalIP()
+	}
+	if !netutil.IsLAN(remoteIP) && srv.inboundHistory.contains(remoteIP.String()) && (me.String() != remoteIP.String()) {
 		return fmt.Errorf("too many attempts")
 	}
 	srv.inboundHistory.add(remoteIP.String(), now.Add(inboundThrottleTime))
