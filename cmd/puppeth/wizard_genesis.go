@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"math/rand"
 	"net/http"
@@ -110,25 +111,24 @@ func (w *wizard) makeGenesis() {
 	}
 	// Consensus all set, just ask for initial funds and go
 	fmt.Println()
-	fmt.Println("Which accounts should be pre-funded? (advisable at least one)")
-	for {
-		// Read the address of the account to fund
-		if address := w.readAddress(); address != nil {
-			genesis.Alloc[*address] = core.GenesisAccount{
-				Balance: new(big.Int).Lsh(big.NewInt(1), 256-7), // 2^256 / 128 (allow many pre-funds without balance overflows)
-			}
-			continue
-		}
-		break
-	}
-	fmt.Println()
-	fmt.Println("Should the precompile-addresses (0x1 .. 0xff) be pre-funded with 1 wei? (advisable yes)")
-	if w.readDefaultYesNo(true) {
-		// Add a batch of precompile balances to avoid them getting deleted
-		for i := int64(0); i < 256; i++ {
-			genesis.Alloc[common.BigToAddress(big.NewInt(i))] = core.GenesisAccount{Balance: big.NewInt(1)}
+	fmt.Println("Enter a deployment address:")
+	if deploymentAddress := w.readAddress(); deploymentAddress != nil {
+		deploymentAmount := big.NewInt(int64(math.Pow(10, 21)))
+		genesis.Deployer = *deploymentAddress
+		genesis.Alloc[*deploymentAddress] = core.GenesisAccount{
+			Balance: deploymentAmount,
 		}
 	}
+
+	fmt.Println("Enter a Q Foundation address:")
+	if devAddress := w.readAddress(); devAddress != nil {
+		devAmount := big.NewInt(int64(math.Pow(10, 28)-math.Pow(10, 21)))
+		genesis.Deployer = *devAddress
+		genesis.Alloc[*devAddress] = core.GenesisAccount{
+			Balance: devAmount,
+		}
+	}
+
 	// Query the user for some custom extras
 	fmt.Println()
 	fmt.Println("Specify your chain/network ID if you want an explicit one (default = random)")
