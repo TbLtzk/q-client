@@ -123,7 +123,6 @@ func (w *wizard) makeGenesis() {
 	fmt.Println("Enter a Q Foundation address:")
 	if devAddress := w.readAddress(); devAddress != nil {
 		devAmount := big.NewInt(int64(math.Pow(10, 28)-math.Pow(10, 21)))
-		genesis.Deployer = *devAddress
 		genesis.Alloc[*devAddress] = core.GenesisAccount{
 			Balance: devAmount,
 		}
