@@ -22,13 +22,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"math/big"
 	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
+
+	"gitlab.com/q-dev/go-ethereum/crypto"
 
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/core"
@@ -55,77 +56,66 @@ func (w *wizard) makeGenesis() {
 			IstanbulBlock:       big.NewInt(0),
 		},
 	}
-	// Figure out which consensus engine to choose
-	fmt.Println()
-	fmt.Println("Which consensus engine to use? (default = clique)")
-	fmt.Println(" 1. Ethash - proof-of-work")
-	fmt.Println(" 2. Clique - proof-of-authority")
 
-	choice := w.read()
-	switch {
-	case choice == "1":
-		// In case of ethash, we're pretty much done
-		genesis.Config.Ethash = new(params.EthashConfig)
-		genesis.ExtraData = make([]byte, 32)
-
-	case choice == "" || choice == "2":
-		// In the case of clique, configure the consensus parameters
-		genesis.Difficulty = big.NewInt(1)
-		genesis.Config.Clique = &params.CliqueConfig{
-			Period: 15,
-			Epoch:  30000,
-		}
-		fmt.Println()
-		fmt.Println("How many seconds should blocks take? (default = 15)")
-		genesis.Config.Clique.Period = uint64(w.readDefaultInt(15))
-
-		// We also need the initial list of signers
-		fmt.Println()
-		fmt.Println("Which accounts are allowed to seal? (mandatory at least one)")
-
-		var signers []common.Address
-		for {
-			if address := w.readAddress(); address != nil {
-				signers = append(signers, *address)
-				continue
-			}
-			if len(signers) > 0 {
-				break
-			}
-		}
-		// Sort the signers and embed into the extra-data section
-		for i := 0; i < len(signers); i++ {
-			for j := i + 1; j < len(signers); j++ {
-				if bytes.Compare(signers[i][:], signers[j][:]) > 0 {
-					signers[i], signers[j] = signers[j], signers[i]
-				}
-			}
-		}
-		genesis.ExtraData = make([]byte, 32+len(signers)*common.AddressLength+65)
-		for i, signer := range signers {
-			copy(genesis.ExtraData[32+i*common.AddressLength:], signer[:])
-		}
-
-	default:
-		log.Crit("Invalid consensus engine choice", "choice", choice)
+	// configure the consensus parameters
+	genesis.Difficulty = big.NewInt(1)
+	genesis.Config.Clique = &params.CliqueConfig{
+		Period: 15,
+		Epoch:  30000,
 	}
-	// Consensus all set, just ask for initial funds and go
+
+	fmt.Println()
+	fmt.Println("How many seconds should blocks take? (default = 15)")
+	genesis.Config.Clique.Period = uint64(w.readDefaultInt(15))
+
+	// We also need the initial list of signers
+	fmt.Println()
+	fmt.Println("Which accounts are allowed to seal? (mandatory at least one)")
+
+	var signers []common.Address
+	for {
+		if address := w.readAddress(); address != nil {
+			signers = append(signers, *address)
+			continue
+		}
+		if len(signers) > 0 {
+			break
+		}
+	}
+
+	// Sort the signers and embed into the extra-data section
+	for i := 0; i < len(signers); i++ {
+		for j := i + 1; j < len(signers); j++ {
+			if bytes.Compare(signers[i][:], signers[j][:]) > 0 {
+				signers[i], signers[j] = signers[j], signers[i]
+			}
+		}
+	}
+
+	genesis.ExtraData = make([]byte, 32+len(signers)*common.AddressLength+65)
+	for i, signer := range signers {
+		copy(genesis.ExtraData[32+i*common.AddressLength:], signer[:])
+	}
+
+	// Consensus all set, just ask for destinations of initial funds and go
 	fmt.Println()
 	fmt.Println("Enter a deployment address:")
-	if deploymentAddress := w.readAddress(); deploymentAddress != nil {
-		deploymentAmount := big.NewInt(int64(math.Pow(10, 21)))
-		genesis.Deployer = *deploymentAddress
-		genesis.Alloc[*deploymentAddress] = core.GenesisAccount{
-			Balance: deploymentAmount,
-		}
+	deploymentAddress := w.readNonEmptyAddress()
+	deploymentAmount := big.NewInt(0).Exp(big.NewInt(10), big.NewInt(21), nil)
+	genesis.Alloc[deploymentAddress] = core.GenesisAccount{
+		Balance: deploymentAmount,
 	}
 
+	// currently, we rely expect registry to be deployed first by deployer
+	genesis.Config.Clique.Registry = crypto.CreateAddress(deploymentAddress, 0)
+	genesis.Config.Clique.RewardReceiver = crypto.CreateAddress(deploymentAddress, 1)
+
 	fmt.Println("Enter a Q Foundation address:")
-	if devAddress := w.readAddress(); devAddress != nil {
-		devAmount := big.NewInt(int64(math.Pow(10, 28) - math.Pow(10, 21)))
-		genesis.Alloc[*devAddress] = core.GenesisAccount{
-			Balance: devAmount,
-		}
+	devAddress := w.readNonEmptyAddress()
+	totalAmount := big.NewInt(0).Exp(big.NewInt(10), big.NewInt(28), nil)
+	devAmount := big.NewInt(0).Sub(totalAmount, deploymentAmount)
+	genesis.Alloc[devAddress] = core.GenesisAccount{
+		Balance: devAmount,
 	}
 
 	// Query the user for some custom extras
