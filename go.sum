@@ -189,6 +189,12 @@ github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208/go.mod h1:IotVbo4F+m
 gitlab.com/q-dev/go-ethereum v0.0.0-20200703115835-99350dd8f098/go.mod h1:T+bHBZH2E8wqGfbueruhL1UYq5TvCLEQvM7vEcZmX4M=
 gitlab.com/q-dev/system-contracts v0.0.0-20200707113614-6aec5baa3093 h1:WHDGXu65yRdn53qbkE5rwIsogK6IinxjSfD12GD6KKI=
 gitlab.com/q-dev/system-contracts v0.0.0-20200707113614-6aec5baa3093/go.mod h1:3Cn4tk39Yg/xArump0JdhoziHGtqGL5Cbg9pj51u5fc=
+gitlab.com/q-dev/system-contracts v0.0.0-20200727144450-fd331ddf79d9 h1:XOXBPu4Dq+2uayy+fK3Kffq3d9NmDA5Ij40KUUuTk0A=
+gitlab.com/q-dev/system-contracts v0.0.0-20200727144450-fd331ddf79d9/go.mod h1:3Cn4tk39Yg/xArump0JdhoziHGtqGL5Cbg9pj51u5fc=
+gitlab.com/q-dev/system-contracts v0.0.0-20200729080945-2145a8ef6463 h1:PgIFHEs5OBYK6QOCmuR5fVJwH6DXXiJjDjU7P2igU1Y=
+gitlab.com/q-dev/system-contracts v0.0.0-20200729080945-2145a8ef6463/go.mod h1:3Cn4tk39Yg/xArump0JdhoziHGtqGL5Cbg9pj51u5fc=
+gitlab.com/q-dev/system-contracts v0.0.0-20200729081704-cf9a1f8b9877 h1:8wqr3JKePhHQig4qrZeUQA6eLHPxhD6FKXi0uihmLnI=
+gitlab.com/q-dev/system-contracts v0.0.0-20200729081704-cf9a1f8b9877/go.mod h1:3Cn4tk39Yg/xArump0JdhoziHGtqGL5Cbg9pj51u5fc=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4 h1:QmwruyY+bKbDDL0BaglrbZABEali68eoMFhTZpCjYVA=

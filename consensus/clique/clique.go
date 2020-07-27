@@ -20,6 +20,7 @@ package clique
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"math/rand"
@@ -28,10 +29,12 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/go-ethereum/accounts"
+	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/common/hexutil"
 	"gitlab.com/q-dev/go-ethereum/consensus"
 	"gitlab.com/q-dev/go-ethereum/consensus/misc"
+	"gitlab.com/q-dev/go-ethereum/contracts"
 	"gitlab.com/q-dev/go-ethereum/core/state"
 	"gitlab.com/q-dev/go-ethereum/core/types"
 	"gitlab.com/q-dev/go-ethereum/crypto"
@@ -196,9 +199,10 @@ type Clique struct {
 	lock   sync.RWMutex   // Protects the signer fields
 
 	// The fields below are for testing only
-	fakeDiff           bool // Skip difficulty verifications
-	parametersProvider ParametersProvider
-	contractBackend    bind.ContractBackend
+	fakeDiff bool // Skip difficulty verifications
+
+	registry        *contracts.Registry
+	contractBackend bind.ContractBackend
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
@@ -214,19 +218,19 @@ func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
 	signatures, _ := lru.NewARC(inmemorySignatures)
 
 	return &Clique{
-		config:             &conf,
-		db:                 db,
-		recents:            recents,
-		signatures:         signatures,
-		proposals:          make(map[common.Address]bool),
-		parametersProvider: &MockedParametersProvider{coinbase: config.SystemContracts.RewardReceiver},
+		config:     &conf,
+		db:         db,
+		recents:    recents,
+		signatures: signatures,
+		proposals:  make(map[common.Address]bool),
+		registry:   contracts.NewRegistry(config.Registry, config.RewardReceiver),
 	}
 }
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (c *Clique) Author(header *types.Header) (common.Address, error) {
-	return c.parametersProvider.GetCoinbaseAddress()
+	return c.registry.RewardReceiver(), nil
 	//return ecrecover(header, c.signatures)
 }
 
@@ -366,35 +370,20 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainReader, header *type
 }
 
 func (c *Clique) updateProposals() error {
-	if c.validatorsProvider != nil {
-		signers, err := c.validatorsProvider.GetValidatorsList()
-		if err != nil {
-			log.Error("failed to get validators list from smart contract", "error", err)
-			return err // todo wrap error
-		}
+	provider := c.registry.Validators()
+	if provider == nil {
+		return nil
+	}
 
-		c.proposals = make(map[common.Address]bool, len(signers))
-		for _, signer := range signers {
-			c.proposals[signer] = true
-		}
-	} else if c.contractBackend != nil {
-		resp, err := c.contractBackend.CodeAt(context.TODO(), c.config.SystemContracts.Validators, nil)
-		if (err != nil) || (len(resp) == 0) {
-			log.Warn("Failed to check validator contract", "err", err, "resp", resp, "addr", c.config.SystemContracts.Validators)
-			return nil
-		}
+	signers, err := provider.GetValidatorsList(nil)
+	if err != nil {
+		log.Error("failed to get validators list from smart contract", "error", err)
+		return err // todo: wrap error
+	}
 
-		caller, err := generated.NewValidatorsCaller(c.config.SystemContracts.Validators, c.contractBackend)
-		if err != nil {
-			log.Error("Failed to create new validator caller", "err", err)
-			return err // todo wrap error
-		}
-
-		c.validatorsProvider = &generated.ValidatorsCallerSession{
-			Contract: caller,
-		}
-
-		return c.updateProposals()
+	c.proposals = make(map[common.Address]bool, len(signers))
+	for _, signer := range signers {
+		c.proposals[signer] = true
 	}
 
 	return nil
@@ -810,7 +799,9 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 }
 
 func (c *Clique) SetContractBackend(b bind.ContractBackend) {
-	c.contractBackend = b
+	if err := c.registry.Init(b); err != nil {
+		panic(fmt.Errorf("failed to init contract registry %v", err))
+	}
 }
 
 // AccumulateRewards credits the coinbase of the given block with the mining reward
