@@ -23,6 +23,8 @@ import (
 	"strconv"
 	"strings"
 
+	"gitlab.com/q-dev/go-ethereum/crypto"
+
 	"gitlab.com/q-dev/go-ethereum/cmd/utils"
 	"gitlab.com/q-dev/go-ethereum/consensus/ethash"
 	"gitlab.com/q-dev/go-ethereum/eth"
@@ -74,7 +76,39 @@ The output of this command is supposed to be machine-readable.
 		ArgsUsage: " ",
 		Category:  "MISCELLANEOUS COMMANDS",
 	}
+	writeAddrCommand = cli.Command{
+		Action:      utils.MigrateFlags(writeAddress),
+		Name:        "writeaddress",
+		Usage:       "write out the node's public key and quit (nodekey flag is required)",
+		Description: "writes node's public key from a given nodekey file. if the file doesn't exist, generates a new key and saves at given path",
+		ArgsUsage:   "",
+		Category:    "MISCELLANEOUS COMMANDS",
+	}
 )
+
+func writeAddress(ctx *cli.Context) error {
+	if !ctx.GlobalIsSet(utils.NodeKeyFileFlag.Name) {
+		utils.Fatalf("%s must be set", utils.NodeKeyFileFlag.Name)
+	}
+
+	fpath := ctx.GlobalString(utils.NodeKeyFileFlag.Name)
+	key, err := crypto.LoadECDSA(fpath)
+	if os.IsNotExist(err) {
+		key, err = crypto.GenerateKey()
+		if err != nil {
+			panic("failed to generate key")
+		}
+
+		if err := crypto.SaveECDSA(fpath, key); err != nil {
+			utils.Fatalf("failed to save key %v", err)
+		}
+	} else if err != nil {
+		utils.Fatalf("failed to load nodekey %v", err)
+	}
+
+	fmt.Printf("%x\n", crypto.FromECDSAPub(&key.PublicKey)[1:])
+	return nil
+}
 
 // makecache generates an ethash verification cache into the provided folder.
 func makecache(ctx *cli.Context) error {
