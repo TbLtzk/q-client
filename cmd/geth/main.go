@@ -222,6 +222,7 @@ func init() {
 		dumpCommand,
 		dumpGenesisCommand,
 		inspectCommand,
+		writeAddrCommand,
 		// See accountcmd.go:
 		accountCommand,
 		walletCommand,
