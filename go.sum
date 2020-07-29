@@ -195,6 +195,8 @@ gitlab.com/q-dev/system-contracts v0.0.0-20200729080945-2145a8ef6463 h1:PgIFHEs5
 gitlab.com/q-dev/system-contracts v0.0.0-20200729080945-2145a8ef6463/go.mod h1:3Cn4tk39Yg/xArump0JdhoziHGtqGL5Cbg9pj51u5fc=
 gitlab.com/q-dev/system-contracts v0.0.0-20200729081704-cf9a1f8b9877 h1:8wqr3JKePhHQig4qrZeUQA6eLHPxhD6FKXi0uihmLnI=
 gitlab.com/q-dev/system-contracts v0.0.0-20200729081704-cf9a1f8b9877/go.mod h1:3Cn4tk39Yg/xArump0JdhoziHGtqGL5Cbg9pj51u5fc=
+gitlab.com/q-dev/system-contracts v0.0.0-20200729105419-c901288c18fb h1:Z6npvBjUEZ/xyjQnuGv25MrD+wwAcx23woAWLvlKADw=
+gitlab.com/q-dev/system-contracts v0.0.0-20200729105419-c901288c18fb/go.mod h1:3Cn4tk39Yg/xArump0JdhoziHGtqGL5Cbg9pj51u5fc=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4 h1:QmwruyY+bKbDDL0BaglrbZABEali68eoMFhTZpCjYVA=
