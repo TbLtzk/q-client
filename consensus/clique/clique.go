@@ -355,7 +355,13 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainReader, header *type
 		return err
 	}
 	// If the block is a checkpoint block, verify the signer list
-	if number%c.config.Epoch == 0 {
+	if number%uint64(len(snap.Signers)) == 0 {
+		err = c.updateProposals(snap)
+		if err != nil {
+			log.Error("failed to update proposals", "error", err, "step", "prepare")
+			return err // todo wrap error
+		}
+
 		signers := make([]byte, len(snap.Signers)*common.AddressLength)
 		for i, signer := range snap.signers() {
 			copy(signers[i*common.AddressLength:], signer[:])
@@ -368,22 +374,37 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainReader, header *type
 	// All basic checks passed, verify the seal and return
 	return c.verifySeal(chain, header, parents)
 }
+func (c *Clique) updateProposals(snap *Snapshot) error {
+	if c.validatorsProvider != nil {
+		signers, err := c.validatorsProvider.GetValidatorsList()
+		if err != nil {
+			log.Error("failed to get validators list from smart contract", "error", err)
+			return err // todo wrap error
+		}
 
-func (c *Clique) updateProposals() error {
-	provider := c.registry.Validators()
-	if provider == nil {
-		return nil
-	}
+		/*c.proposals = make(map[common.Address]bool, len(signers))
+		for _, signer := range signers {
+			c.proposals[signer] = true
+		}*/
+		snap.setSigners(signers)
+	} else if c.contractBackend != nil {
+		resp, err := c.contractBackend.CodeAt(context.TODO(), c.config.SystemContracts.Validators, nil)
+		if (err != nil) || (len(resp) == 0) {
+			log.Warn("Failed to check validator contract", "err", err, "resp", resp, "addr", c.config.SystemContracts.Validators)
+			return nil
+		}
 
-	signers, err := provider.GetValidatorsList(nil)
-	if err != nil {
-		log.Error("failed to get validators list from smart contract", "error", err)
-		return err // todo: wrap error
-	}
+		caller, err := generated.NewValidatorsCaller(c.config.SystemContracts.Validators, c.contractBackend)
+		if err != nil {
+			log.Error("Failed to create new validator caller", "err", err)
+			return err // todo wrap error
+		}
 
-	c.proposals = make(map[common.Address]bool, len(signers))
-	for _, signer := range signers {
-		c.proposals[signer] = true
+		c.validatorsProvider = &generated.ValidatorsCallerSession{
+			Contract: caller,
+		}
+
+		return c.updateProposals(snap)
 	}
 
 	return nil
@@ -543,7 +564,7 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 	if err != nil {
 		return err
 	}
-	if number%c.config.Epoch != 0 {
+	/*if number%c.config.Epoch != 0 {
 		c.lock.RLock()
 
 		// Gather all the proposals that make sense voting on
@@ -563,9 +584,7 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 			}
 		}
 		c.lock.RUnlock()
-	}
-	// Set the correct difficulty
-	header.Difficulty = CalcDifficulty(snap, c.signer)
+	}*/
 
 	// Ensure the extra data has all its components
 	if len(header.Extra) < extraVanity {
@@ -573,8 +592,8 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 	}
 	header.Extra = header.Extra[:extraVanity]
 
-	if number%c.config.Epoch == 0 {
-		err = c.updateProposals()
+	if number%uint64(len(snap.Signers)) == 0 {
+		err = c.updateProposals(snap)
 		if err != nil {
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return err // todo wrap error
@@ -588,6 +607,8 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 
 	// Mix digest is reserved for now, set to empty
 	header.MixDigest = common.Hash{}
+	// Set the correct difficulty
+	header.Difficulty = CalcDifficulty(snap, c.signer)
 
 	// Ensure the timestamp has the correct delay
 	parent := chain.GetHeader(header.ParentHash, number-1)
