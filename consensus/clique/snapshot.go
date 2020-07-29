@@ -206,9 +206,14 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 	for i, header := range headers {
 		// Remove any votes on checkpoint blocks
 		number := header.Number.Uint64()
-		if number%s.config.Epoch == 0 {
+		if number%uint64(len(snap.Signers)) == 0 {
 			snap.Votes = nil
 			snap.Tally = make(map[common.Address]Tally)
+			signers := make([]common.Address, (len(header.Extra)-extraVanity-extraSeal)/common.AddressLength)
+			for i := 0; i < len(signers); i++ {
+				copy(signers[i][:], header.Extra[extraVanity+i*common.AddressLength:])
+			}
+			snap.setSigners(signers)
 		}
 		// Delete the oldest signer from the recent list to allow it signing again
 		if limit := uint64(len(snap.Signers)/2 + 1); number >= limit {
@@ -230,7 +235,7 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 		snap.Recents[number] = signer
 
 		// Header authorized, discard any previous votes from the signer
-		for i, vote := range snap.Votes {
+		/*for i, vote := range snap.Votes {
 			if vote.Signer == signer && vote.Address == header.Coinbase {
 				// Uncast the vote from the cached tally
 				snap.uncast(vote.Address, vote.Authorize)
@@ -290,7 +295,7 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 				}
 			}
 			delete(snap.Tally, header.Coinbase)
-		}
+		}*/
 		// If we're taking too much time (ecrecover), notify the user once a while
 		if time.Since(logged) > 8*time.Second {
 			log.Info("Reconstructing voting history", "processed", i, "total", len(headers), "elapsed", common.PrettyDuration(time.Since(start)))
