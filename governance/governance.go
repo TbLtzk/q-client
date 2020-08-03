@@ -23,8 +23,8 @@ type Governance struct {
 }
 
 // New Governance service.
-func New(ctx *node.ServiceContext, cfg *Config) (*Governance, error) {
-	ks := ctx.AccountManager.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+func New(stack *node.Node, cfg *Config) (*Governance, error) {
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	rootMgr, err := newRootManager(ks, cfg.InstanceDir)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (g *Governance) APIs() []rpc.API {
 }
 
 // Start Governance service.
-func (g *Governance) Start(srv *p2p.Server) error {
+func (g *Governance) Start() error {
 	if err := g.RootManager.run(); err != nil {
 		return errors.Wrap(err, "failed to start root manager")
 	}
