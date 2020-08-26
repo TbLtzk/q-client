@@ -114,7 +114,7 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter, getPooledTx func(ha
 		Peer:            p,
 		rw:              rw,
 		version:         version,
-		id:              fmt.Sprintf("%x", p.ID().Bytes()[:8]),
+		id:              p.ID().ShortString(),
 		knownTxs:        mapset.NewSet(),
 		knownBlocks:     mapset.NewSet(),
 		queuedBlocks:    make(chan *propEvent, maxQueuedBlocks),
