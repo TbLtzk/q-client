@@ -1,8 +1,9 @@
 package governance
 
 import (
-	"gitlab.com/q-dev/go-ethereum/p2p"
 	"sync"
+
+	"gitlab.com/q-dev/go-ethereum/p2p"
 )
 
 type peerSet struct {
@@ -10,11 +11,11 @@ type peerSet struct {
 	lock  sync.Mutex
 }
 
-func newPeerSet() *peerSet {
-	return &peerSet{
-		peers: make(map[string]*peer),
-	}
-}
+//func newPeerSet() *peerSet {
+//	return &peerSet{
+//		peers: make(map[string]*peer),
+//	}
+//}
 
 func (s *peerSet) register(p *peer) {
 	s.lock.Lock()

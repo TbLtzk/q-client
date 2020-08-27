@@ -1,9 +1,10 @@
 package governance
 
 import (
+	"sync"
+
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/go-ethereum/common"
-	"sync"
 )
 
 var (
@@ -11,7 +12,7 @@ var (
 	ErrIncomplete       = errors.New("not enough signatures")
 )
 
-const validThreshold = 75
+//const validThreshold = 75
 
 type RootSet struct {
 	lock sync.Mutex
