@@ -1,8 +1,9 @@
 package governance
 
 import (
-	"gitlab.com/q-dev/go-ethereum/log"
 	"sync"
+
+	"gitlab.com/q-dev/go-ethereum/log"
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/go-ethereum/p2p"
