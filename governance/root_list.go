@@ -53,13 +53,11 @@ func (s *RootSet) Validate(list RootList) error {
 	for _, signature := range list.Signatures {
 		pubkey, err := crypto.Ecrecover(listBytesOfHash, signature)
 		if err != nil {
-			return err
+			return ErrInvalidSignature
 		}
 
 		if rootKeys[common.BytesToAddress(pubkey)] {
 			successfullSigantures++
-		} else {
-			return ErrInvalidSignature
 		}
 	}
 
