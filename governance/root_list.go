@@ -40,7 +40,7 @@ func (s *RootSet) UpdateList(newList RootList) {
 func (s *RootSet) Validate(list RootList) error {
 	listBytesOfHash := list.BuildSignData()
 
-	if bytes.Compare(listBytesOfHash, list.Hash.Bytes()) != 0 {
+	if !bytes.Equal(listBytesOfHash, list.Hash.Bytes()) {
 		return errors.New("Hash doesn't match")
 	}
 
