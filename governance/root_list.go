@@ -1,6 +1,10 @@
 package governance
 
 import (
+	"bytes"
+	"fmt"
+	"gitlab.com/q-dev/go-ethereum/crypto"
+	"sort"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -12,7 +16,7 @@ var (
 	ErrIncomplete       = errors.New("not enough signatures")
 )
 
-//const validThreshold = 75
+const validThreshold = 75
 
 type RootSet struct {
 	lock sync.Mutex
@@ -33,8 +37,28 @@ func (s *RootSet) UpdateList(newList RootList) {
 	s.List = newList
 }
 
-func (s *RootList) Validate(list RootList) error {
-	// todo: implement me
+func (s *RootSet) Validate(list RootList) error {
+	listBytesOfHash := list.BuildSignData()
+
+	if bytes.Compare(listBytesOfHash, list.Hash.Bytes()) != 0 {
+		return errors.New("Hash doesn't match")
+	}
+
+	if len(list.Signatures) < validThreshold {
+		return ErrIncomplete
+	}
+
+	for _, signature := range list.Signatures {
+		pubKey, err := crypto.Ecrecover(listBytesOfHash, signature)
+		if err != nil {
+			return err
+		}
+
+		if !crypto.VerifySignature(pubKey, listBytesOfHash, signature) {
+			return ErrInvalidSignature
+		}
+	}
+
 	return nil
 }
 
@@ -46,24 +70,30 @@ type RootList struct {
 	Signatures [][]byte `json:"signatures"`
 }
 
-func (l *RootList) SignData() []byte {
-	// TODO: implement me
+func (l *RootList) BuildSignData() []byte {
 	// build {timestamp + ordered list of addresses}
+	var toSign []byte
 
-	return nil
+	toSign = append(toSign, fmt.Sprint(l.Timestamp)...)
+
+	sort.SliceStable(l.Nodes, func(i, j int) bool { return bytes.Compare(l.Nodes[i].Bytes(), l.Nodes[j].Bytes()) >= 0 })
+	for _, node := range l.Nodes {
+		toSign = append(toSign, node.Bytes()...)
+	}
+
+	return toSign
 }
 
 type RootAddresses []common.Address
 
-// TODO: implement interface
 func (a RootAddresses) Len() int {
-	panic("implement me")
+	return a.Len()
 }
 
-func (a RootAddresses) Less(i, j int) bool {
-	panic("implement me")
+func (a RootAddresses) Less(i, j int) bool { // порядок сортировки bytes.compare
+	return bytes.Compare(a[i].Bytes(), a[j].Bytes()) >= 0
 }
 
 func (a RootAddresses) Swap(i, j int) {
-	panic("implement me")
+	a[i], a[j] = a[j], a[i]
 }
