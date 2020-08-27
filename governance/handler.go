@@ -1,9 +1,10 @@
 package governance
 
 import (
+	"sync"
+
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/go-ethereum/p2p"
-	"sync"
 )
 
 // handler of protocol messages.
@@ -14,12 +15,12 @@ type handler struct {
 	peers  *peerSet
 }
 
-func newHandler(roots *RootSet) *handler {
-	return &handler{
-		roots: roots,
-		peers: newPeerSet(),
-	}
-}
+//func newHandler(roots *RootSet) *handler {
+//	return &handler{
+//		roots: roots,
+//		peers: newPeerSet(),
+//	}
+//}
 
 func (h *handler) makeProtocol(version uint) p2p.Protocol {
 	length, ok := protocolLengths[version]
