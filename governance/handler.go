@@ -1,6 +1,7 @@
 package governance
 
 import (
+	"gitlab.com/q-dev/go-ethereum/log"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -91,7 +92,7 @@ func (h *handler) handleMsg(p *peer) error {
 }
 
 func (h *handler) handleGetRootList(p *peer, msg p2p.Msg) error {
-	err := p.sendRootList(h.roots.List)
+	err := p.sendRootList(h.roots.CurrentList())
 	if err != nil {
 		return err
 	}
@@ -99,10 +100,26 @@ func (h *handler) handleGetRootList(p *peer, msg p2p.Msg) error {
 }
 
 func (h *handler) handleRootList(p *peer, msg p2p.Msg) error {
-	err := p.sendRootList(h.roots.List)
+	var (
+		list RootList
+		err  error
+	)
+	err = msg.Decode(&list)
 	if err != nil {
 		return err
 	}
+
+	if list.Timestamp < h.roots.CurrentList().Timestamp {
+		return nil
+	}
+
+	err = h.roots.Validate(list)
+	if err != nil {
+		return err
+	}
+
+	h.roots.UpdateList(list)
+
 	return nil
 }
 
@@ -116,7 +133,7 @@ func (h *handler) handleNewRootList(p *peer, msg p2p.Msg) error {
 		return err
 	}
 
-	if list.Timestamp < h.roots.List.Timestamp {
+	if list.Timestamp < h.roots.CurrentList().Timestamp {
 		return nil
 	}
 
@@ -127,18 +144,21 @@ func (h *handler) handleNewRootList(p *peer, msg p2p.Msg) error {
 
 	h.roots.UpdateList(list)
 
-	err = h.sendNewRootList()
+	err = h.sendNewRootList(p)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (h *handler) sendNewRootList() error {
+func (h *handler) sendNewRootList(receivedFrom *peer) error {
 	for _, peer := range h.peers.peers {
-		err := peer.sendRootList(h.roots.List)
+		if receivedFrom.id == peer.id {
+			continue
+		}
+		err := peer.sendRootList(h.roots.CurrentList())
 		if err != nil {
-			return err
+			log.Warn("faulty peer", err)
 		}
 	}
 	return nil
