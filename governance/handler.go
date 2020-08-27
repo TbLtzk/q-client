@@ -37,7 +37,7 @@ func (h *handler) makeProtocol(version uint) p2p.Protocol {
 		NodeInfo: func() interface{} {
 			current := h.roots.CurrentList()
 			return struct {
-				Timestamp int64
+				Timestamp uint64
 			}{
 				Timestamp: current.Timestamp,
 			}
@@ -79,25 +79,27 @@ func (h *handler) handleMsg(p *peer) error {
 
 	switch msg.Code {
 	case GetRootListMsg:
-		return h.handleGetRootList(msg)
+		return h.handleGetRootList(p, msg)
 	case RootListMsg:
-		return h.handleRootList(msg)
+		return h.handleRootList(p, msg)
+	case NewRootListMsg:
+		return h.handleNewRootList(p, msg)
 	default:
 		return errors.New("unknown msg code")
 	}
 }
 
-func (h *handler) handleGetRootList(msg p2p.Msg) error {
+func (h *handler) handleGetRootList(p *peer, msg p2p.Msg) error {
 	// TODO: implement me
 	return nil
 }
 
-func (h *handler) handleRootList(msg p2p.Msg) error {
+func (h *handler) handleRootList(p *peer, msg p2p.Msg) error {
 	// TODO: implement me
 	return nil
 }
 
-func (h *handler) handleNewRootList(msg p2p.Msg) error {
+func (h *handler) handleNewRootList(p *peer, msg p2p.Msg) error {
 	// TODO: implement me
 	return nil
 }

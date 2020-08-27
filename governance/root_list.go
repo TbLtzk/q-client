@@ -1,9 +1,17 @@
 package governance
 
 import (
+	"github.com/pkg/errors"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"sync"
 )
+
+var (
+	ErrInvalidSignature = errors.New("list contains invalid signature")
+	ErrIncomplete       = errors.New("not enough signatures")
+)
+
+const validThreshold = 75
 
 type RootSet struct {
 	lock sync.Mutex
@@ -17,12 +25,24 @@ func (s *RootSet) CurrentList() RootList {
 	return s.List
 }
 
-type RootList struct {
-	Timestamp int64            `json:"timestamp"`
-	Nodes     []common.Address `json:"nodes"`
-	Digest    common.Hash      `json:"digest"`
+func (s *RootSet) UpdateList(newList RootList) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
-	Signatures []string `json:"signatures"`
+	s.List = newList
+}
+
+func (s *RootList) Validate(list RootList) error {
+	// todo: implement me
+	return nil
+}
+
+type RootList struct {
+	Timestamp uint64           `json:"timestamp"`
+	Nodes     []common.Address `json:"nodes"`
+	Hash      common.Hash      `json:"hash"`
+
+	Signatures [][]byte `json:"signatures"`
 }
 
 func (l *RootList) SignData() []byte {
@@ -30,4 +50,19 @@ func (l *RootList) SignData() []byte {
 	// build {timestamp + ordered list of addresses}
 
 	return nil
+}
+
+type RootAddresses []common.Address
+
+// TODO: implement interface
+func (a RootAddresses) Len() int {
+	panic("implement me")
+}
+
+func (a RootAddresses) Less(i, j int) bool {
+	panic("implement me")
+}
+
+func (a RootAddresses) Swap(i, j int) {
+	panic("implement me")
 }

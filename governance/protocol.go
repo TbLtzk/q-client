@@ -32,11 +32,3 @@ const (
 	RootListMsg    = 0x02
 	NewRootListMsg = 0x03
 )
-
-type rootListData struct {
-	Timestamp  uint64
-	RootList   []common.Address
-	Digest     common.Hash
-
-	Signatures [][]byte
-}
