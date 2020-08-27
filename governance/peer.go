@@ -57,3 +57,7 @@ func (p *peer) getRootList() error {
 func (p *peer) sendRootList(list RootList) error {
 	return p2p.Send(p.rw, RootListMsg, list)
 }
+
+func (p *peer) sendNewRootList(list RootList) error {
+	return p2p.Send(p.rw, NewRootListMsg, list)
+}
