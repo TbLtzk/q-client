@@ -91,16 +91,55 @@ func (h *handler) handleMsg(p *peer) error {
 }
 
 func (h *handler) handleGetRootList(p *peer, msg p2p.Msg) error {
-	// TODO: implement me
+	err := p.sendRootList(h.roots.List)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (h *handler) handleRootList(p *peer, msg p2p.Msg) error {
-	// TODO: implement me
+	err := p.sendRootList(h.roots.List)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (h *handler) handleNewRootList(p *peer, msg p2p.Msg) error {
-	// TODO: implement me
+	var (
+		list RootList
+		err  error
+	)
+	err = msg.Decode(&list)
+	if err != nil {
+		return err
+	}
+
+	if list.Timestamp < h.roots.List.Timestamp {
+		return nil
+	}
+
+	err = h.roots.Validate(list)
+	if err != nil {
+		return err
+	}
+
+	h.roots.UpdateList(list)
+
+	err = h.sendNewRootList()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (h *handler) sendNewRootList() error {
+	for _, peer := range h.peers.peers {
+		err := peer.sendRootList(h.roots.List)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

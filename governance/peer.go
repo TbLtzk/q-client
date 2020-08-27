@@ -53,3 +53,7 @@ func newPeer(conn *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 func (p *peer) getRootList() error {
 	return p2p.Send(p.rw, GetRootListMsg, struct{}{})
 }
+
+func (p *peer) sendRootList(list RootList) error {
+	return p2p.Send(p.rw, NewRootListMsg, list)
+}
