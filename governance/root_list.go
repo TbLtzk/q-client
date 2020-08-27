@@ -44,7 +44,13 @@ func (s *RootSet) Validate(list RootList) error {
 		return errors.New("Hash doesn't match")
 	}
 
-	if len(list.Signatures) < validThreshold {
+	percentOfSignatures := (100 * len(list.Signatures)) / len(s.List.Nodes)
+	// rounding to the greater
+	if float64((100*len(list.Signatures))/len(s.List.Nodes))+float64(0.5) < (float64(100*len(list.Signatures)) / float64(len(s.List.Nodes))) {
+		percentOfSignatures++
+	}
+
+	if percentOfSignatures < validThreshold {
 		return ErrIncomplete
 	}
 
@@ -90,7 +96,7 @@ func (a RootAddresses) Len() int {
 	return a.Len()
 }
 
-func (a RootAddresses) Less(i, j int) bool { // порядок сортировки bytes.compare
+func (a RootAddresses) Less(i, j int) bool {
 	return bytes.Compare(a[i].Bytes(), a[j].Bytes()) >= 0
 }
 
