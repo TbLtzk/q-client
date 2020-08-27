@@ -58,10 +58,12 @@ func (s *RootSet) Validate(list RootList) error {
 
 		if rootKeys[common.BytesToAddress(pubkey)] {
 			successfullSigantures++
+		} else {
+			return ErrInvalidSignature
 		}
 	}
 
-	percentOfSignatures := (100 * successfullSigantures) / len(s.List.Nodes)
+	percentOfSignatures := (100 * successfullSigantures) / len(s.CurrentList().Nodes)
 
 	if percentOfSignatures < validThreshold {
 		return ErrIncomplete
