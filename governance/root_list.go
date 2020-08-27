@@ -3,9 +3,10 @@ package governance
 import (
 	"bytes"
 	"fmt"
-	"gitlab.com/q-dev/go-ethereum/crypto"
 	"sort"
 	"sync"
+
+	"gitlab.com/q-dev/go-ethereum/crypto"
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/go-ethereum/common"
