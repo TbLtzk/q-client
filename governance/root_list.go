@@ -39,31 +39,32 @@ func (s *RootSet) UpdateList(newList RootList) {
 }
 
 func (s *RootSet) Validate(list RootList) error {
-	listBytesOfHash := list.BuildSignData()
+	listBytesOfHash := crypto.Keccak256(list.BuildSignData())
 
 	if !bytes.Equal(listBytesOfHash, list.Hash.Bytes()) {
 		return errors.New("Hash doesn't match")
 	}
 
-	percentOfSignatures := (100 * len(list.Signatures)) / len(s.List.Nodes)
-	// rounding to the greater
-	if float64((100*len(list.Signatures))/len(s.List.Nodes))+float64(0.5) < (float64(100*len(list.Signatures)) / float64(len(s.List.Nodes))) {
-		percentOfSignatures++
+	rootKeys := make(map[common.Address]bool)
+	for _, root := range s.CurrentList().Nodes {
+		rootKeys[root] = true
 	}
-
-	if percentOfSignatures < validThreshold {
-		return ErrIncomplete
-	}
-
+	var successfullSigantures int
 	for _, signature := range list.Signatures {
-		pubKey, err := crypto.Ecrecover(listBytesOfHash, signature)
+		pubkey, err := crypto.Ecrecover(listBytesOfHash, signature)
 		if err != nil {
 			return err
 		}
 
-		if !crypto.VerifySignature(pubKey, listBytesOfHash, signature) {
-			return ErrInvalidSignature
+		if rootKeys[common.BytesToAddress(pubkey)] {
+			successfullSigantures++
 		}
+	}
+
+	percentOfSignatures := (100 * successfullSigantures) / len(s.List.Nodes)
+
+	if percentOfSignatures < validThreshold {
+		return ErrIncomplete
 	}
 
 	return nil
@@ -89,18 +90,4 @@ func (l *RootList) BuildSignData() []byte {
 	}
 
 	return toSign
-}
-
-type RootAddresses []common.Address
-
-func (a RootAddresses) Len() int {
-	return a.Len()
-}
-
-func (a RootAddresses) Less(i, j int) bool {
-	return bytes.Compare(a[i].Bytes(), a[j].Bytes()) >= 0
-}
-
-func (a RootAddresses) Swap(i, j int) {
-	a[i], a[j] = a[j], a[i]
 }
