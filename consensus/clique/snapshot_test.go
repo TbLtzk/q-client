@@ -411,6 +411,7 @@ func TestClique(t *testing.T) {
 		}
 		engine := New(config.Clique, db)
 		engine.fakeDiff = true
+		config.Clique = engine.config
 
 		blocks, _ := core.GenerateChain(&config, genesis.ToBlock(db), engine, db, len(tt.votes), func(j int, gen *core.BlockGen) {
 			// Cast the vote contained in this block
