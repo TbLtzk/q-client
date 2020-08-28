@@ -17,9 +17,6 @@
 package core
 
 import (
-	"errors"
-	"math/big"
-
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/consensus"
 	"gitlab.com/q-dev/go-ethereum/consensus/misc"
@@ -27,6 +24,7 @@ import (
 	"gitlab.com/q-dev/go-ethereum/core/types"
 	"gitlab.com/q-dev/go-ethereum/core/vm"
 	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/go-ethereum/internal/utils"
 	"gitlab.com/q-dev/go-ethereum/params"
 )
 
@@ -47,41 +45,6 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 		bc:     bc,
 		engine: engine,
 	}
-}
-
-// senderFromServer is a types.Signer that remembers the sender address returned by the RPC
-// server. It is stored in the transaction's sender address cache to avoid an additional
-// request in TransactionSender.
-type senderFromServer struct {
-	addr      common.Address
-	blockhash common.Hash
-}
-
-var errNotCached = errors.New("sender not cached")
-
-func setSenderFromServer(tx *types.Transaction, addr common.Address, block common.Hash) {
-	// Use types.Sender for side-effect to store our signer into the cache.
-	types.Sender(&senderFromServer{addr, block}, tx)
-}
-
-func (s *senderFromServer) Equal(other types.Signer) bool {
-	//os, ok := other.(*senderFromServer)
-	//return ok && os.blockhash == s.blockhash
-	return true
-}
-
-func (s *senderFromServer) Sender(tx *types.Transaction) (common.Address, error) {
-	if s.blockhash == (common.Hash{}) {
-		return common.Address{}, errNotCached
-	}
-	return s.addr, nil
-}
-
-func (s *senderFromServer) Hash(tx *types.Transaction) common.Hash {
-	panic("can't sign with senderFromServer")
-}
-func (s *senderFromServer) SignatureValues(tx *types.Transaction, sig []byte) (R, S, V *big.Int, err error) {
-	panic("can't sign with senderFromServer")
 }
 
 // Process processes the state changes according to the Ethereum rules by running
@@ -109,7 +72,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		if len(txs) != 0 {
 			tx := txs[len(txs)-1]
 			c, _ := p.engine.Author(block.Header())
-			types.Sender(&senderFromServer{c, block.Hash()}, tx)
+			types.Sender(&utils.SenderFromServer{c, block.Hash()}, tx)
 		}
 
 	}

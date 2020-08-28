@@ -25,6 +25,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitlab.com/q-dev/go-ethereum/internal/utils"
+
 	"gitlab.com/q-dev/go-ethereum/accounts/abi"
 	"gitlab.com/q-dev/go-ethereum/consensus/clique"
 	"gitlab.com/q-dev/system-contracts/generated"
@@ -981,7 +983,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 	// add system transaction in last block of epoch
 	if len(system) > 0 {
-		txs := types.NewTransactionsByPriceAndNonce(&senderFromServer{w.coinbase, w.current.header.Hash()}, system)
+		txs := types.NewTransactionsByPriceAndNonce(&utils.SenderFromServer{w.coinbase, w.current.header.Hash()}, system)
 		if w.commitTransactions(txs, w.coinbase, interrupt) {
 			log.Warn("fail to apply system tx")
 			return
@@ -1054,7 +1056,7 @@ func (w *worker) prepareSystemTx() map[common.Address]types.Transactions {
 					log.Warn("failed to prepare tx", "err", err)
 				}
 
-				setSenderFromServer(tx, w.coinbase, w.current.header.Hash())
+				utils.SetSenderFromServer(tx, w.coinbase, w.current.header.Hash())
 				result[w.coinbase] = types.Transactions{tx}
 				log.Warn("system tx is here")
 			}
@@ -1080,39 +1082,4 @@ func (w *worker) prepareTx(contractAddress, sender common.Address) (*types.Trans
 	//w.pendingBlock().
 
 	return types.NewTransaction(nonce, contractAddress, nil, 1477210, nil, input), nil
-}
-
-// senderFromServer is a types.Signer that remembers the sender address returned by the RPC
-// server. It is stored in the transaction's sender address cache to avoid an additional
-// request in TransactionSender.
-type senderFromServer struct {
-	addr      common.Address
-	blockhash common.Hash
-}
-
-var errNotCached = errors.New("sender not cached")
-
-func setSenderFromServer(tx *types.Transaction, addr common.Address, block common.Hash) {
-	// Use types.Sender for side-effect to store our signer into the cache.
-	types.Sender(&senderFromServer{addr, block}, tx)
-}
-
-func (s *senderFromServer) Equal(other types.Signer) bool {
-	//os, ok := other.(*senderFromServer)
-	//return ok && os.blockhash == s.blockhash
-	return true
-}
-
-func (s *senderFromServer) Sender(tx *types.Transaction) (common.Address, error) {
-	if s.blockhash == (common.Hash{}) {
-		return common.Address{}, errNotCached
-	}
-	return s.addr, nil
-}
-
-func (s *senderFromServer) Hash(tx *types.Transaction) common.Hash {
-	panic("can't sign with senderFromServer")
-}
-func (s *senderFromServer) SignatureValues(tx *types.Transaction, sig []byte) (R, S, V *big.Int, err error) {
-	panic("can't sign with senderFromServer")
 }
