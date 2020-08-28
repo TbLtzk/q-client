@@ -837,3 +837,7 @@ func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) e
 
 	return nil
 }
+
+func (c *Clique) Validators() *common.Address {
+	return c.registry.ValidatorsAddress()
+}
