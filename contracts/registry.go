@@ -85,6 +85,32 @@ func (r *Registry) Validators() *generated.Validators {
 	return val
 }
 
+func (r *Registry) ValidatorsAddress() *common.Address {
+	reg := r.registry()
+	if reg == nil {
+		return nil
+	}
+
+	addr, err := reg.GetAddress(nil, "validators")
+	if err != nil {
+		log.Warn("failed to get validators address", "err", err)
+		return nil
+	}
+
+	code, err := r.back.CodeAt(context.TODO(), addr, nil)
+	if err != nil {
+		log.Warn("failed to check if validators contract is deployed", "err", err)
+		return nil
+	}
+
+	if len(code) == 0 {
+		log.Warn("there is no validators code")
+		return nil
+	}
+
+	return &addr
+}
+
 // RewardReceiver address.
 func (r *Registry) RewardReceiver() common.Address {
 	// todo: fix this: if registry is used for this one, node consumes all ram and dies(
