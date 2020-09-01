@@ -978,7 +978,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 	// add system transaction in last block of epoch
 	if len(system) > 0 {
-		txs := types.NewTransactionsByPriceAndNonce(&utils.SenderFromServer{w.coinbase, w.current.header.Hash()}, system)
+		txs := types.NewTransactionsByPriceAndNonce(&utils.SenderFromServer{Addr: w.coinbase, Blockhash: w.current.header.Hash()}, system)
 		if w.commitTransactions(txs, w.coinbase, interrupt) {
 			log.Warn("fail to apply system txs")
 			return
