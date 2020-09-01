@@ -20,16 +20,11 @@ import (
 	"bytes"
 	"errors"
 	"math/big"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"gitlab.com/q-dev/go-ethereum/internal/utils"
-
-	"gitlab.com/q-dev/go-ethereum/accounts/abi"
-	"gitlab.com/q-dev/go-ethereum/consensus/clique"
-	"gitlab.com/q-dev/system-contracts/generated"
 
 	mapset "github.com/deckarep/golang-set"
 	"gitlab.com/q-dev/go-ethereum/common"
@@ -985,11 +980,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	if len(system) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(&utils.SenderFromServer{w.coinbase, w.current.header.Hash()}, system)
 		if w.commitTransactions(txs, w.coinbase, interrupt) {
-			log.Warn("fail to apply system tx")
+			log.Warn("fail to apply system txs")
 			return
 		}
-		log.Warn("after system tx apply")
-
 	}
 	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
@@ -1044,42 +1037,6 @@ func (w *worker) postSideBlock(event core.ChainSideEvent) {
 }
 
 func (w *worker) prepareSystemTx() map[common.Address]types.Transactions {
-	result := make(map[common.Address]types.Transactions)
-
-	if (w.chainConfig.Clique != nil) && ((w.current.header.Number.Uint64()+1)%w.chainConfig.Clique.Epoch == 0) {
-		cliq, ok := w.engine.(*clique.Clique)
-		if ok {
-			addr := cliq.Validators()
-			if addr != nil {
-				tx, err := w.prepareTx(*addr, w.coinbase)
-				if err != nil {
-					log.Warn("failed to prepare tx", "err", err)
-				}
-
-				utils.SetSenderFromServer(tx, w.coinbase, w.current.header.Hash())
-				result[w.coinbase] = types.Transactions{tx}
-				log.Warn("system tx is here")
-			}
-		}
-
-	}
-	return result
-}
-
-func (w *worker) prepareTx(contractAddress, sender common.Address) (*types.Transaction, error) {
-	a, err := abi.JSON(strings.NewReader(generated.ValidatorsABI))
-	if err != nil {
-		return nil, err
-	}
-
-	input, err := a.Pack("makeSnapshot")
-	if err != nil {
-		return nil, err
-	}
-
-	//ethapi.DoEstimateGas(context.Background(), w.pendingBlock(), args.Data, *b.numberOrHash, b.backend.RPCGasCap())
-	nonce := w.current.state.GetNonce(sender)
-	//w.pendingBlock().
-
-	return types.NewTransaction(nonce, contractAddress, nil, 1477210, nil, input), nil
+	systemTxPreparer := utils.New(w.chainConfig, w.engine, w.current.state, w.coinbase, w.current.header)
+	return systemTxPreparer.PrepareSystemTx()
 }
