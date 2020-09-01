@@ -17,6 +17,9 @@
 package core
 
 import (
+	"fmt"
+
+	"github.com/pkg/errors"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/consensus"
 	"gitlab.com/q-dev/go-ethereum/consensus/misc"
@@ -67,14 +70,9 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		misc.ApplyDAOHardFork(statedb)
 	}
 
-	if (p.config.Clique != nil) && ((block.NumberU64()+1)%p.config.Clique.Epoch == 0) {
-		txs := block.Transactions()
-		if len(txs) != 0 {
-			tx := txs[len(txs)-1]
-			c, _ := p.engine.Author(block.Header())
-			types.Sender(&utils.SenderFromServer{c, block.Hash()}, tx)
-		}
-
+	err := p.checkSystemTxs(block, statedb)
+	if err != nil {
+		return nil, nil, 0, err
 	}
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
@@ -137,4 +135,34 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	receipt.TransactionIndex = uint(statedb.TxIndex())
 
 	return receipt, err
+}
+
+func (p *StateProcessor) checkSystemTxs(block *types.Block, state *state.StateDB) error {
+	actualTxs := block.Transactions()
+	c, _ := p.engine.Author(block.Header())
+	systemTx := toArray(utils.New(p.config, p.engine, state, c, block.Header()).PrepareSystemTx())
+	if len(systemTx) > len(actualTxs) {
+		// TODO provide number of txs
+		return errors.New("number of system txs more than all")
+	}
+
+	for index, tx := range systemTx {
+		actual := actualTxs[len(actualTxs)-len(systemTx)+index]
+		if actual.Hash() != tx.Hash() {
+			// TODO provide hashes
+			return errors.New(fmt.Sprintf("hashes of txs are different"))
+		}
+		types.Sender(&utils.SenderFromServer{c, block.Hash()}, actual)
+	}
+
+	return nil
+}
+
+func toArray(txs map[common.Address]types.Transactions) types.Transactions {
+	result := make(types.Transactions, 0, len(txs))
+	for _, valueTx := range txs {
+		result = append(result, valueTx...)
+	}
+
+	return result
 }
