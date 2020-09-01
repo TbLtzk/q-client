@@ -17,8 +17,6 @@
 package core
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/consensus"
@@ -150,9 +148,9 @@ func (p *StateProcessor) checkSystemTxs(block *types.Block, state *state.StateDB
 		actual := actualTxs[len(actualTxs)-len(systemTx)+index]
 		if actual.Hash() != tx.Hash() {
 			// TODO provide hashes
-			return errors.New(fmt.Sprintf("hashes of txs are different"))
+			return errors.New("hashes of txs are different")
 		}
-		types.Sender(&utils.SenderFromServer{c, block.Hash()}, actual)
+		types.Sender(&utils.SenderFromServer{Addr: c, Blockhash: block.Hash()}, actual)
 	}
 
 	return nil

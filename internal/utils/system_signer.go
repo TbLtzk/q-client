@@ -24,8 +24,6 @@ func SetSenderFromServer(tx *types.Transaction, addr common.Address, block commo
 }
 
 func (s *SenderFromServer) Equal(other types.Signer) bool {
-	//os, ok := other.(*SenderFromServer)
-	//return ok && os.blockhash == s.blockhash
 	return true
 }
 
