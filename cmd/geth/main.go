@@ -360,11 +360,11 @@ func geth(ctx *cli.Context) error {
 func startNode(ctx *cli.Context, stack *node.Node) {
 	debug.Memsize.Add("node", stack)
 
-	// Start up the node itself
-	utils.StartNode(stack)
-
 	// Unlock any account specifically requested
 	unlockAccounts(ctx, stack)
+
+	// Start up the node itself
+	utils.StartNode(stack)
 
 	// Register wallet event handlers to open and auto-derive wallets
 	events := make(chan accounts.WalletEvent, 16)
