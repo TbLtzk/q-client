@@ -28,7 +28,28 @@ const protocolMaxMsgSize = 2*maxNRootNodes*(crypto.SignatureLength+common.Addres
 
 // protocol message codes
 const (
-	GetRootListMsg = 0x01
-	RootListMsg    = 0x02
-	NewRootListMsg = 0x03
+	StatusMsg        = 0x00
+	NewSignaturesMsg = 0x02
+	NewRootListMsg   = 0x03
 )
+
+type statusMsgData struct {
+	common.RootList
+}
+
+type newSignaturesMsg struct {
+	Hash       common.Hash
+	Signatures [][]byte
+}
+
+func initNewSignaturesMsg(hash common.Hash, sigs map[common.Address][]byte) newSignaturesMsg {
+	var signatures [][]byte
+	for _, sig := range sigs {
+		signatures = append(signatures, sig)
+	}
+
+	return newSignaturesMsg{
+		Hash:       hash,
+		Signatures: signatures,
+	}
+}

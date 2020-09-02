@@ -20,9 +20,12 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"unicode"
+
+	"gitlab.com/q-dev/go-ethereum/governance"
 
 	cli "gopkg.in/urfave/cli.v1"
 
@@ -73,10 +76,11 @@ type ethstatsConfig struct {
 }
 
 type gethConfig struct {
-	Eth      eth.Config
-	Shh      whisper.Config
-	Node     node.Config
-	Ethstats ethstatsConfig
+	Eth        eth.Config
+	Shh        whisper.Config
+	Node       node.Config
+	Governance governance.Config
+	Ethstats   ethstatsConfig
 }
 
 func loadConfig(file string, cfg *gethConfig) error {
@@ -131,6 +135,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	}
 	utils.SetShhConfig(ctx, stack, &cfg.Shh)
 
+	// todo: such linking doesn't look nice
+	cfg.Governance = governance.Config{InstanceDir: stack.InstanceDir()}
+
 	return stack, cfg
 }
 
@@ -147,6 +154,12 @@ func enableWhisper(ctx *cli.Context) bool {
 func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
 	utils.RegisterEthService(stack, &cfg.Eth)
+
+	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+		return governance.New(ctx, &cfg.Governance)
+	}); err != nil {
+		log.Fatalf("failed to register governance service %v", err)
+	}
 
 	// Whisper must be explicitly enabled by specifying at least 1 whisper flag or in dev mode
 	shhEnabled := enableWhisper(ctx)
