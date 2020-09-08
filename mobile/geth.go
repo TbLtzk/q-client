@@ -35,7 +35,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/nat"
 	"gitlab.com/q-dev/q-client/params"
-	whisper "gitlab.com/q-dev/q-client/whisper/whisperv6"
 )
 
 // NodeConfig represents the collection of configuration values to fine tune the Geth
@@ -70,9 +69,6 @@ type NodeConfig struct {
 	//
 	// It has the form "nodename:secret@host:port"
 	EthereumNetStats string
-
-	// WhisperEnabled specifies whether the node should run the Whisper protocol.
-	WhisperEnabled bool
 
 	// Listening address of pprof server.
 	PprofAddress string
@@ -184,12 +180,6 @@ func NewNode(datadir string, config *NodeConfig) (stack *Node, _ error) {
 			if err := ethstats.New(rawStack, lesBackend.ApiBackend, lesBackend.Engine(), config.EthereumNetStats); err != nil {
 				return nil, fmt.Errorf("netstats init: %v", err)
 			}
-		}
-	}
-	// Register the Whisper protocol if requested
-	if config.WhisperEnabled {
-		if _, err := whisper.New(rawStack, &whisper.DefaultConfig); err != nil {
-			return nil, fmt.Errorf("whisper init: %v", err)
 		}
 	}
 	return &Node{rawStack}, nil
