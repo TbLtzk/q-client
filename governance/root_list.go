@@ -97,7 +97,7 @@ func (s *rootSet) isAcceptable(set *rootSet) bool {
 	}
 
 	var sigsCount int
-	for signer, _ := range set.signers {
+	for signer := range set.signers {
 		if _, ok := s.roots[signer]; ok {
 			sigsCount++
 		}

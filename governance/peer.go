@@ -178,18 +178,6 @@ func (p *peer) setCurrentRootList(hash common.Hash, signers mapset.Set) {
 	p.knownSigners = signers
 }
 
-func (p *peer) updateCurrentRootListSignatures(hash common.Hash, signers mapset.Set) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
-
-	// already updated to a newer version
-	if p.hash != hash {
-		return
-	}
-
-	return
-}
-
 func (p *peer) sendStatus(rootList common.RootList) error {
 	return p2p.Send(p.rw, StatusMsg, statusMsgData{RootList: rootList})
 }
