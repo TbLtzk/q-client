@@ -17,22 +17,23 @@ type Config struct {
 // Governance service is responsible
 // for 2nd layer functionality.
 type Governance struct {
-	rootMgr *RootManager
+	RootManager *RootManager
+
 	handler *handler
 }
 
 // New Governance service.
 func New(ctx *node.ServiceContext, cfg *Config) (*Governance, error) {
 	ks := ctx.AccountManager.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	rootMgr, err := NewRootManager(ks, cfg.InstanceDir)
+	rootMgr, err := newRootManager(ks, cfg.InstanceDir)
 	if err != nil {
 		return nil, err
 	}
 
 	handler := newHandler(rootMgr)
 	return &Governance{
-		rootMgr: rootMgr,
-		handler: handler,
+		RootManager: rootMgr,
+		handler:     handler,
 	}, nil
 }
 
@@ -53,7 +54,7 @@ func (g *Governance) APIs() []rpc.API {
 
 // Start Governance service.
 func (g *Governance) Start(srv *p2p.Server) error {
-	if err := g.rootMgr.run(); err != nil {
+	if err := g.RootManager.run(); err != nil {
 		return errors.Wrap(err, "failed to start root manager")
 	}
 

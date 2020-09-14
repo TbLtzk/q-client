@@ -29,8 +29,9 @@ type RootManager struct {
 	currentFpath string
 	desiredFpath string
 
-	lock sync.Mutex
-	set  *rootSet
+	lock         sync.Mutex
+	set          *rootSet
+	exclusionSet map[common.Address]struct{}
 }
 
 type Keystore interface {
@@ -38,7 +39,7 @@ type Keystore interface {
 	SignHash(a accounts.Account, hash []byte) ([]byte, error)
 }
 
-func NewRootManager(ks Keystore, datadir string) (*RootManager, error) {
+func newRootManager(ks Keystore, datadir string) (*RootManager, error) {
 	currentListPath := filepath.Join(datadir, currentRootListFname)
 	list, err := chooseInitList(currentListPath)
 	if err != nil {
@@ -54,6 +55,7 @@ func NewRootManager(ks Keystore, datadir string) (*RootManager, error) {
 		keystore:     ks,
 		currentFpath: currentListPath,
 		desiredFpath: filepath.Join(datadir, desiredRootListFname),
+		exclusionSet: make(map[common.Address]struct{}),
 		set:          set,
 	}, nil
 }
@@ -63,6 +65,14 @@ func (s *RootManager) CurrentList() common.RootList {
 	defer s.lock.Unlock()
 
 	return s.set.makeList()
+}
+
+// ExclusionSet returns set of excluded validators addresses.
+func (s *RootManager) ExclusionSet() map[common.Address]struct{} {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	return s.exclusionSet
 }
 
 func (s *RootManager) run() error {
