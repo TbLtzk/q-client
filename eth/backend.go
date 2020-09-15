@@ -20,11 +20,12 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"gitlab.com/q-dev/go-ethereum/governance"
 	"math/big"
 	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"gitlab.com/q-dev/go-ethereum/governance"
 
 	"gitlab.com/q-dev/go-ethereum/accounts"
 	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
@@ -258,7 +259,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 	if chainConfig.Clique != nil {
 		var serv *governance.Governance
 		if err := ctx.Service(&serv); err != nil {
-			log.Warn("Failed to retrieve a Governance",  "err", err)
+			log.Warn("Failed to retrieve a Governance")
 			return nil
 		}
 		return clique.New(chainConfig.Clique, db, serv.RootManager)

@@ -139,13 +139,6 @@ var (
 
 	// errUnauthorizedSigner is returned if a header is signed by a non-authorized entity.
 	errUnauthorizedSigner = errors.New("unauthorized signer")
-
-	// errRecentlySigned is returned if a header is signed by an authorized entity
-	// that already signed a header recently, thus is temporarily not allowed to.
-	errRecentlySigned = errors.New("recently signed")
-
-	// errInvalidRootManager is returned if a root manager is nil
-	errInvalidRootManager = errors.New("invalid root manager")
 )
 
 // SignerFn is a signer callback function to request a header to be signed by a
@@ -588,8 +581,6 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 		}
 		c.lock.RUnlock()
 	}*/
-
-
 	// Ensure the extra data has all its components
 	if len(header.Extra) < extraVanity {
 		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, extraVanity-len(header.Extra))...)
@@ -851,7 +842,7 @@ func (c *Clique) FilterExcludeList(signers []common.Address) ([]common.Address, 
 	whiteSigners := make([]common.Address, len(signers))
 	if c.rootManager == nil {
 		log.Error("Failed to retrieve exclusion set. Root manager is <nil>!")
-		return nil, errInvalidRootManager
+		return nil, errors.New("invalid root manager")
 	}
 
 	exclusionSet := c.rootManager.ExclusionSet()
@@ -864,4 +855,3 @@ func (c *Clique) FilterExcludeList(signers []common.Address) ([]common.Address, 
 
 	return whiteSigners, nil
 }
-
