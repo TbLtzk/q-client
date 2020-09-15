@@ -848,13 +848,16 @@ func (c *Clique) Validators() *common.Address {
 
 // FilterExcludeList returns signers that are not blacklisted
 func (c *Clique) FilterExcludeList(signers []common.Address) ([]common.Address, error) {
-	var whiteSigners []common.Address
+	whiteSigners := make([]common.Address, len(signers))
 	if c.rootManager == nil {
 		log.Error("Failed to retrieve exclusion set. Root manager is <nil>!")
 		return nil, errInvalidRootManager
 	}
+
+	exclusionSet := c.rootManager.ExclusionSet()
+
 	for _, signer := range signers {
-		if _, ok := c.rootManager.ExclusionSet()[signer]; !ok {
+		if _, ok := exclusionSet[signer]; !ok {
 			whiteSigners = append(whiteSigners, signer)
 		}
 	}
