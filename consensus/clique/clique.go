@@ -139,7 +139,7 @@ var (
 
 	// errRecentlySigned is returned if a header is signed by an authorized entity
 	// that already signed a header recently, thus is temporarily not allowed to.
-	errRecentlySigned = errors.New("recently signed")
+	// errRecentlySigned = errors.New("recently signed")
 )
 
 // SignerFn is a signer callback function to request a header to be signed by a
@@ -840,8 +840,4 @@ func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) e
 
 func (c *Clique) Validators() *common.Address {
 	return c.registry.ValidatorsAddress()
-}
-
-func (c *Clique) ReduceRecent() {
-
 }
