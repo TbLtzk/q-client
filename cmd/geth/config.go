@@ -153,13 +153,14 @@ func enableWhisper(ctx *cli.Context) bool {
 
 func makeFullNode(ctx *cli.Context) *node.Node {
 	stack, cfg := makeConfigNode(ctx)
-	utils.RegisterEthService(stack, &cfg.Eth)
 
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		return governance.New(ctx, &cfg.Governance)
 	}); err != nil {
 		log.Fatalf("failed to register governance service %v", err)
 	}
+
+	utils.RegisterEthService(stack, &cfg.Eth)
 
 	// Whisper must be explicitly enabled by specifying at least 1 whisper flag or in dev mode
 	shhEnabled := enableWhisper(ctx)

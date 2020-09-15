@@ -403,7 +403,7 @@ func (c *Clique) updateProposals(snap *Snapshot) error {
 		return err // todo: wrap error
 	}
 
-	filteredSigners, err := c.FilterBlackList(signers)
+	filteredSigners, err := c.FilterExcludeList(signers)
 	if err != nil {
 		log.Error("failed to get filtered validators list", "error", err)
 		return err
@@ -846,8 +846,8 @@ func (c *Clique) Validators() *common.Address {
 	return c.registry.ValidatorsAddress()
 }
 
-// FilterBlackList returns signers that are not blacklisted
-func (c *Clique) FilterBlackList (signers []common.Address) ([]common.Address, error) {
+// FilterExcludeList returns signers that are not blacklisted
+func (c *Clique) FilterExcludeList(signers []common.Address) ([]common.Address, error) {
 	var whiteSigners []common.Address
 	if c.rootManager == nil {
 		log.Error("Failed to retrieve exclusion set. Root manager is <nil>!")
