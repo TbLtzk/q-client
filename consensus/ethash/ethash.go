@@ -20,6 +20,7 @@ package ethash
 import (
 	"errors"
 	"fmt"
+	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
 	"math"
 	"math/big"
 	"math/rand"
@@ -680,3 +681,8 @@ func (ethash *Ethash) APIs(chain consensus.ChainReader) []rpc.API {
 func SeedHash(block uint64) []byte {
 	return seedHash(block)
 }
+
+func (ethash *Ethash) SetContractBackend(bind.ContractBackend) {
+	log.Warn("contract backed is not supported for ethash")
+}
+

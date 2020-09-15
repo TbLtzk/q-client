@@ -403,7 +403,7 @@ func (ap *testerAccountPool) sign(header *types.Header, signer string) {
 			Period: 1,
 			Epoch:  tt.epoch,
 		}
-		engine := New(config.Clique, db)
+		engine := New(config.Clique, db, nil)
 		engine.fakeDiff = true
 		config.Clique = engine.config
 

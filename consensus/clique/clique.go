@@ -28,6 +28,7 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
+
 	"gitlab.com/q-dev/go-ethereum/accounts"
 	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
 	"gitlab.com/q-dev/go-ethereum/common"
@@ -44,6 +45,8 @@ import (
 	"gitlab.com/q-dev/go-ethereum/rlp"
 	"gitlab.com/q-dev/go-ethereum/rpc"
 	"golang.org/x/crypto/sha3"
+
+	_ "gitlab.com/q-dev/go-ethereum/accounts/keystore"
 )
 
 const (
@@ -139,7 +142,10 @@ var (
 
 	// errRecentlySigned is returned if a header is signed by an authorized entity
 	// that already signed a header recently, thus is temporarily not allowed to.
-	// errRecentlySigned = errors.New("recently signed")
+	errRecentlySigned = errors.New("recently signed")
+
+	// errInvalidRootManager is returned if a root manager is nil
+	errInvalidRootManager = errors.New("invalid root manager")
 )
 
 // SignerFn is a signer callback function to request a header to be signed by a
@@ -169,6 +175,14 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 
 	sigcache.Add(hash, signer)
 	return signer, nil
+}
+
+type ExcludsionValidatorsList interface {
+	ExclusionSet() map[common.Address]struct{}
+}
+
+type ValidatorsProvider interface {
+	GetValidatorsList() ([]common.Address, error)
 }
 
 type ParametersProvider interface {
@@ -203,11 +217,12 @@ type Clique struct {
 
 	registry        *contracts.Registry
 	contractBackend bind.ContractBackend
+	rootManager     ExcludsionValidatorsList
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
 // signers set to the ones provided by the user.
-func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
+func New(config *params.CliqueConfig, db ethdb.Database, rootManager ExcludsionValidatorsList) *Clique {
 	// Set any missing consensus parameters to their defaults
 	conf := *config
 	if conf.Epoch == 0 {
@@ -218,12 +233,13 @@ func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
 	signatures, _ := lru.NewARC(inmemorySignatures)
 
 	return &Clique{
-		config:     &conf,
-		db:         db,
-		recents:    recents,
-		signatures: signatures,
-		proposals:  make(map[common.Address]bool),
-		registry:   contracts.NewRegistry(config.Registry, config.RewardReceiver),
+		config:      &conf,
+		db:          db,
+		recents:     recents,
+		signatures:  signatures,
+		proposals:   make(map[common.Address]bool),
+		registry:    contracts.NewRegistry(config.Registry, config.RewardReceiver),
+		rootManager: rootManager,
 	}
 }
 
@@ -239,7 +255,7 @@ func (c *Clique) VerifyHeader(chain consensus.ChainReader, header *types.Header,
 	return c.verifyHeader(chain, header, nil)
 }
 
-// VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers. The
+// VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers. Thechecks for blacklisted signers and
 // method returns a quit channel to abort the operations and a results channel to
 // retrieve the async verifications (the order is that of the input slice).
 func (c *Clique) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
@@ -374,38 +390,25 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainReader, header *type
 	// All basic checks passed, verify the seal and return
 	return c.verifySeal(chain, header, parents)
 }
+
 func (c *Clique) updateProposals(snap *Snapshot) error {
-	if c.validatorsProvider != nil {
-		signers, err := c.validatorsProvider.GetValidatorsList()
-		if err != nil {
-			log.Error("failed to get validators list from smart contract", "error", err)
-			return err // todo wrap error
-		}
-
-		/*c.proposals = make(map[common.Address]bool, len(signers))
-		for _, signer := range signers {
-			c.proposals[signer] = true
-		}*/
-		snap.setSigners(signers)
-	} else if c.contractBackend != nil {
-		resp, err := c.contractBackend.CodeAt(context.TODO(), c.config.SystemContracts.Validators, nil)
-		if (err != nil) || (len(resp) == 0) {
-			log.Warn("Failed to check validator contract", "err", err, "resp", resp, "addr", c.config.SystemContracts.Validators)
-			return nil
-		}
-
-		caller, err := generated.NewValidatorsCaller(c.config.SystemContracts.Validators, c.contractBackend)
-		if err != nil {
-			log.Error("Failed to create new validator caller", "err", err)
-			return err // todo wrap error
-		}
-
-		c.validatorsProvider = &generated.ValidatorsCallerSession{
-			Contract: caller,
-		}
-
-		return c.updateProposals(snap)
+	provider := c.registry.Validators()
+	if provider == nil {
+		return nil
 	}
+
+	signers, err := provider.GetValidatorsList(nil)
+	if err != nil {
+		log.Error("failed to get validators list from smart contract", "error", err)
+		return err // todo: wrap error
+	}
+
+	filteredSigners, err := c.FilterBlackList(signers)
+	if err != nil {
+		log.Error("failed to get filtered validators list", "error", err)
+		return err
+	}
+	snap.setSigners(filteredSigners)
 
 	return nil
 }
@@ -585,6 +588,7 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 		}
 		c.lock.RUnlock()
 	}*/
+
 
 	// Ensure the extra data has all its components
 	if len(header.Extra) < extraVanity {
@@ -841,3 +845,20 @@ func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) e
 func (c *Clique) Validators() *common.Address {
 	return c.registry.ValidatorsAddress()
 }
+
+// FilterBlackList returns signers that are not blacklisted
+func (c *Clique) FilterBlackList (signers []common.Address) ([]common.Address, error) {
+	var whiteSigners []common.Address
+	if c.rootManager == nil {
+		log.Error("Failed to retrieve exclusion set. Root manager is <nil>!")
+		return nil, errInvalidRootManager
+	}
+	for _, signer := range signers {
+		if _, ok := c.rootManager.ExclusionSet()[signer]; !ok {
+			whiteSigners = append(whiteSigners, signer)
+		}
+	}
+
+	return whiteSigners, nil
+}
+
