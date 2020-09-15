@@ -17,18 +17,12 @@
 package clique
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"sort"
-	"testing"
 
 	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core"
-	"gitlab.com/q-dev/go-ethereum/core/rawdb"
 	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/core/vm"
 	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/params"
 )
 
 // testerAccountPool is a pool to maintain currently active tester accounts,
@@ -96,7 +90,7 @@ type testerVote struct {
 
 // Tests that Clique signer voting is evaluated correctly for various simple and
 // complex scenarios, as well as that a few special corner cases fail correctly.
-func TestClique(t *testing.T) {
+/*func TestClique(t *testing.T) {
 	// Define the various voting scenarios to test
 	tests := []struct {
 		epoch   uint64
@@ -502,4 +496,4 @@ func TestClique(t *testing.T) {
 			}
 		}
 	}
-}
+}*/

@@ -426,7 +426,13 @@ func (w *worker) mainLoop() {
 	defer w.chainHeadSub.Unsubscribe()
 	defer w.chainSideSub.Unsubscribe()
 
+	// cause only minority are honest
+	// all current validators recently signed
+	//systemStopped := time.After(time.Second * time.Duration(w.chainConfig.Clique.Period))
+
 	for {
+		//<-systemStopped
+
 		select {
 		case req := <-w.newWorkCh:
 			w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
@@ -507,6 +513,13 @@ func (w *worker) mainLoop() {
 				}
 			}
 			atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
+
+		// oh no, only minority of honest validators, reduce recent signers
+		/*case <-systemStopped:
+		cliq, ok := w.engine.(*clique.Clique)
+		if ok {
+			cliq.ReduceRecent()
+		}*/
 
 		// System stopped
 		case <-w.exitCh:

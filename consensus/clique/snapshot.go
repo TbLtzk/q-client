@@ -206,7 +206,7 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 	for i, header := range headers {
 		// Remove any votes on checkpoint blocks
 		number := header.Number.Uint64()
-		if number%uint64(len(snap.Signers)) == 0 {
+		if number%s.config.Epoch == 0 {
 			snap.Votes = nil
 			snap.Tally = make(map[common.Address]Tally)
 			signers := make([]common.Address, (len(header.Extra)-extraVanity-extraSeal)/common.AddressLength)
@@ -227,11 +227,11 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 		if _, ok := snap.Signers[signer]; !ok {
 			return nil, errUnauthorizedSigner
 		}
-		for _, recent := range snap.Recents {
+		/*for _, recent := range snap.Recents {
 			if recent == signer {
 				return nil, errRecentlySigned
 			}
-		}
+		}*/
 		snap.Recents[number] = signer
 
 		// Header authorized, discard any previous votes from the signer
