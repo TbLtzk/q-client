@@ -20,6 +20,7 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"gitlab.com/q-dev/go-ethereum/governance"
 	"math/big"
 	"runtime"
 	"sync"
@@ -255,7 +256,12 @@ func makeExtraData(extra []byte) []byte {
 func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	if chainConfig.Clique != nil {
-		return clique.New(chainConfig.Clique, db)
+		var serv *governance.Governance
+		if err := ctx.Service(&serv); err != nil {
+			log.Warn("Failed to retrieve a Governance",  "err", err)
+			return nil
+		}
+		return clique.New(chainConfig.Clique, db, serv.RootManager)
 	}
 	// Otherwise assume proof-of-work
 	switch config.PowMode {

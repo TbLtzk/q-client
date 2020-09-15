@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
 	"math/big"
 	"os"
 	"os/signal"
@@ -924,4 +925,8 @@ func retesteth(ctx *cli.Context) error {
 	sig := <-abortChan
 	log.Info("Exiting...", "signal", sig)
 	return nil
+}
+
+func (e *NoRewardEngine) SetContractBackend(backend bind.ContractBackend) {
+	e.inner.SetContractBackend(backend)
 }
