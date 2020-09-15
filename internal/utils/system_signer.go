@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"errors"
 	"math/big"
 
 	"gitlab.com/q-dev/go-ethereum/common"
@@ -15,8 +14,6 @@ type SenderFromServer struct {
 	Addr      common.Address
 	Blockhash common.Hash
 }
-
-var errNotCached = errors.New("sender not cached")
 
 func SetSenderFromServer(tx *types.Transaction, addr common.Address, block common.Hash) {
 	// Use types.Sender for side-effect to store our signer into the cache.
