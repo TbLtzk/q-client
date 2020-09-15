@@ -201,7 +201,7 @@ func testGenerateBlockAndImport(t *testing.T, isClique bool) {
 		chainConfig = params.AllCliqueProtocolChanges
 		chainConfig.Clique = &params.CliqueConfig{Period: 1, Epoch: 30000}
 		chainConfig.Clique.RewardReceiver = common.HexToAddress("92C35a964624D9cbF90c2A0525e116093FAF867E")
-		engine = clique.New(chainConfig.Clique, db)
+		engine = clique.New(chainConfig.Clique, db, nil)
 	} else {
 		chainConfig = params.AllEthashProtocolChanges
 		engine = ethash.NewFaker()
@@ -250,7 +250,7 @@ func TestEmptyWorkEthash(t *testing.T) {
 	testEmptyWork(t, ethashChainConfig, ethash.NewFaker())
 }
 func TestEmptyWorkClique(t *testing.T) {
-	testEmptyWork(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase()))
+	testEmptyWork(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase(), nil))
 }
 
 func testEmptyWork(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {
@@ -357,7 +357,7 @@ func TestRegenerateMiningBlockEthash(t *testing.T) {
 
 func TestRegenerateMiningBlockClique(t *testing.T) {
 	cliqueChainConfig.Clique.RewardReceiver = common.HexToAddress("92C35a964624D9cbF90c2A0525e116093FAF867E")
-	testRegenerateMiningBlock(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase()))
+	testRegenerateMiningBlock(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase(), nil))
 }
 
 func testRegenerateMiningBlock(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {
@@ -417,7 +417,7 @@ func TestAdjustIntervalEthash(t *testing.T) {
 }
 
 func TestAdjustIntervalClique(t *testing.T) {
-	testAdjustInterval(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase()))
+	testAdjustInterval(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase(), nil))
 }
 
 func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {
