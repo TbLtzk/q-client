@@ -32,11 +32,11 @@ type testerAccountPool struct {
 	accounts map[string]*ecdsa.PrivateKey
 }
 
-func newTesterAccountPool() *testerAccountPool {
+/*func newTesterAccountPool() *testerAccountPool {
 	return &testerAccountPool{
 		accounts: make(map[string]*ecdsa.PrivateKey),
 	}
-}
+}*/
 
 // checkpoint creates a Clique checkpoint signer section from the provided list
 // of authorized signers and embeds it into the provided header.
@@ -80,13 +80,13 @@ func (ap *testerAccountPool) sign(header *types.Header, signer string) {
 
 // testerVote represents a single block signed by a parcitular account, where
 // the account may or may not have cast a Clique vote.
-type testerVote struct {
+/*type testerVote struct {
 	signer     string
 	voted      string
 	auth       bool
 	checkpoint []string
 	newbatch   bool
-}
+}*/
 
 // Tests that Clique signer voting is evaluated correctly for various simple and
 // complex scenarios, as well as that a few special corner cases fail correctly.
