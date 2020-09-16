@@ -5,55 +5,88 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/event"
 	"gitlab.com/q-dev/go-ethereum/log"
 	"gitlab.com/q-dev/go-ethereum/p2p"
-)
-
-const (
-	// not really important, just need some buffer for robustness
-	signaturesBuff = 4
 )
 
 // handler of protocol messages.
 type handler struct {
 	rootsMgr *RootManager
 
-	newSignaturesCh chan newSignaturesEvent
-	done            chan struct{}
+	targetRootListCh     chan *rootSet
+	newTargetRootListSub event.Subscription
+
+	rootListCh chan *rootSetEvent
+	done       chan struct{}
 
 	peerWG sync.WaitGroup
 	peers  *peerSet
 }
 
-type newSignaturesEvent struct {
-	hash       common.Hash
-	signatures map[common.Address][]byte
-}
-
 func newHandler(roots *RootManager) *handler {
+	newRoots := make(chan *rootSet)
+	newRootsSub := roots.targetRootFeed.Subscribe(newRoots)
+
 	return &handler{
-		rootsMgr:        roots,
-		newSignaturesCh: make(chan newSignaturesEvent, signaturesBuff),
-		done:            make(chan struct{}),
-		peers:           newPeerSet(),
+		rootsMgr:             roots,
+		targetRootListCh:     newRoots,
+		newTargetRootListSub: newRootsSub,
+		rootListCh:           make(chan *rootSetEvent),
+		done:                 make(chan struct{}),
+		peers:                newPeerSet(),
 	}
 }
 
 func (h *handler) run() {
-	go h.broadcastSignatures()
+	go h.listenForTargetRootList()
+	go h.broadcastRootSets()
 }
 
-func (h *handler) broadcastSignatures() {
+type rootSetEvent struct {
+	fromID string
+	set    *rootSet
+}
+
+func (h *handler) listenForTargetRootList() {
 	for {
 		select {
-		case event := <-h.newSignaturesCh:
-			peers := h.peers.peersWithoutSignature(event)
-			for _, p := range peers {
-				p.asyncSendNewSignatures(event)
+		case set := <-h.targetRootListCh:
+			for _, p := range h.peers.all() {
+				log.Debug("SENDING target set", "to", p.id)
+				p.asyncSendRootList(set)
+			}
+		case err := <-h.newTargetRootListSub.Err():
+			log.Debug("no new target roots sets", "err", err)
+			return
+		case <-h.done:
+			return
+		}
+	}
+}
+
+func (h *handler) broadcastRootSets() {
+	for {
+		select {
+		case msg := <-h.rootListCh:
+			for _, p := range h.peers.all() {
+				if msg.fromID == p.id {
+					continue
+				}
+
+				p.asyncSendRootList(msg.set)
 			}
 		case <-h.done:
 			return
 		}
+	}
+}
+
+func (h *handler) broadcastTargetRootSet(set *rootSet) {
+	select {
+	case h.targetRootListCh <- set:
+	case <-h.done:
+		return
 	}
 }
 
@@ -88,17 +121,9 @@ func (h *handler) makeProtocol(version uint) p2p.Protocol {
 	}
 }
 
-func (h *handler) sendNewSignatures(event newSignaturesEvent) {
-	select {
-	case h.newSignaturesCh <- event:
-	case <-h.done:
-		return
-	}
-}
-
 func (h *handler) runPeer(p *peer) error {
-	rootList := h.rootsMgr.CurrentList()
-	status, err := p.handshake(rootList)
+	currentRootSet := h.rootsMgr.currentSet()
+	status, err := p.handshake(currentRootSet.makeList())
 	if err != nil {
 		return err
 	}
@@ -106,8 +131,7 @@ func (h *handler) runPeer(p *peer) error {
 	h.peers.register(p)
 	defer h.peers.unregister(p)
 
-	currentSet, _ := newRootSet(&rootList)
-	h.syncRootLists(p, currentSet, status.rootSet)
+	h.syncRootLists(p, currentRootSet, status.rootSet)
 
 	h.peerWG.Add(1)
 	defer h.peerWG.Done()
@@ -130,10 +154,18 @@ func (h *handler) syncRootLists(p *peer, current, incoming *rootSet) {
 		return
 	}
 
-	newSignatures := h.rootsMgr.currentSet().mergeSignatures(incoming.hash, incoming.signers)
+	newSignatures := current.mergeSignatures(incoming.hash, incoming.signers)
 	if len(newSignatures) != 0 {
 		logReceivedSigs(p.id, newSignatures)
-		h.sendNewSignatures(newSignaturesEvent{hash: incoming.hash, signatures: newSignatures})
+
+		// todo: this may be unnecessary with current approach
+		h.rootListCh <- &rootSetEvent{fromID: p.id, set: current.copy()}
+	}
+
+	// push target root list if have any locally
+	target := h.rootsMgr.targetSet()
+	if target != nil {
+		p.asyncSendRootList(target)
 	}
 }
 
@@ -150,83 +182,75 @@ func (h *handler) handleMsg(p *peer) error {
 	defer func() { _ = msg.Discard() }()
 
 	switch msg.Code {
-	case NewSignaturesMsg:
-		return h.handleNewSignatures(p, msg)
-	//case GetRootListMsg:
-	//	return h.handleGetRootList(p, msg)
-	//case RootListMsg:
-	//	return h.handleRootList(p, msg)
-	//case NewRootListMsg:
-	//	return h.handleNewRootList(p, msg)
+	case StatusMsg:
+		return errors.New("unexpected msg code")
+	case RootListMsg:
+		return h.handleRootList(p, msg)
 	default:
 		return errors.New("unknown msg code")
 	}
 }
 
-func (h *handler) handleNewSignatures(p *peer, msg p2p.Msg) error {
-	var data newSignaturesMsg
-	if err := msg.Decode(&data); err != nil {
-		return err
-	}
-
-	current := h.rootsMgr.currentSet()
-	if data.Hash != current.hash {
-		return nil
-	}
-
-	// todo: send info about what is signed for validation
-	sigs, err := current.sanitizeSignatures(data.Signatures)
-	if err != nil {
-		return err
-	}
-
-	newSigs := current.mergeSignatures(data.Hash, sigs)
-	if len(newSigs) == 0 {
-		return nil
-	}
-
-	logReceivedSigs(p.id, newSigs)
-	h.sendNewSignatures(newSignaturesEvent{hash: data.Hash, signatures: newSigs})
-
-	return nil
-}
-
-func (h *handler) handleNewRootList(p *peer, msg p2p.Msg) error {
+func (h *handler) handleRootList(p *peer, msg p2p.Msg) error {
 	var list common.RootList
 	if err := msg.Decode(&list); err != nil {
 		return err
 	}
 
-	set, err := newRootSet(&list)
+	received, err := newRootSet(&list)
 	if err != nil {
 		return err
 	}
 
 	current := h.rootsMgr.currentSet()
-	if set.timestamp <= current.timestamp {
+	// check if it's 'push'
+	if current.isAcceptable(received) && h.rootsMgr.upgrade(received) {
+		log.Info("upgraded root list", "hash", received.hash, "timestamp", received.timestamp)
+		h.rootListCh <- &rootSetEvent{fromID: p.id, set: received}
 		return nil
 	}
 
-	if !current.isAcceptable(set) {
-		return errIncomplete
+	if current.hash == received.hash {
+		newSignatures := current.mergeSignatures(received.hash, received.signers)
+		if len(newSignatures) != 0 {
+			logReceivedSigs(p.id, newSignatures)
+			h.rootListCh <- &rootSetEvent{fromID: p.id, set: current.copy()}
+		}
+
+		return nil
 	}
 
-	h.rootsMgr.upgrade(set)
-	_ = h.sendNewRootList(p)
-
-	return nil
-}
-
-func (h *handler) sendNewRootList(receivedFrom *peer) error {
-	for _, peer := range h.peers.peers {
-		if receivedFrom.id == peer.id {
-			continue
-		}
-		err := peer.sendRootList(h.rootsMgr.CurrentList())
-		if err != nil {
-			log.Warn("faulty peer", err)
-		}
+	target := h.rootsMgr.targetSet()
+	// todo: save and wait action from the operator
+	if target == nil {
+		log.Debug("received target root list but has none locally", "from", p.id)
+		return nil
 	}
+
+	// todo: also check set itself, hash can be different because of timestamp
+	if target.hash != received.hash {
+		log.Warn("received target root list does not match local", "hash", received.hash, "from", p.id)
+		return nil
+	}
+
+	log.Debug("received target root list", "hash", received.hash, "from", p.id)
+	newSignatures := target.mergeSignatures(received.hash, received.signers)
+	if len(newSignatures) == 0 {
+		return nil
+	}
+
+	logReceivedSigs(p.id, newSignatures)
+
+	// trigger 'push'
+	if h.rootsMgr.currentSet().isAcceptable(target) && h.rootsMgr.upgrade(target) {
+		log.Info("upgraded root list", "hash", target.hash, "timestamp", target.timestamp)
+
+		// todo: probably it's also make sense to send it back
+		h.rootListCh <- &rootSetEvent{fromID: p.id, set: target.copy()}
+		return nil
+	}
+
+	h.rootListCh <- &rootSetEvent{fromID: p.id, set: target.copy()}
 	return nil
 }
 

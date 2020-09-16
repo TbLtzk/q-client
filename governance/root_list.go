@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	mapset "github.com/deckarep/golang-set"
-
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/crypto"
 )
@@ -15,15 +14,26 @@ import (
 const validListThresholdPercentage = 75
 
 type rootSet struct {
-	// callers are responsible for holding lock
-	lock sync.Mutex
-
 	timestamp uint64
 	hash      common.Hash
 
 	rootAddresses []common.Address
 	roots         map[common.Address]struct{}
-	signers       map[common.Address][]byte
+
+	lock    sync.Mutex
+	signers map[common.Address][]byte
+}
+
+func (s *rootSet) addSignature(signer common.Address, signature []byte) bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if _, ok := s.signers[signer]; ok {
+		return false
+	}
+
+	s.signers[signer] = signature
+	return true
 }
 
 func (s *rootSet) calcHash() common.Hash {
@@ -107,7 +117,7 @@ func (s *rootSet) isAcceptable(set *rootSet) bool {
 	return percentage >= validListThresholdPercentage
 }
 
-// mergeSignatures saves and returns new signatures found in set
+// mergeSignatures saves and returns new signatures found in current
 func (s *rootSet) mergeSignatures(hash common.Hash, signatures map[common.Address][]byte) map[common.Address][]byte {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -146,6 +156,24 @@ func (s *rootSet) sanitizeSignatures(signatures [][]byte) (map[common.Address][]
 	}
 
 	return sigs, nil
+}
+
+func (s *rootSet) copy() *rootSet {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	signers := make(map[common.Address][]byte, len(s.signers))
+	for signer, signature := range s.signers {
+		signers[signer] = signature
+	}
+
+	return &rootSet{
+		hash:          s.hash,
+		timestamp:     s.timestamp,
+		rootAddresses: s.rootAddresses,
+		roots:         s.roots,
+		signers:       signers,
+	}
 }
 
 func (s *rootSet) signatures() [][]byte {
