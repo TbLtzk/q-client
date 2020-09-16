@@ -17,7 +17,7 @@ const (
 var ProtocolVersions = []uint{q1}
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
-var protocolLengths = map[uint]uint64{q1: 3}
+var protocolLengths = map[uint]uint64{q1: 2}
 
 // maximum possible number of root nodes
 const maxNRootNodes = 101
@@ -28,28 +28,10 @@ const protocolMaxMsgSize = 2*maxNRootNodes*(crypto.SignatureLength+common.Addres
 
 // protocol message codes
 const (
-	StatusMsg        = 0x00
-	NewSignaturesMsg = 0x02
-	NewRootListMsg   = 0x03
+	StatusMsg   = 0x00
+	RootListMsg = 0x01
 )
 
-type statusMsgData struct {
+type statusMsgBody struct {
 	common.RootList
-}
-
-type newSignaturesMsg struct {
-	Hash       common.Hash
-	Signatures [][]byte
-}
-
-func initNewSignaturesMsg(hash common.Hash, sigs map[common.Address][]byte) newSignaturesMsg {
-	var signatures [][]byte
-	for _, sig := range sigs {
-		signatures = append(signatures, sig)
-	}
-
-	return newSignaturesMsg{
-		Hash:       hash,
-		Signatures: signatures,
-	}
 }
