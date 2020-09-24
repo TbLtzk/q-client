@@ -11,7 +11,10 @@ import (
 	"gitlab.com/q-dev/go-ethereum/crypto"
 )
 
-const validListThresholdPercentage = 75
+const (
+	rootListThresholdPercentage      = 75
+	exclusionListThresholdPercentage = 75
+)
 
 type rootSet struct {
 	timestamp uint64
@@ -66,12 +69,8 @@ func newRootSet(list *common.RootList) (*rootSet, error) {
 		timestamp:     list.Timestamp,
 		roots:         roots,
 		rootAddresses: rootAddrs,
-		hash:          list.Hash,
 	}
-
-	if (set.hash == common.Hash{}) {
-		set.hash = set.calcHash()
-	}
+	set.hash = set.calcHash()
 
 	if set.hash != list.Hash && (list.Hash != common.Hash{}) {
 		return nil, errHashMismatch
@@ -114,7 +113,19 @@ func (s *rootSet) isAcceptable(set *rootSet) bool {
 	}
 
 	percentage := (100 * sigsCount) / len(s.rootAddresses)
-	return percentage >= validListThresholdPercentage
+	return percentage >= rootListThresholdPercentage
+}
+
+func (s *rootSet) isAcceptableExclusionSet(set *exclusionSet) bool {
+	var signaturesCount int
+	for signer := range set.signers {
+		if _, ok := s.roots[signer]; ok {
+			signaturesCount++
+		}
+	}
+
+	percentage := (100 * signaturesCount) / len(s.rootAddresses)
+	return percentage >= exclusionListThresholdPercentage
 }
 
 // mergeSignatures saves and returns new signatures found in current
@@ -204,15 +215,6 @@ func (s *rootSet) signersMap() mapset.Set {
 	set := mapset.NewSet()
 	for signer := range s.signers {
 		set.Add(signer)
-	}
-
-	return set
-}
-
-func toMapSet(signatures map[common.Address][]byte) mapset.Set {
-	set := mapset.NewSet()
-	for addr := range signatures {
-		set.Add(addr)
 	}
 
 	return set

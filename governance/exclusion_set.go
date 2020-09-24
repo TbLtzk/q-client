@@ -1,0 +1,141 @@
+package governance
+
+import (
+	"bytes"
+	"fmt"
+	"sort"
+	"sync"
+
+	"github.com/pkg/errors"
+	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/go-ethereum/crypto"
+)
+
+type exclusionSet struct {
+	timestamp uint64
+	hash      common.Hash
+
+	addresses   []common.Address
+	addrToBlock map[common.Address]uint64
+
+	lock    sync.Mutex
+	signers map[common.Address][]byte
+}
+
+func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error) {
+	if len(list.Validators) == 0 {
+		return nil, nil
+	}
+
+	var validators []common.Address
+	validatorsSet := make(map[common.Address]uint64)
+	for _, val := range list.Validators {
+		// consider duplicates as error since
+		// they can lead to ambiguity in block number
+		if _, ok := validatorsSet[val.Address]; ok {
+			return nil, errors.Errorf("duplicated address %s", val.Address.Hex())
+		}
+
+		validators = append(validators, val.Address)
+		validatorsSet[val.Address] = val.Block
+	}
+
+	sort.SliceStable(validators, func(i, j int) bool {
+		return bytes.Compare(validators[i].Bytes(), validators[j].Bytes()) > 0
+	})
+
+	set := &exclusionSet{
+		timestamp:   list.Timestamp,
+		addresses:   validators,
+		addrToBlock: validatorsSet,
+	}
+	set.hash = set.calcHash()
+
+	if set.hash != list.Hash && (list.Hash != common.Hash{}) {
+		return nil, errHashMismatch
+	}
+
+	signers := make(map[common.Address][]byte)
+	for _, sig := range list.Signatures {
+		signer, err := crypto.SigToPub(set.hash.Bytes(), sig)
+		if err != nil {
+			return nil, errInvalidSignature
+		}
+
+		signers[crypto.PubkeyToAddress(*signer)] = sig
+	}
+
+	set.signers = signers
+	return set, nil
+}
+
+func (s *exclusionSet) calcHash() common.Hash {
+	msg := append([]byte{}, fmt.Sprint(s.timestamp)...)
+	for _, addr := range s.addresses {
+		msg = append(msg, addr.Bytes()...)
+	}
+
+	return crypto.Keccak256Hash(msg)
+}
+
+func (s *exclusionSet) mergeSignatures(hash common.Hash, signers map[common.Address][]byte) map[common.Address][]byte {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if s.hash != hash {
+		return nil
+	}
+
+	newSignatures := make(map[common.Address][]byte)
+	for signer, signature := range signers {
+		if _, ok := s.signers[signer]; ok {
+			continue
+		}
+
+		s.signers[signer] = signature
+		newSignatures[signer] = signature
+	}
+
+	return newSignatures
+}
+
+func (s *exclusionSet) addSignature(signer common.Address, signature []byte) bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	if _, ok := s.signers[signer]; ok {
+		return false
+	}
+
+	s.signers[signer] = signature
+	return true
+}
+
+func (s *exclusionSet) makeList() common.ValidatorExclusionList {
+	if s == nil {
+		return common.ValidatorExclusionList{}
+	}
+
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	var signatures [][]byte
+	for _, sig := range s.signers {
+		signatures = append(signatures, sig)
+	}
+
+	var validators []common.ExcludedValidator
+	for addr, block := range s.addrToBlock {
+		validators = append(validators, common.ExcludedValidator{
+			Address: addr,
+			Block:   block,
+		})
+	}
+
+	return common.ValidatorExclusionList{
+		Timestamp:  s.timestamp,
+		Hash:       s.hash,
+		Signatures: signatures,
+		Validators: validators,
+	}
+}
