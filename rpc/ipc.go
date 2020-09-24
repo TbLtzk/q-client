@@ -20,8 +20,8 @@ import (
 	"context"
 	"net"
 
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/p2p/netutil"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/p2p/netutil"
 )
 
 // ServeListener accepts connections on l, serving JSON-RPC on them.

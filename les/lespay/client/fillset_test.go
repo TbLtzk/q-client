@@ -21,10 +21,10 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common/mclock"
-	"gitlab.com/q-dev/go-ethereum/p2p/enode"
-	"gitlab.com/q-dev/go-ethereum/p2p/enr"
-	"gitlab.com/q-dev/go-ethereum/p2p/nodestate"
+	"gitlab.com/q-dev/q-client/common/mclock"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/enr"
+	"gitlab.com/q-dev/q-client/p2p/nodestate"
 )
 
 type testIter struct {

@@ -21,9 +21,9 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/eth/downloader"
-	"gitlab.com/q-dev/go-ethereum/p2p"
-	"gitlab.com/q-dev/go-ethereum/p2p/enode"
+	"gitlab.com/q-dev/q-client/eth/downloader"
+	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/p2p/enode"
 )
 
 func TestFastSyncDisabling63(t *testing.T) { testFastSyncDisabling(t, 63) }

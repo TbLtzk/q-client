@@ -22,11 +22,11 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/p2p/discover"
-	"gitlab.com/q-dev/go-ethereum/p2p/enode"
-	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/p2p/discover"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/params"
 	"gopkg.in/urfave/cli.v1"
 )
 

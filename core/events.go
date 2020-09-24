@@ -17,8 +17,8 @@
 package core
 
 import (
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 )
 
 // NewTxsEvent is posted when a batch of transactions enter the transaction pool.

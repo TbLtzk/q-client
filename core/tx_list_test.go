@@ -20,8 +20,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/crypto"
 )
 
 // Tests that transactions can be added to strict lists and list contents and

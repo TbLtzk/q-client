@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.com/q-dev/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 func TestNewWebsocketUpgradeHandler_websocket(t *testing.T) {

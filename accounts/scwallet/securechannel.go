@@ -27,7 +27,7 @@ import (
 
 	pcsc "github.com/gballet/go-libpcsclite"
 	"github.com/wsddn/go-ecdh"
-	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/q-client/crypto"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/text/unicode/norm"
 )

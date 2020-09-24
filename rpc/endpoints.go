@@ -19,7 +19,7 @@ package rpc
 import (
 	"net"
 
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // StartIPCEndpoint starts an IPC endpoint.

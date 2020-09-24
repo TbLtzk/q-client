@@ -20,9 +20,9 @@ import (
 	"errors"
 	"fmt"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/common/prque"
-	"gitlab.com/q-dev/go-ethereum/ethdb"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/prque"
+	"gitlab.com/q-dev/q-client/ethdb"
 )
 
 // ErrNotRequested is returned by the trie sync when it's requested to process a

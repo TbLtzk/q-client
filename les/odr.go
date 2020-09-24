@@ -20,11 +20,11 @@ import (
 	"context"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common/mclock"
-	"gitlab.com/q-dev/go-ethereum/core"
-	"gitlab.com/q-dev/go-ethereum/ethdb"
-	"gitlab.com/q-dev/go-ethereum/light"
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/common/mclock"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/light"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // LesOdr implements light.OdrBackend

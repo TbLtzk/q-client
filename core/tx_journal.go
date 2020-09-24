@@ -21,10 +21,10 @@ import (
 	"io"
 	"os"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 // errNoActiveJournal is returned if a transaction is attempted to be inserted

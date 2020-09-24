@@ -19,7 +19,7 @@
 package whisperv6
 
 import (
-	"gitlab.com/q-dev/go-ethereum/common/hexutil"
+	"gitlab.com/q-dev/q-client/common/hexutil"
 )
 
 // TopicType represents a cryptographically secure, probabilistic partial

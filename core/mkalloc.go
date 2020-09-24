@@ -34,8 +34,8 @@ import (
 	"sort"
 	"strconv"
 
-	"gitlab.com/q-dev/go-ethereum/core"
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 type allocItem struct{ Addr, Balance *big.Int }

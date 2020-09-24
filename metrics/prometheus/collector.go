@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gitlab.com/q-dev/go-ethereum/metrics"
+	"gitlab.com/q-dev/q-client/metrics"
 )
 
 var (

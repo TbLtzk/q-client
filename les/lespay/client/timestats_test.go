@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/les/utils"
+	"gitlab.com/q-dev/q-client/les/utils"
 )
 
 func TestTransition(t *testing.T) {

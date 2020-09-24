@@ -22,9 +22,9 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"gitlab.com/q-dev/go-ethereum/p2p"
-	"gitlab.com/q-dev/go-ethereum/p2p/nat"
-	"gitlab.com/q-dev/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/p2p/nat"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 const (

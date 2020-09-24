@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // deployFaucet queries the user for various input on deploying a faucet, after

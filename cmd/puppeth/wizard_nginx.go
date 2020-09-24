@@ -19,7 +19,7 @@ package main
 import (
 	"fmt"
 
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // ensureVirtualHost checks whether a reverse-proxy is running on the specified

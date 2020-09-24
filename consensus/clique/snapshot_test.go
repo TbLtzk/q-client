@@ -20,9 +20,9 @@ import (
 	"crypto/ecdsa"
 	"sort"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/crypto"
 )
 
 // testerAccountPool is a pool to maintain currently active tester accounts,

@@ -2,13 +2,13 @@ package contracts
 
 import (
 	"context"
+	"gitlab.com/q-dev/q-client/common"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
-	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/system-contracts/generated"
 )
 

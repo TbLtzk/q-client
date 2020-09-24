@@ -22,9 +22,9 @@ import (
 	"path/filepath"
 	"sort"
 
-	"gitlab.com/q-dev/go-ethereum/internal/debug"
-	"gitlab.com/q-dev/go-ethereum/p2p/enode"
-	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/internal/debug"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/params"
 	"gopkg.in/urfave/cli.v1"
 )
 

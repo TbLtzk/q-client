@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
 )
 
 // Event is an event potentially triggered by the EVM's LOG mechanism. The Event

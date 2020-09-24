@@ -22,7 +22,7 @@ import (
 	"os"
 	"runtime"
 
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 func init() {

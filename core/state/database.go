@@ -20,9 +20,9 @@ import (
 	"fmt"
 
 	lru "github.com/hashicorp/golang-lru"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/ethdb"
-	"gitlab.com/q-dev/go-ethereum/trie"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 const (

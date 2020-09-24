@@ -22,7 +22,7 @@ import (
 	"errors"
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 // A BigInt represents a signed multi-precision integer.

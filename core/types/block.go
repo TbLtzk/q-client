@@ -26,9 +26,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/common/hexutil"
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/q-client/rlp"
 	"golang.org/x/crypto/sha3"
 )
 

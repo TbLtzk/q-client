@@ -25,13 +25,13 @@ import (
 	"sync"
 	"time"
 
-	ethereum "gitlab.com/q-dev/go-ethereum"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/common/hexutil"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/ethdb"
-	"gitlab.com/q-dev/go-ethereum/event"
-	"gitlab.com/q-dev/go-ethereum/rpc"
+	ethereum "gitlab.com/q-dev/q-client"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 var (

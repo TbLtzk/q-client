@@ -25,11 +25,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/console/prompt"
-	"gitlab.com/q-dev/go-ethereum/p2p/dnsdisc"
-	"gitlab.com/q-dev/go-ethereum/p2p/enode"
+	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/console/prompt"
+	"gitlab.com/q-dev/q-client/p2p/dnsdisc"
+	"gitlab.com/q-dev/q-client/p2p/enode"
 	cli "gopkg.in/urfave/cli.v1"
 )
 

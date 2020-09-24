@@ -19,9 +19,9 @@ package client
 import (
 	"sync"
 
-	"gitlab.com/q-dev/go-ethereum/les/utils"
-	"gitlab.com/q-dev/go-ethereum/p2p/enode"
-	"gitlab.com/q-dev/go-ethereum/p2p/nodestate"
+	"gitlab.com/q-dev/q-client/les/utils"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/nodestate"
 )
 
 // WrsIterator returns nodes from the specified selectable set with a weighted random

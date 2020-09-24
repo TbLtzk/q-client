@@ -27,9 +27,9 @@ import (
 	"sync/atomic"
 
 	"github.com/golang/snappy"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/metrics"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/metrics"
 )
 
 var (

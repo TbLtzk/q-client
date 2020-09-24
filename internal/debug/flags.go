@@ -27,9 +27,9 @@ import (
 	"github.com/fjl/memsize/memsizeui"
 	colorable "github.com/mattn/go-colorable"
 	"github.com/mattn/go-isatty"
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/metrics"
-	"gitlab.com/q-dev/go-ethereum/metrics/exp"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/metrics"
+	"gitlab.com/q-dev/q-client/metrics/exp"
 	"gopkg.in/urfave/cli.v1"
 )
 

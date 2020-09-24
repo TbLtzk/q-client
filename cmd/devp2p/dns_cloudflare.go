@@ -21,8 +21,8 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cloudflare-go"
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/p2p/dnsdisc"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/p2p/dnsdisc"
 	"gopkg.in/urfave/cli.v1"
 )
 

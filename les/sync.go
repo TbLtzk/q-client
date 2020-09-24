@@ -21,11 +21,11 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/rawdb"
-	"gitlab.com/q-dev/go-ethereum/eth/downloader"
-	"gitlab.com/q-dev/go-ethereum/light"
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/rawdb"
+	"gitlab.com/q-dev/q-client/eth/downloader"
+	"gitlab.com/q-dev/q-client/light"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 var errInvalidCheckpoint = errors.New("invalid advertised checkpoint")

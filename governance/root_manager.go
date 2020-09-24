@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"gitlab.com/q-dev/go-ethereum/accounts"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/event"
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/accounts"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 var (

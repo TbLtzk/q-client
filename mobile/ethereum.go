@@ -21,8 +21,8 @@ package geth
 import (
 	"errors"
 
-	ethereum "gitlab.com/q-dev/go-ethereum"
-	"gitlab.com/q-dev/go-ethereum/common"
+	ethereum "gitlab.com/q-dev/q-client"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 // Subscription represents an event subscription where events are

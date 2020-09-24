@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common/hexutil"
-	"gitlab.com/q-dev/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // In this example, our client wishes to track the latest 'block number'

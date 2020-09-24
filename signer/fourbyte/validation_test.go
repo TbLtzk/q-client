@@ -20,9 +20,9 @@ import (
 	"math/big"
 	"testing"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/common/hexutil"
-	"gitlab.com/q-dev/go-ethereum/signer/core"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/q-client/signer/core"
 )
 
 func mixAddr(a string) (*common.MixedcaseAddress, error) {

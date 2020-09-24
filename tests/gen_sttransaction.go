@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/common/hexutil"
-	"gitlab.com/q-dev/go-ethereum/common/math"
+	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/q-client/common/math"
 )
 
 var _ = (*stTransactionMarshaling)(nil)

@@ -25,16 +25,16 @@ import (
 	"reflect"
 	"unicode"
 
-	"gitlab.com/q-dev/go-ethereum/governance"
+	"gitlab.com/q-dev/q-client/governance"
 
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/naoina/toml"
-	"gitlab.com/q-dev/go-ethereum/cmd/utils"
-	"gitlab.com/q-dev/go-ethereum/eth"
-	"gitlab.com/q-dev/go-ethereum/node"
-	"gitlab.com/q-dev/go-ethereum/params"
-	whisper "gitlab.com/q-dev/go-ethereum/whisper/whisperv6"
+	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/node"
+	"gitlab.com/q-dev/q-client/params"
+	whisper "gitlab.com/q-dev/q-client/whisper/whisperv6"
 )
 
 var (

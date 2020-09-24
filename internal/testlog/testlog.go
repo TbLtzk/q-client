@@ -21,7 +21,7 @@ import (
 	"sync"
 	"testing"
 
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // Handler returns a log handler which logs to the unit test log of t.

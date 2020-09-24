@@ -21,9 +21,9 @@ import (
 	"math"
 	"testing"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/params"
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 // TestCreation tests that different genesis and fork rule combinations result in

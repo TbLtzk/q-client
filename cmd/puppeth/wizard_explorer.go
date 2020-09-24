@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // deployExplorer creates a new block explorer based on some user input.

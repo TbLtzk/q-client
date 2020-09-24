@@ -16,7 +16,7 @@
 
 package bind
 
-import "gitlab.com/q-dev/go-ethereum/accounts/abi"
+import "gitlab.com/q-dev/q-client/accounts/abi"
 
 // tmplData is the data structure required to fill the binding template.
 type tmplData struct {
@@ -90,12 +90,12 @@ import (
 	"math/big"
 	"strings"
 
-	ethereum "gitlab.com/q-dev/go-ethereum"
-	"gitlab.com/q-dev/go-ethereum/accounts/abi"
-	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/event"
+	ethereum "gitlab.com/q-dev/q-client"
+	"gitlab.com/q-dev/q-client/accounts/abi"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/event"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

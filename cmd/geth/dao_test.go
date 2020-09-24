@@ -23,9 +23,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/rawdb"
-	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/rawdb"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 // Genesis block for nodes which don't care about the DAO fork (i.e. not configured)

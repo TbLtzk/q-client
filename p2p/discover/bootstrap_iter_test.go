@@ -5,7 +5,7 @@ import (
 	"net"
 	"testing"
 
-	"gitlab.com/q-dev/go-ethereum/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/enode"
 )
 
 func TestBootstrapIter_Node(t *testing.T) {

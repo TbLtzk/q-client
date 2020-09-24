@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
 )
 
 // Genesis hashes to enforce below configs on.

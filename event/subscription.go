@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common/mclock"
+	"gitlab.com/q-dev/q-client/common/mclock"
 )
 
 // Subscription represents a stream of events. The carrier of the events is typically a

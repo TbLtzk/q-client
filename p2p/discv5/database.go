@@ -34,9 +34,9 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/storage"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 var (

@@ -24,9 +24,9 @@ import (
 	"net"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common/math"
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/p2p/enode"
+	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/p2p/enode"
 )
 
 // node represents a host on the network.

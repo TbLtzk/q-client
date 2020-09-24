@@ -20,9 +20,9 @@ import (
 	"hash"
 	"sync/atomic"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/common/math"
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // Config are the configuration options for the Interpreter

@@ -23,10 +23,10 @@ import (
 	"errors"
 	"fmt"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/rlp"
-	whisper "gitlab.com/q-dev/go-ethereum/whisper/whisperv6"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/rlp"
+	whisper "gitlab.com/q-dev/q-client/whisper/whisperv6"
 )
 
 // A Nonce is a 64-bit hash which proves (combined with the mix-hash) that

@@ -19,15 +19,13 @@ package main
 import (
 	"strconv"
 
-	"gitlab.com/q-dev/go-ethereum/accounts"
-	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
-	"gitlab.com/q-dev/go-ethereum/accounts/external"
-	"gitlab.com/q-dev/go-ethereum/cmd/utils"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/contracts/checkpointoracle"
-	"gitlab.com/q-dev/go-ethereum/ethclient"
-	"gitlab.com/q-dev/go-ethereum/params"
-	"gitlab.com/q-dev/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
+	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/contracts/checkpointoracle"
+	"gitlab.com/q-dev/q-client/ethclient"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/rpc"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -112,9 +110,10 @@ func newContract(client *rpc.Client) (common.Address, *checkpointoracle.Checkpoi
 
 // newClefSigner sets up a clef backend and returns a clef transaction signer.
 func newClefSigner(ctx *cli.Context) *bind.TransactOpts {
-	clef, err := external.NewExternalSigner(ctx.String(clefURLFlag.Name))
+	panic("not supported for q node")
+	/*clef, err := external.NewExternalSigner(ctx.String(clefURLFlag.Name))
 	if err != nil {
 		utils.Fatalf("Failed to create clef signer %v", err)
 	}
-	return bind.NewClefTransactor(clef, accounts.Account{Address: common.HexToAddress(ctx.String(signerFlag.Name))})
+	return bind.NewClefTransactor(clef, accounts.Account{Address: common.HexToAddress(ctx.String(signerFlag.Name))})*/
 }

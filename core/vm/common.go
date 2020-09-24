@@ -19,8 +19,8 @@ package vm
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/common/math"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/math"
 )
 
 // calcMemSize64 calculates the required memory size, and returns

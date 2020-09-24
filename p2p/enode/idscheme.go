@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"io"
 
-	"gitlab.com/q-dev/go-ethereum/common/math"
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/p2p/enr"
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/p2p/enr"
+	"gitlab.com/q-dev/q-client/rlp"
 	"golang.org/x/crypto/sha3"
 )
 

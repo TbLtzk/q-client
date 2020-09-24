@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 const testSectionSize = 4096

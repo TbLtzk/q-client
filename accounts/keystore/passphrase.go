@@ -39,10 +39,10 @@ import (
 	"path/filepath"
 
 	"github.com/pborman/uuid"
-	"gitlab.com/q-dev/go-ethereum/accounts"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/common/math"
-	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/q-client/accounts"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/q-client/crypto"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
 )

@@ -19,9 +19,9 @@ package whisperv6
 import (
 	"bytes"
 
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/rlp"
-	"gitlab.com/q-dev/go-ethereum/whisper/whisperv6"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/q-client/whisper/whisperv6"
 )
 
 type MessageParams struct {

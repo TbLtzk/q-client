@@ -20,7 +20,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"gitlab.com/q-dev/go-ethereum/les/utils"
+	"gitlab.com/q-dev/q-client/les/utils"
 )
 
 func checkU64(t *testing.T, name string, value, exp uint64) {

@@ -3,15 +3,15 @@ package utils
 import (
 	"strings"
 
-	"gitlab.com/q-dev/go-ethereum/core/state"
+	"gitlab.com/q-dev/q-client/core/state"
 
-	"gitlab.com/q-dev/go-ethereum/consensus"
-	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/consensus"
+	"gitlab.com/q-dev/q-client/params"
 
-	"gitlab.com/q-dev/go-ethereum/accounts/abi"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/accounts/abi"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/system-contracts/generated"
 )
 

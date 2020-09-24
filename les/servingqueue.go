@@ -21,8 +21,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gitlab.com/q-dev/go-ethereum/common/mclock"
-	"gitlab.com/q-dev/go-ethereum/common/prque"
+	"gitlab.com/q-dev/q-client/common/mclock"
+	"gitlab.com/q-dev/q-client/common/prque"
 )
 
 // servingQueue allows running tasks in a limited number of threads and puts the

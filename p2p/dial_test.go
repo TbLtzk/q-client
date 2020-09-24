@@ -27,11 +27,11 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common/mclock"
-	"gitlab.com/q-dev/go-ethereum/internal/testlog"
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/p2p/enode"
-	"gitlab.com/q-dev/go-ethereum/p2p/netutil"
+	"gitlab.com/q-dev/q-client/common/mclock"
+	"gitlab.com/q-dev/q-client/internal/testlog"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/netutil"
 )
 
 // This test checks that dynamic dials are launched from discovery results.

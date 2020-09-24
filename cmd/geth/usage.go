@@ -22,8 +22,8 @@ import (
 	"io"
 	"sort"
 
-	"gitlab.com/q-dev/go-ethereum/cmd/utils"
-	"gitlab.com/q-dev/go-ethereum/internal/debug"
+	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/internal/debug"
 	cli "gopkg.in/urfave/cli.v1"
 )
 

@@ -31,17 +31,17 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/common/mclock"
-	"gitlab.com/q-dev/go-ethereum/consensus"
-	"gitlab.com/q-dev/go-ethereum/core"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/eth"
-	"gitlab.com/q-dev/go-ethereum/event"
-	"gitlab.com/q-dev/go-ethereum/les"
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/p2p"
-	"gitlab.com/q-dev/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/mclock"
+	"gitlab.com/q-dev/q-client/consensus"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/les"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 const (

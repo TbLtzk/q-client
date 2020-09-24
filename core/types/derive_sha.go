@@ -19,9 +19,9 @@ package types
 import (
 	"bytes"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/rlp"
-	"gitlab.com/q-dev/go-ethereum/trie"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 type DerivableList interface {

@@ -19,7 +19,7 @@ package bloombits
 import (
 	"errors"
 
-	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/q-client/core/types"
 )
 
 var (

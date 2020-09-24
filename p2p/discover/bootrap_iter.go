@@ -3,8 +3,8 @@ package discover
 import (
 	"context"
 
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/p2p/enode"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/p2p/enode"
 )
 
 type bootstrapIter struct {

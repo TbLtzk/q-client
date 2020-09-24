@@ -31,11 +31,11 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/julienschmidt/httprouter"
-	"gitlab.com/q-dev/go-ethereum/event"
-	"gitlab.com/q-dev/go-ethereum/p2p"
-	"gitlab.com/q-dev/go-ethereum/p2p/enode"
-	"gitlab.com/q-dev/go-ethereum/p2p/simulations/adapters"
-	"gitlab.com/q-dev/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // DefaultClient is the default simulation API client which expects the API

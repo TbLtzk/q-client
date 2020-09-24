@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"log"
 
-	"gitlab.com/q-dev/go-ethereum/node"
-	"gitlab.com/q-dev/go-ethereum/p2p"
-	"gitlab.com/q-dev/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/node"
+	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // SampleService is a trivial network service that can be attached to a node for

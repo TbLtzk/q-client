@@ -22,9 +22,9 @@ import (
 	"math/big"
 	"sort"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // nonceHeap is a heap.Interface implementation over 64bit unsigned integers for

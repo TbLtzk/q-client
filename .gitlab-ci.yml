@@ -2,7 +2,7 @@ services:
   - docker:dind
 
 variables:
-  IMAGE_NAME: registry.gitlab.com/q-dev/go-ethereum
+  IMAGE_NAME: registry.gitlab.com/q-dev/q-client
   BUILD_IMAGE: $IMAGE_NAME:$CI_COMMIT_SHA
   BUILD_DOCKERFILE: Dockerfile.alltools
 

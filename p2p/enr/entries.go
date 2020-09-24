@@ -21,7 +21,7 @@ import (
 	"io"
 	"net"
 
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 // Entry is implemented by known node record entry types.

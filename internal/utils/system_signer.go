@@ -3,8 +3,8 @@ package utils
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 )
 
 // SenderFromServer is a types.Signer that remembers the sender address returned by the RPC

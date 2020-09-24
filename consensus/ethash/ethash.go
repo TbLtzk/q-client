@@ -20,7 +20,7 @@ package ethash
 import (
 	"errors"
 	"fmt"
-	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"math"
 	"math/big"
 	"math/rand"
@@ -36,10 +36,10 @@ import (
 
 	mmap "github.com/edsrzf/mmap-go"
 	"github.com/hashicorp/golang-lru/simplelru"
-	"gitlab.com/q-dev/go-ethereum/consensus"
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/metrics"
-	"gitlab.com/q-dev/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/consensus"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/metrics"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 var ErrInvalidDumpMagic = errors.New("invalid dump magic")

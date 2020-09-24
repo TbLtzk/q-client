@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common/mclock"
+	"gitlab.com/q-dev/q-client/common/mclock"
 )
 
 func TestExpHeap(t *testing.T) {

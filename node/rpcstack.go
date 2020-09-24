@@ -26,7 +26,7 @@ import (
 	"sync"
 
 	"github.com/rs/cors"
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // NewHTTPHandlerStack returns wrapped http-related handlers

@@ -22,12 +22,12 @@ import (
 	"errors"
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/common/math"
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/crypto/blake2b"
-	"gitlab.com/q-dev/go-ethereum/crypto/bn256"
-	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/crypto/blake2b"
+	"gitlab.com/q-dev/q-client/crypto/bn256"
+	"gitlab.com/q-dev/q-client/params"
 
 	//lint:ignore SA1019 Needed for precompile
 	"golang.org/x/crypto/ripemd160"

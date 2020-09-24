@@ -23,11 +23,11 @@ import (
 	"strings"
 
 	"github.com/dop251/goja"
-	"gitlab.com/q-dev/go-ethereum/internal/ethapi"
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/signer/core"
-	"gitlab.com/q-dev/go-ethereum/signer/rules/deps"
-	"gitlab.com/q-dev/go-ethereum/signer/storage"
+	"gitlab.com/q-dev/q-client/internal/ethapi"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/signer/core"
+	"gitlab.com/q-dev/q-client/signer/rules/deps"
+	"gitlab.com/q-dev/q-client/signer/storage"
 )
 
 var (

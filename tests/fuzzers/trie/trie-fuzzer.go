@@ -21,9 +21,9 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/ethdb/memorydb"
-	"gitlab.com/q-dev/go-ethereum/trie"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/ethdb/memorydb"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 // randTest performs random trie operations.

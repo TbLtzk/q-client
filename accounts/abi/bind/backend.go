@@ -21,9 +21,9 @@ import (
 	"errors"
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/q-client"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 )
 
 var (

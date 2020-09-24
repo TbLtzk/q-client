@@ -27,7 +27,7 @@ import (
 	"reflect"
 	"strings"
 
-	"gitlab.com/q-dev/go-ethereum/common/hexutil"
+	"gitlab.com/q-dev/q-client/common/hexutil"
 	"golang.org/x/crypto/sha3"
 )
 
