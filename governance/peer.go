@@ -3,6 +3,8 @@ package governance
 import (
 	"sync"
 
+	"github.com/pkg/errors"
+
 	"gitlab.com/q-dev/go-ethereum/common"
 	"gitlab.com/q-dev/go-ethereum/p2p"
 )
@@ -30,6 +32,7 @@ func (s *peerSet) register(p *peer) {
 
 	s.peers[p.id] = p
 	go p.listenForRootSets()
+	go p.listenForExclusionSets()
 }
 
 func (s *peerSet) unregister(p *peer) {
@@ -69,17 +72,19 @@ type peer struct {
 	id string
 	rw p2p.MsgReadWriter
 
-	rootSetCh chan *rootSet
-	done      chan struct{}
+	rootSetCh      chan *rootSet
+	exclusionSetCh chan *exclusionSet
+	done           chan struct{}
 }
 
 func newPeer(conn *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
-		Peer:      conn,
-		id:        conn.ID().ShortString(),
-		rw:        rw,
-		rootSetCh: make(chan *rootSet),
-		done:      make(chan struct{}),
+		Peer:           conn,
+		id:             conn.ID().ShortString(),
+		rw:             rw,
+		rootSetCh:      make(chan *rootSet),
+		exclusionSetCh: make(chan *exclusionSet),
+		done:           make(chan struct{}),
 	}
 }
 
@@ -88,11 +93,12 @@ func (p *peer) close() {
 }
 
 type peerStatus struct {
-	rootSet *rootSet
+	rootSet      *rootSet
+	exclusionSet *exclusionSet
 }
 
-func (p *peer) handshake(rootList common.RootList) (*peerStatus, error) {
-	err := p2p.Send(p.rw, StatusMsg, statusMsgBody{RootList: rootList})
+func (p *peer) handshake(rootList common.RootList, exclusionList common.ValidatorExclusionList) (*peerStatus, error) {
+	err := p2p.Send(p.rw, StatusMsg, statusMsgBody{rootList: rootList, exclusionList: exclusionList})
 	if err != nil {
 		return nil, err
 	}
@@ -107,12 +113,17 @@ func (p *peer) handshake(rootList common.RootList) (*peerStatus, error) {
 		return nil, err
 	}
 
-	incoming, err := newRootSet(&status.RootList)
+	incomingRoot, err := newRootSet(&status.rootList)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "invalid root list")
 	}
 
-	return &peerStatus{rootSet: incoming}, nil
+	incomingExSet, err := newExclusionSet(&status.exclusionList)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid exclusion list")
+	}
+
+	return &peerStatus{rootSet: incomingRoot, exclusionSet: incomingExSet}, nil
 }
 
 func (p *peer) listenForRootSets() {
@@ -128,8 +139,21 @@ func (p *peer) listenForRootSets() {
 	}
 }
 
+func (p *peer) listenForExclusionSets() {
+	for {
+		select {
+		case set := <-p.exclusionSetCh:
+			if err := p.sendExclusionList(set); err != nil {
+				p.Log().Debug("failed to send exclusion set", "err", err)
+			}
+		case <-p.done:
+			return
+		}
+	}
+}
+
 func (p *peer) sendStatus(rootList common.RootList) error {
-	return p2p.Send(p.rw, StatusMsg, statusMsgBody{RootList: rootList})
+	return p2p.Send(p.rw, StatusMsg, statusMsgBody{rootList: rootList})
 }
 
 func (p *peer) asyncSendRootList(set *rootSet) {
@@ -142,4 +166,16 @@ func (p *peer) asyncSendRootList(set *rootSet) {
 
 func (p *peer) sendRootList(set *rootSet) error {
 	return p2p.Send(p.rw, RootListMsg, set.makeList())
+}
+
+func (p *peer) asyncSendExclusionList(set *exclusionSet) {
+	select {
+	case p.exclusionSetCh <- set:
+	case <-p.done:
+		return
+	}
+}
+
+func (p *peer) sendExclusionList(set *exclusionSet) error {
+	return p2p.Send(p.rw, ExclusionListMsg, set.makeList())
 }

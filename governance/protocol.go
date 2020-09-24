@@ -6,18 +6,18 @@ import (
 )
 
 // protocolName is the official short name of the protocol used during capability negotiation.
-const protocolName = "q"
+const protocolName = "qgov"
 
 // Constants to match up protocol versions and messages
 const (
-	q1 = 1
+	qgov1 = 1
 )
 
 // ProtocolVersions are the supported versions of the eth protocol (first is primary).
-var ProtocolVersions = []uint{q1}
+var ProtocolVersions = []uint{qgov1}
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
-var protocolLengths = map[uint]uint64{q1: 2}
+var protocolLengths = map[uint]uint64{qgov1: 3}
 
 // maximum possible number of root nodes
 const maxNRootNodes = 101
@@ -28,10 +28,12 @@ const protocolMaxMsgSize = 2*maxNRootNodes*(crypto.SignatureLength+common.Addres
 
 // protocol message codes
 const (
-	StatusMsg   = 0x00
-	RootListMsg = 0x01
+	StatusMsg        = 0x00
+	RootListMsg      = 0x01
+	ExclusionListMsg = 0x02
 )
 
 type statusMsgBody struct {
-	common.RootList
+	rootList      common.RootList
+	exclusionList common.ValidatorExclusionList
 }
