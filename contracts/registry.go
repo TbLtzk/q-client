@@ -16,7 +16,7 @@ import (
 // current implementation is rather proof of concept
 type Registry struct {
 	mu  sync.Mutex
-	reg *generated.Registry
+	reg *generated.ContractRegistry
 
 	addr                  common.Address
 	defaultRewardReceiver common.Address
@@ -43,7 +43,7 @@ func (r *Registry) Init(back bind.ContractBackend) error {
 		return nil
 	}
 
-	reg, err := generated.NewRegistry(r.addr, back)
+	reg, err := generated.NewContractRegistry(r.addr, back)
 	if err != nil {
 		panic(err)
 	}
@@ -133,7 +133,7 @@ func (r *Registry) setupRegistry(addr common.Address) {
 		}
 
 		r.mu.Lock()
-		r.reg, err = generated.NewRegistry(addr, r.back)
+		r.reg, err = generated.NewContractRegistry(addr, r.back)
 		if err != nil {
 			panic(errors.Wrap(err, "failed to init registry backend")) // normally, should never happen
 		}
@@ -144,7 +144,7 @@ func (r *Registry) setupRegistry(addr common.Address) {
 	}
 }
 
-func (r *Registry) registry() *generated.Registry {
+func (r *Registry) registry() *generated.ContractRegistry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.reg
