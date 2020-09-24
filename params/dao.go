@@ -19,7 +19,7 @@ package params
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 // DAOForkBlockExtra is the block header extra-data field to set for the DAO fork

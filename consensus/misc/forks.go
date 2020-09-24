@@ -19,9 +19,9 @@ package misc
 import (
 	"fmt"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 // VerifyForkHashes verifies that blocks conforming to network hard-forks do have

@@ -16,7 +16,7 @@
 
 package core
 
-import "gitlab.com/q-dev/go-ethereum/common"
+import "gitlab.com/q-dev/q-client/common"
 
 // BadHashes represent a set of manually tracked bad hashes (usually hard forks)
 var BadHashes = map[common.Hash]bool{

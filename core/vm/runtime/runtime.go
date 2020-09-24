@@ -21,12 +21,12 @@ import (
 	"math/big"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/rawdb"
-	"gitlab.com/q-dev/go-ethereum/core/state"
-	"gitlab.com/q-dev/go-ethereum/core/vm"
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/rawdb"
+	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/vm"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 // Config is a basic type specifying certain configuration flags for running

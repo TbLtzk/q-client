@@ -17,8 +17,8 @@
 package les
 
 import (
-	"gitlab.com/q-dev/go-ethereum/metrics"
-	"gitlab.com/q-dev/go-ethereum/p2p"
+	"gitlab.com/q-dev/q-client/metrics"
+	"gitlab.com/q-dev/q-client/p2p"
 )
 
 var (

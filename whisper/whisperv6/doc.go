@@ -35,7 +35,7 @@ package whisperv6
 import (
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/q-client/crypto"
 )
 
 // Whisper protocol parameters

@@ -22,11 +22,11 @@ import (
 	"math/big"
 	"strings"
 
-	"gitlab.com/q-dev/go-ethereum/accounts/abi"
-	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
-	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/q-client/accounts/abi"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
+	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 )
 
 // Signer is an interface defining the callback when a contract requires a

@@ -21,11 +21,11 @@ import (
 	"errors"
 	"fmt"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/ethdb"
-	"gitlab.com/q-dev/go-ethereum/ethdb/memorydb"
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/ethdb/memorydb"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 // Prove constructs a merkle proof for key. The result contains all encoded nodes

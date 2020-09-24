@@ -42,7 +42,7 @@ import (
 	"fmt"
 	"hash"
 
-	ethcrypto "gitlab.com/q-dev/go-ethereum/crypto"
+	ethcrypto "gitlab.com/q-dev/q-client/crypto"
 )
 
 var (

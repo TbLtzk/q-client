@@ -25,11 +25,11 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/rlp"
-	whisper "gitlab.com/q-dev/go-ethereum/whisper/whisperv6"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/rlp"
+	whisper "gitlab.com/q-dev/q-client/whisper/whisperv6"
 )
 
 // WMailServer represents the state data of the mailserver.

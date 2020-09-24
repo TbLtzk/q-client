@@ -23,12 +23,12 @@ import (
 	"strconv"
 	"strings"
 
-	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/q-client/crypto"
 
-	"gitlab.com/q-dev/go-ethereum/cmd/utils"
-	"gitlab.com/q-dev/go-ethereum/consensus/ethash"
-	"gitlab.com/q-dev/go-ethereum/eth"
-	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/consensus/ethash"
+	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/params"
 	"gopkg.in/urfave/cli.v1"
 )
 

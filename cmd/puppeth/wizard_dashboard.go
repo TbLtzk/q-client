@@ -19,7 +19,7 @@ package main
 import (
 	"fmt"
 
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // deployDashboard queries the user for various input on deploying a web-service

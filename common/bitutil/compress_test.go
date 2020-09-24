@@ -21,7 +21,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"gitlab.com/q-dev/go-ethereum/common/hexutil"
+	"gitlab.com/q-dev/q-client/common/hexutil"
 )
 
 // Tests that data bitset encoding and decoding works and is bijective.

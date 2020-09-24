@@ -17,8 +17,8 @@
 package runtime
 
 import (
-	"gitlab.com/q-dev/go-ethereum/core"
-	"gitlab.com/q-dev/go-ethereum/core/vm"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/vm"
 )
 
 func NewEnv(cfg *Config) *vm.EVM {

@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"gitlab.com/q-dev/go-ethereum/accounts"
-	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
-	"gitlab.com/q-dev/go-ethereum/cmd/utils"
-	prompt2 "gitlab.com/q-dev/go-ethereum/console/prompt"
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/accounts"
+	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/cmd/utils"
+	prompt2 "gitlab.com/q-dev/q-client/console/prompt"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/log"
 	"gopkg.in/urfave/cli.v1"
 )
 

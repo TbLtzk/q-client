@@ -17,9 +17,9 @@
 package core
 
 import (
-	"gitlab.com/q-dev/go-ethereum/core/state"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/core/vm"
+	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
 )
 
 // Validator is an interface which defines the standard for block validation. It

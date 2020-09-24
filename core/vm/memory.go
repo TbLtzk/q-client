@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/common/math"
+	"gitlab.com/q-dev/q-client/common/math"
 )
 
 // Memory implements a simple memory model for the ethereum virtual machine.

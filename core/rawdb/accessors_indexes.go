@@ -19,12 +19,12 @@ package rawdb
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/ethdb"
-	"gitlab.com/q-dev/go-ethereum/log"
-	"gitlab.com/q-dev/go-ethereum/params"
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 // ReadTxLookupEntry retrieves the positional metadata associated with a transaction

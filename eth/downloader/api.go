@@ -20,9 +20,9 @@ import (
 	"context"
 	"sync"
 
-	ethereum "gitlab.com/q-dev/go-ethereum"
-	"gitlab.com/q-dev/go-ethereum/event"
-	"gitlab.com/q-dev/go-ethereum/rpc"
+	ethereum "gitlab.com/q-dev/q-client"
+	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // PublicDownloaderAPI provides an API which gives information about the current synchronisation status.

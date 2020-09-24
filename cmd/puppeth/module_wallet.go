@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // walletDockerfile is the Dockerfile required to run a web wallet.

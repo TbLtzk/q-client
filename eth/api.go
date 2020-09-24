@@ -28,16 +28,16 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/common/hexutil"
-	"gitlab.com/q-dev/go-ethereum/core"
-	"gitlab.com/q-dev/go-ethereum/core/rawdb"
-	"gitlab.com/q-dev/go-ethereum/core/state"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/internal/ethapi"
-	"gitlab.com/q-dev/go-ethereum/rlp"
-	"gitlab.com/q-dev/go-ethereum/rpc"
-	"gitlab.com/q-dev/go-ethereum/trie"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/rawdb"
+	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/internal/ethapi"
+	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 // PublicEthereumAPI provides an API to access Ethereum full node-related

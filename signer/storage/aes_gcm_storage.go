@@ -25,7 +25,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 type storedCredential struct {

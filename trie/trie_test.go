@@ -29,11 +29,11 @@ import (
 	"testing/quick"
 
 	"github.com/davecgh/go-spew/spew"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/ethdb/leveldb"
-	"gitlab.com/q-dev/go-ethereum/ethdb/memorydb"
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/ethdb/leveldb"
+	"gitlab.com/q-dev/q-client/ethdb/memorydb"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 func init() {

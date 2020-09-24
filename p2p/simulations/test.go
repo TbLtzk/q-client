@@ -19,10 +19,10 @@ package simulations
 import (
 	"testing"
 
-	"gitlab.com/q-dev/go-ethereum/p2p"
-	"gitlab.com/q-dev/go-ethereum/p2p/enode"
-	"gitlab.com/q-dev/go-ethereum/p2p/enr"
-	"gitlab.com/q-dev/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/enr"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // NoopService is the service that does not do anything

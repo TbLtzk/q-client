@@ -19,7 +19,7 @@ package event_test
 import (
 	"fmt"
 
-	"gitlab.com/q-dev/go-ethereum/event"
+	"gitlab.com/q-dev/q-client/event"
 )
 
 func ExampleNewSubscription() {

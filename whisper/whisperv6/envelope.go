@@ -26,10 +26,10 @@ import (
 	"math/big"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/crypto/ecies"
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/crypto/ecies"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 // Envelope represents a clear-text data packet to transmit through the Whisper

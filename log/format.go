@@ -23,7 +23,7 @@ const (
 
 // locationTrims are trimmed for display to avoid unwieldy log lines.
 var locationTrims = []string{
-	"gitlab.com/q-dev/go-ethereum/",
+	"gitlab.com/q-dev/q-client/",
 }
 
 // PrintOrigins sets or unsets log location (file:line) printing for terminal

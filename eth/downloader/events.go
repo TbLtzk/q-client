@@ -16,7 +16,7 @@
 
 package downloader
 
-import "gitlab.com/q-dev/go-ethereum/core/types"
+import "gitlab.com/q-dev/q-client/core/types"
 
 type DoneEvent struct {
 	Latest *types.Header

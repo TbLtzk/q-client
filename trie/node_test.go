@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"testing"
 
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 func newTestFullNode(v []byte) []interface{} {

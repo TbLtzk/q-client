@@ -22,8 +22,8 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/q-dev/go-ethereum/common/math"
-	"gitlab.com/q-dev/go-ethereum/core/vm"
+	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/q-client/core/vm"
 )
 
 // Compiler contains information about the parsed source

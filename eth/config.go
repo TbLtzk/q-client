@@ -24,13 +24,13 @@ import (
 	"runtime"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/consensus/ethash"
-	"gitlab.com/q-dev/go-ethereum/core"
-	"gitlab.com/q-dev/go-ethereum/eth/downloader"
-	"gitlab.com/q-dev/go-ethereum/eth/gasprice"
-	"gitlab.com/q-dev/go-ethereum/miner"
-	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus/ethash"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/eth/downloader"
+	"gitlab.com/q-dev/q-client/eth/gasprice"
+	"gitlab.com/q-dev/q-client/miner"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 // DefaultConfig contains default settings for use on the Ethereum main net.

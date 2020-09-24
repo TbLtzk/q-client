@@ -19,7 +19,7 @@ package abi
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 type packUnpackTest struct {

@@ -21,7 +21,7 @@ package p2p
 import (
 	"net"
 
-	"gitlab.com/q-dev/go-ethereum/metrics"
+	"gitlab.com/q-dev/q-client/metrics"
 )
 
 const (

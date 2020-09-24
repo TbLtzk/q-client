@@ -22,8 +22,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/q-dev/go-ethereum/accounts/abi"
-	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/q-client/accounts/abi"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 // Tests that all the selectors contained in the 4byte database are valid.

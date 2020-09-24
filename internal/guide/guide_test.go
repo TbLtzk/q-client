@@ -30,8 +30,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
-	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/core/types"
 )
 
 // Tests that the account management snippets work correctly.

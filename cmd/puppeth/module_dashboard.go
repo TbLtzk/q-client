@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // dashboardContent is the actual dashboard HTML content to serve up when users

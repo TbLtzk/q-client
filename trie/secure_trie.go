@@ -19,8 +19,8 @@ package trie
 import (
 	"fmt"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // SecureTrie wraps a trie with key hashing. In a secure trie, all

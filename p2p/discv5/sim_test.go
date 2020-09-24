@@ -28,7 +28,7 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 // In this test, nodes try to randomly resolve each other.

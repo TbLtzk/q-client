@@ -23,11 +23,11 @@ import (
 	"io"
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	lpc "gitlab.com/q-dev/go-ethereum/les/lespay/client"
-	"gitlab.com/q-dev/go-ethereum/p2p/enode"
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
+	lpc "gitlab.com/q-dev/q-client/les/lespay/client"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 // Constants to match up protocol versions and messages

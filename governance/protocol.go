@@ -1,8 +1,8 @@
 package governance
 
 import (
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
 )
 
 // protocolName is the official short name of the protocol used during capability negotiation.

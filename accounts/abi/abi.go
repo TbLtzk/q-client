@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"io"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
 )
 
 // The ABI holds information about a contract's context and available

@@ -24,10 +24,10 @@ import (
 	"strings"
 	"sync"
 
-	"gitlab.com/q-dev/go-ethereum/common/hexutil"
-	"gitlab.com/q-dev/go-ethereum/console/prompt"
-	"gitlab.com/q-dev/go-ethereum/internal/ethapi"
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/q-client/console/prompt"
+	"gitlab.com/q-dev/q-client/internal/ethapi"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 type CommandlineUI struct {

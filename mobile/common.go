@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/common/hexutil"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/hexutil"
 )
 
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.

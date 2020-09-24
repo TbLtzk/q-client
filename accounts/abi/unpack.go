@@ -22,7 +22,7 @@ import (
 	"math/big"
 	"reflect"
 
-	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 var (

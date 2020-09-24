@@ -24,9 +24,9 @@ import (
 	"path/filepath"
 
 	"github.com/pborman/uuid"
-	"gitlab.com/q-dev/go-ethereum/accounts/keystore"
-	"gitlab.com/q-dev/go-ethereum/cmd/utils"
-	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gopkg.in/urfave/cli.v1"
 )
 

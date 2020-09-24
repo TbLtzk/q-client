@@ -23,10 +23,10 @@ import (
 	"errors"
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/contracts/checkpointoracle/contract"
-	"gitlab.com/q-dev/go-ethereum/core/types"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/contracts/checkpointoracle/contract"
+	"gitlab.com/q-dev/q-client/core/types"
 )
 
 // CheckpointOracle is a Go wrapper around an on-chain checkpoint oracle contract.

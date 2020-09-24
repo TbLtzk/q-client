@@ -20,9 +20,9 @@ import (
 	"container/ring"
 	"sync"
 
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // chainRetriever is used by the unconfirmed block set to verify whether a previously

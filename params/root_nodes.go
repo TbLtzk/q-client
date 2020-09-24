@@ -1,7 +1,7 @@
 package params
 
 import (
-	"gitlab.com/q-dev/go-ethereum/common"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 // DevnetRootNodes - initial root nodes list on devnet.

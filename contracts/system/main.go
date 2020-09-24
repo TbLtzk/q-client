@@ -3,16 +3,16 @@ package system
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/go-ethereum/contracts/validators/contract"
+	"gitlab.com/q-dev/q-client/contracts/validators/contract"
 
-	"gitlab.com/q-dev/go-ethereum/accounts/abi/bind"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/crypto"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/crypto"
 
-	"gitlab.com/q-dev/go-ethereum/ethclient"
+	"gitlab.com/q-dev/q-client/ethclient"
 
-	"gitlab.com/q-dev/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // address 532c69263800e1f1cdb72acae555a85864146986

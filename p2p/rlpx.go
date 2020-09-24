@@ -36,11 +36,11 @@ import (
 	"time"
 
 	"github.com/golang/snappy"
-	"gitlab.com/q-dev/go-ethereum/common/bitutil"
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/crypto/ecies"
-	"gitlab.com/q-dev/go-ethereum/metrics"
-	"gitlab.com/q-dev/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/common/bitutil"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/crypto/ecies"
+	"gitlab.com/q-dev/q-client/metrics"
+	"gitlab.com/q-dev/q-client/rlp"
 	"golang.org/x/crypto/sha3"
 )
 

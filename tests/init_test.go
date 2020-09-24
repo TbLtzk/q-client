@@ -31,7 +31,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 // Command line flags to configure the interpreters.

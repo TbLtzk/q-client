@@ -21,7 +21,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"gitlab.com/q-dev/go-ethereum/core/vm"
+	"gitlab.com/q-dev/q-client/core/vm"
 )
 
 // Iterator for disassembled EVM instructions

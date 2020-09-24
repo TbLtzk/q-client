@@ -18,15 +18,15 @@ package core
 
 import (
 	"github.com/pkg/errors"
-	"gitlab.com/q-dev/go-ethereum/common"
-	"gitlab.com/q-dev/go-ethereum/consensus"
-	"gitlab.com/q-dev/go-ethereum/consensus/misc"
-	"gitlab.com/q-dev/go-ethereum/core/state"
-	"gitlab.com/q-dev/go-ethereum/core/types"
-	"gitlab.com/q-dev/go-ethereum/core/vm"
-	"gitlab.com/q-dev/go-ethereum/crypto"
-	"gitlab.com/q-dev/go-ethereum/internal/utils"
-	"gitlab.com/q-dev/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus"
+	"gitlab.com/q-dev/q-client/consensus/misc"
+	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/internal/utils"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
