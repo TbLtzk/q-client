@@ -22,7 +22,7 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.com/q-dev/q-client"
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/core/rawdb"

@@ -18,9 +18,9 @@
 package consensus
 
 import (
-	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"math/big"
 
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
