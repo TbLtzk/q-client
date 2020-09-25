@@ -20,7 +20,6 @@ package ethash
 import (
 	"errors"
 	"fmt"
-	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"math"
 	"math/big"
 	"math/rand"
@@ -34,12 +33,15 @@ import (
 	"time"
 	"unsafe"
 
-	mmap "github.com/edsrzf/mmap-go"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
+
 	"github.com/hashicorp/golang-lru/simplelru"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/rpc"
+
+	mmap "github.com/edsrzf/mmap-go"
 )
 
 var ErrInvalidDumpMagic = errors.New("invalid dump magic")
@@ -685,4 +687,3 @@ func SeedHash(block uint64) []byte {
 func (ethash *Ethash) SetContractBackend(bind.ContractBackend) {
 	log.Warn("contract backed is not supported for ethash")
 }
-

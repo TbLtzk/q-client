@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"math/big"
 	"os"
 	"os/signal"
@@ -47,6 +46,8 @@ import (
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/trie"
+
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 
 	cli "gopkg.in/urfave/cli.v1"
 )
