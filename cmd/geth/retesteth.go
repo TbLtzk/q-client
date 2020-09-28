@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
@@ -46,8 +47,6 @@ import (
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/trie"
-
-	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 
 	cli "gopkg.in/urfave/cli.v1"
 )

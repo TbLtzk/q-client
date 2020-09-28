@@ -33,9 +33,8 @@ import (
 	"time"
 	"unsafe"
 
-	"gitlab.com/q-dev/q-client/accounts/abi/bind"
-
 	"github.com/hashicorp/golang-lru/simplelru"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
