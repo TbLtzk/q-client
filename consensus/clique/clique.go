@@ -170,8 +170,9 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	return signer, nil
 }
 
-type ExcludsionValidatorsList interface {
-	ExclusionSet() map[common.Address]struct{}
+// ExclusionSetProvider should provide validators exclusion set.
+type ExclusionSetProvider interface {
+	ExclusionSet() map[common.Address]uint64
 }
 
 type ValidatorsProvider interface {
@@ -208,14 +209,14 @@ type Clique struct {
 	// The fields below are for testing only
 	fakeDiff bool // Skip difficulty verifications
 
-	registry        *contracts.Registry
-	contractBackend bind.ContractBackend
-	rootManager     ExcludsionValidatorsList
+	registry             *contracts.Registry
+	contractBackend      bind.ContractBackend
+	exclusionSetProvider ExclusionSetProvider
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
 // signers set to the ones provided by the user.
-func New(config *params.CliqueConfig, db ethdb.Database, rootManager ExcludsionValidatorsList) *Clique {
+func New(config *params.CliqueConfig, db ethdb.Database, rootManager ExclusionSetProvider) *Clique {
 	// Set any missing consensus parameters to their defaults
 	conf := *config
 	if conf.Epoch == 0 {
@@ -226,13 +227,13 @@ func New(config *params.CliqueConfig, db ethdb.Database, rootManager ExcludsionV
 	signatures, _ := lru.NewARC(inmemorySignatures)
 
 	return &Clique{
-		config:      &conf,
-		db:          db,
-		recents:     recents,
-		signatures:  signatures,
-		proposals:   make(map[common.Address]bool),
-		registry:    contracts.NewRegistry(config.Registry, config.RewardReceiver),
-		rootManager: rootManager,
+		config:               &conf,
+		db:                   db,
+		recents:              recents,
+		signatures:           signatures,
+		proposals:            make(map[common.Address]bool),
+		registry:             contracts.NewRegistry(config.Registry, config.RewardReceiver),
+		exclusionSetProvider: rootManager,
 	}
 }
 
@@ -364,8 +365,8 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainReader, header *type
 		return err
 	}
 	// If the block is a checkpoint block, verify the signer list
-	if number%uint64(len(snap.Signers)) == 0 {
-		err = c.updateProposals(snap)
+	if number%c.config.Epoch == 0 {
+		err = c.updateProposals(number, snap)
 		if err != nil {
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return err // todo wrap error
@@ -384,9 +385,12 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainReader, header *type
 	return c.verifySeal(chain, header, parents)
 }
 
-func (c *Clique) updateProposals(snap *Snapshot) error {
+func (c *Clique) updateProposals(number uint64, snap *Snapshot) error {
+	excludedSigners := c.exclusionSetProvider.ExclusionSet()
+
 	provider := c.registry.Validators()
 	if provider == nil {
+		snap.Signers = filterSigners(number, snap.signers(), excludedSigners)
 		return nil
 	}
 
@@ -396,13 +400,7 @@ func (c *Clique) updateProposals(snap *Snapshot) error {
 		return err // todo: wrap error
 	}
 
-	filteredSigners, err := c.FilterExcludeList(signers)
-	if err != nil {
-		log.Error("failed to get filtered validators list", "error", err)
-		return err
-	}
-	snap.setSigners(filteredSigners)
-
+	snap.Signers = filterSigners(number, signers, excludedSigners)
 	return nil
 }
 
@@ -587,8 +585,8 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 	}
 	header.Extra = header.Extra[:extraVanity]
 
-	if number%uint64(len(snap.Signers)) == 0 {
-		err = c.updateProposals(snap)
+	if number%c.config.Epoch == 0 {
+		err = c.updateProposals(number, snap)
 		if err != nil {
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return err // todo wrap error
@@ -837,21 +835,18 @@ func (c *Clique) Validators() *common.Address {
 	return c.registry.ValidatorsAddress()
 }
 
-// FilterExcludeList returns signers that are not blacklisted
-func (c *Clique) FilterExcludeList(signers []common.Address) ([]common.Address, error) {
-	whiteSigners := make([]common.Address, 0, len(signers))
-	if c.rootManager == nil {
-		log.Error("Failed to retrieve exclusion set. Root manager is <nil>!")
-		return nil, errors.New("invalid root manager")
-	}
+// todo: take block number into account
+func filterSigners(number uint64, signers []common.Address, excludedSigners map[common.Address]uint64) map[common.Address]struct{} {
+	filtered := make(map[common.Address]struct{})
+	for _, addr := range signers {
+		block, ok := excludedSigners[addr]
 
-	exclusionSet := c.rootManager.ExclusionSet()
-
-	for _, signer := range signers {
-		if _, ok := exclusionSet[signer]; !ok {
-			whiteSigners = append(whiteSigners, signer)
+		if ok && number >= block {
+			continue
 		}
+
+		filtered[addr] = struct{}{}
 	}
 
-	return whiteSigners, nil
+	return filtered
 }
