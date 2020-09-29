@@ -102,13 +102,17 @@ func (s *RootManager) CurrentList() common.RootList {
 }
 
 // ExclusionSet returns set of excluded validators addresses.
-func (s *RootManager) ExclusionSet() map[common.Address]struct{} {
+func (s *RootManager) ExclusionSet() map[common.Address]uint64 {
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
 
-	set := make(map[common.Address]struct{})
-	for addr := range s.exclusionSet.addrToBlock {
-		set[addr] = struct{}{}
+	set := make(map[common.Address]uint64)
+	if s.exclusionSet == nil {
+		return set
+	}
+
+	for addr, block := range s.exclusionSet.addrToBlock {
+		set[addr] = block
 	}
 
 	return set
