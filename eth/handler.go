@@ -95,6 +95,8 @@ type ProtocolManager struct {
 	wg        sync.WaitGroup
 	peerWG    sync.WaitGroup
 
+	notifNewBlock chan time.Time
+
 	// Test fields or hooks
 	broadcastTxAnnouncesOnly bool // Testing field, disable transaction propagation
 }
@@ -116,16 +118,17 @@ func NewProtocolManager(
 ) (*ProtocolManager, error) {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
-		networkID:  networkID,
-		forkFilter: forkid.NewFilter(blockchain),
-		eventMux:   mux,
-		txpool:     txpool,
-		blockchain: blockchain,
-		chaindb:    chaindb,
-		peers:      newPeerSet(),
-		whitelist:  whitelist,
-		txsyncCh:   make(chan *txsync),
-		quitSync:   make(chan struct{}),
+		networkID:     networkID,
+		forkFilter:    forkid.NewFilter(blockchain),
+		eventMux:      mux,
+		txpool:        txpool,
+		blockchain:    blockchain,
+		chaindb:       chaindb,
+		peers:         newPeerSet(),
+		whitelist:     whitelist,
+		txsyncCh:      make(chan *txsync),
+		quitSync:      make(chan struct{}),
+		notifNewBlock: make(chan time.Time),
 	}
 
 	if mode == downloader.FullSync {
@@ -234,6 +237,8 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	pm.wg.Add(2)
 	go pm.chainSync.loop()
 	go pm.txsyncLoop64() // TODO(karalabe): Legacy initial tx echange, drop with eth/64.
+
+	go pm.warnAboutNoNewBlocks()
 }
 
 func (pm *ProtocolManager) Stop() {
@@ -779,6 +784,8 @@ func (pm *ProtocolManager) handleNewBlockMsg(p *peer, msg p2p.Msg) error {
 	p.MarkBlock(request.Block.Hash())
 	pm.blockFetcher.Enqueue(p.id, request.Block)
 
+	pm.notifNewBlock <- request.Block.ReceivedAt
+
 	// Assuming the block is importable by the peer, but possibly not yet done so,
 	// calculate the head hash and TD that the peer truly must have.
 	var (
@@ -974,6 +981,21 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 
 		case <-pm.txsSub.Err():
 			return
+		}
+	}
+}
+
+func (pm *ProtocolManager) warnAboutNoNewBlocks() {
+	period := 60 * time.Second
+	var receivedAt time.Time
+	for {
+		t := time.NewTimer(period)
+
+		select {
+		case <-t.C:
+			log.Warn("no new blocks", "lastReceivedAt", receivedAt.Format(time.RFC3339))
+		case timestamp := <-pm.notifNewBlock:
+			receivedAt = timestamp
 		}
 	}
 }
