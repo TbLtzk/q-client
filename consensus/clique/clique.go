@@ -175,6 +175,13 @@ type ExclusionSetProvider interface {
 	ExclusionSet() map[common.Address]uint64
 }
 
+// NoopExclusionSetProvider is needed for testing.
+type NoopExclusionSetProvider struct{}
+
+func (p *NoopExclusionSetProvider) ExclusionSet() map[common.Address]uint64 {
+	return make(map[common.Address]uint64)
+}
+
 type ValidatorsProvider interface {
 	GetValidatorsList() ([]common.Address, error)
 }

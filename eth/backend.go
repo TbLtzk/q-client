@@ -259,8 +259,8 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 	if chainConfig.Clique != nil {
 		var serv *governance.Governance
 		if err := ctx.Service(&serv); err != nil {
-			log.Warn("Failed to retrieve a Governance")
-			return nil
+			log.Warn("creating clique in test mode; exclusion set will always be empty!")
+			return clique.New(chainConfig.Clique, db, &clique.NoopExclusionSetProvider{})
 		}
 		return clique.New(chainConfig.Clique, db, serv.RootManager)
 	}
