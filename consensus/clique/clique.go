@@ -216,7 +216,10 @@ type Clique struct {
 	// The fields below are for testing only
 	fakeDiff bool // Skip difficulty verifications
 
+	authorLock           sync.RWMutex
+	latestRewardReceiver common.Address
 	registry             *contracts.Registry
+
 	contractBackend      bind.ContractBackend
 	exclusionSetProvider ExclusionSetProvider
 }
@@ -233,13 +236,15 @@ func New(config *params.CliqueConfig, db ethdb.Database, rootManager ExclusionSe
 	recents, _ := lru.NewARC(inmemorySnapshots)
 	signatures, _ := lru.NewARC(inmemorySignatures)
 
+	registry := contracts.NewRegistry(config.Registry, config.RewardReceiver)
 	return &Clique{
 		config:               &conf,
 		db:                   db,
 		recents:              recents,
 		signatures:           signatures,
 		proposals:            make(map[common.Address]bool),
-		registry:             contracts.NewRegistry(config.Registry, config.RewardReceiver),
+		registry:             registry,
+		latestRewardReceiver: registry.RewardReceiver(),
 		exclusionSetProvider: rootManager,
 	}
 }
@@ -247,7 +252,13 @@ func New(config *params.CliqueConfig, db ethdb.Database, rootManager ExclusionSe
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (c *Clique) Author(header *types.Header) (common.Address, error) {
-	return c.registry.RewardReceiver(), nil
+	// TODO: find a better way to fix this
+	// this decoupling prevents evm from going into endless recursion
+	// since any evm call in turn calls this method.
+	c.authorLock.RLock()
+	defer c.authorLock.RUnlock()
+
+	return c.latestRewardReceiver, nil
 	//return ecrecover(header, c.signatures)
 }
 
@@ -827,13 +838,13 @@ func (c *Clique) SetContractBackend(b bind.ContractBackend) {
 
 // AccumulateRewards credits the coinbase of the given block with the mining reward
 func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) error {
-	receiver, err := c.Author(header)
-	if err != nil {
-		log.Error("failed to get author on reward accumulation", "error", err)
-		return err
-	}
-
+	receiver := c.registry.RewardReceiver()
 	state.AddBalance(receiver, CliqueBlockReward)
+
+	c.authorLock.Lock()
+	defer c.authorLock.Unlock()
+
+	c.latestRewardReceiver = receiver
 
 	return nil
 }

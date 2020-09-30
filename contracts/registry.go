@@ -114,7 +114,17 @@ func (r *Registry) ValidatorsAddress() *common.Address {
 // RewardReceiver address.
 func (r *Registry) RewardReceiver() common.Address {
 	// todo: fix this: if registry is used for this one, node consumes all ram and dies(
-	return r.defaultRewardReceiver
+	if r.registry() == nil {
+		return r.defaultRewardReceiver
+	}
+
+	addr, err := r.registry().MustGetAddress(nil, "reward")
+	if err != nil {
+		log.Warn("failed to get reward receiver address", "err", err)
+		return r.defaultRewardReceiver
+	}
+
+	return addr
 }
 
 func (r *Registry) setupRegistry(addr common.Address) {
