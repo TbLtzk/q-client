@@ -61,7 +61,7 @@ func (r *Registry) Validators() *generated.Validators {
 		return nil
 	}
 
-	addr, err := reg.GetAddress(nil, "validators")
+	addr, err := reg.MustGetAddress(nil, "validators")
 	if err != nil {
 		log.Warn("failed to get validators address", "err", err)
 		return nil
@@ -91,7 +91,7 @@ func (r *Registry) ValidatorsAddress() *common.Address {
 		return nil
 	}
 
-	addr, err := reg.GetAddress(nil, "validators")
+	addr, err := reg.MustGetAddress(nil, "validators")
 	if err != nil {
 		log.Warn("failed to get validators address", "err", err)
 		return nil
@@ -113,7 +113,6 @@ func (r *Registry) ValidatorsAddress() *common.Address {
 
 // RewardReceiver address.
 func (r *Registry) RewardReceiver() common.Address {
-	// todo: fix this: if registry is used for this one, node consumes all ram and dies(
 	if r.registry() == nil {
 		return r.defaultRewardReceiver
 	}
