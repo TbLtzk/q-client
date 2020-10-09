@@ -61,7 +61,7 @@ func (r *Registry) Validators() *generated.Validators {
 		return nil
 	}
 
-	addr, err := reg.MustGetAddress(nil, "validators")
+	addr, err := reg.MustGetAddress(nil, "governance.validators")
 	if err != nil {
 		log.Warn("failed to get validators address", "err", err)
 		return nil
@@ -91,7 +91,7 @@ func (r *Registry) ValidatorsAddress() *common.Address {
 		return nil
 	}
 
-	addr, err := reg.MustGetAddress(nil, "validators")
+	addr, err := reg.MustGetAddress(nil, "governance.validators")
 	if err != nil {
 		log.Warn("failed to get validators address", "err", err)
 		return nil
@@ -117,7 +117,7 @@ func (r *Registry) RewardReceiver() common.Address {
 		return r.defaultRewardReceiver
 	}
 
-	addr, err := r.registry().MustGetAddress(nil, "reward")
+	addr, err := r.registry().MustGetAddress(nil, "tokeneconomics.defaultAllocationProxy")
 	if err != nil {
 		log.Warn("failed to get reward receiver address", "err", err)
 		return r.defaultRewardReceiver
