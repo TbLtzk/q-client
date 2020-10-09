@@ -307,8 +307,11 @@ github.com/xdg/stringprep v1.0.0/go.mod h1:Jhud4/sHMO4oL310DaZAKk9ZaJ08SJfe+sJh0
 github.com/xtaci/kcp-go v5.4.20+incompatible/go.mod h1:bN6vIwHQbfHaHtFpEssmWsN45a+AZwO7eyRCmEIbtvE=
 github.com/xtaci/lossyconn v0.0.0-20190602105132-8df528c0c9ae/go.mod h1:gXtu8J62kEgmN++bm9BVICuT/e8yiLI2KFobd/TRFsE=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
+gitlab.com/q-dev/go-ethereum v0.0.0-20200703115835-99350dd8f098/go.mod h1:T+bHBZH2E8wqGfbueruhL1UYq5TvCLEQvM7vEcZmX4M=
 gitlab.com/q-dev/q-client v1.9.15-0.20200924164329-da39073f12f5/go.mod h1:BOj1IelXNmDF3AumUwNm4wdtqC7Gz18aW3ANuGt/oaQ=
 gitlab.com/q-dev/q-client v1.9.15-0.20201001100021-0d9775d47b0b/go.mod h1:WYbaY9GrA2Firrc2XrHk6/32sAsa0L+2mbZpXbIfo+0=
+gitlab.com/q-dev/system-contracts v0.0.0-20200820154320-37349a608c81/go.mod h1:mqcOY+a/B6t1gFGn/XQT2ayAMSFYMnQirlApfSdKOV4=
+gitlab.com/q-dev/system-contracts v0.0.0-20200924175257-548112073ac8/go.mod h1:wZnqR14V29M8MJwpU56Mk/8xMYypSKgEmh1XcQ//3ws=
 gitlab.com/q-dev/system-contracts v0.0.0-20201006124713-c8564bab6ce2 h1:QxLig+Czz6ZiJYLSETDWHKlhP2f9BEv76bxaVNZhxks=
 gitlab.com/q-dev/system-contracts v0.0.0-20201006124713-c8564bab6ce2/go.mod h1:jFcMrCtfAqxqaHeuvUCz1eEkHlYzZz8PARJH8uyCiww=
 golang.org/x/crypto v0.0.0-20170930174604-9419663f5a44/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
