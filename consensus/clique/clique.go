@@ -418,6 +418,13 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot) error {
 		return err // todo: wrap error
 	}
 
+	// this can happen when 'validators' contract is deployed but is empty
+	if len(signers) == 0 {
+		snap.Signers = filterSigners(number, snap.signers(), excludedSigners)
+		return nil
+	}
+
+	// todo: handle situation when all signers are banned
 	snap.Signers = filterSigners(number, signers, excludedSigners)
 	return nil
 }
