@@ -58,6 +58,7 @@ func (r *Registry) Init(back bind.ContractBackend) error {
 func (r *Registry) Validators() *generated.Validators {
 	reg := r.registry()
 	if reg == nil {
+		log.Warn("there is no contract registry")
 		return nil
 	}
 
@@ -74,6 +75,7 @@ func (r *Registry) Validators() *generated.Validators {
 	}
 
 	if len(code) == 0 {
+		log.Warn("there is no validators code")
 		return nil
 	}
 
@@ -94,17 +96,6 @@ func (r *Registry) ValidatorsAddress() *common.Address {
 	addr, err := reg.MustGetAddress(nil, "governance.validators")
 	if err != nil {
 		log.Warn("failed to get validators address", "err", err)
-		return nil
-	}
-
-	code, err := r.back.CodeAt(context.TODO(), addr, nil)
-	if err != nil {
-		log.Warn("failed to check if validators contract is deployed", "err", err)
-		return nil
-	}
-
-	if len(code) == 0 {
-		log.Warn("there is no validators code")
 		return nil
 	}
 
