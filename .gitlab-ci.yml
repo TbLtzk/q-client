@@ -58,23 +58,23 @@ build:
     - docker build --build-arg version="$version" -t $BUILD_IMAGE -f $BUILD_DOCKERFILE .
     - docker push $BUILD_IMAGE
 
-deploy_devnet:
-  image: alpine
-  stage: deploy
-  tags:
-    - gitlab-org-docker
-  only:
-    - master
-  script:
-    - apk add openssh
-    - mkdir -p ~/.ssh
-    - echo "${DEV_SSH_PRIVATE_KEY}" | tr -d '\r' >> ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
-    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-    - sed -i "s@{{ .Image }}@${BUILD_IMAGE}@g" docker-compose.yaml    # replace image in docker-compose
-    - scp docker-compose.yaml ubuntu@$DEV_HOST:~/developer-edition/docker-compose.yaml
-    - ssh ubuntu@$DEV_HOST "docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
-                            && cd developer-edition
-                            && docker-compose down
-                            && docker image prune -a -f
-                            && docker-compose up -d"
+# deploy_devnet:
+#   image: alpine
+#   stage: deploy
+#   tags:
+#     - gitlab-org-docker
+#   only:
+#     - master
+#   script:
+#     - apk add openssh
+#     - mkdir -p ~/.ssh
+#     - echo "${DEV_SSH_PRIVATE_KEY}" | tr -d '\r' >> ~/.ssh/id_rsa
+#     - chmod 600 ~/.ssh/id_rsa
+#     - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+#     - sed -i "s@{{ .Image }}@${BUILD_IMAGE}@g" docker-compose.yaml    # replace image in docker-compose
+#     - scp docker-compose.yaml ubuntu@$DEV_HOST:~/developer-edition/docker-compose.yaml
+#     - ssh ubuntu@$DEV_HOST "docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
+#                             && cd developer-edition
+#                             && docker-compose down
+#                             && docker image prune -a -f
+#                             && docker-compose up -d"
