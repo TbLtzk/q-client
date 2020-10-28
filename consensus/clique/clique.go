@@ -408,7 +408,7 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot) error {
 
 	provider := c.registry.Validators()
 	if provider == nil {
-		snap.Signers = filterSigners(number, snap.signers(), excludedSigners)
+		snap.Signers = toSet(filterSigners(number, snap.signers(), excludedSigners))
 		return nil
 	}
 
@@ -420,12 +420,17 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot) error {
 
 	// this can happen when 'validators' contract is deployed but is empty
 	if len(signers) == 0 {
-		snap.Signers = filterSigners(number, snap.signers(), excludedSigners)
+		snap.Signers = toSet(filterSigners(number, snap.signers(), excludedSigners))
 		return nil
 	}
 
 	// todo: handle situation when all signers are banned
-	snap.Signers = filterSigners(number, signers, excludedSigners)
+	filtered := filterSigners(number, signers, excludedSigners)
+	if maxNValidators := c.registry.ActiveValidatorsNumber(); maxNValidators != nil {
+		filtered = filtered[:*maxNValidators]
+	}
+
+	snap.Signers = toSet(filtered)
 	return nil
 }
 
@@ -860,9 +865,8 @@ func (c *Clique) Validators() *common.Address {
 	return c.registry.ValidatorsAddress()
 }
 
-// todo: take block number into account
-func filterSigners(number uint64, signers []common.Address, excludedSigners map[common.Address]uint64) map[common.Address]struct{} {
-	filtered := make(map[common.Address]struct{})
+func filterSigners(number uint64, signers []common.Address, excludedSigners map[common.Address]uint64) []common.Address {
+	var filtered []common.Address
 	for _, addr := range signers {
 		block, ok := excludedSigners[addr]
 
@@ -870,8 +874,17 @@ func filterSigners(number uint64, signers []common.Address, excludedSigners map[
 			continue
 		}
 
-		filtered[addr] = struct{}{}
+		filtered = append(filtered, addr)
 	}
 
 	return filtered
+}
+
+func toSet(signers []common.Address) map[common.Address]struct{} {
+	set := make(map[common.Address]struct{})
+	for _, addr := range signers {
+		set[addr] = struct{}{}
+	}
+
+	return set
 }
