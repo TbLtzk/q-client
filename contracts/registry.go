@@ -117,6 +117,33 @@ func (r *Registry) RewardReceiver() common.Address {
 	return addr
 }
 
+// ActiveValidatorsNumber.
+func (r *Registry) ActiveValidatorsNumber() *int64 {
+	if r.registry() == nil {
+		return nil
+	}
+
+	addr, err := r.registry().MustGetAddress(nil, "governance.constitution.parameters")
+	if err != nil {
+		return nil
+	}
+
+	params, err := generated.NewConstitution(addr, r.back)
+	if err != nil {
+		log.Warn("failed to init constitution from address", "addr", addr.Hex(), "err", err)
+		return nil
+	}
+
+	num, err := params.GetUint(nil, "constitution.maxNValidators")
+	if err != nil {
+		log.Warn("failed to get constitution.maxNValidators", "err", err)
+		return nil
+	}
+
+	x := num.Int64()
+	return &x
+}
+
 func (r *Registry) setupRegistry(addr common.Address) {
 	for {
 		time.Sleep(time.Second)
