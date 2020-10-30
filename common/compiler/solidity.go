@@ -176,3 +176,21 @@ func ParseCombinedJSON(combinedJSON []byte, source string, languageVersion strin
 	}
 	return contracts, nil
 }
+
+type truffleJSON struct {
+	ABI json.RawMessage `json:"abi"`
+	BIN string          `json:"bytecode"`
+}
+
+// ParseTruffleJSON parses abi definitions and bytecode from truffle compile output.
+func ParseTruffleJSON(raw []byte) (abi, bin *string, err error) {
+	var output truffleJSON
+	if err := json.Unmarshal(raw, &output); err != nil {
+		return nil, nil, err
+	}
+
+	output.BIN = strings.TrimPrefix(output.BIN, "0x")
+
+	strABI := string(output.ABI)
+	return &strABI, &output.BIN, nil
+}
