@@ -427,11 +427,18 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot) error {
 	// todo: handle situation when all signers are banned
 	filtered := filterSigners(number, signers, excludedSigners)
 	if maxNValidators := c.registry.ActiveValidatorsNumber(); maxNValidators != nil {
-		filtered = filtered[:*maxNValidators]
+		filtered = filtered[:min(*maxNValidators, int64(len(filtered)))]
 	}
 
 	snap.Signers = toSet(filtered)
 	return nil
+}
+
+func min(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // snapshot retrieves the authorization snapshot at a given point in time.
@@ -862,6 +869,12 @@ func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) e
 }
 
 func (c *Clique) Validators() *common.Address {
+	address := c.registry.ValidatorsAddress()
+	if address == nil {
+		log.Info("wait two seconds for registry initialization")
+		time.Sleep(2 * time.Second)
+	}
+
 	return c.registry.ValidatorsAddress()
 }
 
