@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/tests"
+	"gitlab.com/q-dev/q-client/core/vm"
+	"gitlab.com/q-dev/q-client/tests"
 	"gopkg.in/urfave/cli.v1"
 )
 

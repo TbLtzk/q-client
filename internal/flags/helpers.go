@@ -20,7 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ethereum/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/params"
 	cli "gopkg.in/urfave/cli.v1"
 )
 

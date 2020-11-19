@@ -351,7 +351,7 @@ func (t *UDPv4) requestAllNodes(toid enode.ID, toaddr *net.UDPAddr) ([]*node, er
 		nreceived uint
 	)
 
-	matcher := t.pending(toid, toaddr.IP, p_respondWithAllV4, func(r v4wire.Packet) (matched bool, requestDone bool) {
+	matcher := t.pending(toid, toaddr.IP, v4wire.RespondWithAllPacket, func(r v4wire.Packet) (matched bool, requestDone bool) {
 		reply, ok := r.(*v4wire.RespondWithAll)
 		if !ok {
 			panic(errors.New("unexpected packet type in response"))

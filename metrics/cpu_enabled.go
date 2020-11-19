@@ -19,7 +19,7 @@
 package metrics
 
 import (
-	"github.com/ethereum/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 	"github.com/shirou/gopsutil/cpu"
 )
 

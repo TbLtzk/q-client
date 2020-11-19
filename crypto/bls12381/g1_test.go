@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 func (g *G1) one() *PointG1 {

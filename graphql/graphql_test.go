@@ -23,8 +23,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/ethereum/go-ethereum/node"
+	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/node"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -111,7 +111,7 @@ func createNode(t *testing.T, gqlEnabled bool) *node.Node {
 
 func createGQLService(t *testing.T, stack *node.Node, endpoint string) {
 	// create backend
-	ethBackend, err := eth.New(stack, &eth.DefaultConfig)
+	ethBackend, err := eth.New(stack, &eth.DefaultConfig, nil)
 	if err != nil {
 		t.Fatalf("could not create eth backend: %v", err)
 	}
