@@ -26,21 +26,6 @@ import (
 	"sync/atomic"
 	"time"
 
-<<<<<<< HEAD
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/mclock"
-	"gitlab.com/q-dev/q-client/core"
-	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/les/flowcontrol"
-	lpc "gitlab.com/q-dev/q-client/les/lespay/client"
-	"gitlab.com/q-dev/q-client/les/utils"
-	"gitlab.com/q-dev/q-client/light"
-	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/p2p/enode"
-	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/rlp"
-=======
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/mclock"
 	"gitlab.com/q-dev/q-client/core"
@@ -53,7 +38,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
->>>>>>> les: implement new les fetcher (#20692)
 )
 
 var (

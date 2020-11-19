@@ -22,15 +22,6 @@ import (
 	"sync"
 	"time"
 
-<<<<<<< HEAD
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/mclock"
-	"gitlab.com/q-dev/q-client/consensus"
-	"gitlab.com/q-dev/q-client/core/rawdb"
-	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/light"
-	"gitlab.com/q-dev/q-client/log"
-=======
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/core"
@@ -41,7 +32,6 @@ import (
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p/enode"
->>>>>>> les: implement new les fetcher (#20692)
 )
 
 const (
