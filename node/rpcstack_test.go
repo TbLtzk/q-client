@@ -21,11 +21,11 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/q-dev/q-client/internal/testlog"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/gorilla/websocket"
 )
 
 // TestCorsHandler makes sure CORS are properly handled on the http server.

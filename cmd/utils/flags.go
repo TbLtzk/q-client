@@ -20,7 +20,6 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"gitlab.com/q-dev/q-client/governance"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -31,6 +30,8 @@ import (
 	"text/tabwriter"
 	"text/template"
 	"time"
+
+	"gitlab.com/q-dev/q-client/governance"
 
 	pcsclite "github.com/gballet/go-libpcsclite"
 	"gitlab.com/q-dev/q-client/accounts"
@@ -60,7 +61,6 @@ import (
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/p2p/discv5"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/nat"
 	"gitlab.com/q-dev/q-client/p2p/netutil"
@@ -817,7 +817,7 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 
 // setBootstrapNodesV5 creates a list of bootstrap nodes from the command line
 // flags, reverting to pre-configured ones if none have been specified.
-func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
+/*func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
 	urls := params.MainnetBootnodes
 	switch {
 	case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(LegacyBootnodesV5Flag.Name):
@@ -849,7 +849,7 @@ func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
 			cfg.BootstrapNodesV5 = append(cfg.BootstrapNodesV5, node)
 		}
 	}
-}
+}*/
 
 // setListenAddress creates a TCP listening address string from set command
 // line flags.

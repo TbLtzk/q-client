@@ -23,9 +23,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/node"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildSchema(t *testing.T) {
