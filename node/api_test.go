@@ -25,8 +25,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/rpc"
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // This test uses the admin_startRPC and admin_startWS APIs,

@@ -204,10 +204,10 @@ func (req *ENRResponse) Name() string { return "ENRRESPONSE/v4" }
 func (req *ENRResponse) Kind() byte   { return ENRResponsePacket }
 
 func (req *RespondWithAll) Name() string { return "RESPONDWITHALL/V4" }
-func (req *RespondWithAll) Kind() byte { return RespondWithAllPacket }
+func (req *RespondWithAll) Kind() byte   { return RespondWithAllPacket }
 
 func (req *RequestAll) Name() string { return "REQUESTALL/v4" }
-func (req *RequestAll) Kind() byte { return RequestAllPacket }
+func (req *RequestAll) Kind() byte   { return RequestAllPacket }
 
 // Expired checks whether the given UNIX time stamp is in the past.
 func Expired(ts uint64) bool {

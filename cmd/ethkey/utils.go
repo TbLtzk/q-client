@@ -22,7 +22,6 @@ import (
 	"io/ioutil"
 	"strings"
 
-
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gopkg.in/urfave/cli.v1"
