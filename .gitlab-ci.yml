@@ -16,18 +16,17 @@ stages:
   - build
   - deploy
 
-# todo: bring back once tests are deterministic
-#test:
-#  image: golang:1.14
-#  stage: test
-#  extends: .before_script_template
-#  tags:
-#    - gitlab-org-docker
-#  only:
-#    - merge_requests
-#    - master
-#  script:
-#    - go test ./...
+test:
+  image: golang:1.14
+  stage: test
+  extends: .before_script_template
+  tags:
+    - gitlab-org-docker
+  only:
+    - merge_requests
+    - master
+  script:
+    - go test ./...
 
 lint:
   image: golang:1.14
