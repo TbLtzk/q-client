@@ -54,7 +54,7 @@ import (
 	"gitlab.com/q-dev/q-client/signer/rules"
 	"gitlab.com/q-dev/q-client/signer/storage"
 
-	colorable "github.com/mattn/go-colorable"
+	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-isatty"
 	"gopkg.in/urfave/cli.v1"
 )

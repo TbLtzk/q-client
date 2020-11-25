@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 
 	"gitlab.com/q-dev/q-client/params"
-	cli "gopkg.in/urfave/cli.v1"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (
