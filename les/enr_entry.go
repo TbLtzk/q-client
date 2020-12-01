@@ -17,7 +17,6 @@
 package les
 
 import (
-	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/dnsdisc"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/rlp"
@@ -35,8 +34,8 @@ func (e lesEntry) ENRKey() string {
 }
 
 // setupDiscovery creates the node discovery source for the eth protocol.
-func (eth *LightEthereum) setupDiscovery(cfg *p2p.Config) (enode.Iterator, error) {
-	if cfg.NoDiscovery || len(eth.config.DiscoveryURLs) == 0 {
+func (eth *LightEthereum) setupDiscovery() (enode.Iterator, error) {
+	if len(eth.config.DiscoveryURLs) == 0 {
 		return nil, nil
 	}
 	client := dnsdisc.NewClient(dnsdisc.Config{})
