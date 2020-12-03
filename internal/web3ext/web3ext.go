@@ -34,6 +34,7 @@ var Modules = map[string]string{
 	"txpool":     TxpoolJs,
 	"les":        LESJs,
 	"lespay":     LESPayJs,
+	"gov":        GovJs,
 }
 
 const ChequebookJs = `
@@ -560,6 +561,20 @@ web3._extend({
 			}
 		}),
 	]
+});
+`
+
+const GovJs = `
+web3._extend({
+	property: 'gov',
+	methods: [
+        new web3._extend.Method({
+			name: 'activeRootList',
+			call: 'gov_activeRootList',
+			params: 0
+		}),
+    ],
+	properties: []
 });
 `
 

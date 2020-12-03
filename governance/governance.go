@@ -49,7 +49,14 @@ func (g *Governance) Protocols() []p2p.Protocol {
 
 // APIs provided by governance.
 func (g *Governance) APIs() []rpc.API {
-	return nil
+	return []rpc.API{
+		{
+			Namespace: "gov",
+			Version:   "1.0",
+			Service:   NewGovernanceAPI(g),
+			Public:    false,
+		},
+	}
 }
 
 // Start Governance service.
