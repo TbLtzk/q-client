@@ -17,6 +17,8 @@
 package core
 
 import (
+	"fmt"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/misc"
@@ -76,7 +78,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, err := applyTransaction(msg, p.config, p.bc, nil, gp, statedb, header, tx, usedGas, vmenv)
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
