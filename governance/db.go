@@ -7,6 +7,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethdb/leveldb"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // database wraps level db
@@ -24,8 +25,46 @@ func newDatabase(path string) (*database, error) {
 	return &database{store: db}, nil
 }
 
-func (db *database) saveCurrentRootSet(set *rootSet) error {
-	return db.saveRootSet(set, currentRootKey)
+func (db *database) getCurrentRootSet() (*rootSet, error) {
+	return db.getRootSet(currentRootKey)
+}
+
+func (db *database) saveCurrentRootSet(set *rootSet) {
+	if err := db.saveRootSet(set, currentRootKey); err != nil {
+		log.Crit("failed to save current root set", "err", err)
+	}
+}
+
+func (db *database) getDesiredRootSet() (*rootSet, error) {
+	return db.getRootSet(desiredRootKey)
+}
+
+func (db *database) saveDesiredRootSet(set *rootSet) {
+	if err := db.saveRootSet(set, desiredRootKey); err != nil {
+		log.Crit("failed to save desired root set", err, err)
+	}
+}
+
+func (db *database) deleteDesiredRootSet() {
+	if err := db.store.Delete(desiredRootKey); err != nil {
+		log.Crit("failed to delete desired root set", "err", err)
+	}
+}
+
+func (db *database) getProposedRootSet() (*rootSet, error) {
+	return db.getRootSet(proposedRootKey)
+}
+
+func (db *database) saveProposedRootSet(set *rootSet) {
+	if err := db.saveRootSet(set, proposedRootKey); err != nil {
+		log.Crit("failed to save proposed root set", "err", err)
+	}
+}
+
+func (db *database) deleteProposedRootSet() {
+	if err := db.store.Delete(proposedRootKey); err != nil {
+		log.Crit("failed to delete proposed root set", "err", err)
+	}
 }
 
 func (db *database) saveRootSet(set *rootSet, key []byte) error {
@@ -37,11 +76,16 @@ func (db *database) saveRootSet(set *rootSet, key []byte) error {
 	return db.store.Put(key, value)
 }
 
-func (db *database) getCurrentRootSet() (*rootSet, error) {
-	return db.getRootSet(currentRootKey)
-}
-
 func (db *database) getRootSet(key []byte) (*rootSet, error) {
+	ok, err := db.store.Has(key)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check if key exists")
+	}
+
+	if !ok {
+		return nil, nil
+	}
+
 	raw, err := db.store.Get(key)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get from db")
@@ -65,5 +109,7 @@ func (db *database) getRootSet(key []byte) (*rootSet, error) {
 }
 
 var (
-	currentRootKey = []byte("current-root-set")
+	currentRootKey  = []byte("current-root-set")
+	desiredRootKey  = []byte("desired-root-set")
+	proposedRootKey = []byte("proposed-root-set")
 )

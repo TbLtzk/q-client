@@ -71,7 +71,7 @@ func (h *handler) listenForTargetRootList() {
 		select {
 		case set := <-h.targetRootListCh:
 			for _, p := range h.peers.all() {
-				log.Debug("SENDING target set", "to", p.id)
+				log.Debug("Sending target set", "to", p.id)
 				p.asyncSendRootList(set)
 			}
 		case err := <-h.newTargetRootListSub.Err():
@@ -176,7 +176,7 @@ func (h *handler) runPeer(p *peer) error {
 	h.peers.register(p)
 	defer h.peers.unregister(p)
 
-	h.syncRootLists(p, currentRootSet, status.rootSet)
+	h.syncRootLists(p, status.rootSet)
 	h.syncExclusionLists(p, status.exclusionSet)
 
 	h.peerWG.Add(1)
@@ -190,7 +190,7 @@ func (h *handler) runPeer(p *peer) error {
 	}
 }
 
-func (h *handler) syncRootLists(p *peer, current, incoming *rootSet) {
+func (h *handler) syncRootLists(p *peer, incoming *rootSet) {
 	defer func() {
 		// push target root list if have any locally
 		target := h.rootsMgr.targetRootSet()
@@ -199,21 +199,46 @@ func (h *handler) syncRootLists(p *peer, current, incoming *rootSet) {
 		}
 	}()
 
-	if current.isAcceptable(incoming) && h.rootsMgr.upgrade(incoming) {
-		log.Info("upgraded root list", "hash", incoming.hash, "timestamp", incoming.timestamp)
+	rm := h.rootsMgr
+	rm.lock.Lock()
+	defer rm.lock.Unlock()
+
+	if rm.current.hash == incoming.hash {
+		newSignatures := rm.current.mergeSignatures(incoming.hash, incoming.signers)
+		if len(newSignatures) != 0 {
+			log.Debug("received root list signatures", "from", p.id, "signers", toSigners(incoming.signers))
+			logReceivedSigs(p.id, newSignatures)
+
+			h.rootListCh <- &rootSetEvent{fromID: p.id, set: rm.current.copy()}
+		}
+
 		return
 	}
 
-	if current.hash != incoming.hash || current.timestamp != incoming.timestamp {
+	if !rm.current.isAcceptable(incoming) {
 		return
 	}
 
-	newSignatures := current.mergeSignatures(incoming.hash, incoming.signers)
-	if len(newSignatures) != 0 {
-		logReceivedSigs(p.id, newSignatures)
+	rm.current = incoming
+	rm.db.saveCurrentRootSet(rm.current)
 
-		// todo: this may be unnecessary with current approach
-		h.rootListCh <- &rootSetEvent{fromID: p.id, set: current.copy()}
+	rm.isRoot = rm.isMember(rm.current.rootAddresses)
+
+	log.Info("upgraded root list", "hash", incoming.hash.Hex(), "timestamp", incoming.timestamp)
+	h.rootListCh <- &rootSetEvent{set: incoming}
+
+	if rm.target != nil && rm.target.timestamp <= incoming.timestamp {
+		log.Info("dropping outdated desired root list",
+			"hash", rm.target.hash.Hex(),
+			"timestamp", rm.target.timestamp)
+
+		rm.target = nil
+		rm.db.deleteDesiredRootSet()
+	}
+
+	if rm.proposed != nil && rm.proposed.timestamp <= incoming.timestamp {
+		rm.proposed = nil
+		rm.db.deleteProposedRootSet()
 	}
 }
 
@@ -282,55 +307,68 @@ func (h *handler) handleRootList(p *peer, msg p2p.Msg) error {
 		return err
 	}
 
-	current := h.rootsMgr.currentRootSet()
-	// check if it's 'push'
-	if current.isAcceptable(received) && h.rootsMgr.upgrade(received) {
-		log.Info("upgraded root list", "hash", received.hash, "timestamp", received.timestamp)
-		h.rootListCh <- &rootSetEvent{fromID: p.id, set: received}
-		return nil
-	}
+	rm := h.rootsMgr
+	rm.lock.Lock()
+	defer rm.lock.Unlock()
 
-	if current.hash == received.hash {
-		newSignatures := current.mergeSignatures(received.hash, received.signers)
-		if len(newSignatures) != 0 {
-			logReceivedSigs(p.id, newSignatures)
-			h.rootListCh <- &rootSetEvent{fromID: p.id, set: current.copy()}
+	switch {
+	case rm.current.isAcceptable(received) && (rm.target == nil || rm.target.hash != received.hash):
+		if rm.isMember(received.rootAddresses) {
+			rm.signRootSet(received)
 		}
 
-		return nil
+		rm.upgrade(received)
+		h.rootListCh <- &rootSetEvent{set: received}
+	case rm.current.hash == received.hash:
+		newSignatures := rm.current.mergeSignatures(received.hash, received.signers)
+		if len(newSignatures) == 0 {
+			return nil
+		}
+
+		log.Debug("Received current root list signatures", "from", p.id, "signers", toSigners(newSignatures))
+		h.rootListCh <- &rootSetEvent{fromID: p.id, set: rm.current.copy()}
+
+		rm.db.saveCurrentRootSet(rm.current)
+	case rm.target != nil && rm.target.hash == received.hash:
+		newSignatures := rm.target.mergeSignatures(received.hash, received.signers)
+		if len(newSignatures) == 0 {
+			return nil
+		}
+
+		log.Debug("Received desired root list signatures", "from", p.id, "signers", toSigners(newSignatures))
+		if !rm.current.isAcceptable(rm.target) {
+			h.rootListCh <- &rootSetEvent{fromID: p.id, set: rm.target.copy()}
+			rm.db.saveDesiredRootSet(rm.target)
+			return nil
+		}
+
+		rm.upgradeRootSet(rm.target)
+		h.rootListCh <- &rootSetEvent{set: rm.current.copy()}
+	default:
+		if !rm.isMember(received.rootAddresses) {
+			log.Debug("Ignoring proposed root list: not a member of the new list", "hash", received.hash.Hex())
+			return nil
+		}
+
+		signers := rm.current.knownSigners(received.signers)
+		if len(signers) == 0 {
+			log.Debug("Ignoring proposed root list: not signed by any known root node",
+				"hash", received.hash.Hex(),
+				"from", p.id)
+			return nil
+		}
+
+		if rm.proposed != nil && rm.proposed.timestamp >= received.timestamp {
+			log.Debug("Ignoring proposed root list: obsolete", "timestamp", received.timestamp, "hash", received.hash.Hex())
+			return nil
+		}
+
+		rm.proposed = received
+		rm.db.saveProposedRootSet(rm.proposed)
+		h.rootListCh <- &rootSetEvent{fromID: p.id, set: received}
+		log.Warn("Received a new proposed root list", "hash", received.hash.Hex(), "timestamp", received.timestamp)
 	}
 
-	target := h.rootsMgr.targetRootSet()
-	// todo: save and wait action from the operator
-	if target == nil {
-		log.Debug("received target root list but has none locally", "from", p.id)
-		return nil
-	}
-
-	// todo: also check set itself, hash can be different because of timestamp
-	if target.hash != received.hash {
-		log.Warn("received target root list does not match local", "hash", received.hash, "from", p.id)
-		return nil
-	}
-
-	log.Debug("received target root list", "hash", received.hash, "from", p.id)
-	newSignatures := target.mergeSignatures(received.hash, received.signers)
-	if len(newSignatures) == 0 {
-		return nil
-	}
-
-	logReceivedSigs(p.id, newSignatures)
-
-	// trigger 'push'
-	if h.rootsMgr.currentRootSet().isAcceptable(target) && h.rootsMgr.upgrade(target) {
-		log.Info("upgraded root list", "hash", target.hash, "timestamp", target.timestamp)
-
-		// todo: probably it's also make sense to send it back
-		h.rootListCh <- &rootSetEvent{fromID: p.id, set: target.copy()}
-		return nil
-	}
-
-	h.rootListCh <- &rootSetEvent{fromID: p.id, set: target.copy()}
 	return nil
 }
 
@@ -346,7 +384,7 @@ func (h *handler) handleExclusionList(p *peer, msg p2p.Msg) error {
 	}
 
 	if h.rootsMgr.tryUpgradeExclusionList(received) {
-		log.Info("upgraded exclusion list", "hash", received.hash, "timestamp", received.timestamp)
+		log.Info("upgraded exclusion list", "hash", received.hash.Hex(), "timestamp", received.timestamp)
 		h.exListCh <- &exclusionSetEvent{fromID: p.id, set: received}
 		return nil
 	}
@@ -369,7 +407,7 @@ func (h *handler) handleExclusionList(p *peer, msg p2p.Msg) error {
 	}
 
 	if target.hash != received.hash {
-		log.Warn("received target exclusion set does not match local", "hash", received.hash, "from", p.id)
+		log.Warn("received target exclusion set does not match local", "hash", received.hash.Hex(), "from", p.id)
 		return nil
 	}
 
@@ -380,7 +418,7 @@ func (h *handler) handleExclusionList(p *peer, msg p2p.Msg) error {
 
 	logReceivedSigs(p.id, newSignatures)
 	if h.rootsMgr.tryUpgradeExclusionList(target) {
-		log.Info("upgraded exclusion list", "hash", target.hash, "timestamp", target.timestamp)
+		log.Info("upgraded exclusion list", "hash", target.hash.Hex(), "timestamp", target.timestamp)
 		h.exListCh <- &exclusionSetEvent{fromID: p.id, set: target}
 
 		return nil
@@ -397,4 +435,13 @@ func logReceivedSigs(from string, sigs map[common.Address][]byte) {
 	}
 
 	log.Debug("received new signatures", "signers", strs, "from", from)
+}
+
+func toSigners(sigs map[common.Address][]byte) []string {
+	var strs []string
+	for addr := range sigs {
+		strs = append(strs, addr.Hex())
+	}
+
+	return strs
 }
