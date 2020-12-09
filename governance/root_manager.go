@@ -25,18 +25,15 @@ var (
 type RootManager struct {
 	keystore Keystore
 
-	datadir string
-
-	currentFilePath     string
-	pendingRootListPath string
-	targetRootListPath  string
-
+	datadir        string
 	targetRootFeed *event.Feed
 
-	lock    sync.Mutex
-	isRoot  bool
-	current *rootSet
-	target  *rootSet
+	lock     sync.Mutex
+	db       *database
+	isRoot   bool
+	current  *rootSet
+	target   *rootSet
+	proposed *rootSet
 
 	exLock           sync.Mutex
 	targetExListFeed *event.Feed
@@ -50,22 +47,25 @@ type Keystore interface {
 }
 
 func newRootManager(ks Keystore, datadir string) (*RootManager, error) {
-	currentListPath := filepath.Join(datadir, currentRootListFname)
-	list, err := chooseInitList(currentListPath)
+	db, err := newDatabase(filepath.Join(datadir, "gov"))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to init gov database")
 	}
 
-	currentSet, err := newRootSet(list)
+	currentRootSet, err := db.getCurrentRootSet()
 	if err != nil {
-		return nil, errors.Wrap(err, "invalid current root node list")
+		return nil, errors.Wrap(err, "failed to get current root set")
 	}
 
-	pendingRootListPath := filepath.Join(datadir, pendingRootListFname)
-	pendingSet, err := loadRootListFile(filepath.Join(datadir, pendingRootListFname))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to load pending root node list")
+	if currentRootSet == nil {
+		currentRootSet, _ = newRootSet(&params.DevnetRootNodes)
+		log.Info("using predefined root set", "hash", currentRootSet.hash.Hex())
+	} else {
+		log.Info("using saved root set", "hash", currentRootSet.hash.Hex())
 	}
+
+	desiredRootSet, _ := db.getDesiredRootSet()
+	proposedRootSet, _ := db.getProposedRootSet()
 
 	exList, err := loadExclusionListFile(filepath.Join(datadir, currentExclusionListFname))
 	if err != nil {
@@ -78,17 +78,18 @@ func newRootManager(ks Keystore, datadir string) (*RootManager, error) {
 	}
 
 	manager := &RootManager{
-		keystore:            ks,
-		datadir:             datadir,
-		currentFilePath:     currentListPath,
-		pendingRootListPath: pendingRootListPath,
-		targetRootListPath:  filepath.Join(datadir, targetRootListFname),
-		targetRootFeed:      &event.Feed{},
-		current:             currentSet,
-		target:              pendingSet.rootSet,
-		targetExListFeed:    &event.Feed{},
-		exclusionSet:        exList.set,
-		targetExSet:         pendingExList.set,
+		db:       db,
+		keystore: ks,
+		datadir:  datadir,
+
+		targetRootFeed: &event.Feed{},
+		current:        currentRootSet,
+		target:         desiredRootSet,
+		proposed:       proposedRootSet,
+
+		targetExListFeed: &event.Feed{},
+		exclusionSet:     exList.set,
+		targetExSet:      pendingExList.set,
 	}
 
 	return manager, nil
@@ -122,20 +123,6 @@ func (s *RootManager) ExclusionSet() map[common.Address]uint64 {
 // service are initialised and it's not that easy to change this
 // todo: listen to wallet events instead
 func (s *RootManager) run() error {
-	go s.watchTargetRootList(time.Time{})
-	go s.refreshFile(refreshPeriod, s.pendingRootListPath, func() interface{} {
-		set := s.targetRootSet()
-		if set == nil {
-			return nil
-		}
-
-		return set.makeList()
-	})
-
-	go s.refreshFile(refreshPeriod, s.currentFilePath, func() interface{} {
-		return s.CurrentList()
-	})
-
 	go s.watchTargetExclusionList()
 	go s.refreshFile(refreshPeriod, path.Join(s.datadir, currentExclusionListFname), func() interface{} {
 		set := s.currentExclusionSet()
@@ -270,6 +257,30 @@ func (s *RootManager) tryUpgradeExclusionList(set *exclusionSet) bool {
 	return true
 }
 
+// unsafe for concurrent calls.
+// must be locked before calling
+func (s *RootManager) upgradeRootSet(set *rootSet) {
+	s.current = set
+	s.db.saveCurrentRootSet(s.current)
+
+	s.isRoot = s.isMember(s.current.rootAddresses)
+
+	log.Info("Upgraded root list", "hash", set.hash.Hex(), "timestamp", set.timestamp)
+
+	if s.target == nil || s.target.timestamp > set.timestamp {
+		return
+	}
+
+	if s.target.hash != set.hash {
+		log.Info("Dropping outdated desired root list",
+			"hash", s.target.hash.Hex(),
+			"timestamp", s.target.timestamp)
+	}
+
+	s.target = nil
+	s.db.deleteDesiredRootSet()
+}
+
 // upgrade to a new root set.
 // returns true if set is accepted.
 func (s *RootManager) upgrade(set *rootSet) bool {
@@ -286,17 +297,27 @@ func (s *RootManager) upgrade(set *rootSet) bool {
 	// clean up tmp storage
 	if s.target != nil && s.target.timestamp <= set.timestamp {
 		s.target = nil
-		_ = os.Remove(s.pendingRootListPath)
 	}
 
 	return true
+}
+
+func (s *RootManager) proposedRootSet() *rootSet {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	return s.proposed
 }
 
 func (s *RootManager) targetRootSet() *rootSet {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	return s.target
+	if s.target == nil {
+		return nil
+	}
+
+	return s.target.copy()
 }
 
 func (s *RootManager) currentRootSet() *rootSet {
@@ -318,65 +339,6 @@ func (s *RootManager) targetExclusionSet() *exclusionSet {
 	defer s.exLock.Unlock()
 
 	return s.targetExSet
-}
-
-func (s *RootManager) watchTargetRootList(updatedAt time.Time) {
-	for {
-		time.Sleep(time.Second)
-
-		file, err := loadRootListFile(s.targetRootListPath)
-		if err != nil {
-			log.Warn("failed to load root list file", "err", err)
-			continue
-		}
-
-		if file.rootSet == nil {
-			continue
-		}
-
-		if !file.updatedAt.After(updatedAt) {
-			continue
-		}
-
-		updatedAt = file.updatedAt
-		log.Debug("DETECTED target root list")
-
-		current := s.currentRootSet()
-		if file.rootSet.timestamp < current.timestamp {
-			log.Debug("skipping target root list because of timestamp")
-			continue
-		}
-
-		target := s.targetRootSet()
-		if target != nil && target.hash == file.rootSet.hash {
-			log.Debug("skipping identical target root list")
-			continue
-		}
-
-		if !s.signRootSet(file.rootSet) {
-			continue
-		}
-
-		s.lock.Lock()
-		s.target = file.rootSet
-		s.lock.Unlock()
-
-		go func(target *rootSet) {
-			// todo: a way to cancel this?
-			timestamp := int64(target.timestamp)
-			if duration := time.Until(time.Unix(timestamp, 0)); duration > 0 {
-				log.Info("scheduled target root list distribution", "timestamp", timestamp)
-				t := time.NewTimer(duration)
-				defer t.Stop()
-
-				<-t.C
-			}
-
-			if n := s.targetRootFeed.Send(target); n == 0 {
-				panic("handler didn't receive new set")
-			}
-		}(file.rootSet)
-	}
 }
 
 func (s *RootManager) watchTargetExclusionList() {
@@ -439,70 +401,6 @@ func (s *RootManager) watchTargetExclusionList() {
 	}
 }
 
-// choose the most recent list amongst default list and stored locally.
-func chooseInitList(fpath string) (*common.RootList, error) {
-	defaultList := params.DevnetRootNodes
-
-	file, err := os.Open(fpath)
-	defer func() { _ = file.Close() }()
-
-	switch true {
-	case err == nil:
-		var list common.RootList
-		if err := json.NewDecoder(file).Decode(&list); err != nil {
-			return nil, errors.Wrap(err, "malformed current root node list file")
-		}
-
-		if list.Timestamp < defaultList.Timestamp {
-			return &defaultList, nil
-		}
-
-		return &list, nil
-	case os.IsNotExist(err):
-		return &defaultList, nil
-	default:
-		return nil, errors.Wrapf(err, "failed to open current root node list file at %s", fpath)
-	}
-}
-
-type rootListFile struct {
-	updatedAt time.Time
-	rootSet   *rootSet
-}
-
-func loadRootListFile(fpath string) (*rootListFile, error) {
-	file, err := os.Open(fpath)
-	defer func() { _ = file.Close() }()
-
-	if os.IsNotExist(err) {
-		return &rootListFile{}, nil
-	}
-
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to open file")
-	}
-
-	var list common.RootList
-	if err := json.NewDecoder(file).Decode(&list); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal file")
-	}
-
-	// todo: handle properly
-	list.Hash = common.Hash{}
-
-	set, err := newRootSet(&list)
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid root list")
-	}
-
-	stat, err := file.Stat()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get file stat")
-	}
-
-	return &rootListFile{rootSet: set, updatedAt: stat.ModTime()}, nil
-}
-
 type exclusionListFile struct {
 	set       *exclusionSet
 	updatedAt time.Time
@@ -537,12 +435,6 @@ func loadExclusionListFile(fpath string) (*exclusionListFile, error) {
 
 	return &exclusionListFile{set: set, updatedAt: stat.ModTime()}, nil
 }
-
-const (
-	currentRootListFname = "root-list.json"
-	pendingRootListFname = "pending-root-list.json"
-	targetRootListFname  = "target-root-list.json"
-)
 
 const (
 	currentExclusionListFname = "exclusion-list.json"

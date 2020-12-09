@@ -22,9 +22,7 @@ func TestRoot(t *testing.T) {
 	list.Nodes = append(list.Nodes, common.BytesToAddress(crypto.Keccak256Hash([]byte("yoba")).Bytes()))
 
 	set, _ := newRootSet(list)
-	if err := db.saveCurrentRootSet(set); err != nil {
-		t.Fatal(errors.Wrap(err, "failed to save"))
-	}
+	db.saveCurrentRootSet(set)
 
 	got, err := db.getCurrentRootSet()
 	if err != nil {

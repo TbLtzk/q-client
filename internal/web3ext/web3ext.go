@@ -573,6 +573,26 @@ web3._extend({
 			call: 'gov_activeRootList',
 			params: 0
 		}),
+		new web3._extend.Method({
+			name: 'desiredRootList',
+			call: 'gov_desiredRootList',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'proposedRootList',
+			call: 'gov_proposedRootList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'proposeRootListUpdate',
+			call: 'gov_proposeRootListUpdate',
+			params: 1
+		}),
+	    new web3._extend.Method({
+			name: 'acceptProposedRootList',
+			call: 'gov_acceptProposedRootList',
+			params: 0
+		}),
     ],
 	properties: []
 });

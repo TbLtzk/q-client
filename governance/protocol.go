@@ -13,7 +13,7 @@ const (
 	qgov1 = 1
 )
 
-// ProtocolVersions are the supported versions of the eth protocol (first is primary).
+// ProtocolVersions are the supported versions of the gov protocol (first is primary).
 var ProtocolVersions = []uint{qgov1}
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
@@ -34,6 +34,6 @@ const (
 )
 
 type statusMsgBody struct {
-	rootList      common.RootList
-	exclusionList common.ValidatorExclusionList
+	RootList      common.RootList
+	ExclusionList common.ValidatorExclusionList
 }

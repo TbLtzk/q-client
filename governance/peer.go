@@ -98,7 +98,7 @@ type peerStatus struct {
 }
 
 func (p *peer) handshake(rootList common.RootList, exclusionList common.ValidatorExclusionList) (*peerStatus, error) {
-	err := p2p.Send(p.rw, StatusMsg, statusMsgBody{rootList: rootList, exclusionList: exclusionList})
+	err := p2p.Send(p.rw, StatusMsg, statusMsgBody{RootList: rootList, ExclusionList: exclusionList})
 	if err != nil {
 		return nil, err
 	}
@@ -113,12 +113,12 @@ func (p *peer) handshake(rootList common.RootList, exclusionList common.Validato
 		return nil, err
 	}
 
-	incomingRoot, err := newRootSet(&status.rootList)
+	incomingRoot, err := newRootSet(&status.RootList)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid root list")
 	}
 
-	incomingExSet, err := newExclusionSet(&status.exclusionList)
+	incomingExSet, err := newExclusionSet(&status.ExclusionList)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid exclusion list")
 	}
@@ -153,7 +153,7 @@ func (p *peer) listenForExclusionSets() {
 }
 
 func (p *peer) sendStatus(rootList common.RootList) error {
-	return p2p.Send(p.rw, StatusMsg, statusMsgBody{rootList: rootList})
+	return p2p.Send(p.rw, StatusMsg, statusMsgBody{RootList: rootList})
 }
 
 func (p *peer) asyncSendRootList(set *rootSet) {

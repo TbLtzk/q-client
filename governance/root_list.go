@@ -6,7 +6,6 @@ import (
 	"sort"
 	"sync"
 
-	mapset "github.com/deckarep/golang-set"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 )
@@ -150,6 +149,17 @@ func (s *rootSet) mergeSignatures(hash common.Hash, signatures map[common.Addres
 	return newSigs
 }
 
+func (s *rootSet) knownSigners(signers map[common.Address][]byte) []common.Address {
+	var intersection []common.Address
+	for addr := range signers {
+		if _, ok := s.roots[addr]; ok {
+			intersection = append(intersection, addr)
+		}
+	}
+
+	return intersection
+}
+
 func (s *rootSet) sanitizeSignatures(signatures [][]byte) (map[common.Address][]byte, error) {
 	sigs := make(map[common.Address][]byte)
 	for _, sig := range signatures {
@@ -206,16 +216,4 @@ func (s *rootSet) makeList() common.RootList {
 		Nodes:      s.rootAddresses,
 		Signatures: s.signatures(),
 	}
-}
-
-func (s *rootSet) signersMap() mapset.Set {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	set := mapset.NewSet()
-	for signer := range s.signers {
-		set.Add(signer)
-	}
-
-	return set
 }
