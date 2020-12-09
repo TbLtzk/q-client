@@ -55,7 +55,7 @@ build:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
     # build binary
     - version=$(test -z $CI_COMMIT_TAG && echo $CI_COMMIT_SHA || echo $CI_COMMIT_TAG)
-    - docker build --build-arg version="$version" --build-arg BUILD_TOKEN=${ACCESS_TOKEN} -t $BUILD_IMAGE -f $BUILD_DOCKERFILE .
+    - docker build --build-arg version="$version" --build-arg BUILD_TOKEN=${CI_JOB_TOKEN} --build-arg USERNAME=gitlab-ci-token -t $BUILD_IMAGE -f $BUILD_DOCKERFILE .
     - docker push $BUILD_IMAGE
 
 # deploy_devnet:

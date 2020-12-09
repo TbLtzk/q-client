@@ -5,7 +5,8 @@ RUN apk add --no-cache make gcc musl-dev linux-headers git
 
 ADD . /q-client
 ARG BUILD_TOKEN
-RUN git config --global url."https://oauth2:${BUILD_TOKEN}@gitlab.com/".insteadOf https://gitlab.com/
+ARG USERNAME=oauth2
+RUN git config --global url."https://${USERNAME}:${BUILD_TOKEN}@gitlab.com/".insteadOf https://gitlab.com/
 RUN go env -w GOPRIVATE=gitlab.com/q-dev/*
 RUN cd /q-client && make geth
 
