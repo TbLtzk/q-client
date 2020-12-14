@@ -145,12 +145,13 @@ func abigen(c *cli.Context) error {
 	}
 	// If the entire solidity code was specified, build and bind based on that
 	var (
-		abis    []string
-		bins    []string
-		types   []string
-		sigs    []map[string]string
-		libs    = make(map[string]string)
-		aliases = make(map[string]string)
+		abis      []string
+		bins      []string
+		types     []string
+		sigs      []map[string]string
+		libs      = make(map[string]string)
+		aliases   = make(map[string]string)
+		structExc = make(map[string]bool)
 	)
 	if c.GlobalString(abiFlag.Name) != "" {
 		// Load up the ABI, optional bytecode and type name from the parameters
@@ -203,6 +204,10 @@ func abigen(c *cli.Context) error {
 			kind = c.GlobalString(pkgFlag.Name)
 		}
 		types = append(types, kind)
+
+		for _, kind := range strings.Split(c.GlobalString(excFlag.Name), ",") {
+			structExc[kind] = true
+		}
 	} else {
 		// Generate the list of types to exclude from binding
 		exclude := make(map[string]bool)
@@ -277,7 +282,7 @@ func abigen(c *cli.Context) error {
 		}
 	}
 	// Generate the contract binding
-	code, err := bind.Bind(types, abis, bins, sigs, c.GlobalString(pkgFlag.Name), lang, libs, aliases)
+	code, err := bind.Bind(types, abis, bins, sigs, c.GlobalString(pkgFlag.Name), lang, libs, aliases, structExc)
 	if err != nil {
 		utils.Fatalf("Failed to generate ABI binding: %v", err)
 	}
