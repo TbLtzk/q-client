@@ -34,6 +34,11 @@ const (
 )
 
 type statusMsgBody struct {
-	RootList      common.RootList
-	ExclusionList common.ValidatorExclusionList
+	CurrentRootList  common.RootList
+	DesiredRootList  common.RootList
+	ProposedRootList common.RootList
+
+	CurrentExclusionList  common.ValidatorExclusionList
+	DesiredExclusionList  common.ValidatorExclusionList
+	ProposedExclusionList common.ValidatorExclusionList
 }

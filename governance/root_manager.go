@@ -241,7 +241,7 @@ func (s *RootManager) currentRootSet() *rootSet {
 	return s.current.copy()
 }
 
-func (s *RootManager) targetRootSet() *rootSet {
+func (s *RootManager) desiredRootSet() *rootSet {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 

@@ -21,6 +21,10 @@ type exclusionSet struct {
 }
 
 func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error) {
+	if list == nil {
+		return nil, nil
+	}
+
 	if len(list.Validators) == 0 {
 		return nil, nil
 	}
