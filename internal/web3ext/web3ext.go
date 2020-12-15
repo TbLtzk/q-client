@@ -593,6 +593,31 @@ web3._extend({
 			call: 'gov_acceptProposedRootList',
 			params: 0
 		}),
+	    new web3._extend.Method({
+			name: 'activeExclusionList',
+			call: 'gov_activeExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'desiredExclusionList',
+			call: 'gov_desiredExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'proposedExclusionList',
+			call: 'gov_proposedExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'proposeExclusionListUpdate',
+			call: 'gov_proposeExclusionListUpdate',
+			params: 1
+		}),
+	    new web3._extend.Method({
+			name: 'acceptProposedExclusionList',
+			call: 'gov_acceptProposedExclusionList',
+			params: 0
+		}),
     ],
 	properties: []
 });

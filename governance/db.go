@@ -67,6 +67,63 @@ func (db *database) deleteProposedRootSet() {
 	}
 }
 
+func (db *database) getCurrentExclusionSet() *exclusionSet {
+	set, err := db.getExclusionSet(currentExclusionSetKey)
+	if err != nil {
+		log.Crit("failed to get current exclusion set", "err", err)
+	}
+
+	return set
+}
+
+func (db *database) saveCurrentExclusionSet(set *exclusionSet) {
+	if err := db.saveExclusionSet(set, currentExclusionSetKey); err != nil {
+		log.Crit("failed to save current exclusion set")
+	}
+}
+
+func (db *database) getDesiredExclusionSet() *exclusionSet {
+	set, err := db.getExclusionSet(desiredExclusionSetKey)
+	if err != nil {
+		log.Crit("failed to get desired exclusion set", "err", err)
+	}
+
+	return set
+}
+
+func (db *database) saveDesiredExclusionSet(set *exclusionSet) {
+	if err := db.saveExclusionSet(set, desiredExclusionSetKey); err != nil {
+		log.Crit("failed to save desired exclusion set", "err", err)
+	}
+}
+
+func (db *database) deleteDesiredExclusionSet() {
+	if err := db.store.Delete(desiredExclusionSetKey); err != nil {
+		log.Crit("failed to delete desired exclusion list")
+	}
+}
+
+func (db *database) getProposedExclusionSet() *exclusionSet {
+	set, err := db.getExclusionSet(proposedExclusionSetKey)
+	if err != nil {
+		log.Crit("failed to get proposed exclusion set", "err", err)
+	}
+
+	return set
+}
+
+func (db *database) saveProposedExclusionSet(set *exclusionSet) {
+	if err := db.saveExclusionSet(set, proposedExclusionSetKey); err != nil {
+		log.Crit("failed to store proposed exclusion set", "err", err)
+	}
+}
+
+func (db *database) deleteProposedExclusionSet() {
+	if err := db.store.Delete(proposedExclusionSetKey); err != nil {
+		log.Crit("failed to delete proposed exclusion set", "err", err)
+	}
+}
+
 func (db *database) saveRootSet(set *rootSet, key []byte) error {
 	value, err := json.Marshal(set.makeList())
 	if err != nil {
@@ -97,7 +154,7 @@ func (db *database) getRootSet(key []byte) (*rootSet, error) {
 
 	var rootList common.RootList
 	if err := json.Unmarshal(raw, &rootList); err != nil {
-		return nil, errors.Wrap(err, "corrupted data")
+		panic(errors.Wrap(err, "failed to unmarshal root list"))
 	}
 
 	set, err := newRootSet(&rootList)
@@ -108,8 +165,51 @@ func (db *database) getRootSet(key []byte) (*rootSet, error) {
 	return set, nil
 }
 
+func (db *database) saveExclusionSet(set *exclusionSet, key []byte) error {
+	raw, err := json.Marshal(set.makeList())
+	if err != nil {
+		panic(errors.Wrap(err, "failed to marshal exclusion set"))
+	}
+
+	return db.store.Put(key, raw)
+}
+
+func (db *database) getExclusionSet(key []byte) (*exclusionSet, error) {
+	ok, err := db.store.Has(key)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check if key exists")
+	}
+
+	if !ok {
+		return nil, nil
+	}
+
+	raw, err := db.store.Get(key)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get from db")
+	}
+
+	var exclusionList common.ValidatorExclusionList
+	if err := json.Unmarshal(raw, &exclusionList); err != nil {
+		panic(errors.Wrap(err, "failed to unmarshal exclusion list"))
+	}
+
+	set, err := newExclusionSet(&exclusionList)
+	if err != nil {
+		panic(errors.Wrap(err, "malformed exclusion set"))
+	}
+
+	return set, nil
+}
+
 var (
 	currentRootKey  = []byte("current-root-set")
 	desiredRootKey  = []byte("desired-root-set")
 	proposedRootKey = []byte("proposed-root-set")
+)
+
+var (
+	currentExclusionSetKey  = []byte("current-exclusion-set")
+	desiredExclusionSetKey  = []byte("desired-exclusion-set")
+	proposedExclusionSetKey = []byte("proposed-exclusion-set")
 )
