@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
-	"sync"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -22,14 +21,10 @@ type rootSet struct {
 	rootAddresses []common.Address
 	roots         map[common.Address]struct{}
 
-	lock    sync.Mutex
 	signers map[common.Address][]byte
 }
 
 func (s *rootSet) addSignature(signer common.Address, signature []byte) bool {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if _, ok := s.signers[signer]; ok {
 		return false
 	}
@@ -115,7 +110,7 @@ func (s *rootSet) isAcceptable(set *rootSet) bool {
 	return percentage >= rootListThresholdPercentage
 }
 
-func (s *rootSet) isAcceptableExclusionSet(set *exclusionSet) bool {
+func (s *rootSet) isEnoughExSetSignatures(set *exclusionSet) bool {
 	var signaturesCount int
 	for signer := range set.signers {
 		if _, ok := s.roots[signer]; ok {
@@ -129,9 +124,6 @@ func (s *rootSet) isAcceptableExclusionSet(set *exclusionSet) bool {
 
 // mergeSignatures saves and returns new signatures found in current
 func (s *rootSet) mergeSignatures(hash common.Hash, signatures map[common.Address][]byte) map[common.Address][]byte {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if s.hash != hash {
 		return nil
 	}
@@ -180,8 +172,9 @@ func (s *rootSet) sanitizeSignatures(signatures [][]byte) (map[common.Address][]
 }
 
 func (s *rootSet) copy() *rootSet {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	if s == nil {
+		return nil
+	}
 
 	signers := make(map[common.Address][]byte, len(s.signers))
 	for signer, signature := range s.signers {
@@ -198,9 +191,6 @@ func (s *rootSet) copy() *rootSet {
 }
 
 func (s *rootSet) signatures() [][]byte {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	sigs := make([][]byte, 0, len(s.signers))
 	for _, sig := range s.signers {
 		sigs = append(sigs, sig)
