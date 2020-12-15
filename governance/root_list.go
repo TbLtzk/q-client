@@ -43,6 +43,12 @@ func (s *rootSet) calcHash() common.Hash {
 }
 
 func newRootSet(list *common.RootList) (*rootSet, error) {
+	// todo: this is ugly and should be done differently,
+	// same as lots of other things in this package
+	if len(list.Nodes) == 0 {
+		return nil, nil
+	}
+
 	roots := make(map[common.Address]struct{})
 	var rootAddrs []common.Address
 	for _, addr := range list.Nodes {
@@ -200,6 +206,10 @@ func (s *rootSet) signatures() [][]byte {
 }
 
 func (s *rootSet) makeList() common.RootList {
+	if s == nil {
+		return common.RootList{}
+	}
+
 	return common.RootList{
 		Timestamp:  s.timestamp,
 		Hash:       s.hash,

@@ -22,7 +22,7 @@ func (a *GovernanceAPI) ActiveRootList() *RootList {
 }
 
 func (a *GovernanceAPI) DesiredRootList() *RootList {
-	return newRootList(a.gov.RootManager.targetRootSet())
+	return newRootList(a.gov.RootManager.desiredRootSet())
 }
 
 func (a *GovernanceAPI) ProposedRootList() *RootList {
