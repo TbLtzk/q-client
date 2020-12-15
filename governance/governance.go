@@ -1,8 +1,8 @@
 package governance
 
 import (
-	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
@@ -12,6 +12,9 @@ import (
 // Config of governance svc.
 type Config struct {
 	InstanceDir string `toml:"-"`
+
+	Timestamp     uint64           `toml:"-"`
+	RootAddresses []common.Address `toml:"-"`
 }
 
 // Governance service is responsible
@@ -25,7 +28,7 @@ type Governance struct {
 // New Governance service.
 func New(stack *node.Node, cfg *Config) (*Governance, error) {
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	rootMgr, err := newRootManager(ks, cfg.InstanceDir)
+	rootMgr, err := newRootManager(ks, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +64,8 @@ func (g *Governance) APIs() []rpc.API {
 
 // Start Governance service.
 func (g *Governance) Start() error {
-	if err := g.RootManager.run(); err != nil {
-		return errors.Wrap(err, "failed to start root manager")
+	if g.RootManager.isRootNode() {
+		log.Info("Node belongs to the current root node set")
 	}
 
 	g.handler.run()
