@@ -9,7 +9,6 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/params"
 )
 
 var (
@@ -17,12 +16,12 @@ var (
 	errHashMismatch     = errors.New("hash mismatch")
 )
 
-// RootManager governs root nodes.
+// RootManager stores root and exclusion lists.
+// todo: shouldn't be exported
 type RootManager struct {
 	keystore Keystore
 
-	db     *database
-	isRoot bool
+	db *database
 
 	lock           sync.Mutex
 	targetRootFeed *event.Feed
@@ -42,10 +41,18 @@ type Keystore interface {
 	SignHash(a accounts.Account, hash []byte) ([]byte, error)
 }
 
-func newRootManager(ks Keystore, datadir string) (*RootManager, error) {
-	db, err := newDatabase(filepath.Join(datadir, "gov"))
+func newRootManager(ks Keystore, cfg *Config) (*RootManager, error) {
+	db, err := newDatabase(filepath.Join(cfg.InstanceDir, "gov"))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init gov database")
+	}
+
+	defaultRootSet, err := newRootSet(&common.RootList{
+		Timestamp: cfg.Timestamp,
+		Nodes:     cfg.RootAddresses,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "malformed default root list")
 	}
 
 	currentRootSet, err := db.getCurrentRootSet()
@@ -53,12 +60,12 @@ func newRootManager(ks Keystore, datadir string) (*RootManager, error) {
 		return nil, errors.Wrap(err, "failed to get current root set")
 	}
 
-	// todo: move one level up
-	if currentRootSet == nil {
-		currentRootSet, _ = newRootSet(&params.DevnetRootNodes)
-		log.Info("using predefined root set", "hash", currentRootSet.hash.Hex())
+	if currentRootSet != nil && currentRootSet.timestamp >= defaultRootSet.timestamp {
+		log.Info("Using saved root set", "hash", currentRootSet.hash.Hex())
 	} else {
-		log.Info("using saved root set", "hash", currentRootSet.hash.Hex())
+		currentRootSet = defaultRootSet
+		db.saveCurrentRootSet(currentRootSet)
+		log.Info("Using predefined root set", "hash", currentRootSet.hash.Hex())
 	}
 
 	desiredRootSet, _ := db.getDesiredRootSet()
@@ -99,19 +106,11 @@ func (s *RootManager) ExclusionSet() map[common.Address]uint64 {
 	return set
 }
 
-// the reason why it's here is because accounts are unlocked after
-// service are initialised and it's not that easy to change this
-// todo: listen to wallet events instead
-func (s *RootManager) run() error {
+func (s *RootManager) isRootNode() bool {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	s.isRoot = s.isMember(s.current.rootAddresses)
-	if s.isRoot {
-		log.Info("Node belongs to the current root node current")
-	}
-
-	return nil
+	return s.isMember(s.current.rootAddresses)
 }
 
 func (s *RootManager) isMember(set []common.Address) bool {
@@ -122,13 +121,6 @@ func (s *RootManager) isMember(set []common.Address) bool {
 	}
 
 	return false
-}
-
-func (s *RootManager) isRootNode() bool {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	return s.isMember(s.current.rootAddresses)
 }
 
 func (s *RootManager) signRootSet(set *rootSet) bool {
@@ -215,8 +207,6 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
 func (s *RootManager) upgradeRootSet(set *rootSet) {
 	s.current = set
 	s.db.saveCurrentRootSet(s.current)
-
-	s.isRoot = s.isMember(s.current.rootAddresses)
 
 	log.Info("Upgraded root list", "hash", set.hash.Hex(), "timestamp", set.timestamp)
 

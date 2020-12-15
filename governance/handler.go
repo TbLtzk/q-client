@@ -405,15 +405,6 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 	return nil
 }
 
-func logReceivedSigs(from string, sigs map[common.Address][]byte) {
-	var strs []string
-	for addr := range sigs {
-		strs = append(strs, addr.Hex())
-	}
-
-	log.Debug("received new signatures", "signers", strs, "from", from)
-}
-
 func toSigners(sigs map[common.Address][]byte) []string {
 	var strs []string
 	for addr := range sigs {
