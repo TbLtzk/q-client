@@ -34,6 +34,7 @@ var Modules = map[string]string{
 	"txpool":     TxpoolJs,
 	"les":        LESJs,
 	"lespay":     LESPayJs,
+	"gov":        GovJs,
 }
 
 const ChequebookJs = `
@@ -560,6 +561,65 @@ web3._extend({
 			}
 		}),
 	]
+});
+`
+
+const GovJs = `
+web3._extend({
+	property: 'gov',
+	methods: [
+        new web3._extend.Method({
+			name: 'activeRootList',
+			call: 'gov_activeRootList',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'desiredRootList',
+			call: 'gov_desiredRootList',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'proposedRootList',
+			call: 'gov_proposedRootList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'proposeRootListUpdate',
+			call: 'gov_proposeRootListUpdate',
+			params: 1
+		}),
+	    new web3._extend.Method({
+			name: 'acceptProposedRootList',
+			call: 'gov_acceptProposedRootList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'activeExclusionList',
+			call: 'gov_activeExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'desiredExclusionList',
+			call: 'gov_desiredExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'proposedExclusionList',
+			call: 'gov_proposedExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'proposeExclusionListUpdate',
+			call: 'gov_proposeExclusionListUpdate',
+			params: 1
+		}),
+	    new web3._extend.Method({
+			name: 'acceptProposedExclusionList',
+			call: 'gov_acceptProposedExclusionList',
+			params: 0
+		}),
+    ],
+	properties: []
 });
 `
 

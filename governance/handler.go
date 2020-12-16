@@ -71,7 +71,7 @@ func (h *handler) listenForTargetRootList() {
 		select {
 		case set := <-h.targetRootListCh:
 			for _, p := range h.peers.all() {
-				log.Debug("SENDING target set", "to", p.id)
+				log.Debug("Sending target set", "to", p.id)
 				p.asyncSendRootList(set)
 			}
 		case err := <-h.newTargetRootListSub.Err():
@@ -155,20 +155,33 @@ func (h *handler) makeProtocol(version uint) p2p.Protocol {
 			return h.runPeer(newPeer(p, rw))
 		},
 		NodeInfo: func() interface{} {
-			current := h.rootsMgr.CurrentList()
+			current := h.rootsMgr.currentRootSet()
 			return struct {
 				Timestamp uint64
 			}{
-				Timestamp: current.Timestamp,
+				Timestamp: current.timestamp,
 			}
 		},
 	}
 }
 
 func (h *handler) runPeer(p *peer) error {
-	currentRootSet := h.rootsMgr.currentRootSet()
-	currentExSet := h.rootsMgr.currentExclusionSet()
-	status, err := p.handshake(currentRootSet.makeList(), currentExSet.makeList())
+	rm := h.rootsMgr
+	// lock in order to avoid sending
+	// partially upgraded state
+	rm.lock.Lock()
+	rm.exLock.Lock()
+	status, err := p.handshake(statusMsgBody{
+		CurrentRootList:       rm.current.copy().makeList(),
+		DesiredRootList:       rm.target.copy().makeList(),
+		ProposedRootList:      rm.proposed.copy().makeList(),
+		CurrentExclusionList:  rm.exclusionSet.copy().makeList(),
+		DesiredExclusionList:  rm.targetExSet.copy().makeList(),
+		ProposedExclusionList: rm.proposedExSet.copy().makeList(),
+	})
+	rm.lock.Unlock()
+	rm.exLock.Unlock()
+
 	if err != nil {
 		return err
 	}
@@ -176,8 +189,25 @@ func (h *handler) runPeer(p *peer) error {
 	h.peers.register(p)
 	defer h.peers.unregister(p)
 
-	h.syncRootLists(p, currentRootSet, status.rootSet)
-	h.syncExclusionLists(p, status.exclusionSet)
+	for _, set := range []*rootSet{status.currentRootSet, status.desiredRootSet, status.proposedRootSet} {
+		if set == nil {
+			continue
+		}
+
+		if err := h.handleRootSet(p, set); err != nil {
+			return err
+		}
+	}
+
+	for _, set := range []*exclusionSet{status.currentExSet, status.desiredExSet, status.proposedExSet} {
+		if set == nil {
+			continue
+		}
+
+		if err := h.handleExclusionSet(p, set); err != nil {
+			return err
+		}
+	}
 
 	h.peerWG.Add(1)
 	defer h.peerWG.Done()
@@ -187,63 +217,6 @@ func (h *handler) runPeer(p *peer) error {
 			p.Log().Debug("Governance message handling failed", "err", err)
 			return err
 		}
-	}
-}
-
-func (h *handler) syncRootLists(p *peer, current, incoming *rootSet) {
-	defer func() {
-		// push target root list if have any locally
-		target := h.rootsMgr.targetRootSet()
-		if target != nil {
-			p.asyncSendRootList(target)
-		}
-	}()
-
-	if current.isAcceptable(incoming) && h.rootsMgr.upgrade(incoming) {
-		log.Info("upgraded root list", "hash", incoming.hash, "timestamp", incoming.timestamp)
-		return
-	}
-
-	if current.hash != incoming.hash || current.timestamp != incoming.timestamp {
-		return
-	}
-
-	newSignatures := current.mergeSignatures(incoming.hash, incoming.signers)
-	if len(newSignatures) != 0 {
-		logReceivedSigs(p.id, newSignatures)
-
-		// todo: this may be unnecessary with current approach
-		h.rootListCh <- &rootSetEvent{fromID: p.id, set: current.copy()}
-	}
-}
-
-func (h *handler) syncExclusionLists(p *peer, incoming *exclusionSet) {
-	defer func() {
-		target := h.rootsMgr.currentExclusionSet()
-		if target != nil {
-			p.asyncSendExclusionList(target)
-		}
-	}()
-
-	if incoming == nil {
-		return
-	}
-
-	if h.rootsMgr.tryUpgradeExclusionList(incoming) {
-		log.Info("upgraded exclusion list", "hash", incoming.hash, "timestamp", incoming.timestamp)
-		return
-	}
-
-	current := h.rootsMgr.currentExclusionSet()
-	if current == nil || current.hash != incoming.hash {
-		return
-	}
-
-	newSignatures := current.mergeSignatures(incoming.hash, incoming.signers)
-	if len(newSignatures) != 0 {
-		logReceivedSigs(p.id, newSignatures)
-
-		h.exListCh <- &exclusionSetEvent{fromID: p.id, set: current}
 	}
 }
 
@@ -263,7 +236,7 @@ func (h *handler) handleMsg(p *peer) error {
 	case StatusMsg:
 		return errors.New("unexpected msg code")
 	case RootListMsg:
-		return h.handleRootList(p, msg)
+		return h.handleRootListMsg(p, msg)
 	case ExclusionListMsg:
 		return h.handleExclusionList(p, msg)
 	default:
@@ -271,7 +244,7 @@ func (h *handler) handleMsg(p *peer) error {
 	}
 }
 
-func (h *handler) handleRootList(p *peer, msg p2p.Msg) error {
+func (h *handler) handleRootListMsg(p *peer, msg p2p.Msg) error {
 	var list common.RootList
 	if err := msg.Decode(&list); err != nil {
 		return err
@@ -282,55 +255,72 @@ func (h *handler) handleRootList(p *peer, msg p2p.Msg) error {
 		return err
 	}
 
-	current := h.rootsMgr.currentRootSet()
-	// check if it's 'push'
-	if current.isAcceptable(received) && h.rootsMgr.upgrade(received) {
-		log.Info("upgraded root list", "hash", received.hash, "timestamp", received.timestamp)
-		h.rootListCh <- &rootSetEvent{fromID: p.id, set: received}
-		return nil
-	}
+	return h.handleRootSet(p, received)
+}
 
-	if current.hash == received.hash {
-		newSignatures := current.mergeSignatures(received.hash, received.signers)
-		if len(newSignatures) != 0 {
-			logReceivedSigs(p.id, newSignatures)
-			h.rootListCh <- &rootSetEvent{fromID: p.id, set: current.copy()}
+func (h *handler) handleRootSet(p *peer, received *rootSet) error {
+	rm := h.rootsMgr
+	rm.lock.Lock()
+	defer rm.lock.Unlock()
+
+	switch {
+	case rm.current.isAcceptable(received) && (rm.target == nil || rm.target.hash != received.hash):
+		if rm.isMember(received.rootAddresses) {
+			rm.signRootSet(received)
 		}
 
-		return nil
+		rm.upgradeRootSet(received)
+		h.rootListCh <- &rootSetEvent{set: received}
+	case rm.current.hash == received.hash:
+		newSignatures := rm.current.mergeSignatures(received.hash, received.signers)
+		if len(newSignatures) == 0 {
+			return nil
+		}
+
+		log.Debug("Received current root list signatures", "from", p.id, "signers", toSigners(newSignatures))
+		h.rootListCh <- &rootSetEvent{fromID: p.id, set: rm.current.copy()}
+
+		rm.db.saveCurrentRootSet(rm.current)
+	case rm.target != nil && rm.target.hash == received.hash:
+		newSignatures := rm.target.mergeSignatures(received.hash, received.signers)
+		if len(newSignatures) == 0 {
+			return nil
+		}
+
+		log.Debug("Received desired root list signatures", "from", p.id, "signers", toSigners(newSignatures))
+		if !rm.current.isAcceptable(rm.target) {
+			h.rootListCh <- &rootSetEvent{fromID: p.id, set: rm.target.copy()}
+			rm.db.saveDesiredRootSet(rm.target)
+			return nil
+		}
+
+		rm.upgradeRootSet(rm.target)
+		h.rootListCh <- &rootSetEvent{set: rm.current.copy()}
+	default:
+		if !rm.isMember(received.rootAddresses) {
+			log.Debug("Ignoring proposed root list: not a member of the new list", "hash", received.hash.Hex())
+			return nil
+		}
+
+		signers := rm.current.knownSigners(received.signers)
+		if len(signers) == 0 {
+			log.Debug("Ignoring proposed root list: not signed by any known root node",
+				"hash", received.hash.Hex(),
+				"from", p.id)
+			return nil
+		}
+
+		if rm.proposed != nil && rm.proposed.timestamp >= received.timestamp {
+			log.Debug("Ignoring proposed root list: obsolete", "timestamp", received.timestamp, "hash", received.hash.Hex())
+			return nil
+		}
+
+		rm.proposed = received
+		rm.db.saveProposedRootSet(rm.proposed)
+		h.rootListCh <- &rootSetEvent{fromID: p.id, set: received}
+		log.Warn("Received a new proposed root list", "hash", received.hash.Hex(), "timestamp", received.timestamp)
 	}
 
-	target := h.rootsMgr.targetRootSet()
-	// todo: save and wait action from the operator
-	if target == nil {
-		log.Debug("received target root list but has none locally", "from", p.id)
-		return nil
-	}
-
-	// todo: also check set itself, hash can be different because of timestamp
-	if target.hash != received.hash {
-		log.Warn("received target root list does not match local", "hash", received.hash, "from", p.id)
-		return nil
-	}
-
-	log.Debug("received target root list", "hash", received.hash, "from", p.id)
-	newSignatures := target.mergeSignatures(received.hash, received.signers)
-	if len(newSignatures) == 0 {
-		return nil
-	}
-
-	logReceivedSigs(p.id, newSignatures)
-
-	// trigger 'push'
-	if h.rootsMgr.currentRootSet().isAcceptable(target) && h.rootsMgr.upgrade(target) {
-		log.Info("upgraded root list", "hash", target.hash, "timestamp", target.timestamp)
-
-		// todo: probably it's also make sense to send it back
-		h.rootListCh <- &rootSetEvent{fromID: p.id, set: target.copy()}
-		return nil
-	}
-
-	h.rootListCh <- &rootSetEvent{fromID: p.id, set: target.copy()}
 	return nil
 }
 
@@ -345,56 +335,81 @@ func (h *handler) handleExclusionList(p *peer, msg p2p.Msg) error {
 		return err
 	}
 
-	if h.rootsMgr.tryUpgradeExclusionList(received) {
-		log.Info("upgraded exclusion list", "hash", received.hash, "timestamp", received.timestamp)
-		h.exListCh <- &exclusionSetEvent{fromID: p.id, set: received}
-		return nil
-	}
+	return h.handleExclusionSet(p, received)
+}
 
-	current := h.rootsMgr.currentExclusionSet()
-	if current != nil && current.hash == received.hash {
-		newSignatures := current.mergeSignatures(received.hash, received.signers)
-		if len(newSignatures) != 0 {
-			logReceivedSigs(p.id, newSignatures)
-			h.exListCh <- &exclusionSetEvent{fromID: p.id, set: current}
+func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
+	rm := h.rootsMgr
+	rm.exLock.Lock()
+	defer rm.exLock.Unlock()
+
+	switch true {
+	case rm.isAcceptableExclusionSet(received):
+		// ensure locally stored signatures are not lost
+		if rm.targetExSet != nil && rm.targetExSet.hash == received.hash {
+			received.mergeSignatures(rm.targetExSet.hash, rm.targetExSet.signers)
 		}
 
-		return nil
+		if rm.isRootNode() {
+			rm.signExclusionSet(received)
+		}
+
+		rm.upgradeExclusionSet(received)
+		h.exListCh <- &exclusionSetEvent{set: received}
+	case rm.exclusionSet != nil && rm.exclusionSet.hash == received.hash:
+		newSignatures := rm.exclusionSet.mergeSignatures(received.hash, received.signers)
+		if len(newSignatures) == 0 {
+			return nil
+		}
+
+		log.Debug("Received new exclusion list signatures", "from", p.id, "singers", toSigners(newSignatures))
+		h.exListCh <- &exclusionSetEvent{fromID: p.id, set: rm.exclusionSet.copy()}
+		rm.db.saveCurrentExclusionSet(rm.exclusionSet)
+	case rm.targetExSet != nil && rm.targetExSet.hash == received.hash:
+		newSignatures := rm.targetExSet.mergeSignatures(received.hash, received.signers)
+		if len(newSignatures) == 0 {
+			return nil
+		}
+
+		log.Debug("Received new desired exclusion list signatures", "from", p.id, "singers", toSigners(newSignatures))
+		if !rm.currentRootSet().isEnoughExSetSignatures(rm.targetExSet) {
+			h.exListCh <- &exclusionSetEvent{fromID: p.id, set: rm.targetExSet}
+			rm.db.saveDesiredExclusionSet(rm.targetExSet)
+			return nil
+		}
+
+		rm.upgradeExclusionSet(rm.targetExSet)
+		h.exListCh <- &exclusionSetEvent{set: rm.exclusionSet}
+	default:
+		if !rm.isRootNode() {
+			log.Debug("Ignoring proposed exclusion list: not a root node")
+			return nil
+		}
+
+		if len(rm.currentRootSet().knownSigners(received.signers)) == 0 {
+			log.Debug("Ignoring proposed exclusion list: no current root node signatures")
+			return nil
+		}
+
+		if rm.proposedExSet != nil && received.timestamp <= rm.proposedExSet.timestamp {
+			log.Debug("Ignoring proposed exclusion list: obsolete")
+			return nil
+		}
+
+		rm.proposedExSet = received
+		rm.db.saveProposedExclusionSet(rm.proposedExSet)
+
+		log.Warn("Received a new proposed exclusion list", "hash", received.hash.Hex(), "timestamp", received.timestamp)
 	}
 
-	target := h.rootsMgr.targetExclusionSet()
-	if target == nil {
-		log.Debug("received target exclusion list but has none locally", "from", p.id)
-		return nil
-	}
-
-	if target.hash != received.hash {
-		log.Warn("received target exclusion set does not match local", "hash", received.hash, "from", p.id)
-		return nil
-	}
-
-	newSignatures := target.mergeSignatures(received.hash, received.signers)
-	if len(newSignatures) == 0 {
-		return nil
-	}
-
-	logReceivedSigs(p.id, newSignatures)
-	if h.rootsMgr.tryUpgradeExclusionList(target) {
-		log.Info("upgraded exclusion list", "hash", target.hash, "timestamp", target.timestamp)
-		h.exListCh <- &exclusionSetEvent{fromID: p.id, set: target}
-
-		return nil
-	}
-
-	h.exListCh <- &exclusionSetEvent{fromID: p.id, set: target}
 	return nil
 }
 
-func logReceivedSigs(from string, sigs map[common.Address][]byte) {
+func toSigners(sigs map[common.Address][]byte) []string {
 	var strs []string
 	for addr := range sigs {
 		strs = append(strs, addr.Hex())
 	}
 
-	log.Debug("received new signatures", "signers", strs, "from", from)
+	return strs
 }
