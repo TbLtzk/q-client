@@ -564,6 +564,16 @@ var (
 		Usage: "Comma separated list of JavaScript files to preload into the console",
 	}
 
+	// Governance flags
+	RootTimestampFlag = cli.Uint64Flag{
+		Name:  "root.timestamp",
+		Usage: "timestamp of root nodes list",
+	}
+	RootAddressesFlag = cli.StringFlag{
+		Name:  "root.addresses",
+		Usage: "comma separated address of root nodes list",
+	}
+
 	// Network Settings
 	MaxPeersFlag = cli.IntFlag{
 		Name:  "maxpeers",
@@ -1471,6 +1481,36 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 	if ctx.GlobalIsSet(WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
 		cfg.RestrictConnectionBetweenLightClients = true
 	}
+}
+
+func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
+	if !(ctx.GlobalIsSet(RootTimestampFlag.Name) || ctx.GlobalIsSet(RootAddressesFlag.Name)) {
+		// todo: switch by testnet name
+		cfg.Timestamp = params.DevnetRootNodes.Timestamp
+		cfg.RootAddresses = params.DevnetRootNodes.Nodes
+
+		return
+	}
+
+	if !ctx.GlobalIsSet(RootTimestampFlag.Name) {
+		Fatalf("flag %s is required when %s is set", RootTimestampFlag.Name, RootAddressesFlag.Name)
+	}
+
+	if !ctx.GlobalIsSet(RootAddressesFlag.Name) {
+		Fatalf("flag %s is required when %s is set", RootAddressesFlag.Name, RootTimestampFlag.Name)
+	}
+
+	var addrs []common.Address
+	for _, str := range strings.Split(ctx.GlobalString(RootAddressesFlag.Name), ",") {
+		if !common.IsHexAddress(str) {
+			Fatalf("%s is not a hex address", str)
+		}
+
+		addrs = append(addrs, common.HexToAddress(str))
+	}
+
+	cfg.Timestamp = ctx.GlobalUint64(RootTimestampFlag.Name)
+	cfg.RootAddresses = addrs
 }
 
 // SetEthConfig applies eth-related command line flags to the config.

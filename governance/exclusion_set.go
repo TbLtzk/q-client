@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
-	"sync"
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
@@ -18,11 +17,14 @@ type exclusionSet struct {
 	addresses   []common.Address
 	addrToBlock map[common.Address]uint64
 
-	lock    sync.Mutex
 	signers map[common.Address][]byte
 }
 
 func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error) {
+	if list == nil {
+		return nil, nil
+	}
+
 	if len(list.Validators) == 0 {
 		return nil, nil
 	}
@@ -79,9 +81,6 @@ func (s *exclusionSet) calcHash() common.Hash {
 }
 
 func (s *exclusionSet) mergeSignatures(hash common.Hash, signers map[common.Address][]byte) map[common.Address][]byte {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if s.hash != hash {
 		return nil
 	}
@@ -100,9 +99,6 @@ func (s *exclusionSet) mergeSignatures(hash common.Hash, signers map[common.Addr
 }
 
 func (s *exclusionSet) addSignature(signer common.Address, signature []byte) bool {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if _, ok := s.signers[signer]; ok {
 		return false
 	}
@@ -115,9 +111,6 @@ func (s *exclusionSet) makeList() common.ValidatorExclusionList {
 	if s == nil {
 		return common.ValidatorExclusionList{}
 	}
-
-	s.lock.Lock()
-	defer s.lock.Unlock()
 
 	var signatures [][]byte
 	for _, sig := range s.signers {
@@ -137,5 +130,25 @@ func (s *exclusionSet) makeList() common.ValidatorExclusionList {
 		Hash:       s.hash,
 		Signatures: signatures,
 		Validators: validators,
+	}
+}
+
+func (s *exclusionSet) copy() *exclusionSet {
+	if s == nil {
+		return nil
+	}
+
+	// copy concurrently mutable signers map
+	signers := make(map[common.Address][]byte)
+	for signer, sig := range s.signers {
+		signers[signer] = sig
+	}
+
+	return &exclusionSet{
+		timestamp:   s.timestamp,
+		hash:        s.hash,
+		addresses:   s.addresses,
+		addrToBlock: s.addrToBlock,
+		signers:     signers,
 	}
 }

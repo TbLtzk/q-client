@@ -5,7 +5,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/p2p"
 )
 
@@ -93,37 +92,73 @@ func (p *peer) close() {
 }
 
 type peerStatus struct {
-	rootSet      *rootSet
-	exclusionSet *exclusionSet
+	currentRootSet  *rootSet
+	desiredRootSet  *rootSet
+	proposedRootSet *rootSet
+
+	currentExSet  *exclusionSet
+	desiredExSet  *exclusionSet
+	proposedExSet *exclusionSet
 }
 
-func (p *peer) handshake(rootList common.RootList, exclusionList common.ValidatorExclusionList) (*peerStatus, error) {
-	err := p2p.Send(p.rw, StatusMsg, statusMsgBody{rootList: rootList, exclusionList: exclusionList})
+func (p *peer) handshake(msg statusMsgBody) (*peerStatus, error) {
+	err := p2p.Send(p.rw, StatusMsg, msg)
 	if err != nil {
 		return nil, err
 	}
 
-	msg, err := p.rw.ReadMsg()
+	resp, err := p.rw.ReadMsg()
 	if err != nil {
 		return nil, err
 	}
 
 	var status statusMsgBody
-	if err := msg.Decode(&status); err != nil {
+	if err := resp.Decode(&status); err != nil {
 		return nil, err
 	}
 
-	incomingRoot, err := newRootSet(&status.rootList)
+	currentRootSet, err := newRootSet(&status.CurrentRootList)
 	if err != nil {
-		return nil, errors.Wrap(err, "invalid root list")
+		return nil, errors.Wrap(err, "invalid current root list")
 	}
 
-	incomingExSet, err := newExclusionSet(&status.exclusionList)
+	if currentRootSet == nil {
+		return nil, errors.New("empty current root list")
+	}
+
+	desiredRootSet, err := newRootSet(&status.DesiredRootList)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid desired root list")
+	}
+
+	proposedRootSet, err := newRootSet(&status.ProposedRootList)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid proposed root list")
+	}
+
+	currentExSet, err := newExclusionSet(&status.CurrentExclusionList)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid exclusion list")
 	}
 
-	return &peerStatus{rootSet: incomingRoot, exclusionSet: incomingExSet}, nil
+	desiredExSet, err := newExclusionSet(&status.CurrentExclusionList)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid desired exclusion list")
+	}
+
+	proposedExSet, err := newExclusionSet(&status.ProposedExclusionList)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid proposed exclusion list")
+	}
+
+	return &peerStatus{
+		currentRootSet:  currentRootSet,
+		desiredRootSet:  desiredRootSet,
+		proposedRootSet: proposedRootSet,
+		currentExSet:    currentExSet,
+		desiredExSet:    desiredExSet,
+		proposedExSet:   proposedExSet,
+	}, nil
 }
 
 func (p *peer) listenForRootSets() {
@@ -150,10 +185,6 @@ func (p *peer) listenForExclusionSets() {
 			return
 		}
 	}
-}
-
-func (p *peer) sendStatus(rootList common.RootList) error {
-	return p2p.Send(p.rw, StatusMsg, statusMsgBody{rootList: rootList})
 }
 
 func (p *peer) asyncSendRootList(set *rootSet) {

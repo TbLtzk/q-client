@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
-	"sync"
 
-	mapset "github.com/deckarep/golang-set"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 )
@@ -23,14 +21,10 @@ type rootSet struct {
 	rootAddresses []common.Address
 	roots         map[common.Address]struct{}
 
-	lock    sync.Mutex
 	signers map[common.Address][]byte
 }
 
 func (s *rootSet) addSignature(signer common.Address, signature []byte) bool {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if _, ok := s.signers[signer]; ok {
 		return false
 	}
@@ -49,6 +43,12 @@ func (s *rootSet) calcHash() common.Hash {
 }
 
 func newRootSet(list *common.RootList) (*rootSet, error) {
+	// todo: this is ugly and should be done differently,
+	// same as lots of other things in this package
+	if len(list.Nodes) == 0 {
+		return nil, nil
+	}
+
 	roots := make(map[common.Address]struct{})
 	var rootAddrs []common.Address
 	for _, addr := range list.Nodes {
@@ -116,7 +116,7 @@ func (s *rootSet) isAcceptable(set *rootSet) bool {
 	return percentage >= rootListThresholdPercentage
 }
 
-func (s *rootSet) isAcceptableExclusionSet(set *exclusionSet) bool {
+func (s *rootSet) isEnoughExSetSignatures(set *exclusionSet) bool {
 	var signaturesCount int
 	for signer := range set.signers {
 		if _, ok := s.roots[signer]; ok {
@@ -130,9 +130,6 @@ func (s *rootSet) isAcceptableExclusionSet(set *exclusionSet) bool {
 
 // mergeSignatures saves and returns new signatures found in current
 func (s *rootSet) mergeSignatures(hash common.Hash, signatures map[common.Address][]byte) map[common.Address][]byte {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if s.hash != hash {
 		return nil
 	}
@@ -148,6 +145,17 @@ func (s *rootSet) mergeSignatures(hash common.Hash, signatures map[common.Addres
 	}
 
 	return newSigs
+}
+
+func (s *rootSet) knownSigners(signers map[common.Address][]byte) []common.Address {
+	var intersection []common.Address
+	for addr := range signers {
+		if _, ok := s.roots[addr]; ok {
+			intersection = append(intersection, addr)
+		}
+	}
+
+	return intersection
 }
 
 func (s *rootSet) sanitizeSignatures(signatures [][]byte) (map[common.Address][]byte, error) {
@@ -170,8 +178,9 @@ func (s *rootSet) sanitizeSignatures(signatures [][]byte) (map[common.Address][]
 }
 
 func (s *rootSet) copy() *rootSet {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	if s == nil {
+		return nil
+	}
 
 	signers := make(map[common.Address][]byte, len(s.signers))
 	for signer, signature := range s.signers {
@@ -188,9 +197,6 @@ func (s *rootSet) copy() *rootSet {
 }
 
 func (s *rootSet) signatures() [][]byte {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	sigs := make([][]byte, 0, len(s.signers))
 	for _, sig := range s.signers {
 		sigs = append(sigs, sig)
@@ -200,22 +206,14 @@ func (s *rootSet) signatures() [][]byte {
 }
 
 func (s *rootSet) makeList() common.RootList {
+	if s == nil {
+		return common.RootList{}
+	}
+
 	return common.RootList{
 		Timestamp:  s.timestamp,
 		Hash:       s.hash,
 		Nodes:      s.rootAddresses,
 		Signatures: s.signatures(),
 	}
-}
-
-func (s *rootSet) signersMap() mapset.Set {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	set := mapset.NewSet()
-	for signer := range s.signers {
-		set.Add(signer)
-	}
-
-	return set
 }
