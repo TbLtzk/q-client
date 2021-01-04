@@ -60,8 +60,8 @@ build:
     - docker tag $BUILD_IMAGE $IMAGE_NAME:latest
     - docker push $IMAGE_NAME:latest
 
-# re-tag corresponding image with git tag and publish
-# works only for tags on master
+# it's not really a good way to do this
+# but ok for now
 release:
   image: docker:latest
   stage: release
@@ -71,9 +71,10 @@ release:
     - tags
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
-    - docker pull $BUILD_IMAGE
-    - docker tag $BUILD_IMAGE $IMAGE_NAME:$CI_COMMIT_TAG
-    - docker push $IMAGE_NAME:$CI_COMMIT_TAG
+    - version=$(test -z $CI_COMMIT_TAG && echo $CI_COMMIT_SHA || echo $CI_COMMIT_TAG)
+    - image=$IMAGE_NAME:$CI_COMMIT_TAG
+    - docker build --build-arg version="$version" --build-arg BUILD_TOKEN=${CI_JOB_TOKEN} --build-arg USERNAME=gitlab-ci-token -t $image -f $BUILD_DOCKERFILE .
+    - docker push $image
 
 # deploy_devnet:
 #   image: alpine
