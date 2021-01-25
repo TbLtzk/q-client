@@ -45,6 +45,7 @@ import (
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/eth/gasprice"
+	"gitlab.com/q-dev/q-client/eth/tracers"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethstats"
 	"gitlab.com/q-dev/q-client/graphql"
@@ -1724,6 +1725,7 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) ethapi.Backend {
 		if err != nil {
 			Fatalf("Failed to register the Ethereum service: %v", err)
 		}
+		stack.RegisterAPIs(tracers.APIs(backend.ApiBackend))
 		return backend.ApiBackend
 	}
 	backend, err := eth.New(stack, cfg)
@@ -1736,6 +1738,7 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) ethapi.Backend {
 			Fatalf("Failed to create the LES server: %v", err)
 		}
 	}
+	stack.RegisterAPIs(tracers.APIs(backend.APIBackend))
 	return backend.APIBackend
 }
 
