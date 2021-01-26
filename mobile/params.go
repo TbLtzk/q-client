@@ -22,7 +22,7 @@ import (
 	"encoding/json"
 
 	"gitlab.com/q-dev/q-client/core"
-	"gitlab.com/q-dev/q-client/p2p/discv5"
+	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -62,9 +62,13 @@ func GoerliGenesis() string {
 // FoundationBootnodes returns the enode URLs of the P2P bootstrap nodes operated
 // by the foundation running the V5 discovery protocol.
 func FoundationBootnodes() *Enodes {
-	nodes := &Enodes{nodes: make([]*discv5.Node, len(params.MainnetBootnodes))}
+	nodes := &Enodes{nodes: make([]*enode.Node, len(params.MainnetBootnodes))}
 	for i, url := range params.MainnetBootnodes {
-		nodes.nodes[i] = discv5.MustParseNode(url)
+		var err error
+		nodes.nodes[i], err = enode.Parse(enode.ValidSchemes, url)
+		if err != nil {
+			panic("invalid node URL: " + err.Error())
+		}
 	}
 	return nodes
 }

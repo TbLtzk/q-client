@@ -33,24 +33,12 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/p2p/discv5"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/params"
 )
 
 func errResp(code errCode, format string, v ...interface{}) error {
 	return fmt.Errorf("%v - %v", code, fmt.Sprintf(format, v...))
-}
-
-func lesTopic(genesisHash common.Hash, protocolVersion uint) discv5.Topic {
-	var name string
-	switch protocolVersion {
-	case lpv2:
-		name = "LES2"
-	default:
-		panic(nil)
-	}
-	return discv5.Topic(name + "@" + common.Bytes2Hex(genesisHash.Bytes()[0:8]))
 }
 
 type chainReader interface {
