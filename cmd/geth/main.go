@@ -386,9 +386,6 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend) {
 	}
 	ethClient := ethclient.NewClient(rpcClient)
 
-	// required to interact with smart contracts on consensus level
-	backend.Engine().SetContractBackend(ethClient)
-
 	go func() {
 		// Open any wallets already attached
 		for _, wallet := range stack.AccountManager().Wallets() {

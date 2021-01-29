@@ -26,7 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
@@ -925,8 +924,4 @@ func retesteth(ctx *cli.Context) error {
 	sig := <-abortChan
 	log.Info("Exiting...", "signal", sig)
 	return nil
-}
-
-func (e *NoRewardEngine) SetContractBackend(backend bind.ContractBackend) {
-	e.inner.SetContractBackend(backend)
 }

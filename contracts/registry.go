@@ -21,37 +21,17 @@ type Registry struct {
 	addr                  common.Address
 	defaultRewardReceiver common.Address
 
-	back bind.ContractBackend
+	isTestMode bool
+	back       bind.ContractBackend
 }
 
 // NewRegistry.
-func NewRegistry(addr, defaultRewardReceiver common.Address) *Registry {
-	return &Registry{addr: addr, defaultRewardReceiver: defaultRewardReceiver}
+func NewRegistry(addr, defaultRewardReceiver common.Address, back bind.ContractBackend) *Registry {
+	return &Registry{addr: addr, defaultRewardReceiver: defaultRewardReceiver, back: back}
 }
 
-// Init registry.
-// todo: this is ugly as hell, gotta keep this due to current code structure(
-func (r *Registry) Init(back bind.ContractBackend) error {
-	r.back = back
-	code, err := back.CodeAt(context.TODO(), r.addr, nil)
-	if err != nil {
-		return errors.Wrap(err, "failed to check if contract code is onchain")
-	}
-
-	if len(code) == 0 {
-		go r.setupRegistry(r.addr)
-		return nil
-	}
-
-	reg, err := generated.NewContractRegistry(r.addr, back)
-	if err != nil {
-		panic(err)
-	}
-
-	r.mu.Lock()
-	r.reg = reg
-	r.mu.Unlock()
-	return nil
+func NewTestModeRegistry() *Registry {
+	return &Registry{isTestMode: true}
 }
 
 // Validators returns Validators contract backend if available.
@@ -144,35 +124,34 @@ func (r *Registry) ActiveValidatorsNumber() *int64 {
 	return &x
 }
 
-func (r *Registry) setupRegistry(addr common.Address) {
-	for {
-		time.Sleep(time.Second)
-
-		code, err := r.back.CodeAt(context.TODO(), addr, nil)
-		if err != nil {
-			log.Warn("failed to check if contract registry was deployed", "err", err)
-			continue
-		}
-
-		if len(code) == 0 {
-			log.Debug("contract registry hasn't been deployed yet")
-			continue
-		}
-
-		r.mu.Lock()
-		r.reg, err = generated.NewContractRegistry(addr, r.back)
-		if err != nil {
-			panic(errors.Wrap(err, "failed to init registry backend")) // normally, should never happen
-		}
-		r.mu.Unlock()
-		log.Debug("successfully initialized registry")
-
-		return
-	}
-}
-
 func (r *Registry) registry() *generated.ContractRegistry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	if r.reg != nil {
+		return r.reg
+	}
+
+	// fallback behaviour in test mode
+	if r.isTestMode {
+		return nil
+	}
+
+	// try to init an instance then
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	code, err := r.back.CodeAt(ctx, r.addr, nil)
+	if err != nil {
+		log.Warn("failed to check if contract registry was deployed", "err", err)
+		return nil
+	}
+
+	if len(code) == 0 {
+		log.Debug("contract registry hasn't been deployed yet")
+		return nil
+	}
+
+	// can skip err, it is never returned here
+	r.reg, _ = generated.NewContractRegistry(r.addr, r.back)
 	return r.reg
 }

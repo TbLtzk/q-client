@@ -31,6 +31,8 @@ import (
 	"text/template"
 	"time"
 
+	"gitlab.com/q-dev/q-client/contracts"
+
 	"gitlab.com/q-dev/q-client/governance"
 
 	pcsclite "github.com/gballet/go-libpcsclite"
@@ -1863,8 +1865,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 	}
 	var engine consensus.Engine
 	if config.Clique != nil {
-
-		engine = clique.New(config.Clique, chainDb, nil)
+		engine = clique.New(config.Clique, chainDb, &clique.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry())
 	} else {
 		engine = ethash.NewFaker()
 		if !ctx.GlobalBool(FakePoWFlag.Name) {
