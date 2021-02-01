@@ -185,7 +185,9 @@ func (tx *Transaction) GasPriceCmp(other *Transaction) int {
 	return tx.data.Price.Cmp(other.data.Price)
 }
 func (tx *Transaction) GasPriceIntCmp(other *big.Int) int {
-	return tx.data.Price.Cmp(other)
+	// 1% tolerance
+	tolerance := new(big.Int).Div(new(big.Int).Mul(other, big.NewInt(1)), big.NewInt(100))
+	return tx.data.Price.Cmp(new(big.Int).Sub(other, tolerance))
 }
 func (tx *Transaction) Value() *big.Int  { return new(big.Int).Set(tx.data.Amount) }
 func (tx *Transaction) Nonce() uint64    { return tx.data.AccountNonce }

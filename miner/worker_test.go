@@ -120,7 +120,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 	genesis := gspec.MustCommit(db)
 
 	chain, _ := core.NewBlockChain(db, &core.CacheConfig{TrieDirtyDisabled: true}, gspec.Config, engine, vm.Config{}, nil, nil)
-	txpool := core.NewTxPool(testTxPoolConfig, chainConfig, chain)
+	txpool := core.NewTxPool(testTxPoolConfig, chainConfig, chain, &core.NoopGasPriceProvider{})
 
 	// Generate a small n-block chain and an uncle block for it
 	if n > 0 {
