@@ -25,7 +25,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"gitlab.com/q-dev/q-client/ethclient"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 
 	"gitlab.com/q-dev/q-client/contracts"
 
@@ -96,7 +96,9 @@ type Ethereum struct {
 
 // New creates a new Ethereum object (including the
 // initialisation of the common Ethereum object)
-func New(stack *node.Node, config *Config, gov *governance.RootManager) (*Ethereum, error) {
+// Passing nil conn is ok for ethash and tests.
+// todo: having conn here is ugly, but i need this in order to avoid circular dep.
+func New(stack *node.Node, config *Config, conn bind.ContractBackend, gov *governance.RootManager) (*Ethereum, error) {
 	// Ensure configuration values are compatible and sane
 	if config.SyncMode == downloader.LightSync {
 		return nil, errors.New("can't run eth.Ethereum in light sync mode, use les.LightEthereum")
@@ -132,11 +134,11 @@ func New(stack *node.Node, config *Config, gov *governance.RootManager) (*Ethere
 
 	reg := contracts.NewTestModeRegistry()
 	if cfg := chainConfig.Clique; cfg != nil {
-		rpcConn, err := stack.Attach()
-		if err != nil {
-			panic(fmt.Errorf("failed to attach to the local node %s", err.Error())) // never happens
-		}
-		reg = contracts.NewRegistry(cfg.Registry, cfg.RewardReceiver, ethclient.NewClient(rpcConn))
+		//rpcConn, err := stack.Attach()
+		//if err != nil {
+		//	panic(fmt.Errorf("failed to attach to the local node %s", err.Error())) // never happens
+		//}
+		reg = contracts.NewRegistry(cfg.Registry, cfg.RewardReceiver, conn)
 	}
 
 	eth := &Ethereum{
@@ -201,7 +203,11 @@ func New(stack *node.Node, config *Config, gov *governance.RootManager) (*Ethere
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = stack.ResolvePath(config.TxPool.Journal)
 	}
-	eth.txPool = core.NewTxPool(config.TxPool, chainConfig, eth.blockchain)
+	var gpProvider core.GasPriceProvider = &core.NoopGasPriceProvider{}
+	if cfg := chainConfig.Clique; cfg != nil {
+		gpProvider = core.NewQUSDGasPriceProvider(reg)
+	}
+	eth.txPool = core.NewTxPool(config.TxPool, chainConfig, eth.blockchain, gpProvider)
 
 	// Permit the downloader to use the trie cache allowance during fast sync
 	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit + cacheConfig.SnapshotLimit

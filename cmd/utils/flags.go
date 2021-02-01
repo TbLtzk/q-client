@@ -31,10 +31,6 @@ import (
 	"text/template"
 	"time"
 
-	"gitlab.com/q-dev/q-client/contracts"
-
-	"gitlab.com/q-dev/q-client/governance"
-
 	pcsclite "github.com/gballet/go-libpcsclite"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
@@ -43,6 +39,7 @@ import (
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/vm"
@@ -50,8 +47,10 @@ import (
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/eth/gasprice"
+	"gitlab.com/q-dev/q-client/ethclient"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethstats"
+	"gitlab.com/q-dev/q-client/governance"
 	"gitlab.com/q-dev/q-client/graphql"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/internal/flags"
@@ -1721,7 +1720,9 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config, gov *governance.RootM
 		}
 		return backend.ApiBackend
 	} else {
-		backend, err := eth.New(stack, cfg, gov)
+		conn, _ := stack.Attach()
+		client := ethclient.NewClient(conn)
+		backend, err := eth.New(stack, cfg, client, gov)
 		if err != nil {
 			Fatalf("Failed to register the Ethereum service: %v", err)
 		}

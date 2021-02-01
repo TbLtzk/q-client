@@ -15,6 +15,8 @@ import (
 // Registry of system contracts.
 // current implementation is rather proof of concept
 type Registry struct {
+	Backend bind.ContractBackend
+
 	mu  sync.Mutex
 	reg *generated.ContractRegistry
 
@@ -22,12 +24,11 @@ type Registry struct {
 	defaultRewardReceiver common.Address
 
 	isTestMode bool
-	back       bind.ContractBackend
 }
 
 // NewRegistry.
 func NewRegistry(addr, defaultRewardReceiver common.Address, back bind.ContractBackend) *Registry {
-	return &Registry{addr: addr, defaultRewardReceiver: defaultRewardReceiver, back: back}
+	return &Registry{addr: addr, defaultRewardReceiver: defaultRewardReceiver, Backend: back}
 }
 
 func NewTestModeRegistry() *Registry {
@@ -38,7 +39,6 @@ func NewTestModeRegistry() *Registry {
 func (r *Registry) Validators() *generated.Validators {
 	reg := r.registry()
 	if reg == nil {
-		log.Warn("there is no contract registry")
 		return nil
 	}
 
@@ -48,7 +48,7 @@ func (r *Registry) Validators() *generated.Validators {
 		return nil
 	}
 
-	code, err := r.back.CodeAt(context.TODO(), addr, nil)
+	code, err := r.Backend.CodeAt(context.TODO(), addr, nil)
 	if err != nil {
 		log.Warn("failed to check if validators contract is deployed", "err", err)
 		return nil
@@ -59,7 +59,7 @@ func (r *Registry) Validators() *generated.Validators {
 		return nil
 	}
 
-	val, err := generated.NewValidators(addr, r.back)
+	val, err := generated.NewValidators(addr, r.Backend)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to init validators contract"))
 	}
@@ -108,7 +108,7 @@ func (r *Registry) ActiveValidatorsNumber() *int64 {
 		return nil
 	}
 
-	params, err := generated.NewConstitution(addr, r.back)
+	params, err := generated.NewConstitution(addr, r.Backend)
 	if err != nil {
 		log.Warn("failed to init constitution from address", "addr", addr.Hex(), "err", err)
 		return nil
@@ -124,6 +124,24 @@ func (r *Registry) ActiveValidatorsNumber() *int64 {
 	return &x
 }
 
+// EpqfiParameters returns EpqfiParameters contract backend if available.
+func (r *Registry) EpqfiParameters() *generated.EPQFIParameters {
+	reg := r.registry()
+	if reg == nil {
+		return nil
+	}
+
+	addr, err := reg.MustGetAddress(nil, "governance.experts.EPQFI.parameters")
+	if err != nil {
+		log.Warn("failed to get EPQFI_parameters address", "err", err)
+		return nil
+	}
+
+	// err is never returned here
+	epqfiParams, _ := generated.NewEPQFIParameters(addr, r.Backend)
+	return epqfiParams
+}
+
 func (r *Registry) registry() *generated.ContractRegistry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -133,14 +151,14 @@ func (r *Registry) registry() *generated.ContractRegistry {
 	}
 
 	// fallback behaviour in test mode
-	if r.isTestMode {
+	if r.isTestMode || r.Backend == nil {
 		return nil
 	}
 
 	// try to init an instance then
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	code, err := r.back.CodeAt(ctx, r.addr, nil)
+	code, err := r.Backend.CodeAt(ctx, r.addr, nil)
 	if err != nil {
 		log.Warn("failed to check if contract registry was deployed", "err", err)
 		return nil
@@ -152,6 +170,6 @@ func (r *Registry) registry() *generated.ContractRegistry {
 	}
 
 	// can skip err, it is never returned here
-	r.reg, _ = generated.NewContractRegistry(r.addr, r.back)
+	r.reg, _ = generated.NewContractRegistry(r.addr, r.Backend)
 	return r.reg
 }
