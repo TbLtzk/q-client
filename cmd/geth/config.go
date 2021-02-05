@@ -27,7 +27,7 @@ import (
 	"gopkg.in/urfave/cli.v1"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/eth/ethconfig"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
@@ -85,7 +85,7 @@ type whisperDeprecatedConfig struct {
 }
 
 type gethConfig struct {
-	Eth      eth.Config
+	Eth      ethconfig.Config
 	Shh      whisperDeprecatedConfig
 	Node     node.Config
 	Ethstats ethstatsConfig
@@ -121,7 +121,7 @@ func defaultNodeConfig() node.Config {
 func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	// Load defaults.
 	cfg := gethConfig{
-		Eth:     eth.DefaultConfig,
+		Eth:     ethconfig.Defaults,
 		Node:    defaultNodeConfig(),
 		Metrics: metrics.DefaultConfig,
 	}
