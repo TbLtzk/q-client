@@ -31,7 +31,6 @@ import (
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core/rawdb"
-	"gitlab.com/q-dev/q-client/core/state/snapshot"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
@@ -163,7 +162,7 @@ func (basic *snapshotTestBasic) verify(t *testing.T, chain *BlockChain, blocks [
 	}
 
 	// Check the snapshot, ensure it's integrated
-	if err := snapshot.VerifyState(chain.snaps, block.Root()); err != nil {
+	if err := chain.snaps.Verify(block.Root()); err != nil {
 		t.Errorf("The disk layer is not integrated %v", err)
 	}
 }
