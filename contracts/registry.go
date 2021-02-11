@@ -32,7 +32,11 @@ func NewRegistry(addr, defaultRewardReceiver common.Address, back bind.ContractB
 }
 
 func NewTestModeRegistry() *Registry {
-	return &Registry{isTestMode: true}
+	return &Registry{
+		// need some non-empty address here for miner
+		defaultRewardReceiver: common.HexToAddress("0x92C35a964624D9cbF90c2A0525e116093FAF867E"),
+		isTestMode:            true,
+	}
 }
 
 // Validators returns Validators contract backend if available.
