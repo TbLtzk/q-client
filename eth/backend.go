@@ -25,6 +25,10 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
+
+	"gitlab.com/q-dev/q-client/contracts"
+
 	"gitlab.com/q-dev/q-client/governance"
 
 	"gitlab.com/q-dev/q-client/accounts"
@@ -92,7 +96,9 @@ type Ethereum struct {
 
 // New creates a new Ethereum object (including the
 // initialisation of the common Ethereum object)
-func New(stack *node.Node, config *Config, gov *governance.RootManager) (*Ethereum, error) {
+// Passing nil conn is ok for ethash and tests.
+// todo: having conn here is ugly, but i need this in order to avoid circular dep.
+func New(stack *node.Node, config *Config, conn bind.ContractBackend, gov *governance.RootManager) (*Ethereum, error) {
 	// Ensure configuration values are compatible and sane
 	if config.SyncMode == downloader.LightSync {
 		return nil, errors.New("can't run eth.Ethereum in light sync mode, use les.LightEthereum")
@@ -126,12 +132,21 @@ func New(stack *node.Node, config *Config, gov *governance.RootManager) (*Ethere
 	}
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
+	reg := contracts.NewTestModeRegistry()
+	if cfg := chainConfig.Clique; cfg != nil {
+		//rpcConn, err := stack.Attach()
+		//if err != nil {
+		//	panic(fmt.Errorf("failed to attach to the local node %s", err.Error())) // never happens
+		//}
+		reg = contracts.NewRegistry(cfg.Registry, cfg.RewardReceiver, conn)
+	}
+
 	eth := &Ethereum{
 		config:            config,
 		chainDb:           chainDb,
 		eventMux:          stack.EventMux(),
 		accountManager:    stack.AccountManager(),
-		engine:            CreateConsensusEngine(stack, chainConfig, &config.Ethash, config.Miner.Notify, config.Miner.Noverify, chainDb, gov),
+		engine:            CreateConsensusEngine(stack, chainConfig, &config.Ethash, config.Miner.Notify, config.Miner.Noverify, chainDb, gov, reg),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
 		gasPrice:          config.Miner.GasPrice,
@@ -188,7 +203,11 @@ func New(stack *node.Node, config *Config, gov *governance.RootManager) (*Ethere
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = stack.ResolvePath(config.TxPool.Journal)
 	}
-	eth.txPool = core.NewTxPool(config.TxPool, chainConfig, eth.blockchain)
+	var gpProvider core.GasPriceProvider = &core.NoopGasPriceProvider{}
+	if cfg := chainConfig.Clique; cfg != nil {
+		gpProvider = core.NewQUSDGasPriceProvider(reg)
+	}
+	eth.txPool = core.NewTxPool(config.TxPool, chainConfig, eth.blockchain, gpProvider)
 
 	// Permit the downloader to use the trie cache allowance during fast sync
 	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit + cacheConfig.SnapshotLimit
@@ -242,14 +261,23 @@ func makeExtraData(extra []byte) []byte {
 }
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
-func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database, gov *governance.RootManager) consensus.Engine {
+func CreateConsensusEngine(
+	stack *node.Node,
+	chainConfig *params.ChainConfig,
+	config *ethash.Config,
+	notify []string,
+	noverify bool,
+	db ethdb.Database,
+	gov *governance.RootManager,
+	reg *contracts.Registry,
+) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	if chainConfig.Clique != nil {
 		if gov == nil {
 			log.Warn("creating clique in test mode; exclusion set will always be empty!")
-			return clique.New(chainConfig.Clique, db, &clique.NoopExclusionSetProvider{})
+			return clique.New(chainConfig.Clique, db, &clique.NoopExclusionSetProvider{}, reg)
 		}
-		return clique.New(chainConfig.Clique, db, gov)
+		return clique.New(chainConfig.Clique, db, gov, reg)
 	}
 	// Otherwise assume proof-of-work
 	switch config.PowMode {
