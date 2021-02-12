@@ -47,7 +47,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
 	github.com/tyler-smith/go-bip39 v1.0.1-0.20181017060643-dbb3b84ba2ef
 	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
-	gitlab.com/q-dev/system-contracts v0.0.0-20201023123903-aeceb913ab26
+	gitlab.com/q-dev/system-contracts v0.0.0-20210129155759-17ee5c881a4f
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/sys v0.0.0-20200806125547-5acd03effb82

@@ -15,71 +15,38 @@ import (
 // Registry of system contracts.
 // current implementation is rather proof of concept
 type Registry struct {
+	Backend bind.ContractBackend
+
 	mu  sync.Mutex
 	reg *generated.ContractRegistry
 
 	addr                  common.Address
 	defaultRewardReceiver common.Address
 
-	back bind.ContractBackend
+	isTestMode bool
 }
 
 // NewRegistry.
-func NewRegistry(addr, defaultRewardReceiver common.Address) *Registry {
-	return &Registry{addr: addr, defaultRewardReceiver: defaultRewardReceiver}
+func NewRegistry(addr, defaultRewardReceiver common.Address, back bind.ContractBackend) *Registry {
+	return &Registry{addr: addr, defaultRewardReceiver: defaultRewardReceiver, Backend: back}
 }
 
-// Init registry.
-// todo: this is ugly as hell, gotta keep this due to current code structure(
-func (r *Registry) Init(back bind.ContractBackend) error {
-	r.back = back
-	code, err := back.CodeAt(context.TODO(), r.addr, nil)
-	if err != nil {
-		return errors.Wrap(err, "failed to check if contract code is onchain")
+func NewTestModeRegistry() *Registry {
+	return &Registry{
+		// need some non-empty address here for miner
+		defaultRewardReceiver: common.HexToAddress("0x92C35a964624D9cbF90c2A0525e116093FAF867E"),
+		isTestMode:            true,
 	}
-
-	if len(code) == 0 {
-		go r.setupRegistry(r.addr)
-		return nil
-	}
-
-	reg, err := generated.NewContractRegistry(r.addr, back)
-	if err != nil {
-		panic(err)
-	}
-
-	r.mu.Lock()
-	r.reg = reg
-	r.mu.Unlock()
-	return nil
 }
 
 // Validators returns Validators contract backend if available.
 func (r *Registry) Validators() *generated.Validators {
-	reg := r.registry()
-	if reg == nil {
-		log.Warn("there is no contract registry")
+	addr := r.ValidatorsAddress()
+	if addr == nil {
 		return nil
 	}
 
-	addr, err := reg.MustGetAddress(nil, "governance.validators")
-	if err != nil {
-		log.Warn("failed to get validators address", "err", err)
-		return nil
-	}
-
-	code, err := r.back.CodeAt(context.TODO(), addr, nil)
-	if err != nil {
-		log.Warn("failed to check if validators contract is deployed", "err", err)
-		return nil
-	}
-
-	if len(code) == 0 {
-		log.Warn("there is no validators code")
-		return nil
-	}
-
-	val, err := generated.NewValidators(addr, r.back)
+	val, err := generated.NewValidators(*addr, r.Backend)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to init validators contract"))
 	}
@@ -88,14 +55,9 @@ func (r *Registry) Validators() *generated.Validators {
 }
 
 func (r *Registry) ValidatorsAddress() *common.Address {
-	reg := r.registry()
-	if reg == nil {
-		return nil
-	}
-
-	addr, err := reg.MustGetAddress(nil, "governance.validators")
-	if err != nil {
-		log.Warn("failed to get validators address", "err", err)
+	addr := r.getAddr("governance.validators")
+	if (addr == common.Address{}) {
+		log.Warn("governance.validators contract is not deployed")
 		return nil
 	}
 
@@ -108,9 +70,9 @@ func (r *Registry) RewardReceiver() common.Address {
 		return r.defaultRewardReceiver
 	}
 
-	addr, err := r.registry().MustGetAddress(nil, "tokeneconomics.defaultAllocationProxy")
-	if err != nil {
-		log.Warn("failed to get reward receiver address", "err", err)
+	addr := r.getAddr("tokeneconomics.defaultAllocationProxy")
+	if (addr == common.Address{}) {
+		log.Warn("tokeneconomics.defaultAllocationProxy is not deployed")
 		return r.defaultRewardReceiver
 	}
 
@@ -119,19 +81,15 @@ func (r *Registry) RewardReceiver() common.Address {
 
 // ActiveValidatorsNumber.
 func (r *Registry) ActiveValidatorsNumber() *int64 {
-	if r.registry() == nil {
+	addr := r.getAddr("governance.constitution.parameters")
+	if (addr == common.Address{}) {
+		log.Warn("governance.constitution.parameters is not deployed")
 		return nil
 	}
 
-	addr, err := r.registry().MustGetAddress(nil, "governance.constitution.parameters")
+	params, err := generated.NewConstitution(addr, r.Backend)
 	if err != nil {
-		return nil
-	}
-
-	params, err := generated.NewConstitution(addr, r.back)
-	if err != nil {
-		log.Warn("failed to init constitution from address", "addr", addr.Hex(), "err", err)
-		return nil
+		panic("failed to init constitution contract instance")
 	}
 
 	num, err := params.GetUint(nil, "constitution.maxNValidators")
@@ -144,35 +102,61 @@ func (r *Registry) ActiveValidatorsNumber() *int64 {
 	return &x
 }
 
-func (r *Registry) setupRegistry(addr common.Address) {
-	for {
-		time.Sleep(time.Second)
-
-		code, err := r.back.CodeAt(context.TODO(), addr, nil)
-		if err != nil {
-			log.Warn("failed to check if contract registry was deployed", "err", err)
-			continue
-		}
-
-		if len(code) == 0 {
-			log.Debug("contract registry hasn't been deployed yet")
-			continue
-		}
-
-		r.mu.Lock()
-		r.reg, err = generated.NewContractRegistry(addr, r.back)
-		if err != nil {
-			panic(errors.Wrap(err, "failed to init registry backend")) // normally, should never happen
-		}
-		r.mu.Unlock()
-		log.Debug("successfully initialized registry")
-
-		return
+// EpqfiParameters returns EpqfiParameters contract backend if available.
+func (r *Registry) EpqfiParameters() *generated.EPQFIParameters {
+	addr := r.getAddr("governance.experts.EPQFI.parameters")
+	if (addr == common.Address{}) {
+		log.Warn("governance.experts.EPQFI.parameters is not deployed")
+		return nil
 	}
+
+	// err is never returned here
+	epqfiParams, _ := generated.NewEPQFIParameters(addr, r.Backend)
+	return epqfiParams
 }
 
 func (r *Registry) registry() *generated.ContractRegistry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	if r.reg != nil {
+		return r.reg
+	}
+
+	// fallback behaviour in test mode
+	if r.isTestMode || r.Backend == nil {
+		return nil
+	}
+
+	// try to init an instance then
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	code, err := r.Backend.CodeAt(ctx, r.addr, nil)
+	if err != nil {
+		log.Warn("failed to check if contract registry was deployed", "err", err)
+		return nil
+	}
+
+	if len(code) == 0 {
+		log.Debug("contract registry hasn't been deployed yet")
+		return nil
+	}
+
+	// can skip err, it is never returned here
+	r.reg, _ = generated.NewContractRegistry(r.addr, r.Backend)
 	return r.reg
+}
+
+func (r *Registry) getAddr(key string) common.Address {
+	reg := r.registry()
+	if reg == nil {
+		return common.Address{}
+	}
+
+	addr, err := reg.GetAddress(nil, key)
+	if err != nil {
+		log.Error("failed to get address from registry", "err", err, "key", key)
+	}
+
+	return addr
 }

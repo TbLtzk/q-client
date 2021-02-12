@@ -21,6 +21,10 @@ import (
 	"fmt"
 	"time"
 
+	"gitlab.com/q-dev/q-client/ethclient"
+
+	"gitlab.com/q-dev/q-client/contracts"
+
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
@@ -90,6 +94,14 @@ func New(stack *node.Node, config *eth.Config) (*LightEthereum, error) {
 	}
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
+	reg := contracts.NewTestModeRegistry()
+	if cfg := chainConfig.Clique; cfg != nil {
+		rpcConn, err := stack.Attach()
+		if err != nil {
+			panic(fmt.Errorf("failed to attach to the local node %s", err.Error())) // never happens
+		}
+		reg = contracts.NewRegistry(cfg.Registry, cfg.RewardReceiver, ethclient.NewClient(rpcConn))
+	}
 	peers := newServerPeerSet()
 	leth := &LightEthereum{
 		lesCommons: lesCommons{
@@ -104,7 +116,7 @@ func New(stack *node.Node, config *eth.Config) (*LightEthereum, error) {
 		eventMux:       stack.EventMux(),
 		reqDist:        newRequestDistributor(peers, &mclock.System{}),
 		accountManager: stack.AccountManager(),
-		engine:         eth.CreateConsensusEngine(stack, chainConfig, &config.Ethash, nil, false, chainDb, nil),
+		engine:         eth.CreateConsensusEngine(stack, chainConfig, &config.Ethash, nil, false, chainDb, nil, reg),
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
 		bloomIndexer:   eth.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations),
 		valueTracker:   lpc.NewValueTracker(lespayDb, &mclock.System{}, requestList, time.Minute, 1/float64(time.Hour), 1/float64(time.Hour*100), 1/float64(time.Hour*1000)),

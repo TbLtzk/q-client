@@ -20,7 +20,6 @@ package clique
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 	"math/rand"
@@ -225,7 +224,12 @@ type Clique struct {
 
 // New creates a Clique proof-of-authority consensus engine with the initial
 // signers set to the ones provided by the user.
-func New(config *params.CliqueConfig, db ethdb.Database, rootManager ExclusionSetProvider) *Clique {
+func New(
+	config *params.CliqueConfig,
+	db ethdb.Database,
+	exSetProvider ExclusionSetProvider,
+	registry *contracts.Registry,
+) *Clique {
 	// Set any missing consensus parameters to their defaults
 	conf := *config
 	if conf.Epoch == 0 {
@@ -235,7 +239,6 @@ func New(config *params.CliqueConfig, db ethdb.Database, rootManager ExclusionSe
 	recents, _ := lru.NewARC(inmemorySnapshots)
 	signatures, _ := lru.NewARC(inmemorySignatures)
 
-	registry := contracts.NewRegistry(config.Registry, config.RewardReceiver)
 	return &Clique{
 		config:               &conf,
 		db:                   db,
@@ -244,7 +247,7 @@ func New(config *params.CliqueConfig, db ethdb.Database, rootManager ExclusionSe
 		proposals:            make(map[common.Address]bool),
 		registry:             registry,
 		latestRewardReceiver: registry.RewardReceiver(),
-		exclusionSetProvider: rootManager,
+		exclusionSetProvider: exSetProvider,
 	}
 }
 
@@ -845,12 +848,6 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 	})
 	if err != nil {
 		panic("can't encode: " + err.Error())
-	}
-}
-
-func (c *Clique) SetContractBackend(b bind.ContractBackend) {
-	if err := c.registry.Init(b); err != nil {
-		panic(fmt.Errorf("failed to init contract registry %v", err))
 	}
 }
 

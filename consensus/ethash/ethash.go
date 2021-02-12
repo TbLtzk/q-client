@@ -34,7 +34,6 @@ import (
 	"unsafe"
 
 	"github.com/hashicorp/golang-lru/simplelru"
-	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
@@ -681,8 +680,4 @@ func (ethash *Ethash) APIs(chain consensus.ChainHeaderReader) []rpc.API {
 // dataset.
 func SeedHash(block uint64) []byte {
 	return seedHash(block)
-}
-
-func (ethash *Ethash) SetContractBackend(bind.ContractBackend) {
-	log.Warn("contract backed is not supported for ethash")
 }

@@ -217,11 +217,14 @@ type TxPool struct {
 	config      TxPoolConfig
 	chainconfig *params.ChainConfig
 	chain       blockChain
-	gasPrice    *big.Int
 	txFeed      event.Feed
 	scope       event.SubscriptionScope
 	signer      types.Signer
 	mu          sync.RWMutex
+
+	gpLock        sync.RWMutex
+	gasPrice      *big.Int
+	priceProvider GasPriceProvider
 
 	istanbul bool // Fork indicator whether we are in the istanbul stage.
 
@@ -254,7 +257,7 @@ type txpoolResetRequest struct {
 
 // NewTxPool creates a new transaction pool to gather, sort and filter inbound
 // transactions from the network.
-func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain) *TxPool {
+func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain, gpProvider GasPriceProvider) *TxPool {
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
 
@@ -275,6 +278,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		reorgDoneCh:     make(chan chan struct{}),
 		reorgShutdownCh: make(chan struct{}),
 		gasPrice:        new(big.Int).SetUint64(config.PriceLimit),
+		priceProvider:   gpProvider,
 	}
 	pool.locals = newAccountSet(pool.signer)
 	for _, addr := range config.Locals {
@@ -331,6 +335,10 @@ func (pool *TxPool) loop() {
 		select {
 		// Handle ChainHeadEvent
 		case ev := <-pool.chainHeadCh:
+			if price := pool.priceProvider.GetGasPrice(); price != nil && pool.GasPrice().Cmp(price) != 0 {
+				pool.SetGasPrice(price)
+			}
+
 			if ev.Block != nil {
 				pool.requestReset(head.Header(), ev.Block.Header())
 				head = ev.Block
@@ -408,8 +416,8 @@ func (pool *TxPool) SubscribeNewTxsEvent(ch chan<- NewTxsEvent) event.Subscripti
 
 // GasPrice returns the current gas price enforced by the transaction pool.
 func (pool *TxPool) GasPrice() *big.Int {
-	pool.mu.RLock()
-	defer pool.mu.RUnlock()
+	pool.gpLock.RLock()
+	defer pool.gpLock.RUnlock()
 
 	return new(big.Int).Set(pool.gasPrice)
 }
@@ -417,8 +425,8 @@ func (pool *TxPool) GasPrice() *big.Int {
 // SetGasPrice updates the minimum price required by the transaction pool for a
 // new transaction, and drops all transactions below this threshold.
 func (pool *TxPool) SetGasPrice(price *big.Int) {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
+	pool.gpLock.Lock()
+	defer pool.gpLock.Unlock()
 
 	pool.gasPrice = price
 	for _, tx := range pool.priced.Cap(price, pool.locals) {
@@ -537,7 +545,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Drop non-local transactions under our own minimal accepted gas price
 	local = local || pool.locals.contains(from) // account may be local even if the transaction arrived from the network
-	if !local && tx.GasPriceIntCmp(pool.gasPrice) < 0 {
+	if !local && tx.GasPriceIntCmp(pool.GasPrice()) < 0 {
 		return ErrUnderpriced
 	}
 	// Ensure the transaction adheres to nonce ordering
