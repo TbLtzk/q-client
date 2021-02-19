@@ -26,7 +26,7 @@ import (
 	"gitlab.com/q-dev/q-client/eth/ethconfig"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/les/flowcontrol"
-	lps "gitlab.com/q-dev/q-client/les/lespay/server"
+	vfs "gitlab.com/q-dev/q-client/les/vflux/server"
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
@@ -43,8 +43,8 @@ var (
 	clientPeerField     = serverSetup.NewField("clientPeer", reflect.TypeOf(&clientPeer{}))
 	clientInfoField     = serverSetup.NewField("clientInfo", reflect.TypeOf(&clientInfo{}))
 	connAddressField    = serverSetup.NewField("connAddr", reflect.TypeOf(""))
-	balanceTrackerSetup = lps.NewBalanceTrackerSetup(serverSetup)
-	priorityPoolSetup   = lps.NewPriorityPoolSetup(serverSetup)
+	balanceTrackerSetup = vfs.NewBalanceTrackerSetup(serverSetup)
+	priorityPoolSetup   = vfs.NewPriorityPoolSetup(serverSetup)
 )
 
 func init() {
@@ -137,7 +137,7 @@ func NewLesServer(node *node.Node, e ethBackend, config *ethconfig.Config) (*Les
 	}
 	srv.fcManager.SetCapacityLimits(srv.minCapacity, srv.maxCapacity, srv.minCapacity*2)
 	srv.clientPool = newClientPool(ns, srv.chainDb, srv.minCapacity, defaultConnectedBias, mclock.System{}, srv.dropClient)
-	srv.clientPool.setDefaultFactors(lps.PriceFactors{TimeFactor: 0, CapacityFactor: 1, RequestFactor: 1}, lps.PriceFactors{TimeFactor: 0, CapacityFactor: 1, RequestFactor: 1})
+	srv.clientPool.setDefaultFactors(vfs.PriceFactors{TimeFactor: 0, CapacityFactor: 1, RequestFactor: 1}, vfs.PriceFactors{TimeFactor: 0, CapacityFactor: 1, RequestFactor: 1})
 
 	checkpoint := srv.latestLocalCheckpoint()
 	if !checkpoint.Empty() {

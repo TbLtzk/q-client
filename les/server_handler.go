@@ -33,7 +33,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
-	lps "gitlab.com/q-dev/q-client/les/lespay/server"
+	vfs "gitlab.com/q-dev/q-client/les/vflux/server"
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
@@ -169,7 +169,7 @@ func (h *serverHandler) handle(p *clientPeer) error {
 		p.Log().Debug("Light Ethereum peer rejected", "err", errFullClientPool)
 		return errFullClientPool
 	}
-	p.balance, _ = h.server.ns.GetField(p.Node(), h.server.clientPool.BalanceField).(*lps.NodeBalance)
+	p.balance, _ = h.server.ns.GetField(p.Node(), h.server.clientPool.BalanceField).(*vfs.NodeBalance)
 	if p.balance == nil {
 		return p2p.DiscRequested
 	}

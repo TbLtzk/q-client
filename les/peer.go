@@ -32,9 +32,9 @@ import (
 	"gitlab.com/q-dev/q-client/core/forkid"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/les/flowcontrol"
-	lpc "gitlab.com/q-dev/q-client/les/lespay/client"
-	lps "gitlab.com/q-dev/q-client/les/lespay/server"
 	"gitlab.com/q-dev/q-client/les/utils"
+	vfc "gitlab.com/q-dev/q-client/les/vflux/client"
+	vfs "gitlab.com/q-dev/q-client/les/vflux/server"
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/params"
@@ -349,8 +349,8 @@ type serverPeer struct {
 
 	fcServer         *flowcontrol.ServerNode // Client side mirror token bucket.
 	vtLock           sync.Mutex
-	valueTracker     *lpc.ValueTracker
-	nodeValueTracker *lpc.NodeValueTracker
+	valueTracker     *vfc.ValueTracker
+	nodeValueTracker *vfc.NodeValueTracker
 	sentReqs         map[uint64]sentReqEntry
 
 	// Statistics
@@ -676,7 +676,7 @@ func (p *serverPeer) Handshake(genesis common.Hash, forkid forkid.ID, forkFilter
 
 // setValueTracker sets the value tracker references for connected servers. Note that the
 // references should be removed upon disconnection by setValueTracker(nil, nil).
-func (p *serverPeer) setValueTracker(vt *lpc.ValueTracker, nvt *lpc.NodeValueTracker) {
+func (p *serverPeer) setValueTracker(vt *vfc.ValueTracker, nvt *vfc.NodeValueTracker) {
 	p.vtLock.Lock()
 	p.valueTracker = vt
 	p.nodeValueTracker = nvt
@@ -739,17 +739,17 @@ func (p *serverPeer) answeredRequest(id uint64) {
 		return
 	}
 	var (
-		vtReqs   [2]lpc.ServedRequest
+		vtReqs   [2]vfc.ServedRequest
 		reqCount int
 	)
 	m := requestMapping[e.reqType]
 	if m.rest == -1 || e.amount <= 1 {
 		reqCount = 1
-		vtReqs[0] = lpc.ServedRequest{ReqType: uint32(m.first), Amount: e.amount}
+		vtReqs[0] = vfc.ServedRequest{ReqType: uint32(m.first), Amount: e.amount}
 	} else {
 		reqCount = 2
-		vtReqs[0] = lpc.ServedRequest{ReqType: uint32(m.first), Amount: 1}
-		vtReqs[1] = lpc.ServedRequest{ReqType: uint32(m.rest), Amount: e.amount - 1}
+		vtReqs[0] = vfc.ServedRequest{ReqType: uint32(m.first), Amount: 1}
+		vtReqs[1] = vfc.ServedRequest{ReqType: uint32(m.rest), Amount: e.amount - 1}
 	}
 	dt := time.Duration(mclock.Now() - e.at)
 	vt.Served(nvt, vtReqs[:reqCount], dt)
@@ -765,7 +765,7 @@ type clientPeer struct {
 	responseLock  sync.Mutex
 	responseCount uint64 // Counter to generate an unique id for request processing.
 
-	balance *lps.NodeBalance
+	balance *vfs.NodeBalance
 
 	// invalidLock is used for protecting invalidCount.
 	invalidLock  sync.RWMutex
