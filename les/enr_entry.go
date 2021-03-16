@@ -18,7 +18,6 @@ package les
 
 import (
 	"gitlab.com/q-dev/q-client/core/forkid"
-	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/dnsdisc"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/rlp"
@@ -42,7 +41,7 @@ type ethEntry struct {
 func (ethEntry) ENRKey() string { return "eth" }
 
 // setupDiscovery creates the node discovery source for the eth protocol.
-func (eth *LightEthereum) setupDiscovery(cfg *p2p.Config) (enode.Iterator, error) {
+func (eth *LightEthereum) setupDiscovery() (enode.Iterator, error) {
 	it := enode.NewFairMix(0)
 
 	// Enable DNS discovery.
@@ -56,7 +55,7 @@ func (eth *LightEthereum) setupDiscovery(cfg *p2p.Config) (enode.Iterator, error
 	}
 
 	// Enable DHT.
-	if cfg.DiscoveryV5 && eth.p2pServer.DiscV5 != nil {
+	if eth.udpEnabled {
 		it.AddSource(eth.p2pServer.DiscV5.RandomNodes())
 	}
 
