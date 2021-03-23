@@ -1,0 +1,167 @@
+# governance rpc methods reference
+
+In order to control root list and validators exclusion list, there's a new rpc namespace `gov`.
+
+[source,bash]
+----
+> gov
+{
+  acceptProposedExclusionList: function(),
+  acceptProposedRootList: function(),
+  activeExclusionList: function(),
+  activeRootList: function(),
+  desiredExclusionList: function(),
+  desiredRootList: function(),
+  proposeExclusionListUpdate: function(),
+  proposeRootListUpdate: function(),
+  proposedExclusionList: function(),
+  proposedRootList: function()
+}
+----
+
+## Root List Management
+* `gov.activeRootList`
+
+Prints current root list. Example:
+[source,bash]
+----
+> gov.activeRootList()
+{
+  hash: "0x910ff8d67dc5c6e961280941b4865c48036e44d46035153c1a99baa1a65a2a1c",
+  nodes: ["0x7c7df968bb4aff69b6f613c713c404f88de394d3", "0x42b9e4ffa28bc4bd9c8f7207f3a296ce960a365d"],
+  signers: ["0x7c7df968bb4aff69b6f613c713c404f88de394d3", "0x42b9e4ffa28bc4bd9c8f7207f3a296ce960a365d"],
+  timestamp: 1597927813
+}
+----
+
+Here, `hash` - hash of sorted root list and timestamp, `nodes` - addresses of root nodes, `signers` - root nodes that signed the list.
+
+
+* `gov.desiredRootList`
+
+Prints root list that is in process of collection signatures in order to replace current root list. Example:
+[source,bash]
+----
+> gov.desiredRootList()
+{
+  hash: "0x910ff8d67dc5c6e961280941b4865c48036e44d46035153c1a99baa1a65a2a1c",
+  nodes: ["0x7c7df968bb4aff69b6f613c713c404f88de394d3", "0x42b9e4ffa28bc4bd9c8f7207f3a296ce960a365d", "0xbe945ab6371280D7483Fe0b5C682B445a7C726D4"],
+  signers: ["0x7c7df968bb4aff69b6f613c713c404f88de394d3", "0x42b9e4ffa28bc4bd9c8f7207f3a296ce960a365d"],
+  timestamp: 1597927814
+}
+----
+
+
+* `gov.proposedRootList`
+
+Prints root list waiting for your approval.
+
+
+* `gov.proposeRootListUpdate`
+
+Propose a new version of root list. At least one key from the new list should be unlocked, otherwise method will return the error "not a member of new list". Example:
+[source,bash]
+----
+> gov.proposeRootListUpdate({
+......   "nodes": [
+......    "0x7c7df968bb4aff69b6f613c713c404f88de394d3",
+......    "0x42b9e4ffa28bc4bd9c8f7207f3a296ce960a365d",
+......    "0xbe945ab6371280D7483Fe0b5C682B445a7C726D4"
+......   ],
+......   "timestamp": 1597927814
+...... })
+
+"0x263ff519a38305a1a13ff43100f7f2599ac70128b8a92f9c6c4ba2ec93171cda"
+----
+
+Method accepts a new root list as object, not as a string (note, argument is not quoted in this example).
+
+Required fields are `nodes` and `timestamp`. Output of the method (in the example, `0x263ff519a38305a1a13ff43100f7f2599ac70128b8a92f9c6c4ba2ec93171cda`) is calculated hash of new root list.
+
+
+* `gov.acceptProposedRootList`
+Accept root list returned from `gov.proposedRootList()`. This method will sign and start distributing the proposed root list. Also, the proposed list will replace current `desired list`.
+
+
+## Validators Exclusion List Management
+Methods for exclusion list management have same behaviour as methods for root list management.
+
+* `gov.activeExclusionList`
+
+Prints current exclusion list (`null` if none). Example:
+[source,bash]
+----
+> gov.activeExclusionList()
+{
+  hash: "0x10ddb25b24e7396f4d8ebb3ea46bedfd1fa1361ef84487237dd868793d0e77ae",
+  signers: [
+      "0x7c7df968bb4aff69b6f613c713c404f88de394d3",
+      "0x42b9e4ffa28bc4bd9c8f7207f3a296ce960a365d"
+  ],
+  timestamp: 1597927820,
+  validators: [{
+      address: "0xbe945ab6371280d7483fe0b5c682b445a7c726d4",
+      block: 100
+  }, {
+      address: "0xb9f15ab8e22569cd5f46fd011133242f3517ac8b",
+      block: 200
+  }]
+}
+----
+
+Here, `signers` - root nodes that signed the list, `validators` - list of excluded validators (`address` - validator's address and `block` is block number since which validator is excluded)
+
+
+* `gov.desiredExclusionList`
+
+Prints exclusion list in process of collecting root nodes signatures in order to be accepted as current exclusion list. Example:
+[source,bash]
+----
+> gov.desiredExclusionList()
+{
+  hash: "0x10ddb25b24e7396f4d8ebb3ea46bedfd1fa1361ef84487237dd868793d0e77ae",
+  signers: ["0x7c7df968bb4aff69b6f613c713c404f88de394d3"],
+  timestamp: 1597927820,
+  validators: [{
+      address: "0xbe945ab6371280d7483fe0b5c682b445a7c726d4",
+      block: 100
+  }, {
+      address: "0xb9f15ab8e22569cd5f46fd011133242f3517ac8b",
+      block: 200
+  }]
+}
+----
+
+* `gov.proposedExclusionList`
+
+Prints exclusion list waiting for your approval.
+
+
+* `gov.proposeExclusionListUpdate`
+
+Propose new version of exclusion list. `timestamp` must be larger than current exclusion list's `timestamp`. Can be called only on q-client with one of root nodes keys unlocked. Example:
+[source,bash]
+----
+> gov.proposeExclusionListUpdate({
+......     "timestamp": 1597927820,
+......     "validators": [
+......         {
+.........             "address": "0xbe945ab6371280D7483Fe0b5C682B445a7C726D4",
+.........             "block": 100
+.........         },
+......         {
+.........             "address": "0xb9f15AB8E22569Cd5F46Fd011133242F3517AC8B",
+.........             "block": 200
+.........         }        
+......     ]
+...... })
+
+"0x10ddb25b24e7396f4d8ebb3ea46bedfd1fa1361ef84487237dd868793d0e77ae"
+----
+
+Method prints calculated `hash` of the list.
+
+
+* `gov.acceptProposedExclusionList`
+
+Accept exlusion list returned from `gov.proposedExclusionList()`. This method will sign and start distributing the proposed exclusion list. Also, the proposed list will replace current `desired list`.
