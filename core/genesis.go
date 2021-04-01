@@ -390,6 +390,69 @@ func DefaultYoloV1GenesisBlock() *Genesis {
 	}
 }
 
+// DefaultDevnetGenesisBlock returns devnet genesis block.
+func DefaultDevnetGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.DevnetChainConfig,
+		Timestamp:  0x60646e00,
+		ExtraData:  hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000004a14d788d86d021670ebcece1196631d6659598464d4edefe8ba86d3588b213b0a053e7b910cad686a39b688d591ea00c9ea69658438794204b5cc620000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:   0x147b760,
+		Difficulty: big.NewInt(1),
+		Alloc: GenesisAlloc{
+			common.HexToAddress("0x66316FfA38490d4d072F34EF7D7BA64Ce6b4478e"): GenesisAccount{
+				Balance: hexToBigInt("0x204FCD8566FE4B4995800000"),
+			},
+			common.HexToAddress("0x532c69263800e1f1cdb72acae555a85864146986"): GenesisAccount{
+				Balance: hexToBigInt("0x3635c9adc5dea00000"),
+			},
+			common.HexToAddress("0x64d4edefe8ba86d3588b213b0a053e7b910cad68"): GenesisAccount{
+				Balance: hexToBigInt("0x56BC75E2D63100000"),
+			},
+			common.HexToAddress("0x6a39b688d591ea00c9ea69658438794204b5cc62"): GenesisAccount{
+				Balance: hexToBigInt("0x56BC75E2D63100000"),
+			},
+			common.HexToAddress("0x4a14d788d86d021670ebcece1196631d66595984"): GenesisAccount{
+				Balance: hexToBigInt("0x56BC75E2D63100000"),
+			},
+			common.HexToAddress("0xcca19442F5b3e5Fa71aaE69C092aC280e81Fd39f"): GenesisAccount{
+				Balance: hexToBigInt("0x925E06EEC972B00000"),
+			},
+		},
+	}
+}
+
+// DefaultDarrowGenesisBlock.
+func DefaultDarrowGenesisBlock() *Genesis {
+	return &Genesis{
+		Config:     params.DarrowChainConfig,
+		Timestamp:  0x602bd9a6,
+		ExtraData:  hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000004a14d788d86d021670ebcece1196631d6659598464d4edefe8ba86d3588b213b0a053e7b910cad686a39b688d591ea00c9ea69658438794204b5cc620000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:   0x147b760,
+		Difficulty: big.NewInt(1),
+		Alloc: GenesisAlloc{
+			common.HexToAddress("0x66316FfA38490d4d072F34EF7D7BA64Ce6b4478e"): GenesisAccount{
+				Balance: hexToBigInt("0x204FCD8566FE4B4995800000"),
+			},
+			common.HexToAddress("0x532c69263800e1f1cdb72acae555a85864146986"): GenesisAccount{
+				Balance: hexToBigInt("0x3635c9adc5dea00000"),
+			},
+			common.HexToAddress("0x64d4edefe8ba86d3588b213b0a053e7b910cad68"): GenesisAccount{
+				Balance: hexToBigInt("0x56BC75E2D63100000"),
+			},
+			common.HexToAddress("0x6a39b688d591ea00c9ea69658438794204b5cc62"): GenesisAccount{
+				Balance: hexToBigInt("0x56BC75E2D63100000"),
+			},
+			common.HexToAddress("0x4a14d788d86d021670ebcece1196631d66595984"): GenesisAccount{
+				Balance: hexToBigInt("0x56BC75E2D63100000"),
+			},
+			common.HexToAddress("0xcca19442F5b3e5Fa71aaE69C092aC280e81Fd39f"): GenesisAccount{
+				Balance: hexToBigInt("0x925E06EEC972B00000"),
+			},
+		},
+	}
+
+}
+
 // DeveloperGenesisBlock returns the 'geth --dev' genesis block.
 func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
 	// Override the default period to the user requested one
@@ -427,4 +490,13 @@ func decodePrealloc(data string) GenesisAlloc {
 		ga[common.BigToAddress(account.Addr)] = GenesisAccount{Balance: account.Balance}
 	}
 	return ga
+}
+
+func hexToBigInt(hex string) *big.Int {
+	x, ok := new(big.Int).SetString(hex, 0)
+	if !ok {
+		panic(fmt.Errorf("%s is an invalid hex number", hex))
+	}
+
+	return x
 }

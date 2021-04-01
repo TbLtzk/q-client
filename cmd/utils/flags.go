@@ -134,6 +134,7 @@ var (
 		Usage: "Network identifier (integer, 1=Frontier, 3=Ropsten, 4=Rinkeby, 5=Görli)",
 		Value: eth.DefaultConfig.NetworkId,
 	}
+	// todo: remove?
 	GoerliFlag = cli.BoolFlag{
 		Name:  "goerli",
 		Usage: "Görli network: pre-configured proof-of-authority test network",
@@ -150,6 +151,17 @@ var (
 		Name:  "ropsten",
 		Usage: "Ropsten network: pre-configured proof-of-work test network",
 	}
+
+	// Q networks
+	DevnetFlag = cli.BoolFlag{
+		Name:  "devnet",
+		Usage: "Devnet network: pre-configured poa short-lived test network",
+	}
+	DarrowFlag = cli.BoolFlag{
+		Name:  "darrow",
+		Usage: "Darrow network: pre-configured poa test network",
+	}
+
 	DeveloperFlag = cli.BoolFlag{
 		Name:  "dev",
 		Usage: "Ephemeral proof-of-authority network with a pre-funded developer account, mining enabled",
@@ -737,7 +749,8 @@ var (
 // then a subdirectory of the specified datadir will be used.
 func MakeDataDir(ctx *cli.Context) string {
 	if path := ctx.GlobalString(DataDirFlag.Name); path != "" {
-		if ctx.GlobalBool(LegacyTestnetFlag.Name) || ctx.GlobalBool(RopstenFlag.Name) {
+		switch true {
+		case ctx.GlobalBool(LegacyTestnetFlag.Name) || ctx.GlobalBool(RopstenFlag.Name):
 			// Maintain compatibility with older Geth configurations storing the
 			// Ropsten database in `testnet` instead of `ropsten`.
 			legacyPath := filepath.Join(path, "testnet")
@@ -745,18 +758,21 @@ func MakeDataDir(ctx *cli.Context) string {
 				return legacyPath
 			}
 			return filepath.Join(path, "ropsten")
-		}
-		if ctx.GlobalBool(RinkebyFlag.Name) {
+		case ctx.GlobalBool(RinkebyFlag.Name):
 			return filepath.Join(path, "rinkeby")
-		}
-		if ctx.GlobalBool(GoerliFlag.Name) {
+		case ctx.GlobalBool(GoerliFlag.Name):
 			return filepath.Join(path, "goerli")
-		}
-		if ctx.GlobalBool(YoloV1Flag.Name) {
+		case ctx.GlobalBool(YoloV1Flag.Name):
 			return filepath.Join(path, "yolo-v1")
+		case ctx.GlobalBool(DevnetFlag.Name):
+			return filepath.Join(path, "devnet")
+		case ctx.GlobalBool(DarrowFlag.Name):
+			return filepath.Join(path, "discostu")
+		default:
+			return path
 		}
-		return path
 	}
+
 	Fatalf("Cannot determine default data directory, please set manually (--datadir)")
 	return ""
 }
@@ -809,6 +825,11 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = params.GoerliBootnodes
 	case ctx.GlobalBool(YoloV1Flag.Name):
 		urls = params.YoloV1Bootnodes
+	// Q networks
+	case ctx.GlobalBool(DevnetFlag.Name):
+		urls = params.DevnetBootnodes
+	case ctx.GlobalBool(DarrowFlag.Name):
+		urls = params.DarrowBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -1275,6 +1296,10 @@ func setDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "goerli")
 	case ctx.GlobalBool(YoloV1Flag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "yolo-v1")
+	case ctx.GlobalBool(DevnetFlag.Name) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "devnet")
+	case ctx.GlobalBool(DarrowFlag.Name) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "darrow")
 	}
 }
 
@@ -1517,7 +1542,19 @@ func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
-	CheckExclusive(ctx, DeveloperFlag, LegacyTestnetFlag, RopstenFlag, RinkebyFlag, GoerliFlag, YoloV1Flag)
+	CheckExclusive(
+		ctx,
+		DeveloperFlag,
+		LegacyTestnetFlag,
+		RopstenFlag,
+		RinkebyFlag,
+		GoerliFlag,
+		YoloV1Flag,
+		// Q
+		DevnetFlag,
+		DarrowFlag,
+	)
+
 	CheckExclusive(ctx, LegacyLightServFlag, LightServeFlag, SyncModeFlag, "light")
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
 	CheckExclusive(ctx, GCModeFlag, "archive", TxLookupLimitFlag)
@@ -1642,6 +1679,17 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.NetworkId = 133519467574833 // "yolov1"
 		}
 		cfg.Genesis = core.DefaultYoloV1GenesisBlock()
+	// Q networks
+	case ctx.GlobalBool(DevnetFlag.Name):
+		cfg.Genesis = core.DefaultDevnetGenesisBlock()
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = cfg.Genesis.Config.ChainID.Uint64()
+		}
+	case ctx.GlobalBool(DarrowFlag.Name):
+		cfg.Genesis = core.DefaultDarrowGenesisBlock()
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = cfg.Genesis.Config.ChainID.Uint64()
+		}
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
@@ -1850,6 +1898,11 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultGoerliGenesisBlock()
 	case ctx.GlobalBool(YoloV1Flag.Name):
 		genesis = core.DefaultYoloV1GenesisBlock()
+	// Q networks
+	case ctx.GlobalBool(DevnetFlag.Name):
+		genesis = core.DefaultDevnetGenesisBlock()
+	case ctx.GlobalBool(DarrowFlag.Name):
+		genesis = core.DefaultDarrowGenesisBlock()
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
 	}
