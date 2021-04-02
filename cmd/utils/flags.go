@@ -584,7 +584,7 @@ var (
 	}
 	RootAddressesFlag = cli.StringFlag{
 		Name:  "root.addresses",
-		Usage: "comma separated address of root nodes list",
+		Usage: "comma separated addresses of root nodes",
 	}
 
 	// Network Settings
@@ -832,6 +832,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = params.DarrowBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
+	default:
+		urls = params.MainnetBootnodes
 	}
 
 	cfg.BootstrapNodes = make([]*enode.Node, 0, len(urls))
@@ -1511,17 +1513,21 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 
 func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
 	if !(ctx.GlobalIsSet(RootTimestampFlag.Name) || ctx.GlobalIsSet(RootAddressesFlag.Name)) {
-		// todo: switch by testnet name
-		cfg.Timestamp = params.DevnetRootNodes.Timestamp
-		cfg.RootAddresses = params.DevnetRootNodes.Nodes
-
+		switch true {
+		case ctx.GlobalBool(DevnetFlag.Name):
+			cfg.RootList = params.DevnetRootNodes
+		case ctx.GlobalBool(DarrowFlag.Name):
+			cfg.RootList = params.DarrowRootNodes
+		default:
+			cfg.RootList = params.MainnetRootNodes
+		}
 		return
 	}
 
+	// validate flags
 	if !ctx.GlobalIsSet(RootTimestampFlag.Name) {
 		Fatalf("flag %s is required when %s is set", RootTimestampFlag.Name, RootAddressesFlag.Name)
 	}
-
 	if !ctx.GlobalIsSet(RootAddressesFlag.Name) {
 		Fatalf("flag %s is required when %s is set", RootAddressesFlag.Name, RootTimestampFlag.Name)
 	}
@@ -1529,14 +1535,16 @@ func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
 	var addrs []common.Address
 	for _, str := range strings.Split(ctx.GlobalString(RootAddressesFlag.Name), ",") {
 		if !common.IsHexAddress(str) {
-			Fatalf("%s is not a hex address", str)
+			Fatalf("invalid %s: %s is not a hex encoded address", RootAddressesFlag.Name, str)
 		}
 
 		addrs = append(addrs, common.HexToAddress(str))
 	}
 
-	cfg.Timestamp = ctx.GlobalUint64(RootTimestampFlag.Name)
-	cfg.RootAddresses = addrs
+	cfg.RootList = common.RootList{
+		Timestamp: ctx.GlobalUint64(RootTimestampFlag.Name),
+		Nodes:     addrs,
+	}
 }
 
 // SetEthConfig applies eth-related command line flags to the config.
@@ -1737,8 +1745,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.Miner.GasPrice = big.NewInt(1)
 		}
 	default:
-		if cfg.NetworkId == 1 {
-			setDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.Genesis = core.DefaultMainnetGenesisBlock()
+			cfg.NetworkId = cfg.Genesis.Config.ChainID.Uint64()
 		}
 	}
 }
