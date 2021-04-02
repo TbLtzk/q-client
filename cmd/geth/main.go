@@ -310,7 +310,7 @@ func prepare(ctx *cli.Context) {
 	case ctx.GlobalIsSet(utils.DarrowFlag.Name):
 		log.Info("Starting q-client on Darrow testnet...")
 	case !ctx.GlobalIsSet(utils.NetworkIdFlag.Name):
-		log.Info("Starting Geth on Ethereum mainnet...")
+		log.Info("Starting q-client on Q mainnet...")
 	}
 
 	// If we're a full node on mainnet without --cache specified, bump default cache allowance

@@ -41,16 +41,13 @@ type Keystore interface {
 	SignHash(a accounts.Account, hash []byte) ([]byte, error)
 }
 
-func newRootManager(ks Keystore, cfg *Config) (*RootManager, error) {
-	db, err := newDatabase(filepath.Join(cfg.InstanceDir, "gov"))
+func newRootManager(ks Keystore, datadir string, cfg *Config) (*RootManager, error) {
+	db, err := newDatabase(filepath.Join(datadir, "gov"))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init gov database")
 	}
 
-	defaultRootSet, err := newRootSet(&common.RootList{
-		Timestamp: cfg.Timestamp,
-		Nodes:     cfg.RootAddresses,
-	})
+	defaultRootSet, err := newRootSet(&cfg.RootList)
 	if err != nil {
 		return nil, errors.Wrap(err, "malformed default root list")
 	}

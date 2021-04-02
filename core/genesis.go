@@ -332,6 +332,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 }
 
 // DefaultGenesisBlock returns the Ethereum main net genesis block.
+// NOTE: eth mainnet is left here because of its usage in tests.
 func DefaultGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
@@ -388,6 +389,11 @@ func DefaultYoloV1GenesisBlock() *Genesis {
 		Difficulty: big.NewInt(1),
 		Alloc:      decodePrealloc(yoloV1AllocData),
 	}
+}
+
+// DefaultMainnetGenesisBlock - Q mainnet.
+func DefaultMainnetGenesisBlock() *Genesis {
+	return DefaultDarrowGenesisBlock()
 }
 
 // DefaultDevnetGenesisBlock returns devnet genesis block.

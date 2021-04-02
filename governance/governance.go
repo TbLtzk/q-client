@@ -11,10 +11,7 @@ import (
 
 // Config of governance svc.
 type Config struct {
-	InstanceDir string `toml:"-"`
-
-	Timestamp     uint64           `toml:"-"`
-	RootAddresses []common.Address `toml:"-"`
+	RootList common.RootList `toml:"-"`
 }
 
 // Governance service is responsible
@@ -28,7 +25,7 @@ type Governance struct {
 // New Governance service.
 func New(stack *node.Node, cfg *Config) (*Governance, error) {
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	rootMgr, err := newRootManager(ks, cfg)
+	rootMgr, err := newRootManager(ks, stack.InstanceDir(), cfg)
 	if err != nil {
 		return nil, err
 	}
