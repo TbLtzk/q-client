@@ -1745,10 +1745,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.Miner.GasPrice = big.NewInt(1)
 		}
 	default:
-		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.Genesis = core.DefaultMainnetGenesisBlock()
-			cfg.NetworkId = cfg.Genesis.Config.ChainID.Uint64()
-		}
 	}
 }
 
