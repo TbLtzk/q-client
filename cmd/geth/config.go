@@ -136,8 +136,6 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	}
 	utils.SetShhConfig(ctx, stack, &cfg.Shh)
 
-	// todo: such linking doesn't look nice
-	cfg.Governance = governance.Config{InstanceDir: stack.InstanceDir()}
 	utils.SetGovConfig(ctx, stack, &cfg.Governance)
 
 	return stack, cfg

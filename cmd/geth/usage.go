@@ -40,10 +40,15 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.NoUSBFlag,
 			utils.SmartCardDaemonPathFlag,
 			utils.NetworkIdFlag,
+
 			utils.GoerliFlag,
 			utils.RinkebyFlag,
 			utils.YoloV1Flag,
 			utils.RopstenFlag,
+
+			utils.DevnetFlag,
+			utils.DarrowFlag,
+
 			utils.SyncModeFlag,
 			utils.ExitWhenSyncedFlag,
 			utils.GCModeFlag,
