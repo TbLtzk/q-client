@@ -27,7 +27,7 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
+	MainnetGenesisHash = common.HexToHash("0x382188b2bc6e999cd635bfac6a032dbebf278ce5a0786edf4774c26a4ef3f482")
 	RopstenGenesisHash = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
 	RinkebyGenesisHash = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
 	GoerliGenesisHash  = common.HexToHash("0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a")
@@ -54,22 +54,24 @@ var CheckpointOracles = map[common.Hash]*CheckpointOracleConfig{
 
 var (
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
-	MainnetChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(1),
-		HomesteadBlock:      big.NewInt(1150000),
-		DAOForkBlock:        big.NewInt(1920000),
-		DAOForkSupport:      true,
-		EIP150Block:         big.NewInt(2463000),
-		EIP150Hash:          common.HexToHash("0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0"),
-		EIP155Block:         big.NewInt(2675000),
-		EIP158Block:         big.NewInt(2675000),
-		ByzantiumBlock:      big.NewInt(4370000),
-		ConstantinopleBlock: big.NewInt(7280000),
-		PetersburgBlock:     big.NewInt(7280000),
-		IstanbulBlock:       big.NewInt(9069000),
-		MuirGlacierBlock:    big.NewInt(9200000),
-		Ethash:              new(EthashConfig),
-	}
+	//MainnetChainConfig = &ChainConfig{
+	//	ChainID:             big.NewInt(1),
+	//	HomesteadBlock:      big.NewInt(1150000),
+	//	DAOForkBlock:        big.NewInt(1920000),
+	//	DAOForkSupport:      true,
+	//	EIP150Block:         big.NewInt(2463000),
+	//	EIP150Hash:          common.HexToHash("0x2086799aeebeae135c246c65021c82b4e15a2c451340993aacfd2751886514f0"),
+	//	EIP155Block:         big.NewInt(2675000),
+	//	EIP158Block:         big.NewInt(2675000),
+	//	ByzantiumBlock:      big.NewInt(4370000),
+	//	ConstantinopleBlock: big.NewInt(7280000),
+	//	PetersburgBlock:     big.NewInt(7280000),
+	//	IstanbulBlock:       big.NewInt(9069000),
+	//	MuirGlacierBlock:    big.NewInt(9200000),
+	//	Ethash:              new(EthashConfig),
+	//}
+	// todo: change to Q mainnet
+	MainnetChainConfig = DarrowChainConfig
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
