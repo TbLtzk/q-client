@@ -132,12 +132,10 @@ func New(stack *node.Node, config *Config, conn bind.ContractBackend, gov *gover
 	}
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
+	// leave testmode for compatibility with ethash
+	// in unit tests
 	reg := contracts.NewTestModeRegistry()
 	if cfg := chainConfig.Clique; cfg != nil {
-		//rpcConn, err := stack.Attach()
-		//if err != nil {
-		//	panic(fmt.Errorf("failed to attach to the local node %s", err.Error())) // never happens
-		//}
 		reg = contracts.NewRegistry(cfg.Registry, cfg.RewardReceiver, conn)
 	}
 
@@ -221,12 +219,11 @@ func New(stack *node.Node, config *Config, conn bind.ContractBackend, gov *gover
 	eth.miner = miner.New(eth, &config.Miner, chainConfig, eth.EventMux(), eth.engine, eth.isLocalBlock)
 	eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
-	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), eth, nil}
-	gpoParams := config.GPO
-	if gpoParams.Default == nil {
-		gpoParams.Default = config.Miner.GasPrice
+	eth.APIBackend = &EthAPIBackend{
+		extRPCEnabled: stack.Config().ExtRPCEnabled(),
+		eth:           eth,
+		oracle:        gasprice.NewEPQFIParamsOracle(config.Miner.GasPrice, reg, eth.blockchain),
 	}
-	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
 
 	eth.dialCandidates, err = eth.setupDiscovery(&stack.Config().P2P)
 	if err != nil {
