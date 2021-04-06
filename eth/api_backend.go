@@ -43,7 +43,7 @@ import (
 type EthAPIBackend struct {
 	extRPCEnabled bool
 	eth           *Ethereum
-	gpo           *gasprice.Oracle
+	oracle        *gasprice.EPQFIParamsOracle
 }
 
 // ChainConfig returns the active chain configuration.
@@ -276,7 +276,8 @@ func (b *EthAPIBackend) ProtocolVersion() int {
 }
 
 func (b *EthAPIBackend) SuggestPrice(ctx context.Context) (*big.Int, error) {
-	return b.gpo.SuggestPrice(ctx)
+	return b.oracle.GetGasPrice(), nil
+	//return b.gpo.SuggestPrice(ctx)
 }
 
 func (b *EthAPIBackend) ChainDb() ethdb.Database {
