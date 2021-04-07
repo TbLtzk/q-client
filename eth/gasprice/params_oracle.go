@@ -61,7 +61,7 @@ func (p *EPQFIParamsOracle) GetGasPrice() *big.Int {
 }
 
 func (p *EPQFIParamsOracle) runLoop() {
-	for _ = range p.chainEventCh {
+	for range p.chainEventCh {
 		p.refreshGasPrice()
 	}
 }
