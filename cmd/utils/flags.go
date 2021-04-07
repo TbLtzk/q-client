@@ -325,7 +325,7 @@ var (
 	}
 	TxPoolPriceLimitFlag = cli.Uint64Flag{
 		Name:  "txpool.pricelimit",
-		Usage: "Minimum gas price limit to enforce for acceptance into the pool",
+		Usage: "Minimum gas price limit to enforce for acceptance into the pool. EPQFI param will be used by default",
 		Value: eth.DefaultConfig.TxPool.PriceLimit,
 	}
 	TxPoolPriceBumpFlag = cli.Uint64Flag{

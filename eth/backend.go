@@ -25,6 +25,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"gitlab.com/q-dev/q-client/eth/gasprice"
+
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 
 	"gitlab.com/q-dev/q-client/contracts"
@@ -44,7 +46,6 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/eth/filters"
-	"gitlab.com/q-dev/q-client/eth/gasprice"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
@@ -203,7 +204,7 @@ func New(stack *node.Node, config *Config, conn bind.ContractBackend, gov *gover
 	}
 	var gpProvider core.GasPriceProvider = &core.NoopGasPriceProvider{}
 	if cfg := chainConfig.Clique; cfg != nil {
-		gpProvider = core.NewQUSDGasPriceProvider(reg)
+		gpProvider = gasprice.NewEPQFIParamsOracle(config.Miner.GasPrice, reg, eth.blockchain)
 	}
 	eth.txPool = core.NewTxPool(config.TxPool, chainConfig, eth.blockchain, gpProvider)
 
@@ -222,7 +223,7 @@ func New(stack *node.Node, config *Config, conn bind.ContractBackend, gov *gover
 	eth.APIBackend = &EthAPIBackend{
 		extRPCEnabled: stack.Config().ExtRPCEnabled(),
 		eth:           eth,
-		oracle:        gasprice.NewEPQFIParamsOracle(config.Miner.GasPrice, reg, eth.blockchain),
+		oracle:        gpProvider,
 	}
 
 	eth.dialCandidates, err = eth.setupDiscovery(&stack.Config().P2P)
