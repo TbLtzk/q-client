@@ -28,6 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/forkid"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth/downloader"
+	"gitlab.com/q-dev/q-client/eth/protocols/eth"
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p"
@@ -470,7 +471,7 @@ func (d *downloaderPeerNotify) registerPeer(p *serverPeer) {
 		handler: h,
 		peer:    p,
 	}
-	h.downloader.RegisterLightPeer(p.id, ethVersion, pc)
+	h.downloader.RegisterLightPeer(p.id, eth.ETH65, pc)
 }
 
 func (d *downloaderPeerNotify) unregisterPeer(p *serverPeer) {
