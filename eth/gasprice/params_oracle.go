@@ -70,38 +70,42 @@ func (p *EPQFIParamsOracle) refreshGasPrice() {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
+	if newPrice := p.getGasPrice(); newPrice.Cmp(p.price) != 0 {
+		log.Info("refreshed gas price", "old", p.price.String(), "new", newPrice.String())
+		p.price = newPrice
+	}
+}
+
+func (p *EPQFIParamsOracle) getGasPrice() *big.Int {
 	epqfi := p.registry.EpqfiParameters()
 	if epqfi == nil {
-		return
+		return p.price
 	}
 
 	oracleAddr, err := epqfi.GetAddr(nil, "governed.EPQFI.Q_QUSD_source")
 	if err != nil {
 		log.Warn("failed to get governed.EPQFI.Q_QUSD_source address", "err", err)
-		return
+		return p.price
 	}
 
 	oracle, _ := generated.NewFxPriceFeed(oracleAddr, p.registry.Backend)
 	exchangeRate, err := oracle.ExchangeRate(nil)
 	if err != nil {
 		log.Warn("failed to get exchange rate", "err", err)
-		return
+		return p.price
 	}
 
 	if exchangeRate.Int64() == 0 {
 		log.Warn("Q-QUSD oracle is not initialized", "addr", oracleAddr.Hex())
-		return
+		return p.price
 	}
 
 	priceQUSD, err := epqfi.GetUint(nil, "governed.EPQFI.txFee")
 	if err != nil {
 		log.Warn("failed to get governed.EPQFI.txFee", "err", err)
-		return
+		return p.price
 	}
 
-	decimals := big.NewInt(0).Exp(big.NewInt(10), big.NewInt(18), nil)
-	newPrice := big.NewInt(0).Div(big.NewInt(0).Mul(priceQUSD, decimals), exchangeRate)
-
-	log.Info("refreshed gas price", "old", p.price.String(), "new", newPrice.String())
-	p.price = newPrice
+	decimals := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	return new(big.Int).Div(new(big.Int).Mul(priceQUSD, decimals), exchangeRate)
 }
