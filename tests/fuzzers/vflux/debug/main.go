@@ -21,10 +21,13 @@ import (
 	"io/ioutil"
 	"os"
 
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/tests/fuzzers/vflux"
 )
 
 func main() {
+	log.Root().SetHandler(log.LvlFilterHandler(log.LvlTrace, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
+
 	if len(os.Args) != 2 {
 		fmt.Fprintf(os.Stderr, "Usage: debug <file>\n")
 		fmt.Fprintf(os.Stderr, "Example\n")
