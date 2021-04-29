@@ -29,6 +29,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/rawdb"
+	"gitlab.com/q-dev/q-client/core/state/snapshot"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth/protocols/eth"
 	"gitlab.com/q-dev/q-client/ethdb"
@@ -407,6 +408,11 @@ func (dl *downloadTester) dropPeer(id string) {
 
 	delete(dl.peers, id)
 	dl.downloader.UnregisterPeer(id)
+}
+
+// Snapshots implements the BlockChain interface for the downloader, but is a noop.
+func (dl *downloadTester) Snapshots() *snapshot.Tree {
+	return nil
 }
 
 type downloadTesterPeer struct {
