@@ -106,6 +106,23 @@ func (p *EPQFIParamsOracle) getGasPrice() *big.Int {
 		return p.price
 	}
 
+	txSize, err := epqfi.GetUint(nil, "governed.EPQFI.normalizedTransactionSize")
+	if err != nil {
+		log.Warn("failed to get governed.EPQFI.normalizedTransactionSize", "err", err)
+		return p.price
+	}
+
+	if txSize.Int64() == 0 {
+		log.Warn("governed.EPQFI.normalizedTransactionSize is zero, using default gas price")
+		return p.price
+	}
+
+	return calcGasPrice(priceQUSD, exchangeRate, txSize)
+}
+
+func calcGasPrice(txFee, qQusdExchangeRate, txSize *big.Int) *big.Int {
 	decimals := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-	return new(big.Int).Div(new(big.Int).Mul(priceQUSD, decimals), exchangeRate)
+	pricePerGas := new(big.Int).Div(new(big.Int).Mul(txFee, decimals), qQusdExchangeRate)
+
+	return new(big.Int).Div(pricePerGas, txSize)
 }
