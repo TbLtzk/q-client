@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/bitutil"
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/p2p/rlpx"
@@ -62,6 +63,10 @@ func (t *rlpxTransport) ReadMsg() (Msg, error) {
 	t.conn.SetReadDeadline(time.Now().Add(frameReadTimeout))
 	code, data, wireSize, err := t.conn.Read()
 	if err == nil {
+		// Protocol messages are dispatched to subprotocol handlers asynchronously,
+		// but package rlpx may reuse the returned 'data' buffer on the next call
+		// to Read. Copy the message data to avoid this being an issue.
+		data = common.CopyBytes(data)
 		msg = Msg{
 			ReceivedAt: time.Now(),
 			Code:       code,
