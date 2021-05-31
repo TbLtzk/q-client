@@ -165,23 +165,28 @@ func (h *handler) makeProtocol(version uint) p2p.Protocol {
 	}
 }
 
-func (h *handler) runPeer(p *peer) error {
-	rm := h.rootsMgr
-	// lock in order to avoid sending
-	// partially upgraded state
+func (h *handler) makeStatusBody(rm *RootManager) statusMsgBody {
 	rm.lock.Lock()
+	defer rm.lock.Unlock()
+
 	rm.exLock.Lock()
-	status, err := p.handshake(statusMsgBody{
+	defer rm.exLock.Unlock()
+
+	return statusMsgBody{
 		CurrentRootList:       rm.current.copy().makeList(),
 		DesiredRootList:       rm.target.copy().makeList(),
 		ProposedRootList:      rm.proposed.copy().makeList(),
 		CurrentExclusionList:  rm.exclusionSet.copy().makeList(),
 		DesiredExclusionList:  rm.targetExSet.copy().makeList(),
 		ProposedExclusionList: rm.proposedExSet.copy().makeList(),
-	})
-	rm.lock.Unlock()
-	rm.exLock.Unlock()
+	}
+}
 
+func (h *handler) runPeer(p *peer) error {
+	rm := h.rootsMgr
+
+	statusBody := h.makeStatusBody(rm)
+	status, err := p.handshake(statusBody)
 	if err != nil {
 		return err
 	}
