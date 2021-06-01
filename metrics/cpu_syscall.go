@@ -19,7 +19,7 @@
 package metrics
 
 import (
-	"syscall"
+	syscall "golang.org/x/sys/unix"
 
 	"gitlab.com/q-dev/q-client/log"
 )
