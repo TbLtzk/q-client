@@ -18,15 +18,15 @@ func NewGovernanceAPI(back *Governance) *GovernanceAPI {
 
 // ActiveRootList.
 func (a *GovernanceAPI) ActiveRootList() *RootList {
-	return newRootList(a.gov.RootManager.currentRootSet())
+	return newRootList(a.gov.RootManager.getActiveRootSet())
 }
 
 func (a *GovernanceAPI) DesiredRootList() *RootList {
-	return newRootList(a.gov.RootManager.desiredRootSet())
+	return newRootList(a.gov.RootManager.getDesiredRootSet())
 }
 
 func (a *GovernanceAPI) ProposedRootList() *RootList {
-	return newRootList(a.gov.RootManager.proposedRootSet())
+	return newRootList(a.gov.RootManager.getProposedRootSet())
 }
 
 func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList) (common.Hash, error) {
@@ -43,7 +43,7 @@ func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList) (common.Hash
 	rm.rootLock.Lock()
 	defer rm.rootLock.Unlock()
 
-	if set.timestamp <= rm.current.timestamp || (rm.desired != nil && set.timestamp <= rm.desired.timestamp) {
+	if set.timestamp <= rm.active.timestamp || (rm.desired != nil && set.timestamp <= rm.desired.timestamp) {
 		return common.Hash{}, errors.New("obsolete root list")
 	}
 
@@ -81,7 +81,7 @@ func (a *GovernanceAPI) AcceptProposedRootList() error {
 	rm.desiredRootFeed.Send(rm.desired)
 
 	// very edge case but still possible
-	if rm.current.isAcceptable(rm.proposed) {
+	if rm.active.isAcceptable(rm.proposed) {
 		rm.upgradeRootSet(rm.proposed)
 	}
 
@@ -91,15 +91,15 @@ func (a *GovernanceAPI) AcceptProposedRootList() error {
 }
 
 func (a *GovernanceAPI) ActiveExclusionList() *ExclusionList {
-	return newExclusionList(a.gov.RootManager.currentExclusionSet())
+	return newExclusionList(a.gov.RootManager.getActiveExclusionSet())
 }
 
 func (a *GovernanceAPI) DesiredExclusionList() *ExclusionList {
-	return newExclusionList(a.gov.RootManager.desiredExclusionSet())
+	return newExclusionList(a.gov.RootManager.getDesiredExclusionSet())
 }
 
 func (a *GovernanceAPI) ProposedExclusionList() *ExclusionList {
-	return newExclusionList(a.gov.RootManager.proposedExclusionSet())
+	return newExclusionList(a.gov.RootManager.getProposedExclusionSet())
 }
 
 func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusionList) (common.Hash, error) {
@@ -116,9 +116,9 @@ func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusio
 	rm.exLock.Lock()
 	defer rm.exLock.Unlock()
 
-	olderThanCurrent := rm.currentExSet != nil && set.timestamp <= rm.currentExSet.timestamp
+	olderThanActive := rm.activeExSet != nil && set.timestamp <= rm.activeExSet.timestamp
 	olderThanDesired := rm.desiredExSet != nil && set.timestamp <= rm.desiredExSet.timestamp
-	if olderThanCurrent || olderThanDesired {
+	if olderThanActive || olderThanDesired {
 		return common.Hash{}, errors.New("obsolete exclusion list")
 	}
 
@@ -151,7 +151,7 @@ func (a *GovernanceAPI) AcceptProposedExclusionList() error {
 	rm.desiredExFeed.Send(rm.desiredExSet.copy())
 
 	// very edge case but still possible
-	if rm.currentRootSet().isEnoughExSetSignatures(rm.proposedExSet) {
+	if rm.getActiveRootSet().isEnoughExSetSignatures(rm.proposedExSet) {
 		rm.upgradeExclusionSet(rm.proposedExSet)
 	}
 
