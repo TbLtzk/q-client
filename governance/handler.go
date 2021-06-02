@@ -10,49 +10,54 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 )
 
-// handler of protocol messages.
+// handler of governance protocol messages.
 type handler struct {
-	rootsMgr *RootManager
+	rootManager *RootManager
 
-	targetRootListCh     chan *rootSet
-	newTargetRootListSub event.Subscription
+	desiredRootCh  chan *rootSet
+	desiredRootSub event.Subscription
 
-	targetExListCh  chan *exclusionSet
-	targetExListSub event.Subscription
+	desiredExCh  chan *exclusionSet
+	desiredExSub event.Subscription
 
-	rootListCh chan *rootSetEvent
-	exListCh   chan *exclusionSetEvent
-	done       chan struct{}
+	rootEventCh chan *rootSetEvent
+	exEventCh   chan *exclusionSetEvent
+	done        chan struct{}
 
 	peerWG sync.WaitGroup
 	peers  *peerSet
 }
 
-func newHandler(roots *RootManager) *handler {
-	newRoots := make(chan *rootSet)
-	newRootsSub := roots.desiredRootFeed.Subscribe(newRoots)
+func newHandler(rootManager *RootManager) *handler {
+	desiredRootCh := make(chan *rootSet)
+	desiredRootSub := rootManager.desiredRootFeed.Subscribe(desiredRootCh)
 
-	targetEx := make(chan *exclusionSet)
-	targetExSub := roots.desiredExFeed.Subscribe(targetEx)
+	desiredExCh := make(chan *exclusionSet)
+	desiredExSub := rootManager.desiredExFeed.Subscribe(desiredExCh)
 
 	return &handler{
-		rootsMgr:             roots,
-		targetRootListCh:     newRoots,
-		newTargetRootListSub: newRootsSub,
-		targetExListCh:       targetEx,
-		targetExListSub:      targetExSub,
-		rootListCh:           make(chan *rootSetEvent),
-		exListCh:             make(chan *exclusionSetEvent),
-		done:                 make(chan struct{}),
-		peers:                newPeerSet(),
+		rootManager: rootManager,
+
+		desiredRootCh:  desiredRootCh,
+		desiredRootSub: desiredRootSub,
+
+		desiredExCh:  desiredExCh,
+		desiredExSub: desiredExSub,
+
+		rootEventCh: make(chan *rootSetEvent),
+		exEventCh:   make(chan *exclusionSetEvent),
+		done:        make(chan struct{}),
+
+		peerWG: sync.WaitGroup{},
+		peers:  newPeerSet(),
 	}
 }
 
 func (h *handler) run() {
-	go h.listenForTargetRootList()
+	go h.listenForDesiredRootList()
 	go h.broadcastRootSets()
 
-	go h.listenForTargetExclusionList()
+	go h.listenForDesiredExclusionList()
 	go h.broadcastExclusionSets()
 }
 
@@ -66,16 +71,16 @@ type exclusionSetEvent struct {
 	set    *exclusionSet
 }
 
-func (h *handler) listenForTargetRootList() {
+func (h *handler) listenForDesiredRootList() {
 	for {
 		select {
-		case set := <-h.targetRootListCh:
+		case set := <-h.desiredRootCh:
 			for _, p := range h.peers.all() {
-				log.Debug("Sending target set", "to", p.id)
+				log.Debug("Sending desired root set", "to", p.id)
 				p.asyncSendRootList(set)
 			}
-		case err := <-h.newTargetRootListSub.Err():
-			log.Debug("no new target roots sets", "err", err)
+		case err := <-h.desiredRootSub.Err():
+			log.Debug("no new desired roots sets", "err", err)
 			return
 		case <-h.done:
 			return
@@ -86,7 +91,7 @@ func (h *handler) listenForTargetRootList() {
 func (h *handler) broadcastRootSets() {
 	for {
 		select {
-		case msg := <-h.rootListCh:
+		case msg := <-h.rootEventCh:
 			for _, p := range h.peers.all() {
 				if msg.fromID == p.id {
 					continue
@@ -100,16 +105,16 @@ func (h *handler) broadcastRootSets() {
 	}
 }
 
-func (h *handler) listenForTargetExclusionList() {
+func (h *handler) listenForDesiredExclusionList() {
 	for {
 		select {
-		case set := <-h.targetExListCh:
+		case set := <-h.desiredExCh:
 			for _, p := range h.peers.all() {
-				log.Debug("SENDING exclusion set", "to", p.id)
+				log.Debug("Sending desired exclusion set", "to", p.id)
 				p.asyncSendExclusionList(set)
 			}
-		case err := <-h.targetExListSub.Err():
-			log.Debug("no new target exclusion sets", "err", err)
+		case err := <-h.desiredExSub.Err():
+			log.Debug("no new desired exclusion sets", "err", err)
 			return
 		case <-h.done:
 			return
@@ -120,7 +125,7 @@ func (h *handler) listenForTargetExclusionList() {
 func (h *handler) broadcastExclusionSets() {
 	for {
 		select {
-		case msg := <-h.exListCh:
+		case msg := <-h.exEventCh:
 			for _, p := range h.peers.all() {
 				if msg.fromID == p.id {
 					continue
@@ -155,7 +160,7 @@ func (h *handler) makeProtocol(version uint) p2p.Protocol {
 			return h.runPeer(newPeer(p, rw))
 		},
 		NodeInfo: func() interface{} {
-			active := h.rootsMgr.getActiveRootSet()
+			active := h.rootManager.getActiveRootSet()
 			return struct {
 				Timestamp uint64
 			}{
@@ -183,7 +188,7 @@ func (h *handler) makeStatusBody(rm *RootManager) statusMsgBody {
 }
 
 func (h *handler) runPeer(p *peer) error {
-	rm := h.rootsMgr
+	rm := h.rootManager
 
 	statusBody := h.makeStatusBody(rm)
 	status, err := p.handshake(statusBody)
@@ -264,7 +269,7 @@ func (h *handler) handleRootListMsg(p *peer, msg p2p.Msg) error {
 }
 
 func (h *handler) handleRootSet(p *peer, received *rootSet) error {
-	rm := h.rootsMgr
+	rm := h.rootManager
 	rm.rootLock.Lock()
 	defer rm.rootLock.Unlock()
 
@@ -275,7 +280,7 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 		}
 
 		rm.upgradeRootSet(received)
-		h.rootListCh <- &rootSetEvent{set: received}
+		h.rootEventCh <- &rootSetEvent{set: received}
 	case rm.active.hash == received.hash:
 		newSignatures := rm.active.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
@@ -283,7 +288,7 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 		}
 
 		log.Debug("Received active root list signatures", "from", p.id, "signers", toSigners(newSignatures))
-		h.rootListCh <- &rootSetEvent{fromID: p.id, set: rm.active.copy()}
+		h.rootEventCh <- &rootSetEvent{fromID: p.id, set: rm.active.copy()}
 
 		rm.db.saveActiveRootSet(rm.active)
 	case rm.desired != nil && rm.desired.hash == received.hash:
@@ -294,13 +299,13 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 
 		log.Debug("Received desired root list signatures", "from", p.id, "signers", toSigners(newSignatures))
 		if !rm.active.isAcceptable(rm.desired) {
-			h.rootListCh <- &rootSetEvent{fromID: p.id, set: rm.desired.copy()}
+			h.rootEventCh <- &rootSetEvent{fromID: p.id, set: rm.desired.copy()}
 			rm.db.saveDesiredRootSet(rm.desired)
 			return nil
 		}
 
 		rm.upgradeRootSet(rm.desired)
-		h.rootListCh <- &rootSetEvent{set: rm.active.copy()}
+		h.rootEventCh <- &rootSetEvent{set: rm.active.copy()}
 	default:
 		if !rm.isMember(received.rootAddresses) {
 			log.Debug("Ignoring proposed root list: not a member of the new list", "hash", received.hash.Hex())
@@ -322,7 +327,7 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 
 		rm.proposed = received
 		rm.db.saveProposedRootSet(rm.proposed)
-		h.rootListCh <- &rootSetEvent{fromID: p.id, set: received}
+		h.rootEventCh <- &rootSetEvent{fromID: p.id, set: received}
 		log.Warn("Received a new proposed root list", "hash", received.hash.Hex(), "timestamp", received.timestamp)
 	}
 
@@ -344,7 +349,7 @@ func (h *handler) handleExclusionList(p *peer, msg p2p.Msg) error {
 }
 
 func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
-	rm := h.rootsMgr
+	rm := h.rootManager
 	rm.exLock.Lock()
 	defer rm.exLock.Unlock()
 
@@ -360,7 +365,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		}
 
 		rm.upgradeExclusionSet(received)
-		h.exListCh <- &exclusionSetEvent{set: received}
+		h.exEventCh <- &exclusionSetEvent{set: received}
 	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
 		newSignatures := rm.activeExSet.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
@@ -368,7 +373,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		}
 
 		log.Debug("Received new exclusion list signatures", "from", p.id, "singers", toSigners(newSignatures))
-		h.exListCh <- &exclusionSetEvent{fromID: p.id, set: rm.activeExSet.copy()}
+		h.exEventCh <- &exclusionSetEvent{fromID: p.id, set: rm.activeExSet.copy()}
 		rm.db.saveActiveExclusionSet(rm.activeExSet)
 	case rm.desiredExSet != nil && rm.desiredExSet.hash == received.hash:
 		newSignatures := rm.desiredExSet.mergeSignatures(received.hash, received.signers)
@@ -378,13 +383,13 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 
 		log.Debug("Received new desired exclusion list signatures", "from", p.id, "singers", toSigners(newSignatures))
 		if !rm.getActiveRootSet().isEnoughExSetSignatures(rm.desiredExSet) {
-			h.exListCh <- &exclusionSetEvent{fromID: p.id, set: rm.desiredExSet}
+			h.exEventCh <- &exclusionSetEvent{fromID: p.id, set: rm.desiredExSet}
 			rm.db.saveDesiredExclusionSet(rm.desiredExSet)
 			return nil
 		}
 
 		rm.upgradeExclusionSet(rm.desiredExSet)
-		h.exListCh <- &exclusionSetEvent{set: rm.activeExSet}
+		h.exEventCh <- &exclusionSetEvent{set: rm.activeExSet}
 	default:
 		if !rm.isRootNode() {
 			log.Debug("Ignoring proposed exclusion list: not a root node")
