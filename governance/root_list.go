@@ -160,25 +160,6 @@ func (s *rootSet) knownSigners(signers map[common.Address][]byte) []common.Addre
 	return intersection
 }
 
-func (s *rootSet) sanitizeSignatures(signatures [][]byte) (map[common.Address][]byte, error) {
-	sigs := make(map[common.Address][]byte)
-	for _, sig := range signatures {
-		pubkey, err := crypto.SigToPub(s.hash.Bytes(), sig)
-		if err != nil {
-			return nil, err
-		}
-
-		addr := crypto.PubkeyToAddress(*pubkey)
-		if _, ok := s.roots[addr]; !ok {
-			continue
-		}
-
-		sigs[addr] = sig
-	}
-
-	return sigs, nil
-}
-
 func (s *rootSet) copy() *rootSet {
 	if s == nil {
 		return nil
