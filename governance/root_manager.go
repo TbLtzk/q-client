@@ -25,17 +25,19 @@ type RootManager struct {
 
 	db *database
 
-	lock           sync.Mutex
-	targetRootFeed *event.Feed
-	current        *rootSet
-	target         *rootSet
-	proposed       *rootSet
+	rootLock        sync.Mutex
+	desiredRootFeed *event.Feed
 
-	exLock           sync.Mutex
-	targetExListFeed *event.Feed
-	exclusionSet     *exclusionSet
-	targetExSet      *exclusionSet
-	proposedExSet    *exclusionSet
+	current  *rootSet
+	desired  *rootSet
+	proposed *rootSet
+
+	exLock        sync.Mutex
+	desiredExFeed *event.Feed
+
+	currentExSet  *exclusionSet
+	desiredExSet  *exclusionSet
+	proposedExSet *exclusionSet
 }
 
 type Keystore interface {
@@ -74,31 +76,31 @@ func newRootManager(ks Keystore, datadir string, cfg *Config) (*RootManager, err
 		db:       db,
 		keystore: ks,
 
-		targetRootFeed: &event.Feed{},
-		current:        currentRootSet,
-		target:         desiredRootSet,
-		proposed:       proposedRootSet,
+		desiredRootFeed: &event.Feed{},
+		current:         currentRootSet,
+		desired:         desiredRootSet,
+		proposed:        proposedRootSet,
 
-		targetExListFeed: &event.Feed{},
-		exclusionSet:     db.getCurrentExclusionSet(),
-		targetExSet:      db.getDesiredExclusionSet(),
-		proposedExSet:    db.getProposedExclusionSet(),
+		desiredExFeed: &event.Feed{},
+		currentExSet:  db.getCurrentExclusionSet(),
+		desiredExSet:  db.getDesiredExclusionSet(),
+		proposedExSet: db.getProposedExclusionSet(),
 	}
 
 	return manager, nil
 }
 
 // ExclusionSet returns set of excluded validators addresses.
-func (s *RootManager) ExclusionSet() map[common.Address]uint64 {
+func (s *RootManager) ExclusionSetValidators() map[common.Address]uint64 {
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
 
 	set := make(map[common.Address]uint64)
-	if s.exclusionSet == nil {
+	if s.currentExSet == nil {
 		return set
 	}
 
-	for addr, block := range s.exclusionSet.addrToBlock {
+	for addr, block := range s.currentExSet.addrToBlock {
 		set[addr] = block
 	}
 
@@ -106,8 +108,8 @@ func (s *RootManager) ExclusionSet() map[common.Address]uint64 {
 }
 
 func (s *RootManager) isRootNode() bool {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.rootLock.Lock()
+	defer s.rootLock.Unlock()
 
 	return s.isMember(s.current.rootAddresses)
 }
@@ -165,31 +167,20 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 	return isSigned
 }
 
-func (s *RootManager) findUnlocked(set *rootSet) []common.Address {
-	var unlocked []common.Address
-	for _, addr := range set.rootAddresses {
-		if s.keystore.IsUnlocked(addr) {
-			unlocked = append(unlocked, addr)
-		}
-	}
-
-	return unlocked
-}
-
 // unsafe for concurrent usage
 // lock exLock externally first
 func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
-	s.exclusionSet = set
+	s.currentExSet = set
 	s.db.saveCurrentExclusionSet(set)
 
 	log.Info("Upgraded exclusion list", "hash", set.hash.Hex(), "timestamp", set.timestamp)
 
-	if s.targetExSet != nil && s.targetExSet.timestamp <= set.timestamp {
-		if s.targetExSet.hash != set.hash {
+	if s.desiredExSet != nil && s.desiredExSet.timestamp <= set.timestamp {
+		if s.desiredExSet.hash != set.hash {
 			log.Info("Dropping obsolete desired exclusion set", "timestamp", set.timestamp)
 		}
 
-		s.targetExSet = nil
+		s.desiredExSet = nil
 		s.db.deleteDesiredExclusionSet()
 	}
 
@@ -209,43 +200,43 @@ func (s *RootManager) upgradeRootSet(set *rootSet) {
 
 	log.Info("Upgraded root list", "hash", set.hash.Hex(), "timestamp", set.timestamp)
 
-	if s.target == nil || s.target.timestamp > set.timestamp {
+	if s.desired == nil || s.desired.timestamp > set.timestamp {
 		return
 	}
 
-	if s.target.hash != set.hash {
+	if s.desired.hash != set.hash {
 		log.Info("Dropping outdated desired root list",
-			"hash", s.target.hash.Hex(),
-			"timestamp", s.target.timestamp)
+			"hash", s.desired.hash.Hex(),
+			"timestamp", s.desired.timestamp)
 	}
 
-	s.target = nil
+	s.desired = nil
 	s.db.deleteDesiredRootSet()
 }
 
 func (s *RootManager) currentRootSet() *rootSet {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.rootLock.Lock()
+	defer s.rootLock.Unlock()
 
 	return s.current.copy()
 }
 
 func (s *RootManager) desiredRootSet() *rootSet {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.rootLock.Lock()
+	defer s.rootLock.Unlock()
 
-	return s.target.copy()
+	return s.desired.copy()
 }
 
 func (s *RootManager) proposedRootSet() *rootSet {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	s.rootLock.Lock()
+	defer s.rootLock.Unlock()
 
 	return s.proposed.copy()
 }
 
 func (s *RootManager) isAcceptableExclusionSet(set *exclusionSet) bool {
-	if s.exclusionSet != nil && set.timestamp <= s.exclusionSet.timestamp {
+	if s.currentExSet != nil && set.timestamp <= s.currentExSet.timestamp {
 		return false
 	}
 
@@ -256,14 +247,14 @@ func (s *RootManager) currentExclusionSet() *exclusionSet {
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
 
-	return s.exclusionSet.copy()
+	return s.currentExSet.copy()
 }
 
 func (s *RootManager) desiredExclusionSet() *exclusionSet {
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
 
-	return s.targetExSet.copy()
+	return s.desiredExSet.copy()
 }
 
 func (s *RootManager) proposedExclusionSet() *exclusionSet {

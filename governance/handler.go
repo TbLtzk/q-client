@@ -30,10 +30,10 @@ type handler struct {
 
 func newHandler(roots *RootManager) *handler {
 	newRoots := make(chan *rootSet)
-	newRootsSub := roots.targetRootFeed.Subscribe(newRoots)
+	newRootsSub := roots.desiredRootFeed.Subscribe(newRoots)
 
 	targetEx := make(chan *exclusionSet)
-	targetExSub := roots.targetExListFeed.Subscribe(targetEx)
+	targetExSub := roots.desiredExFeed.Subscribe(targetEx)
 
 	return &handler{
 		rootsMgr:             roots,
@@ -166,18 +166,18 @@ func (h *handler) makeProtocol(version uint) p2p.Protocol {
 }
 
 func (h *handler) makeStatusBody(rm *RootManager) statusMsgBody {
-	rm.lock.Lock()
-	defer rm.lock.Unlock()
+	rm.rootLock.Lock()
+	defer rm.rootLock.Unlock()
 
 	rm.exLock.Lock()
 	defer rm.exLock.Unlock()
 
 	return statusMsgBody{
 		CurrentRootList:       rm.current.copy().makeList(),
-		DesiredRootList:       rm.target.copy().makeList(),
+		DesiredRootList:       rm.desired.copy().makeList(),
 		ProposedRootList:      rm.proposed.copy().makeList(),
-		CurrentExclusionList:  rm.exclusionSet.copy().makeList(),
-		DesiredExclusionList:  rm.targetExSet.copy().makeList(),
+		CurrentExclusionList:  rm.currentExSet.copy().makeList(),
+		DesiredExclusionList:  rm.desiredExSet.copy().makeList(),
 		ProposedExclusionList: rm.proposedExSet.copy().makeList(),
 	}
 }
@@ -265,11 +265,11 @@ func (h *handler) handleRootListMsg(p *peer, msg p2p.Msg) error {
 
 func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 	rm := h.rootsMgr
-	rm.lock.Lock()
-	defer rm.lock.Unlock()
+	rm.rootLock.Lock()
+	defer rm.rootLock.Unlock()
 
 	switch {
-	case rm.current.isAcceptable(received) && (rm.target == nil || rm.target.hash != received.hash):
+	case rm.current.isAcceptable(received) && (rm.desired == nil || rm.desired.hash != received.hash):
 		if rm.isMember(received.rootAddresses) {
 			rm.signRootSet(received)
 		}
@@ -286,20 +286,20 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 		h.rootListCh <- &rootSetEvent{fromID: p.id, set: rm.current.copy()}
 
 		rm.db.saveCurrentRootSet(rm.current)
-	case rm.target != nil && rm.target.hash == received.hash:
-		newSignatures := rm.target.mergeSignatures(received.hash, received.signers)
+	case rm.desired != nil && rm.desired.hash == received.hash:
+		newSignatures := rm.desired.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
 			return nil
 		}
 
 		log.Debug("Received desired root list signatures", "from", p.id, "signers", toSigners(newSignatures))
-		if !rm.current.isAcceptable(rm.target) {
-			h.rootListCh <- &rootSetEvent{fromID: p.id, set: rm.target.copy()}
-			rm.db.saveDesiredRootSet(rm.target)
+		if !rm.current.isAcceptable(rm.desired) {
+			h.rootListCh <- &rootSetEvent{fromID: p.id, set: rm.desired.copy()}
+			rm.db.saveDesiredRootSet(rm.desired)
 			return nil
 		}
 
-		rm.upgradeRootSet(rm.target)
+		rm.upgradeRootSet(rm.desired)
 		h.rootListCh <- &rootSetEvent{set: rm.current.copy()}
 	default:
 		if !rm.isMember(received.rootAddresses) {
@@ -351,8 +351,8 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 	switch true {
 	case rm.isAcceptableExclusionSet(received):
 		// ensure locally stored signatures are not lost
-		if rm.targetExSet != nil && rm.targetExSet.hash == received.hash {
-			received.mergeSignatures(rm.targetExSet.hash, rm.targetExSet.signers)
+		if rm.desiredExSet != nil && rm.desiredExSet.hash == received.hash {
+			received.mergeSignatures(rm.desiredExSet.hash, rm.desiredExSet.signers)
 		}
 
 		if rm.isRootNode() {
@@ -361,30 +361,30 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 
 		rm.upgradeExclusionSet(received)
 		h.exListCh <- &exclusionSetEvent{set: received}
-	case rm.exclusionSet != nil && rm.exclusionSet.hash == received.hash:
-		newSignatures := rm.exclusionSet.mergeSignatures(received.hash, received.signers)
+	case rm.currentExSet != nil && rm.currentExSet.hash == received.hash:
+		newSignatures := rm.currentExSet.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
 			return nil
 		}
 
 		log.Debug("Received new exclusion list signatures", "from", p.id, "singers", toSigners(newSignatures))
-		h.exListCh <- &exclusionSetEvent{fromID: p.id, set: rm.exclusionSet.copy()}
-		rm.db.saveCurrentExclusionSet(rm.exclusionSet)
-	case rm.targetExSet != nil && rm.targetExSet.hash == received.hash:
-		newSignatures := rm.targetExSet.mergeSignatures(received.hash, received.signers)
+		h.exListCh <- &exclusionSetEvent{fromID: p.id, set: rm.currentExSet.copy()}
+		rm.db.saveCurrentExclusionSet(rm.currentExSet)
+	case rm.desiredExSet != nil && rm.desiredExSet.hash == received.hash:
+		newSignatures := rm.desiredExSet.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
 			return nil
 		}
 
 		log.Debug("Received new desired exclusion list signatures", "from", p.id, "singers", toSigners(newSignatures))
-		if !rm.currentRootSet().isEnoughExSetSignatures(rm.targetExSet) {
-			h.exListCh <- &exclusionSetEvent{fromID: p.id, set: rm.targetExSet}
-			rm.db.saveDesiredExclusionSet(rm.targetExSet)
+		if !rm.currentRootSet().isEnoughExSetSignatures(rm.desiredExSet) {
+			h.exListCh <- &exclusionSetEvent{fromID: p.id, set: rm.desiredExSet}
+			rm.db.saveDesiredExclusionSet(rm.desiredExSet)
 			return nil
 		}
 
-		rm.upgradeExclusionSet(rm.targetExSet)
-		h.exListCh <- &exclusionSetEvent{set: rm.exclusionSet}
+		rm.upgradeExclusionSet(rm.desiredExSet)
+		h.exListCh <- &exclusionSetEvent{set: rm.currentExSet}
 	default:
 		if !rm.isRootNode() {
 			log.Debug("Ignoring proposed exclusion list: not a root node")
@@ -396,7 +396,9 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			return nil
 		}
 
-		if rm.proposedExSet != nil && received.timestamp <= rm.proposedExSet.timestamp {
+		obsoleteByCurrent := rm.currentExSet != nil && received.timestamp <= rm.currentExSet.timestamp
+		obsoleteByProposed := rm.proposedExSet != nil && received.timestamp <= rm.proposedExSet.timestamp
+		if obsoleteByCurrent || obsoleteByProposed {
 			log.Debug("Ignoring proposed exclusion list: obsolete")
 			return nil
 		}
