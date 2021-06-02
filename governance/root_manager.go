@@ -28,14 +28,14 @@ type RootManager struct {
 	rootLock        sync.Mutex
 	desiredRootFeed *event.Feed
 
-	current  *rootSet
+	active   *rootSet
 	desired  *rootSet
 	proposed *rootSet
 
 	exLock        sync.Mutex
 	desiredExFeed *event.Feed
 
-	currentExSet  *exclusionSet
+	activeExSet   *exclusionSet
 	desiredExSet  *exclusionSet
 	proposedExSet *exclusionSet
 }
@@ -56,17 +56,17 @@ func newRootManager(ks Keystore, datadir string, cfg *Config) (*RootManager, err
 		return nil, errors.Wrap(err, "malformed default root list")
 	}
 
-	currentRootSet, err := db.getCurrentRootSet()
+	activeRootSet, err := db.getActiveRootSet()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get current root set")
+		return nil, errors.Wrap(err, "failed to get active root set")
 	}
 
-	if currentRootSet != nil && currentRootSet.timestamp >= defaultRootSet.timestamp {
-		log.Info("Using saved root set", "hash", currentRootSet.hash.Hex())
+	if activeRootSet != nil && activeRootSet.timestamp >= defaultRootSet.timestamp {
+		log.Info("Using saved root set", "hash", activeRootSet.hash.Hex())
 	} else {
-		currentRootSet = defaultRootSet
-		db.saveCurrentRootSet(currentRootSet)
-		log.Info("Using predefined root set", "hash", currentRootSet.hash.Hex())
+		activeRootSet = defaultRootSet
+		db.saveActiveRootSet(activeRootSet)
+		log.Info("Using predefined root set", "hash", activeRootSet.hash.Hex())
 	}
 
 	desiredRootSet, _ := db.getDesiredRootSet()
@@ -77,12 +77,12 @@ func newRootManager(ks Keystore, datadir string, cfg *Config) (*RootManager, err
 		keystore: ks,
 
 		desiredRootFeed: &event.Feed{},
-		current:         currentRootSet,
+		active:          activeRootSet,
 		desired:         desiredRootSet,
 		proposed:        proposedRootSet,
 
 		desiredExFeed: &event.Feed{},
-		currentExSet:  db.getCurrentExclusionSet(),
+		activeExSet:   db.getActiveExclusionSet(),
 		desiredExSet:  db.getDesiredExclusionSet(),
 		proposedExSet: db.getProposedExclusionSet(),
 	}
@@ -96,11 +96,11 @@ func (s *RootManager) ExclusionSetValidators() map[common.Address]uint64 {
 	defer s.exLock.Unlock()
 
 	set := make(map[common.Address]uint64)
-	if s.currentExSet == nil {
+	if s.activeExSet == nil {
 		return set
 	}
 
-	for addr, block := range s.currentExSet.addrToBlock {
+	for addr, block := range s.activeExSet.addrToBlock {
 		set[addr] = block
 	}
 
@@ -111,7 +111,7 @@ func (s *RootManager) isRootNode() bool {
 	s.rootLock.Lock()
 	defer s.rootLock.Unlock()
 
-	return s.isMember(s.current.rootAddresses)
+	return s.isMember(s.active.rootAddresses)
 }
 
 func (s *RootManager) isMember(set []common.Address) bool {
@@ -148,7 +148,7 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 
 func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 	var isSigned bool
-	for _, addr := range s.currentRootSet().rootAddresses {
+	for _, addr := range s.getActiveRootSet().rootAddresses {
 		if !s.keystore.IsUnlocked(addr) {
 			continue
 		}
@@ -170,8 +170,8 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 // unsafe for concurrent usage
 // lock exLock externally first
 func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
-	s.currentExSet = set
-	s.db.saveCurrentExclusionSet(set)
+	s.activeExSet = set
+	s.db.saveActiveExclusionSet(set)
 
 	log.Info("Upgraded exclusion list", "hash", set.hash.Hex(), "timestamp", set.timestamp)
 
@@ -195,8 +195,8 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
 // unsafe for concurrent calls.
 // must be locked before calling
 func (s *RootManager) upgradeRootSet(set *rootSet) {
-	s.current = set
-	s.db.saveCurrentRootSet(s.current)
+	s.active = set
+	s.db.saveActiveRootSet(s.active)
 
 	log.Info("Upgraded root list", "hash", set.hash.Hex(), "timestamp", set.timestamp)
 
@@ -214,21 +214,21 @@ func (s *RootManager) upgradeRootSet(set *rootSet) {
 	s.db.deleteDesiredRootSet()
 }
 
-func (s *RootManager) currentRootSet() *rootSet {
+func (s *RootManager) getActiveRootSet() *rootSet {
 	s.rootLock.Lock()
 	defer s.rootLock.Unlock()
 
-	return s.current.copy()
+	return s.active.copy()
 }
 
-func (s *RootManager) desiredRootSet() *rootSet {
+func (s *RootManager) getDesiredRootSet() *rootSet {
 	s.rootLock.Lock()
 	defer s.rootLock.Unlock()
 
 	return s.desired.copy()
 }
 
-func (s *RootManager) proposedRootSet() *rootSet {
+func (s *RootManager) getProposedRootSet() *rootSet {
 	s.rootLock.Lock()
 	defer s.rootLock.Unlock()
 
@@ -236,28 +236,28 @@ func (s *RootManager) proposedRootSet() *rootSet {
 }
 
 func (s *RootManager) isAcceptableExclusionSet(set *exclusionSet) bool {
-	if s.currentExSet != nil && set.timestamp <= s.currentExSet.timestamp {
+	if s.activeExSet != nil && set.timestamp <= s.activeExSet.timestamp {
 		return false
 	}
 
-	return s.currentRootSet().isEnoughExSetSignatures(set)
+	return s.getActiveRootSet().isEnoughExSetSignatures(set)
 }
 
-func (s *RootManager) currentExclusionSet() *exclusionSet {
+func (s *RootManager) getActiveExclusionSet() *exclusionSet {
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
 
-	return s.currentExSet.copy()
+	return s.activeExSet.copy()
 }
 
-func (s *RootManager) desiredExclusionSet() *exclusionSet {
+func (s *RootManager) getDesiredExclusionSet() *exclusionSet {
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
 
 	return s.desiredExSet.copy()
 }
 
-func (s *RootManager) proposedExclusionSet() *exclusionSet {
+func (s *RootManager) getProposedExclusionSet() *exclusionSet {
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
 

@@ -155,11 +155,11 @@ func (h *handler) makeProtocol(version uint) p2p.Protocol {
 			return h.runPeer(newPeer(p, rw))
 		},
 		NodeInfo: func() interface{} {
-			current := h.rootsMgr.currentRootSet()
+			active := h.rootsMgr.getActiveRootSet()
 			return struct {
 				Timestamp uint64
 			}{
-				Timestamp: current.timestamp,
+				Timestamp: active.timestamp,
 			}
 		},
 	}
@@ -173,10 +173,10 @@ func (h *handler) makeStatusBody(rm *RootManager) statusMsgBody {
 	defer rm.exLock.Unlock()
 
 	return statusMsgBody{
-		CurrentRootList:       rm.current.copy().makeList(),
+		CurrentRootList:       rm.active.copy().makeList(),
 		DesiredRootList:       rm.desired.copy().makeList(),
 		ProposedRootList:      rm.proposed.copy().makeList(),
-		CurrentExclusionList:  rm.currentExSet.copy().makeList(),
+		CurrentExclusionList:  rm.activeExSet.copy().makeList(),
 		DesiredExclusionList:  rm.desiredExSet.copy().makeList(),
 		ProposedExclusionList: rm.proposedExSet.copy().makeList(),
 	}
@@ -269,23 +269,23 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 	defer rm.rootLock.Unlock()
 
 	switch {
-	case rm.current.isAcceptable(received) && (rm.desired == nil || rm.desired.hash != received.hash):
+	case rm.active.isAcceptable(received) && (rm.desired == nil || rm.desired.hash != received.hash):
 		if rm.isMember(received.rootAddresses) {
 			rm.signRootSet(received)
 		}
 
 		rm.upgradeRootSet(received)
 		h.rootListCh <- &rootSetEvent{set: received}
-	case rm.current.hash == received.hash:
-		newSignatures := rm.current.mergeSignatures(received.hash, received.signers)
+	case rm.active.hash == received.hash:
+		newSignatures := rm.active.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
 			return nil
 		}
 
-		log.Debug("Received current root list signatures", "from", p.id, "signers", toSigners(newSignatures))
-		h.rootListCh <- &rootSetEvent{fromID: p.id, set: rm.current.copy()}
+		log.Debug("Received active root list signatures", "from", p.id, "signers", toSigners(newSignatures))
+		h.rootListCh <- &rootSetEvent{fromID: p.id, set: rm.active.copy()}
 
-		rm.db.saveCurrentRootSet(rm.current)
+		rm.db.saveActiveRootSet(rm.active)
 	case rm.desired != nil && rm.desired.hash == received.hash:
 		newSignatures := rm.desired.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
@@ -293,21 +293,21 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 		}
 
 		log.Debug("Received desired root list signatures", "from", p.id, "signers", toSigners(newSignatures))
-		if !rm.current.isAcceptable(rm.desired) {
+		if !rm.active.isAcceptable(rm.desired) {
 			h.rootListCh <- &rootSetEvent{fromID: p.id, set: rm.desired.copy()}
 			rm.db.saveDesiredRootSet(rm.desired)
 			return nil
 		}
 
 		rm.upgradeRootSet(rm.desired)
-		h.rootListCh <- &rootSetEvent{set: rm.current.copy()}
+		h.rootListCh <- &rootSetEvent{set: rm.active.copy()}
 	default:
 		if !rm.isMember(received.rootAddresses) {
 			log.Debug("Ignoring proposed root list: not a member of the new list", "hash", received.hash.Hex())
 			return nil
 		}
 
-		signers := rm.current.knownSigners(received.signers)
+		signers := rm.active.knownSigners(received.signers)
 		if len(signers) == 0 {
 			log.Debug("Ignoring proposed root list: not signed by any known root node",
 				"hash", received.hash.Hex(),
@@ -361,15 +361,15 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 
 		rm.upgradeExclusionSet(received)
 		h.exListCh <- &exclusionSetEvent{set: received}
-	case rm.currentExSet != nil && rm.currentExSet.hash == received.hash:
-		newSignatures := rm.currentExSet.mergeSignatures(received.hash, received.signers)
+	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
+		newSignatures := rm.activeExSet.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
 			return nil
 		}
 
 		log.Debug("Received new exclusion list signatures", "from", p.id, "singers", toSigners(newSignatures))
-		h.exListCh <- &exclusionSetEvent{fromID: p.id, set: rm.currentExSet.copy()}
-		rm.db.saveCurrentExclusionSet(rm.currentExSet)
+		h.exListCh <- &exclusionSetEvent{fromID: p.id, set: rm.activeExSet.copy()}
+		rm.db.saveActiveExclusionSet(rm.activeExSet)
 	case rm.desiredExSet != nil && rm.desiredExSet.hash == received.hash:
 		newSignatures := rm.desiredExSet.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
@@ -377,28 +377,28 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		}
 
 		log.Debug("Received new desired exclusion list signatures", "from", p.id, "singers", toSigners(newSignatures))
-		if !rm.currentRootSet().isEnoughExSetSignatures(rm.desiredExSet) {
+		if !rm.getActiveRootSet().isEnoughExSetSignatures(rm.desiredExSet) {
 			h.exListCh <- &exclusionSetEvent{fromID: p.id, set: rm.desiredExSet}
 			rm.db.saveDesiredExclusionSet(rm.desiredExSet)
 			return nil
 		}
 
 		rm.upgradeExclusionSet(rm.desiredExSet)
-		h.exListCh <- &exclusionSetEvent{set: rm.currentExSet}
+		h.exListCh <- &exclusionSetEvent{set: rm.activeExSet}
 	default:
 		if !rm.isRootNode() {
 			log.Debug("Ignoring proposed exclusion list: not a root node")
 			return nil
 		}
 
-		if len(rm.currentRootSet().knownSigners(received.signers)) == 0 {
-			log.Debug("Ignoring proposed exclusion list: no current root node signatures")
+		if len(rm.getActiveRootSet().knownSigners(received.signers)) == 0 {
+			log.Debug("Ignoring proposed exclusion list: no active root node signatures")
 			return nil
 		}
 
-		obsoleteByCurrent := rm.currentExSet != nil && received.timestamp <= rm.currentExSet.timestamp
+		obsoleteByActive := rm.activeExSet != nil && received.timestamp <= rm.activeExSet.timestamp
 		obsoleteByProposed := rm.proposedExSet != nil && received.timestamp <= rm.proposedExSet.timestamp
-		if obsoleteByCurrent || obsoleteByProposed {
+		if obsoleteByActive || obsoleteByProposed {
 			log.Debug("Ignoring proposed exclusion list: obsolete")
 			return nil
 		}

@@ -25,13 +25,13 @@ func newDatabase(path string) (*database, error) {
 	return &database{store: db}, nil
 }
 
-func (db *database) getCurrentRootSet() (*rootSet, error) {
-	return db.getRootSet(currentRootKey)
+func (db *database) getActiveRootSet() (*rootSet, error) {
+	return db.getRootSet(activeRootKey)
 }
 
-func (db *database) saveCurrentRootSet(set *rootSet) {
-	if err := db.saveRootSet(set, currentRootKey); err != nil {
-		log.Crit("failed to save current root set", "err", err)
+func (db *database) saveActiveRootSet(set *rootSet) {
+	if err := db.saveRootSet(set, activeRootKey); err != nil {
+		log.Crit("failed to save active root set", "err", err)
 	}
 }
 
@@ -67,23 +67,23 @@ func (db *database) deleteProposedRootSet() {
 	}
 }
 
-func (db *database) getCurrentExclusionSet() *exclusionSet {
-	set, err := db.getExclusionSet(currentExclusionSetKey)
+func (db *database) getActiveExclusionSet() *exclusionSet {
+	set, err := db.getExclusionSet(activeExclusionKey)
 	if err != nil {
-		log.Crit("failed to get current exclusion set", "err", err)
+		log.Crit("failed to get active exclusion set", "err", err)
 	}
 
 	return set
 }
 
-func (db *database) saveCurrentExclusionSet(set *exclusionSet) {
-	if err := db.saveExclusionSet(set, currentExclusionSetKey); err != nil {
-		log.Crit("failed to save current exclusion set")
+func (db *database) saveActiveExclusionSet(set *exclusionSet) {
+	if err := db.saveExclusionSet(set, activeExclusionKey); err != nil {
+		log.Crit("failed to save active exclusion set")
 	}
 }
 
 func (db *database) getDesiredExclusionSet() *exclusionSet {
-	set, err := db.getExclusionSet(desiredExclusionSetKey)
+	set, err := db.getExclusionSet(desiredExclusionKey)
 	if err != nil {
 		log.Crit("failed to get desired exclusion set", "err", err)
 	}
@@ -92,19 +92,19 @@ func (db *database) getDesiredExclusionSet() *exclusionSet {
 }
 
 func (db *database) saveDesiredExclusionSet(set *exclusionSet) {
-	if err := db.saveExclusionSet(set, desiredExclusionSetKey); err != nil {
+	if err := db.saveExclusionSet(set, desiredExclusionKey); err != nil {
 		log.Crit("failed to save desired exclusion set", "err", err)
 	}
 }
 
 func (db *database) deleteDesiredExclusionSet() {
-	if err := db.store.Delete(desiredExclusionSetKey); err != nil {
+	if err := db.store.Delete(desiredExclusionKey); err != nil {
 		log.Crit("failed to delete desired exclusion list")
 	}
 }
 
 func (db *database) getProposedExclusionSet() *exclusionSet {
-	set, err := db.getExclusionSet(proposedExclusionSetKey)
+	set, err := db.getExclusionSet(proposedExclusionKey)
 	if err != nil {
 		log.Crit("failed to get proposed exclusion set", "err", err)
 	}
@@ -113,13 +113,13 @@ func (db *database) getProposedExclusionSet() *exclusionSet {
 }
 
 func (db *database) saveProposedExclusionSet(set *exclusionSet) {
-	if err := db.saveExclusionSet(set, proposedExclusionSetKey); err != nil {
+	if err := db.saveExclusionSet(set, proposedExclusionKey); err != nil {
 		log.Crit("failed to store proposed exclusion set", "err", err)
 	}
 }
 
 func (db *database) deleteProposedExclusionSet() {
-	if err := db.store.Delete(proposedExclusionSetKey); err != nil {
+	if err := db.store.Delete(proposedExclusionKey); err != nil {
 		log.Crit("failed to delete proposed exclusion set", "err", err)
 	}
 }
@@ -203,13 +203,13 @@ func (db *database) getExclusionSet(key []byte) (*exclusionSet, error) {
 }
 
 var (
-	currentRootKey  = []byte("current-root-set")
+	activeRootKey   = []byte("current-root-set")
 	desiredRootKey  = []byte("desired-root-set")
 	proposedRootKey = []byte("proposed-root-set")
 )
 
 var (
-	currentExclusionSetKey  = []byte("current-exclusion-set")
-	desiredExclusionSetKey  = []byte("desired-exclusion-set")
-	proposedExclusionSetKey = []byte("proposed-exclusion-set")
+	activeExclusionKey   = []byte("current-exclusion-set")
+	desiredExclusionKey  = []byte("desired-exclusion-set")
+	proposedExclusionKey = []byte("proposed-exclusion-set")
 )
