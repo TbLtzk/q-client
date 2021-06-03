@@ -12,8 +12,10 @@ import (
 )
 
 var (
-	errInvalidSignature = errors.New("list contains invalid signature")
-	errHashMismatch     = errors.New("hash mismatch")
+	errInvalidSignature     = errors.New("list contains invalid signature")
+	errHashMismatch         = errors.New("hash mismatch")
+	errInvalidExclusionList = errors.New("invalid exclusion list")
+	errInvalidRootList      = errors.New("invalid root list")
 )
 
 // RootManager stores root and exclusion lists.
