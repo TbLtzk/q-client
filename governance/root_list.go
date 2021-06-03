@@ -43,8 +43,12 @@ func (s *rootSet) calcHash() common.Hash {
 }
 
 func newRootSet(list *common.RootList) (*rootSet, error) {
-	if list == nil || len(list.Nodes) == 0 {
+	if list == nil {
 		return nil, errInvalidRootList
+	}
+
+	if len(list.Nodes) == 0 {
+		return nil, nil
 	}
 
 	roots := make(map[common.Address]struct{})
