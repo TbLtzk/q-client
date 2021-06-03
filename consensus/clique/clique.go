@@ -170,13 +170,13 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 
 // ExclusionSetProvider should provide validators exclusion set.
 type ExclusionSetProvider interface {
-	ExclusionSet() map[common.Address]uint64
+	ExclusionSetValidators() map[common.Address]uint64
 }
 
 // NoopExclusionSetProvider is needed for testing.
 type NoopExclusionSetProvider struct{}
 
-func (p *NoopExclusionSetProvider) ExclusionSet() map[common.Address]uint64 {
+func (p *NoopExclusionSetProvider) ExclusionSetValidators() map[common.Address]uint64 {
 	return make(map[common.Address]uint64)
 }
 
@@ -406,7 +406,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 }
 
 func (c *Clique) updateProposals(number uint64, snap *Snapshot) error {
-	excludedSigners := c.exclusionSetProvider.ExclusionSet()
+	excludedSigners := c.exclusionSetProvider.ExclusionSetValidators()
 
 	provider := c.registry.Validators()
 	if provider == nil {
