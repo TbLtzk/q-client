@@ -43,8 +43,10 @@ func (s *rootSet) calcHash() common.Hash {
 }
 
 func newRootSet(list *common.RootList) (*rootSet, error) {
-	// todo: this is ugly and should be done differently,
-	// same as lots of other things in this package
+	if list == nil {
+		return nil, errInvalidRootList
+	}
+
 	if len(list.Nodes) == 0 {
 		return nil, nil
 	}
