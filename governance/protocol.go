@@ -41,4 +41,6 @@ type statusMsgBody struct {
 	CurrentExclusionList  common.ValidatorExclusionList
 	DesiredExclusionList  common.ValidatorExclusionList
 	ProposedExclusionList common.ValidatorExclusionList
+
+	Network uint64
 }

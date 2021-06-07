@@ -1812,8 +1812,8 @@ func RegisterGraphQLService(stack *node.Node, backend ethapi.Backend, cfg node.C
 }
 
 // RegisterGovernanceService is a utility for a protocol extension
-func RegisterGovernanceService(stack *node.Node, cfg *governance.Config) *governance.Governance {
-	gov, err := governance.New(stack, cfg)
+func RegisterGovernanceService(stack *node.Node, cfg *governance.Config, networkId uint64) *governance.Governance {
+	gov, err := governance.New(stack, cfg, networkId)
 	if err != nil {
 		Fatalf("failed to register governance service %v", err)
 	}

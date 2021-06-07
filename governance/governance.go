@@ -18,14 +18,15 @@ type Config struct {
 // for 2nd layer functionality.
 type Governance struct {
 	RootManager *RootManager
+	NetworkID   uint64
 
 	handler *handler
 }
 
 // New Governance service.
-func New(stack *node.Node, cfg *Config) (*Governance, error) {
+func New(stack *node.Node, cfg *Config, networkId uint64) (*Governance, error) {
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	rootMgr, err := newRootManager(ks, stack.InstanceDir(), cfg)
+	rootMgr, err := newRootManager(ks, networkId, stack.InstanceDir(), cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +34,9 @@ func New(stack *node.Node, cfg *Config) (*Governance, error) {
 	handler := newHandler(rootMgr)
 	return &Governance{
 		RootManager: rootMgr,
-		handler:     handler,
+		NetworkID:   networkId,
+
+		handler: handler,
 	}, nil
 }
 
