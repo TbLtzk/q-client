@@ -117,6 +117,10 @@ func (p *peer) handshake(msg statusMsgBody) (*peerStatus, error) {
 		return nil, err
 	}
 
+	if status.Network != msg.Network {
+		return nil, errors.Wrap(err, "invalid network id")
+	}
+
 	currentRootSet, err := newRootSet(&status.CurrentRootList)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid current root list")
