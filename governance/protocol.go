@@ -10,14 +10,14 @@ const protocolName = "qgov"
 
 // Constants to match up protocol versions and messages
 const (
-	qgov1 = 1
+	qgov2 = 2
 )
 
 // ProtocolVersions are the supported versions of the gov protocol (first is primary).
-var ProtocolVersions = []uint{qgov1}
+var ProtocolVersions = []uint{qgov2}
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
-var protocolLengths = map[uint]uint64{qgov1: 3}
+var protocolLengths = map[uint]uint64{qgov2: 3}
 
 // maximum possible number of root nodes
 const maxNRootNodes = 101
