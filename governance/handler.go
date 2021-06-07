@@ -157,7 +157,7 @@ func (h *handler) makeProtocol(version uint) p2p.Protocol {
 		Version: version,
 		Length:  length,
 		Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
-			return h.runPeer(newPeer(p, rw))
+			return h.runPeer(newPeer(int(version), p, rw))
 		},
 		NodeInfo: func() interface{} {
 			active := h.rootManager.getActiveRootSet()
