@@ -17,7 +17,7 @@ const (
 var ProtocolVersions = []uint{qgov2}
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
-var protocolLengths = map[uint]uint64{qgov2: 4}
+var protocolLengths = map[uint]uint64{qgov2: 3}
 
 // maximum possible number of root nodes
 const maxNRootNodes = 101
