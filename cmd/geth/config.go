@@ -155,7 +155,7 @@ func enableWhisper(ctx *cli.Context) bool {
 func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 	stack, cfg := makeConfigNode(ctx)
 
-	gov := utils.RegisterGovernanceService(stack, &cfg.Governance)
+	gov := utils.RegisterGovernanceService(stack, &cfg.Governance, cfg.Eth.NetworkId)
 
 	backend := utils.RegisterEthService(stack, &cfg.Eth, gov.RootManager)
 
