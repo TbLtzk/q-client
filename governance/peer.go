@@ -71,16 +71,19 @@ type peer struct {
 	id string
 	rw p2p.MsgReadWriter
 
+	version int
+
 	rootSetCh      chan *rootSet
 	exclusionSetCh chan *exclusionSet
 	done           chan struct{}
 }
 
-func newPeer(conn *p2p.Peer, rw p2p.MsgReadWriter) *peer {
+func newPeer(version int, conn *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
 		Peer:           conn,
 		id:             conn.ID().ShortString(),
 		rw:             rw,
+		version:        version,
 		rootSetCh:      make(chan *rootSet),
 		exclusionSetCh: make(chan *exclusionSet),
 		done:           make(chan struct{}),
