@@ -178,12 +178,15 @@ func (h *handler) makeStatusBody(rm *RootManager) statusMsgBody {
 	defer rm.exLock.Unlock()
 
 	return statusMsgBody{
-		CurrentRootList:       rm.active.copy().makeList(),
-		DesiredRootList:       rm.desired.copy().makeList(),
-		ProposedRootList:      rm.proposed.copy().makeList(),
+		CurrentRootList:  rm.active.copy().makeList(),
+		DesiredRootList:  rm.desired.copy().makeList(),
+		ProposedRootList: rm.proposed.copy().makeList(),
+
 		CurrentExclusionList:  rm.activeExSet.copy().makeList(),
 		DesiredExclusionList:  rm.desiredExSet.copy().makeList(),
 		ProposedExclusionList: rm.proposedExSet.copy().makeList(),
+
+		Network: rm.networkId,
 	}
 }
 

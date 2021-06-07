@@ -20,7 +20,8 @@ var (
 // RootManager stores root and exclusion lists.
 // todo: shouldn't be exported
 type RootManager struct {
-	keystore Keystore
+	keystore  Keystore
+	networkId uint64
 
 	db *database
 
@@ -44,7 +45,7 @@ type Keystore interface {
 	SignHash(a accounts.Account, hash []byte) ([]byte, error)
 }
 
-func newRootManager(ks Keystore, datadir string, cfg *Config) (*RootManager, error) {
+func newRootManager(ks Keystore, networkId uint64, datadir string, cfg *Config) (*RootManager, error) {
 	db, err := newDatabase(filepath.Join(datadir, "gov"))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init gov database")
@@ -72,8 +73,10 @@ func newRootManager(ks Keystore, datadir string, cfg *Config) (*RootManager, err
 	proposedRootSet, _ := db.getProposedRootSet()
 
 	manager := &RootManager{
-		db:       db,
-		keystore: ks,
+		keystore:  ks,
+		networkId: networkId,
+
+		db: db,
 
 		desiredRootFeed: &event.Feed{},
 		active:          activeRootSet,
