@@ -379,11 +379,18 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 	if parent.Time+c.config.Period > header.Time {
 		return errInvalidTimestamp
 	}
+
 	// Retrieve the snapshot needed to verify this header and cache it
 	snap, err := c.snapshot(chain, number-1, header.ParentHash, parents)
 	if err != nil {
 		return err
 	}
+
+	// Skip signers list checking for blocks older than one hour
+	if time.Unix(int64(header.Time), 0).Before(time.Now().Add(-time.Hour)) {
+		return nil
+	}
+
 	// If the block is a checkpoint block, verify the signer list
 	if number%c.config.Epoch == 0 {
 		err = c.updateProposals(number, snap)
