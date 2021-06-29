@@ -148,3 +148,11 @@ func (s *exclusionSet) copy() *exclusionSet {
 		signers:     signers,
 	}
 }
+
+func (s *exclusionSet) getAddresses() []common.Address {
+	if s == nil {
+		return nil
+	}
+
+	return s.addresses
+}

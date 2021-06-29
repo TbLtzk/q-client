@@ -90,6 +90,10 @@ func (a *GovernanceAPI) AcceptProposedRootList() error {
 	return nil
 }
 
+func (a *GovernanceAPI) DiffRootList(nameA, nameB string) ([]DiffEntry, error) {
+	return a.gov.RootManager.diffRootListByName(nameA, nameB)
+}
+
 func (a *GovernanceAPI) ActiveExclusionList() *ExclusionList {
 	return newExclusionList(a.gov.RootManager.getActiveExclusionSet())
 }
@@ -158,6 +162,10 @@ func (a *GovernanceAPI) AcceptProposedExclusionList() error {
 	rm.proposedExSet = nil
 	rm.db.deleteProposedExclusionSet()
 	return nil
+}
+
+func (a *GovernanceAPI) DiffExclusionList(nameA, nameB string) ([]DiffEntry, error) {
+	return a.gov.RootManager.diffExclusionListByName(nameA, nameB)
 }
 
 type RootList struct {

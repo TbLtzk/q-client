@@ -1,7 +1,9 @@
 package governance
 
 import (
+	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -38,6 +40,11 @@ type RootManager struct {
 	activeExSet   *exclusionSet
 	desiredExSet  *exclusionSet
 	proposedExSet *exclusionSet
+}
+
+type DiffEntry struct {
+	Name string
+	Diff []common.Address
 }
 
 type Keystore interface {
@@ -216,6 +223,42 @@ func (s *RootManager) upgradeRootSet(set *rootSet) {
 	s.db.deleteDesiredRootSet()
 }
 
+func (s *RootManager) diffRootListByName(nameA, nameB string) ([]DiffEntry, error) {
+	setA, err := s.getRootSetByName(nameA)
+	if err != nil {
+		return nil, err
+	}
+
+	setB, err := s.getRootSetByName(nameB)
+	if err != nil {
+		return nil, err
+	}
+
+	return []DiffEntry{
+		{
+			Name: nameA,
+			Diff: s.addressDiff(setA.getAddresses(), setB.getAddresses()),
+		},
+		{
+			Name: nameB,
+			Diff: s.addressDiff(setB.getAddresses(), setA.getAddresses()),
+		},
+	}, nil
+}
+
+func (s *RootManager) getRootSetByName(name string) (*rootSet, error) {
+	switch strings.ToLower(name) {
+	case "active":
+		return s.getActiveRootSet(), nil
+	case "desired":
+		return s.getDesiredRootSet(), nil
+	case "proposed":
+		return s.getProposedRootSet(), nil
+	}
+
+	return nil, fmt.Errorf("invalid root set name: %s", name)
+}
+
 func (s *RootManager) getActiveRootSet() *rootSet {
 	s.rootLock.Lock()
 	defer s.rootLock.Unlock()
@@ -245,6 +288,42 @@ func (s *RootManager) isAcceptableExclusionSet(set *exclusionSet) bool {
 	return s.getActiveRootSet().isEnoughExSetSignatures(set)
 }
 
+func (s *RootManager) diffExclusionListByName(nameA, nameB string) ([]DiffEntry, error) {
+	setA, err := s.getExclusionSetByName(nameA)
+	if err != nil {
+		return nil, err
+	}
+
+	setB, err := s.getExclusionSetByName(nameB)
+	if err != nil {
+		return nil, err
+	}
+
+	return []DiffEntry{
+		{
+			Name: nameA,
+			Diff: s.addressDiff(setA.getAddresses(), setB.getAddresses()),
+		},
+		{
+			Name: nameB,
+			Diff: s.addressDiff(setB.getAddresses(), setA.getAddresses()),
+		},
+	}, nil
+}
+
+func (s *RootManager) getExclusionSetByName(name string) (*exclusionSet, error) {
+	switch strings.ToLower(name) {
+	case "active":
+		return s.getActiveExclusionSet(), nil
+	case "desired":
+		return s.getDesiredExclusionSet(), nil
+	case "proposed":
+		return s.getProposedExclusionSet(), nil
+	}
+
+	return nil, fmt.Errorf("invalid exclusion set name: %s", name)
+}
+
 func (s *RootManager) getActiveExclusionSet() *exclusionSet {
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
@@ -264,4 +343,27 @@ func (s *RootManager) getProposedExclusionSet() *exclusionSet {
 	defer s.exLock.Unlock()
 
 	return s.proposedExSet.copy()
+}
+
+// addressDiff returns set of addresses which are only first list but not in second
+func (s *RootManager) addressDiff(arrA, arrB []common.Address) []common.Address {
+	var diff []common.Address
+	for _, addrA := range arrA {
+		if !s.addressContains(arrB, addrA) {
+			diff = append(diff, addrA)
+		}
+	}
+
+	return diff
+}
+
+// addressContains returns true if address array contains specific address
+func (s *RootManager) addressContains(arr []common.Address, addr common.Address) bool {
+	for _, item := range arr {
+		if item == addr {
+			return true
+		}
+	}
+
+	return false
 }
