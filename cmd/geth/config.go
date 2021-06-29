@@ -154,10 +154,10 @@ func enableWhisper(ctx *cli.Context) bool {
 // makeFullNode loads geth configuration and creates the Ethereum backend.
 func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 	stack, cfg := makeConfigNode(ctx)
+	rm := utils.MakeRootManager(stack, cfg.Eth.NetworkId, &cfg.Governance)
 
-	gov := utils.RegisterGovernanceService(stack, &cfg.Governance, cfg.Eth.NetworkId)
-
-	backend := utils.RegisterEthService(stack, &cfg.Eth, gov.RootManager)
+	backend := utils.RegisterEthService(stack, &cfg.Eth, rm)
+	utils.RegisterGovernanceService(stack, rm)
 
 	// Whisper must be explicitly enabled by specifying at least 1 whisper flag or in dev mode
 	shhEnabled := enableWhisper(ctx)

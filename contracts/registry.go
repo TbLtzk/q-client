@@ -54,10 +54,35 @@ func (r *Registry) Validators() *generated.Validators {
 	return val
 }
 
+// Roots returns Roots contract backend if available.
+func (r *Registry) Roots() *generated.Roots {
+	addr := r.RootNodesAddress()
+	if addr == nil {
+		return nil
+	}
+
+	val, err := generated.NewRoots(*addr, r.Backend)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to init roots contract"))
+	}
+
+	return val
+}
+
 func (r *Registry) ValidatorsAddress() *common.Address {
 	addr := r.getAddr("governance.validators")
 	if (addr == common.Address{}) {
 		log.Warn("governance.validators contract is not deployed")
+		return nil
+	}
+
+	return &addr
+}
+
+func (r *Registry) RootNodesAddress() *common.Address {
+	addr := r.getAddr("governance.rootNodes")
+	if (addr == common.Address{}) {
+		log.Warn("governance.rootNodes contract is not deployed")
 		return nil
 	}
 

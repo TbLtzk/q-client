@@ -1,42 +1,27 @@
 package governance
 
 import (
-	"gitlab.com/q-dev/q-client/accounts/keystore"
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rpc"
 )
 
-// Config of governance svc.
-type Config struct {
-	RootList common.RootList `toml:"-"`
-}
-
 // Governance service is responsible
 // for 2nd layer functionality.
 type Governance struct {
 	RootManager *RootManager
-	NetworkID   uint64
 
 	handler *handler
 }
 
 // New Governance service.
-func New(stack *node.Node, cfg *Config, networkId uint64) (*Governance, error) {
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	rootMgr, err := newRootManager(ks, networkId, stack.InstanceDir(), cfg)
-	if err != nil {
-		return nil, err
-	}
+func New(stack *node.Node, rm *RootManager) (*Governance, error) {
+	handler := newHandler(rm)
 
-	handler := newHandler(rootMgr)
 	return &Governance{
-		RootManager: rootMgr,
-		NetworkID:   networkId,
-
-		handler: handler,
+		RootManager: rm,
+		handler:     handler,
 	}, nil
 }
 

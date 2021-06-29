@@ -1812,8 +1812,8 @@ func RegisterGraphQLService(stack *node.Node, backend ethapi.Backend, cfg node.C
 }
 
 // RegisterGovernanceService is a utility for a protocol extension
-func RegisterGovernanceService(stack *node.Node, cfg *governance.Config, networkId uint64) *governance.Governance {
-	gov, err := governance.New(stack, cfg, networkId)
+func RegisterGovernanceService(stack *node.Node, rm *governance.RootManager) *governance.Governance {
+	gov, err := governance.New(stack, rm)
 	if err != nil {
 		Fatalf("failed to register governance service %v", err)
 	}
@@ -1971,6 +1971,16 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 		Fatalf("Can't create BlockChain: %v", err)
 	}
 	return chain, chainDb
+}
+
+func MakeRootManager(stack *node.Node, networkId uint64, govCfg *governance.Config) *governance.RootManager {
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	rm, err := governance.NewRootManager(ks, networkId, stack.InstanceDir(), govCfg)
+	if err != nil {
+		Fatalf("Can't create RootManager: %v", err)
+	}
+
+	return rm
 }
 
 // MakeConsolePreloads retrieves the absolute paths for the console JavaScript
