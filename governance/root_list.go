@@ -175,6 +175,14 @@ func (s *rootSet) copy() *rootSet {
 	}
 }
 
+func (s *rootSet) getAddresses() []common.Address {
+	if s == nil {
+		return nil
+	}
+
+	return s.rootAddresses
+}
+
 func (s *rootSet) signatures() [][]byte {
 	sigs := make([][]byte, 0, len(s.signers))
 	for _, sig := range s.signers {

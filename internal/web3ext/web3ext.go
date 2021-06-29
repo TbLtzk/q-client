@@ -594,6 +594,11 @@ web3._extend({
 			params: 0
 		}),
 	    new web3._extend.Method({
+			name: 'diffRootList',
+			call: 'gov_diffRootList',
+			params: 2
+		}),
+	    new web3._extend.Method({
 			name: 'activeExclusionList',
 			call: 'gov_activeExclusionList',
 			params: 0
@@ -617,6 +622,11 @@ web3._extend({
 			name: 'acceptProposedExclusionList',
 			call: 'gov_acceptProposedExclusionList',
 			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'diffExclusionList',
+			call: 'gov_diffExclusionList',
+			params: 2
 		}),
     ],
 	properties: []
