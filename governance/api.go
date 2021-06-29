@@ -39,26 +39,24 @@ func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList) (common.Hash
 		return common.Hash{}, errors.Wrap(err, "invalid root list")
 	}
 
-	rm := a.gov.RootManager
-	if !rm.isMember(set.rootAddresses) {
-		return common.Hash{}, errors.New("not a member of new list")
+	set, err = a.gov.RootManager.proposeRootSet(set)
+	if err != nil {
+		return common.Hash{}, err
 	}
 
-	rm.rootLock.Lock()
-	defer rm.rootLock.Unlock()
+	return set.hash, nil
+}
 
-	if set.timestamp <= rm.active.timestamp || (rm.desired != nil && set.timestamp <= rm.desired.timestamp) {
-		return common.Hash{}, errors.New("obsolete root list")
+func (a *GovernanceAPI) ProposeOnchainRootList() (common.Hash, error) {
+	set := a.gov.RootManager.getOnchainRootSet()
+	if set == nil {
+		return common.Hash{}, errors.New("can't get on-cain root set")
 	}
 
-	if rm.signRootSet(set) {
-		log.Info("signed desired root list")
+	set, err := a.gov.RootManager.proposeRootSet(set)
+	if err != nil {
+		return common.Hash{}, err
 	}
-
-	rm.desired = set
-	rm.desiredRootFeed.Send(set)
-
-	rm.db.saveDesiredRootSet(set)
 
 	return set.hash, nil
 }
@@ -116,26 +114,11 @@ func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusio
 		return common.Hash{}, errors.Wrap(err, "invalid exclusion list")
 	}
 
-	rm := a.gov.RootManager
-	if !rm.isRootNode() {
-		return common.Hash{}, errors.New("not a root node")
+	set, err = a.gov.RootManager.proposeExclusionSet(set)
+	if err != nil {
+		return common.Hash{}, err
 	}
 
-	rm.exLock.Lock()
-	defer rm.exLock.Unlock()
-
-	olderThanActive := rm.activeExSet != nil && set.timestamp <= rm.activeExSet.timestamp
-	olderThanDesired := rm.desiredExSet != nil && set.timestamp <= rm.desiredExSet.timestamp
-	if olderThanActive || olderThanDesired {
-		return common.Hash{}, errors.New("obsolete exclusion list")
-	}
-
-	rm.signExclusionSet(set)
-
-	rm.desiredExSet = set
-	rm.desiredExFeed.Send(set.copy())
-
-	rm.db.saveDesiredExclusionSet(set)
 	return set.hash, nil
 }
 

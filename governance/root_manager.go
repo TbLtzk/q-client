@@ -213,6 +213,30 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
 	}
 }
 
+func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, error) {
+	if !s.isRootNode() {
+		return nil, errors.New("not a root node")
+	}
+
+	s.exLock.Lock()
+	defer s.exLock.Unlock()
+
+	olderThanActive := s.activeExSet != nil && set.timestamp <= s.activeExSet.timestamp
+	olderThanDesired := s.desiredExSet != nil && set.timestamp <= s.desiredExSet.timestamp
+	if olderThanActive || olderThanDesired {
+		return nil, errors.New("obsolete exclusion list")
+	}
+
+	s.signExclusionSet(set)
+
+	s.desiredExSet = set
+	s.desiredExFeed.Send(set.copy())
+
+	s.db.saveDesiredExclusionSet(set)
+
+	return set, nil
+}
+
 // unsafe for concurrent calls.
 // must be locked before calling
 func (s *RootManager) upgradeRootSet(set *rootSet) {
@@ -233,6 +257,30 @@ func (s *RootManager) upgradeRootSet(set *rootSet) {
 
 	s.desired = nil
 	s.db.deleteDesiredRootSet()
+}
+
+func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
+	if !s.isMember(set.rootAddresses) {
+		return nil, errors.New("not a member of new list")
+	}
+
+	s.rootLock.Lock()
+	defer s.rootLock.Unlock()
+
+	if set.timestamp <= s.active.timestamp || (s.desired != nil && set.timestamp <= s.desired.timestamp) {
+		return nil, errors.New("obsolete root list")
+	}
+
+	if s.signRootSet(set) {
+		log.Info("signed desired root list")
+	}
+
+	s.desired = set
+	s.desiredRootFeed.Send(set)
+
+	s.db.saveDesiredRootSet(set)
+
+	return set, nil
 }
 
 func (s *RootManager) diffRootListByName(nameA, nameB string) ([]DiffEntry, error) {
