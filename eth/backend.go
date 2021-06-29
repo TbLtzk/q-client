@@ -140,7 +140,9 @@ func New(stack *node.Node, config *Config, conn bind.ContractBackend, rm *govern
 		reg = contracts.NewRegistry(cfg.Registry, cfg.RewardReceiver, conn)
 	}
 
-	rm.InitRegistry(reg)
+	if rm != nil {
+		rm.InitRegistry(reg)
+	}
 
 	eth := &Ethereum{
 		config:            config,
