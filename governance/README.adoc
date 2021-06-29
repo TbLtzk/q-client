@@ -12,7 +12,11 @@ In order to control root list and validators exclusion list, there's a new rpc n
   activeRootList: function(),
   desiredExclusionList: function(),
   desiredRootList: function(),
+  diffExclusionList: function(),
+  diffRootList: function(),
+  onchainRootList: function(),
   proposeExclusionListUpdate: function(),
+  proposeOnchainRootList: function(),
   proposeRootListUpdate: function(),
   proposedExclusionList: function(),
   proposedRootList: function()
@@ -36,7 +40,6 @@ Prints current root list. Example:
 
 Here, `hash` - hash of sorted root list and timestamp, `nodes` - addresses of root nodes, `signers` - root nodes that signed the list.
 
-
 * `gov.desiredRootList`
 
 Prints root list that is in process of collection signatures in order to replace current root list. Example:
@@ -51,11 +54,13 @@ Prints root list that is in process of collection signatures in order to replace
 }
 ----
 
-
 * `gov.proposedRootList`
 
 Prints root list waiting for your approval.
 
+* `gov.onchainRootList`
+
+Prints on-chain root list.
 
 * `gov.proposeRootListUpdate`
 
@@ -78,10 +83,12 @@ Method accepts a new root list as object, not as a string (note, argument is not
 
 Required fields are `nodes` and `timestamp`. Output of the method (in the example, `0x263ff519a38305a1a13ff43100f7f2599ac70128b8a92f9c6c4ba2ec93171cda`) is calculated hash of new root list.
 
+* `gov.proposeRootListUpdate`
+
+Propose current on-chain root list. At least one key from the new list should be unlocked, otherwise method will return the error "not a member of new list".
 
 * `gov.acceptProposedRootList`
 Accept root list returned from `gov.proposedRootList()`. This method will sign and start distributing the proposed root list. Also, the proposed list will replace current `desired list`.
-
 
 ## Validators Exclusion List Management
 Methods for exclusion list management have same behaviour as methods for root list management.
@@ -111,7 +118,6 @@ Prints current exclusion list (`null` if none). Example:
 
 Here, `signers` - root nodes that signed the list, `validators` - list of excluded validators (`address` - validator's address and `block` is block number since which validator is excluded)
 
-
 * `gov.desiredExclusionList`
 
 Prints exclusion list in process of collecting root nodes signatures in order to be accepted as current exclusion list. Example:
@@ -135,7 +141,6 @@ Prints exclusion list in process of collecting root nodes signatures in order to
 * `gov.proposedExclusionList`
 
 Prints exclusion list waiting for your approval.
-
 
 * `gov.proposeExclusionListUpdate`
 
@@ -161,7 +166,36 @@ Propose new version of exclusion list. `timestamp` must be larger than current e
 
 Method prints calculated `hash` of the list.
 
-
 * `gov.acceptProposedExclusionList`
 
 Accept exlusion list returned from `gov.proposedExclusionList()`. This method will sign and start distributing the proposed exclusion list. Also, the proposed list will replace current `desired list`.
+
+* `gov.diffRootList`
+
+Show diff between two root node lists. It takes two root node list names as parameters. Available names: `active`, `desired`, `proposed`, `onchain`. Usage example:
+[source,bash]
+----
+> gov.diffRootList("active", "onchain")
+[{
+    Diff: ["0xda5e68d01f3105a6db676156de93486d31271292", "0x9e3c7714c12bbbebacebd5e607afd116ce5790e1", "0x20cd22cdc30d9e32ec9e4b3dda6ca520748da06a", "0x16088dd258a533655e3a30ee6f72291a4a23c6d3"],
+    Name: "active"
+}, {
+    Diff: ["0xfee8905070da47d93a5b3abfa642ceb13ffe20d8", "0xd10a97806b8fdfc8e4cc83a49f35ccf513f0a1f3", "0x66316ffa38490d4d072f34ef7d7ba64ce6b4478e"],
+    Name: "onchain"
+}]
+----
+
+* `gov.diffExclusionList`
+
+Show diff between two exclusion lists. It takes two exclusion list names as parameters. Available names: `active`, `desired`, `proposed`. Usage example:
+[source,bash]
+----
+> gov.diffExclusionList("active", "proposed")
+[{
+    Diff: null,
+    Name: "active"
+}, {
+    Diff: null,
+    Name: "proposed"
+}]
+----
