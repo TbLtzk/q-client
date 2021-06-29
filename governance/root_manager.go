@@ -5,10 +5,12 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 )
@@ -25,7 +27,8 @@ type RootManager struct {
 	keystore  Keystore
 	networkId uint64
 
-	db *database
+	db  *database
+	reg *contracts.Registry
 
 	rootLock        sync.Mutex
 	desiredRootFeed *event.Feed
@@ -42,6 +45,11 @@ type RootManager struct {
 	proposedExSet *exclusionSet
 }
 
+// Config of root manager
+type Config struct {
+	RootList common.RootList `toml:"-"`
+}
+
 type DiffEntry struct {
 	Name string
 	Diff []common.Address
@@ -52,7 +60,7 @@ type Keystore interface {
 	SignHash(a accounts.Account, hash []byte) ([]byte, error)
 }
 
-func newRootManager(ks Keystore, networkId uint64, datadir string, cfg *Config) (*RootManager, error) {
+func NewRootManager(ks Keystore, networkId uint64, datadir string, cfg *Config) (*RootManager, error) {
 	db, err := newDatabase(filepath.Join(datadir, "gov"))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init gov database")
@@ -97,6 +105,10 @@ func newRootManager(ks Keystore, networkId uint64, datadir string, cfg *Config) 
 	}
 
 	return manager, nil
+}
+
+func (s *RootManager) InitRegistry(reg *contracts.Registry) {
+	s.reg = reg
 }
 
 // ExclusionSet returns set of excluded validators addresses.
@@ -254,6 +266,8 @@ func (s *RootManager) getRootSetByName(name string) (*rootSet, error) {
 		return s.getDesiredRootSet(), nil
 	case "proposed":
 		return s.getProposedRootSet(), nil
+	case "onchain":
+		return s.getOnChainRootSet(), nil
 	}
 
 	return nil, fmt.Errorf("invalid root set name: %s", name)
@@ -278,6 +292,33 @@ func (s *RootManager) getProposedRootSet() *rootSet {
 	defer s.rootLock.Unlock()
 
 	return s.proposed.copy()
+}
+
+func (s *RootManager) getOnChainRootSet() *rootSet {
+	if s.reg == nil {
+		return nil
+	}
+
+	roots := s.reg.Roots()
+	if roots == nil {
+		return nil
+	}
+
+	addresses, err := roots.GetMembers(nil)
+	if err != nil {
+		return nil
+	}
+
+	set, err := newRootSet(&common.RootList{
+		Timestamp: uint64(time.Now().Unix()),
+		Nodes:     addresses,
+	})
+
+	if err != nil {
+		return nil
+	}
+
+	return set
 }
 
 func (s *RootManager) isAcceptableExclusionSet(set *exclusionSet) bool {

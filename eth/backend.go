@@ -99,7 +99,7 @@ type Ethereum struct {
 // initialisation of the common Ethereum object)
 // Passing nil conn is ok for ethash and tests.
 // todo: having conn here is ugly, but i need this in order to avoid circular dep.
-func New(stack *node.Node, config *Config, conn bind.ContractBackend, gov *governance.RootManager) (*Ethereum, error) {
+func New(stack *node.Node, config *Config, conn bind.ContractBackend, rm *governance.RootManager) (*Ethereum, error) {
 	// Ensure configuration values are compatible and sane
 	if config.SyncMode == downloader.LightSync {
 		return nil, errors.New("can't run eth.Ethereum in light sync mode, use les.LightEthereum")
@@ -140,12 +140,14 @@ func New(stack *node.Node, config *Config, conn bind.ContractBackend, gov *gover
 		reg = contracts.NewRegistry(cfg.Registry, cfg.RewardReceiver, conn)
 	}
 
+	rm.InitRegistry(reg)
+
 	eth := &Ethereum{
 		config:            config,
 		chainDb:           chainDb,
 		eventMux:          stack.EventMux(),
 		accountManager:    stack.AccountManager(),
-		engine:            CreateConsensusEngine(stack, chainConfig, &config.Ethash, config.Miner.Notify, config.Miner.Noverify, chainDb, gov, reg),
+		engine:            CreateConsensusEngine(stack, chainConfig, &config.Ethash, config.Miner.Notify, config.Miner.Noverify, chainDb, rm, reg),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
 		gasPrice:          config.Miner.GasPrice,
@@ -266,16 +268,16 @@ func CreateConsensusEngine(
 	notify []string,
 	noverify bool,
 	db ethdb.Database,
-	gov *governance.RootManager,
+	rm *governance.RootManager,
 	reg *contracts.Registry,
 ) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	if chainConfig.Clique != nil {
-		if gov == nil {
+		if rm == nil {
 			log.Warn("creating clique in test mode; exclusion set will always be empty!")
 			return clique.New(chainConfig.Clique, db, &clique.NoopExclusionSetProvider{}, reg)
 		}
-		return clique.New(chainConfig.Clique, db, gov, reg)
+		return clique.New(chainConfig.Clique, db, rm, reg)
 	}
 	// Otherwise assume proof-of-work
 	switch config.PowMode {
