@@ -583,6 +583,11 @@ web3._extend({
 			call: 'gov_proposedRootList',
 			params: 0
 		}),
+		new web3._extend.Method({
+			name: 'onchainRootList',
+			call: 'gov_onchainRootList',
+			params: 0
+		}),
 	    new web3._extend.Method({
 			name: 'proposeRootListUpdate',
 			call: 'gov_proposeRootListUpdate',

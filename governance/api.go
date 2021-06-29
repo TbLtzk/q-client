@@ -29,6 +29,10 @@ func (a *GovernanceAPI) ProposedRootList() *RootList {
 	return newRootList(a.gov.RootManager.getProposedRootSet())
 }
 
+func (a *GovernanceAPI) OnchainRootList() *RootList {
+	return newRootList(a.gov.RootManager.getOnchainRootSet())
+}
+
 func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList) (common.Hash, error) {
 	set, err := newRootSet(&list)
 	if err != nil {

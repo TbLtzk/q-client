@@ -267,7 +267,7 @@ func (s *RootManager) getRootSetByName(name string) (*rootSet, error) {
 	case "proposed":
 		return s.getProposedRootSet(), nil
 	case "onchain":
-		return s.getOnChainRootSet(), nil
+		return s.getOnchainRootSet(), nil
 	}
 
 	return nil, fmt.Errorf("invalid root set name: %s", name)
@@ -294,7 +294,7 @@ func (s *RootManager) getProposedRootSet() *rootSet {
 	return s.proposed.copy()
 }
 
-func (s *RootManager) getOnChainRootSet() *rootSet {
+func (s *RootManager) getOnchainRootSet() *rootSet {
 	if s.reg == nil {
 		return nil
 	}
