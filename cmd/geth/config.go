@@ -101,6 +101,7 @@ func loadConfig(file string, cfg *gethConfig) error {
 func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = clientIdentifier
+	cfg.QVersion = params.QVersionWithMeta
 	cfg.Version = params.VersionWithCommit(gitCommit, gitDate)
 	cfg.HTTPModules = append(cfg.HTTPModules, "eth")
 	cfg.WSModules = append(cfg.WSModules, "eth")
