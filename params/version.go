@@ -21,11 +21,32 @@ import (
 )
 
 const (
+	QVersionMajor = 1        // Q-Client major version component of the current release
+	QVersionMinor = 0        // Q-Client minor version component of the current release
+	QVersionPatch = 0        // Q-Client patch version component of the current release
+	QVersionMeta  = "stable" // Q-Client version metadata to append to the version string
+)
+
+const (
 	VersionMajor = 1        // Major version component of the current release
 	VersionMinor = 9        // Minor version component of the current release
 	VersionPatch = 19       // Patch version component of the current release
 	VersionMeta  = "stable" // Version metadata to append to the version string
 )
+
+// QVersion holds the textual q-client version string.
+var QVersion = func() string {
+	return fmt.Sprintf("%d.%d.%d", QVersionMajor, QVersionMinor, QVersionPatch)
+}()
+
+// QVersionWithMeta holds the textual q-client version string including the metadata.
+var QVersionWithMeta = func() string {
+	v := QVersion
+	if QVersionMeta != "" {
+		v += "-" + QVersionMeta
+	}
+	return v
+}()
 
 // Version holds the textual version string.
 var Version = func() string {
