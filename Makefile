@@ -39,6 +39,9 @@ test: all
 lint: ## Run linters.
 	$(GORUN) build/ci.go lint
 
+update-version:
+	@./update-version.sh
+
 clean:
 	env GO111MODULE=on go clean -cache
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
