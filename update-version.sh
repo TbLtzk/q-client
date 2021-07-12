@@ -23,5 +23,6 @@ sed -r -i -E "s/QVersionPatch = [0-9]+/QVersionPatch = $QPATCH/g" $QVERSION_PATH
 
 git add -- .
 git commit -m "Update q-client version"
+git push origin $(git branch --show-current)
 git tag -f v$QVERSION
 git push -f origin v$QVERSION
