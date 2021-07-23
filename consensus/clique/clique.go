@@ -88,7 +88,7 @@ var (
 
 	// errInvalidRewardReceiver is returned if block has a reward receiver set to
 	// invalid value.
-	errInvalidRewardReceiver = errors.New("beneficiary in checkpoint block non-zero")
+	errInvalidRewardReceiver = errors.New("invalid reward receiver")
 
 	// errInvalidVote is returned if a nonce value is something else that the two
 	// allowed constants of 0x00..0 or 0xff..f.
@@ -313,7 +313,7 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 	}
 	// Rewards should be accumulated only by reward receiver
 	if !checkpoint {
-		if header.Coinbase != (common.Address{}) || header.Coinbase != c.registry.RewardReceiver() {
+		if header.Coinbase != (common.Address{}) && header.Coinbase != c.registry.RewardReceiver() {
 			return errInvalidRewardReceiver
 		}
 	}
