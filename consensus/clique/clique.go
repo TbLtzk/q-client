@@ -29,7 +29,6 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 
 	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus"
@@ -86,6 +85,10 @@ var (
 	// errInvalidCheckpointBeneficiary is returned if a checkpoint/epoch transition
 	// block has a beneficiary set to non-zeroes.
 	errInvalidCheckpointBeneficiary = errors.New("beneficiary in checkpoint block non-zero")
+
+	// errInvalidRewardReceiver is returned if block has a reward receiver set to
+	// invalid value.
+	errInvalidRewardReceiver = errors.New("beneficiary in checkpoint block non-zero")
 
 	// errInvalidVote is returned if a nonce value is something else that the two
 	// allowed constants of 0x00..0 or 0xff..f.
@@ -218,7 +221,6 @@ type Clique struct {
 	latestRewardReceiver common.Address
 	registry             *contracts.Registry
 
-	contractBackend      bind.ContractBackend
 	exclusionSetProvider ExclusionSetProvider
 }
 
@@ -308,6 +310,12 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 	checkpoint := (number % c.config.Epoch) == 0
 	if checkpoint && header.Coinbase != (common.Address{}) {
 		return errInvalidCheckpointBeneficiary
+	}
+	// Rewards should be accumulated only by reward receiver
+	if !checkpoint {
+		if header.Coinbase != (common.Address{}) || header.Coinbase != c.registry.RewardReceiver() {
+			return errInvalidRewardReceiver
+		}
 	}
 
 	// Nonces must be 0x00..0 or 0xff..f, zeroes enforced on checkpoints
@@ -662,10 +670,7 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given.
 func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) {
-	err := c.accumulateRewards(state, header)
-	if err != nil {
-		log.Error("failed to get accumulate reward, error does not returned, be aware of some bugs!!!")
-	}
+	c.accumulateRewards(state, header)
 
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
@@ -674,13 +679,9 @@ func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Heade
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,
 // nor block rewards given, and returns the final block.
 func (c *Clique) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	// uncles are dropped
-	err := c.accumulateRewards(state, header)
-	if err != nil {
-		log.Error("failed to get accumulate reward")
-		return nil, err // todo wrap error
-	}
+	c.accumulateRewards(state, header)
 
+	// uncles are dropped
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 
@@ -857,7 +858,7 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 }
 
 // AccumulateRewards credits the coinbase of the given block with the mining reward
-func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) error {
+func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) {
 	receiver := c.registry.RewardReceiver()
 	state.AddBalance(receiver, CliqueBlockReward)
 
@@ -865,8 +866,6 @@ func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) e
 	defer c.authorLock.Unlock()
 
 	c.latestRewardReceiver = receiver
-
-	return nil
 }
 
 func (c *Clique) Validators() *common.Address {
