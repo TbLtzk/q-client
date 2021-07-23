@@ -866,13 +866,8 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 
 // AccumulateRewards credits the coinbase of the given block with the mining reward
 func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) {
-	receiver := common.Address{}
-	number := header.Number.Uint64()
-	checkpoint := (number % c.config.Epoch) == 0
-	if !checkpoint {
-		receiver = c.registry.RewardReceiver()
-		state.AddBalance(receiver, CliqueBlockReward)
-	}
+	receiver := c.registry.RewardReceiver()
+	state.AddBalance(receiver, CliqueBlockReward)
 
 	c.authorLock.Lock()
 	defer c.authorLock.Unlock()
