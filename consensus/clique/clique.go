@@ -870,7 +870,7 @@ func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) {
 	number := header.Number.Uint64()
 	checkpoint := (number % c.config.Epoch) == 0
 	if !checkpoint {
-		receiver := c.registry.RewardReceiver()
+		receiver = c.registry.RewardReceiver()
 		state.AddBalance(receiver, CliqueBlockReward)
 	}
 
