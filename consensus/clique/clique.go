@@ -601,10 +601,17 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 // header for running the transactions on top.
 func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
 	// If the block isn't a checkpoint, cast a random vote (good enough for now)
-	header.Coinbase = c.registry.RewardReceiver()
+	header.Coinbase = common.Address{}
 	header.Nonce = types.BlockNonce{}
 
 	number := header.Number.Uint64()
+	checkpoint := (number % c.config.Epoch) == 0
+
+	// Set reward receiver on non-checkpoint block
+	if !checkpoint {
+		header.Coinbase = c.registry.RewardReceiver()
+	}
+
 	// Assemble the voting snapshot to check which votes make sense
 	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil)
 	if err != nil {
