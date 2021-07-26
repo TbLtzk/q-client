@@ -276,8 +276,10 @@ func (c *Config) NodeName() string {
 	if configName == "geth" || configName == "geth-testnet" {
 		configName = "Geth"
 	}
-	name += "Q-Client/v" + c.QVersion
-	name += "/" + configName
+	if c.QVersion != "" {
+		name += "Q-Client/v" + c.QVersion + "/"
+	}
+	name += configName
 	if c.UserIdent != "" {
 		name += "/" + c.UserIdent
 	}
