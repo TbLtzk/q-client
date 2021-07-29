@@ -7,6 +7,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/q-client/signer/core/apitypes"
 )
 
 // GnosisSafeTx is a type to parse the safe-tx returned by the relayer,
@@ -76,9 +77,9 @@ func (tx *GnosisSafeTx) ToTypedData() TypedData {
 
 // ArgsForValidation returns a SendTxArgs struct, which can be used for the
 // common validations, e.g. look up 4byte destinations
-func (tx *GnosisSafeTx) ArgsForValidation() *SendTxArgs {
+func (tx *GnosisSafeTx) ArgsForValidation() *apitypes.SendTxArgs {
 	gp := hexutil.Big(tx.GasPrice)
-	args := &SendTxArgs{
+	args := &apitypes.SendTxArgs{
 		From:     tx.Safe,
 		To:       &tx.To,
 		Gas:      hexutil.Uint64(tx.SafeTxGas.Uint64()),

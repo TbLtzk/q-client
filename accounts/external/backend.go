@@ -29,7 +29,7 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/rpc"
-	"gitlab.com/q-dev/q-client/signer/core"
+	"gitlab.com/q-dev/q-client/signer/core/apitypes"
 )
 
 type ExternalBackend struct {
@@ -203,7 +203,7 @@ func (api *ExternalSigner) SignTx(account accounts.Account, tx *types.Transactio
 		t := common.NewMixedcaseAddress(*tx.To())
 		to = &t
 	}
-	args := &core.SendTxArgs{
+	args := &apitypes.SendTxArgs{
 		Data:  &data,
 		Nonce: hexutil.Uint64(tx.Nonce()),
 		Value: hexutil.Big(*tx.Value()),
