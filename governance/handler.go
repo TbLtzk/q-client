@@ -199,31 +199,28 @@ func (h *handler) runPeer(p *peer) error {
 		return err
 	}
 
-	if status == nil {
-		p.Log().Warn("unable to get peer status", "peer", p.id)
-		return errors.New("unable to get peer status")
-	}
-
 	h.peers.register(p)
 	defer h.peers.unregister(p)
 
-	for _, set := range []*rootSet{status.currentRootSet, status.desiredRootSet, status.proposedRootSet} {
-		if set == nil {
-			continue
+	if status != nil {
+		for _, set := range []*rootSet{status.currentRootSet, status.desiredRootSet, status.proposedRootSet} {
+			if set == nil {
+				continue
+			}
+
+			if err := h.handleRootSet(p, set); err != nil {
+				return err
+			}
 		}
 
-		if err := h.handleRootSet(p, set); err != nil {
-			return err
-		}
-	}
+		for _, set := range []*exclusionSet{status.currentExSet, status.desiredExSet, status.proposedExSet} {
+			if set == nil {
+				continue
+			}
 
-	for _, set := range []*exclusionSet{status.currentExSet, status.desiredExSet, status.proposedExSet} {
-		if set == nil {
-			continue
-		}
-
-		if err := h.handleExclusionSet(p, set); err != nil {
-			return err
+			if err := h.handleExclusionSet(p, set); err != nil {
+				return err
+			}
 		}
 	}
 
