@@ -199,6 +199,11 @@ func (h *handler) runPeer(p *peer) error {
 		return err
 	}
 
+	if status == nil {
+		p.Log().Warn("unable to get peer status", "peer", p.id)
+		return errors.New("unable to get peer status")
+	}
+
 	h.peers.register(p)
 	defer h.peers.unregister(p)
 
