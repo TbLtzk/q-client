@@ -28,7 +28,6 @@ import (
 	"gitlab.com/q-dev/q-client/core/forkid"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/state"
-	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/les/flowcontrol"
 	"gitlab.com/q-dev/q-client/light"
@@ -408,7 +407,7 @@ func (h *serverHandler) broadcastLoop() {
 	defer headSub.Unsubscribe()
 
 	var (
-		lastHead *types.Header
+		lastHead = h.blockchain.CurrentHeader()
 		lastTd   = common.Big0
 	)
 	for {
