@@ -25,7 +25,7 @@ import (
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/internal/debug"
 	"gitlab.com/q-dev/q-client/internal/flags"
-	cli "gopkg.in/urfave/cli.v1"
+	"gopkg.in/urfave/cli.v1"
 )
 
 // AppHelpFlagGroups is the application flags, grouped by functionality.
@@ -36,11 +36,12 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			configFileFlag,
 			utils.DataDirFlag,
 			utils.AncientFlag,
+			utils.MinFreeDiskSpaceFlag,
 			utils.KeyStoreDirFlag,
-			utils.NoUSBFlag,
+			utils.USBFlag,
 			utils.SmartCardDaemonPathFlag,
 			utils.NetworkIdFlag,
-
+			utils.MainnetFlag,
 			utils.GoerliFlag,
 			utils.RinkebyFlag,
 			utils.YoloV1Flag,
@@ -70,6 +71,7 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.UltraLightFractionFlag,
 			utils.UltraLightOnlyAnnounceFlag,
 			utils.LightNoPruneFlag,
+			utils.LightNoSyncServeFlag,
 		},
 	},
 	{
@@ -119,6 +121,7 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.CacheGCFlag,
 			utils.CacheSnapshotFlag,
 			utils.CacheNoPrefetchFlag,
+			utils.CachePreimagesFlag,
 		},
 	},
 	{
@@ -139,18 +142,21 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.HTTPListenAddrFlag,
 			utils.HTTPPortFlag,
 			utils.HTTPApiFlag,
+			utils.HTTPPathPrefixFlag,
 			utils.HTTPCORSDomainFlag,
 			utils.HTTPVirtualHostsFlag,
 			utils.WSEnabledFlag,
 			utils.WSListenAddrFlag,
 			utils.WSPortFlag,
 			utils.WSApiFlag,
+			utils.WSPathPrefixFlag,
 			utils.WSAllowedOriginsFlag,
 			utils.GraphQLEnabledFlag,
 			utils.GraphQLCORSDomainFlag,
 			utils.GraphQLVirtualHostsFlag,
-			utils.RPCGlobalGasCap,
-			utils.RPCGlobalTxFeeCap,
+			utils.RPCGlobalGasCapFlag,
+			utils.RPCGlobalTxFeeCapFlag,
+			utils.AllowUnprotectedTxs,
 			utils.JSpathFlag,
 			utils.ExecFlag,
 			utils.PreloadJSFlag,
@@ -178,8 +184,8 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.MiningEnabledFlag,
 			utils.MinerThreadsFlag,
 			utils.MinerNotifyFlag,
+			utils.MinerNotifyFullFlag,
 			utils.MinerGasPriceFlag,
-			utils.MinerGasTargetFlag,
 			utils.MinerGasLimitFlag,
 			utils.MinerEtherbaseFlag,
 			utils.MinerExtraDataFlag,
@@ -192,14 +198,14 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 		Flags: []cli.Flag{
 			utils.GpoBlocksFlag,
 			utils.GpoPercentileFlag,
+			utils.GpoMaxGasPriceFlag,
+			utils.GpoIgnoreGasPriceFlag,
 		},
 	},
 	{
 		Name: "VIRTUAL MACHINE",
 		Flags: []cli.Flag{
 			utils.VMEnableDebugFlag,
-			utils.EVMInterpreterFlag,
-			utils.EWASMInterpreterFlag,
 		},
 	},
 	{
@@ -214,33 +220,25 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 		Flags: metricsFlags,
 	},
 	{
-		Name:  "WHISPER (EXPERIMENTAL)",
-		Flags: whisperFlags,
-	},
-	{
 		Name: "ALIASED (deprecated)",
-		Flags: append([]cli.Flag{
+		Flags: []cli.Flag{
+			utils.NoUSBFlag,
 			utils.LegacyRPCEnabledFlag,
 			utils.LegacyRPCListenAddrFlag,
 			utils.LegacyRPCPortFlag,
 			utils.LegacyRPCCORSDomainFlag,
 			utils.LegacyRPCVirtualHostsFlag,
 			utils.LegacyRPCApiFlag,
-			utils.LegacyWSListenAddrFlag,
-			utils.LegacyWSPortFlag,
-			utils.LegacyWSAllowedOriginsFlag,
-			utils.LegacyWSApiFlag,
-			utils.LegacyGpoBlocksFlag,
-			utils.LegacyGpoPercentileFlag,
-			utils.LegacyGraphQLListenAddrFlag,
-			utils.LegacyGraphQLPortFlag,
-		}, debug.DeprecatedFlags...),
+			utils.LegacyMinerGasTargetFlag,
+		},
 	},
 	{
 		Name: "MISC",
 		Flags: []cli.Flag{
 			utils.SnapshotFlag,
+			utils.BloomFilterSizeFlag,
 			cli.HelpFlag,
+			utils.CatalystFlag,
 		},
 	},
 }

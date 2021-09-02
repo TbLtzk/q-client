@@ -18,6 +18,7 @@ package clique
 
 import (
 	"crypto/ecdsa"
+	"math/big"
 	"sort"
 
 	"gitlab.com/q-dev/q-client/common"
@@ -389,6 +390,7 @@ func (ap *testerAccountPool) sign(header *types.Header, signer string) {
 		// Create the genesis block with the initial set of signers
 		genesis := &core.Genesis{
 			ExtraData: make([]byte, extraVanity+common.AddressLength*len(signers)+extraSeal),
+			BaseFee:   big.NewInt(params.InitialBaseFee),
 		}
 		for j, signer := range signers {
 			copy(genesis.ExtraData[extraVanity+j*common.AddressLength:], signer[:])
@@ -418,7 +420,7 @@ func (ap *testerAccountPool) sign(header *types.Header, signer string) {
 		})
 		// Iterate through the blocks and seal them individually
 		for j, block := range blocks {
-			// Geth the header and prepare it for signing
+			// Get the header and prepare it for signing
 			header := block.Header()
 			if j > 0 {
 				header.ParentHash = blocks[j-1].Hash()

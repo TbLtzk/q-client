@@ -23,7 +23,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pborman/uuid"
+	"github.com/google/uuid"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -86,9 +86,12 @@ If you want to encrypt an existing private key, it can be specified by setting
 		}
 
 		// Create the keyfile object with a random UUID.
-		id := uuid.NewRandom()
+		UUID, err := uuid.NewRandom()
+		if err != nil {
+			utils.Fatalf("Failed to generate random uuid: %v", err)
+		}
 		key := &keystore.Key{
-			Id:         id,
+			Id:         UUID,
 			Address:    crypto.PubkeyToAddress(privateKey.PublicKey),
 			PrivateKey: privateKey,
 		}

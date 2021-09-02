@@ -18,7 +18,6 @@ package compiler
 
 import (
 	"os/exec"
-	"strings"
 	"testing"
 )
 
@@ -77,83 +76,3 @@ func TestSolidityCompileError(t *testing.T) {
 	}
 	t.Logf("error: %v", err)
 }
-
-func TestParseTruffleJSON(t *testing.T) {
-	abi, bin, err := ParseTruffleJSON([]byte(truffleTestData))
-	if err != nil {
-		t.Fatal("failed to parse truffle output", "err", err)
-	}
-
-	if len(*abi) == 0 {
-		t.Error("empty abi")
-	}
-
-	if len(*bin) == 0 {
-		t.Error("empty bytecode")
-	}
-
-	if strings.HasPrefix(*bin, "0x") {
-		t.Error("bytecode has 0x prefix")
-	}
-}
-
-const truffleTestData = `
-{
-  "contractName": "Bailout",
-  "abi": [
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_registry",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "receiver",
-          "type": "address"
-        }
-      ],
-      "name": "SuccessTransfer",
-      "type": "event"
-    },
-    {
-      "stateMutability": "payable",
-      "type": "receive"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "amount",
-          "type": "uint256"
-        }
-      ],
-      "name": "request",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    }
-  ],
-  "bytecode": "0x608060405234801561001057600080fd5b506040516104633803806104638339818101604052602081101561003357600080fd5b8101908080519060200190929190505050806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550506103cf806100946000396000f3fe6080604052600436106100225760003560e01c8063d845a4b31461002e57610029565b3661002957005b600080fd5b34801561003a57600080fd5b506100676004803603602081101561005157600080fd5b810190808035906020019092919050505061007f565b60405180821515815260200191505060405180910390f35b60008060009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16633fb902716040518163ffffffff1660e01b815260040180806020018281038252601c8152602001807f746f6b656e65636f6e6f6d6963732e73797374656d526573657276650000000081525060200191505060206040518083038186803b15801561012457600080fd5b505afa158015610138573d6000803e3d6000fd5b505050506040513d602081101561014e57600080fd5b810190808051906020019092919050505073ffffffffffffffffffffffffffffffffffffffff16632e1a7d4d836040518263ffffffff1660e01b815260040180828152602001915050602060405180830381600087803b1580156101b157600080fd5b505af11580156101c5573d6000803e3d6000fd5b505050506040513d60208110156101db57600080fd5b810190808051906020019092919050505061025e576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040180806020018281038252601a8152602001807f52657475726e656420776974682066616c736520726573756c7400000000000081525060200191505060405180910390fd5b60003373ffffffffffffffffffffffffffffffffffffffff168360405180600001905060006040518083038185875af1925050503d80600081146102be576040519150601f19603f3d011682016040523d82523d6000602084013e6102c3565b606091505b505090508061033a576040517f08c379a000000000000000000000000000000000000000000000000000000000815260040180806020018281038252600f8152602001807f5472616e73666572206661696c6564000000000000000000000000000000000081525060200191505060405180910390fd5b7f6bdc666bbe47cadd8bfc4dbb947317b58ab01c4ecfd733e8ea0509e0a76afdbf8333604051808381526020018273ffffffffffffffffffffffffffffffffffffffff1681526020019250505060405180910390a1600191505091905056fea2646970667358221220ab8d7dfe9274e2ce429e7eade1642953b39add5e9a3e8f0e3c28442d06c69b9264736f6c63430007010033"
-}`
