@@ -81,7 +81,7 @@ type peer struct {
 func newPeer(version int, conn *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
 		Peer:           conn,
-		id:             conn.ID().ShortString(),
+		id:             conn.ID().String(),
 		rw:             rw,
 		version:        version,
 		rootSetCh:      make(chan *rootSet),

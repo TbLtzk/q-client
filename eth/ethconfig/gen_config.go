@@ -3,6 +3,7 @@
 package ethconfig
 
 import (
+	"math/big"
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"

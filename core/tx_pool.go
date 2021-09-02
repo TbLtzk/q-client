@@ -270,8 +270,10 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 
 	priceLimit := new(big.Int).SetUint64(config.PriceLimit)
 	isPriceLimitDynamic := config.PriceLimit == 0
-	if isPriceLimitDynamic && gpProvider.GetGasPrice() != nil {
-		priceLimit = gpProvider.GetGasPrice()
+	if isPriceLimitDynamic {
+		if gasPrice, err := gpProvider.GetGasPrice(); err == nil {
+			priceLimit = gasPrice
+		}
 	}
 
 	// Create the transaction pool with its initial settings
@@ -349,7 +351,7 @@ func (pool *TxPool) loop() {
 		// Handle ChainHeadEvent
 		case ev := <-pool.chainHeadCh:
 			if pool.isPriceLimitDynamic {
-				if price := pool.priceProvider.GetGasPrice(); price != nil && pool.PriceLimit().Cmp(price) != 0 {
+				if price, err := pool.priceProvider.GetGasPrice(); err == nil && pool.PriceLimit().Cmp(price) != 0 {
 					pool.SetGasPrice(price)
 				}
 			}
@@ -454,6 +456,7 @@ func (pool *TxPool) SetGasPrice(price *big.Int) {
 		pool.priced.Removed(len(drop))
 	}
 
+	pool.priceLimit = price
 	log.Info("Transaction pool price threshold updated", "price", price)
 }
 

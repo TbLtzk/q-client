@@ -13,13 +13,13 @@ import (
 
 // GasPriceProvider.
 type GasPriceProvider interface {
-	GetGasPrice() *big.Int
+	GetGasPrice() (*big.Int, error)
 }
 
 type NoopGasPriceProvider struct{}
 
-func (p *NoopGasPriceProvider) GetGasPrice() *big.Int {
-	return nil
+func (p *NoopGasPriceProvider) GetGasPrice() (*big.Int, error) {
+	return new(big.Int), nil
 }
 
 type blockChain interface {
@@ -53,11 +53,11 @@ func NewEPQFIParamsOracle(defaultPrice *big.Int, reg *contracts.Registry, chain 
 // GetGasPrice linked to QUSD converted to native currency.
 // Returns default value if any of required system contracts/parameters
 // is not available.
-func (p *EPQFIParamsOracle) GetGasPrice() *big.Int {
+func (p *EPQFIParamsOracle) GetGasPrice() (*big.Int, error) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
-	return new(big.Int).Set(p.price)
+	return new(big.Int).Set(p.price), nil
 }
 
 func (p *EPQFIParamsOracle) runLoop() {

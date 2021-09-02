@@ -42,6 +42,7 @@ import (
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/vm"
@@ -51,8 +52,10 @@ import (
 	"gitlab.com/q-dev/q-client/eth/ethconfig"
 	"gitlab.com/q-dev/q-client/eth/gasprice"
 	"gitlab.com/q-dev/q-client/eth/tracers"
+	"gitlab.com/q-dev/q-client/ethclient"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethstats"
+	"gitlab.com/q-dev/q-client/governance"
 	"gitlab.com/q-dev/q-client/graphql"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/internal/flags"
@@ -155,6 +158,17 @@ var (
 		Name:  "ropsten",
 		Usage: "Ropsten network: pre-configured proof-of-work test network",
 	}
+
+	// Q networks
+	DevnetFlag = cli.BoolFlag{
+		Name:  "devnet",
+		Usage: "Devnet network: pre-configured poa short-lived test network",
+	}
+	DarrowFlag = cli.BoolFlag{
+		Name:  "darrow",
+		Usage: "Darrow network: pre-configured poa test network",
+	}
+
 	DeveloperFlag = cli.BoolFlag{
 		Name:  "dev",
 		Usage: "Ephemeral proof-of-authority network with a pre-funded developer account, mining enabled",
@@ -341,7 +355,7 @@ var (
 	}
 	TxPoolPriceLimitFlag = cli.Uint64Flag{
 		Name:  "txpool.pricelimit",
-		Usage: "Minimum gas price limit to enforce for acceptance into the pool",
+		Usage: "Minimum gas price limit to enforce for acceptance into the pool. EPQFI param will be used by default",
 		Value: ethconfig.Defaults.TxPool.PriceLimit,
 	}
 	TxPoolPriceBumpFlag = cli.Uint64Flag{
@@ -608,6 +622,16 @@ var (
 	AllowUnprotectedTxs = cli.BoolFlag{
 		Name:  "rpc.allow-unprotected-txs",
 		Usage: "Allow for unprotected (non EIP155 signed) transactions to be submitted via RPC",
+	}
+
+	// Governance flags
+	RootTimestampFlag = cli.Uint64Flag{
+		Name:  "root.timestamp",
+		Usage: "timestamp of root nodes list",
+	}
+	RootAddressesFlag = cli.StringFlag{
+		Name:  "root.addresses",
+		Usage: "comma separated address of root nodes list",
 	}
 
 	// Network Settings
@@ -1470,6 +1494,42 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 	}
 }
 
+func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
+	if !(ctx.GlobalIsSet(RootTimestampFlag.Name) || ctx.GlobalIsSet(RootAddressesFlag.Name)) {
+		switch true {
+		case ctx.GlobalBool(DevnetFlag.Name):
+			cfg.RootList = params.DevnetRootNodes
+		case ctx.GlobalBool(DarrowFlag.Name):
+			cfg.RootList = params.DarrowRootNodes
+		default:
+			cfg.RootList = params.MainnetRootNodes
+		}
+		return
+	}
+
+	// validate flags
+	if !ctx.GlobalIsSet(RootTimestampFlag.Name) {
+		Fatalf("flag %s is required when %s is set", RootTimestampFlag.Name, RootAddressesFlag.Name)
+	}
+	if !ctx.GlobalIsSet(RootAddressesFlag.Name) {
+		Fatalf("flag %s is required when %s is set", RootAddressesFlag.Name, RootTimestampFlag.Name)
+	}
+
+	var addrs []common.Address
+	for _, str := range strings.Split(ctx.GlobalString(RootAddressesFlag.Name), ",") {
+		if !common.IsHexAddress(str) {
+			Fatalf("invalid %s: %s is not a hex encoded address", RootAddressesFlag.Name, str)
+		}
+
+		addrs = append(addrs, common.HexToAddress(str))
+	}
+
+	cfg.RootList = common.RootList{
+		Timestamp: ctx.GlobalUint64(RootTimestampFlag.Name),
+		Nodes:     addrs,
+	}
+}
+
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
@@ -1699,7 +1759,7 @@ func SetDNSDiscoveryDefaults(cfg *ethconfig.Config, genesis common.Hash) {
 // RegisterEthService adds an Ethereum client to the stack.
 // The second return value is the full node instance, which may be nil if the
 // node is running as a light client.
-func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend, *eth.Ethereum) {
+func RegisterEthService(stack *node.Node, cfg *ethconfig.Config, gov *governance.RootManager) (ethapi.Backend, *eth.Ethereum) {
 	if cfg.SyncMode == downloader.LightSync {
 		backend, err := les.New(stack, cfg)
 		if err != nil {
@@ -1708,7 +1768,9 @@ func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend
 		stack.RegisterAPIs(tracers.APIs(backend.ApiBackend))
 		return backend.ApiBackend, nil
 	}
-	backend, err := eth.New(stack, cfg)
+	conn, _ := stack.Attach()
+	client := ethclient.NewClient(conn)
+	backend, err := eth.New(stack, cfg, client, gov)
 	if err != nil {
 		Fatalf("Failed to register the Ethereum service: %v", err)
 	}
@@ -1735,6 +1797,19 @@ func RegisterGraphQLService(stack *node.Node, backend ethapi.Backend, cfg node.C
 	if err := graphql.New(stack, backend, cfg.GraphQLCors, cfg.GraphQLVirtualHosts); err != nil {
 		Fatalf("Failed to register the GraphQL service: %v", err)
 	}
+}
+
+func RegisterGovernanceService(stack *node.Node, rm *governance.RootManager) *governance.Governance {
+	gov, err := governance.New(stack, rm)
+	if err != nil {
+		Fatalf("failed to register governance service %v", err)
+	}
+
+	stack.RegisterAPIs(gov.APIs())
+	stack.RegisterProtocols(gov.Protocols())
+	stack.RegisterLifecycle(gov)
+
+	return gov
 }
 
 func SetupMetrics(ctx *cli.Context) {
@@ -1862,7 +1937,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	}
 	var engine consensus.Engine
 	if config.Clique != nil {
-		engine = clique.New(config.Clique, chainDb)
+		engine = clique.New(config.Clique, chainDb, &clique.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry())
 	} else {
 		engine = ethash.NewFaker()
 		if !ctx.GlobalBool(FakePoWFlag.Name) {
@@ -1912,6 +1987,16 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("Can't create BlockChain: %v", err)
 	}
 	return chain, chainDb
+}
+
+func MakeRootManager(stack *node.Node, networkId uint64, govCfg *governance.Config) *governance.RootManager {
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	rm, err := governance.NewRootManager(ks, networkId, stack.InstanceDir(), govCfg)
+	if err != nil {
+		Fatalf("Can't create RootManager: %v", err)
+	}
+
+	return rm
 }
 
 // MakeConsolePreloads retrieves the absolute paths for the console JavaScript

@@ -4,6 +4,7 @@
 package generated
 
 import (
+	"errors"
 	"math/big"
 	"strings"
 
@@ -17,6 +18,7 @@ import (
 
 // Reference imports to suppress errors if they are not otherwise used.
 var (
+	_ = errors.New
 	_ = big.NewInt
 	_ = strings.NewReader
 	_ = ethereum.NotFound
@@ -26,20 +28,31 @@ var (
 	_ = event.NewSubscription
 )
 
+// QHolderRewardPoolMetaData contains all meta data concerning the QHolderRewardPool contract.
+var QHolderRewardPoolMetaData = &bind.MetaData{
+	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"RewardTransferedToQVault\",\"type\":\"event\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_registry\",\"type\":\"address\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_rewardAmount\",\"type\":\"uint256\"}],\"name\":\"requestRewardTransfer\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	Bin: "0x608060405234801561001057600080fd5b5061043d806100206000396000f3fe60806040526004361061002d5760003560e01c8063c4d66de814610039578063e9f891f51461006e57610034565b3661003457005b600080fd5b34801561004557600080fd5b5061006c6004803603602081101561005c57600080fd5b50356001600160a01b03166100aa565b005b34801561007a57600080fd5b506100986004803603602081101561009157600080fd5b503561016f565b60408051918252519081900360200190f35b600054610100900460ff16806100c357506100c361038e565b806100d1575060005460ff16155b61010c5760405162461bcd60e51b815260040180806020018281038252602e8152602001806103da602e913960400191505060405180910390fd5b600054610100900460ff16158015610137576000805460ff1961ff0019909116610100171660011790555b6000805462010000600160b01b031916620100006001600160a01b03851602179055801561016b576000805461ff00191690555b5050565b6000805460408051633fb9027160e01b815260206004820181905260156024830152741d1bdad95b9958dbdb9bdb5a58dccb9c55985d5b1d605a1b60448301529151620100009093046001600160a01b031692633fb9027192606480840193919291829003018186803b1580156101e557600080fd5b505afa1580156101f9573d6000803e3d6000fd5b505050506040513d602081101561020f57600080fd5b50516001600160a01b031633146102575760405162461bcd60e51b81526004018080602001828103825260458152602001806103956045913960600191505060405180910390fd5b60005460408051633fb9027160e01b815260206004820181905260156024830152741d1bdad95b9958dbdb9bdb5a58dccb9c55985d5b1d605a1b60448301529151620100009093046001600160a01b031692633fb9027192606480840193919291829003018186803b1580156102cc57600080fd5b505afa1580156102e0573d6000803e3d6000fd5b505050506040513d60208110156102f657600080fd5b505160408051630633136b60e31b815290516001600160a01b03909216916331989b58918591600480830192600092919082900301818588803b15801561033c57600080fd5b505af1158015610350573d6000803e3d6000fd5b50506040805186815290517f4c3dc86535ba84f8434ea47b1c4fb201cfdd30398118d9ba50ce2164d176783c94509081900360200192509050a15090565b303b159056fe5b5145432d3031353030305d2d5065726d697373696f6e2064656e696564202d206f6e6c792074686520515661756c7420636f6e747261637420686173206163636573732e496e697469616c697a61626c653a20636f6e747261637420697320616c726561647920696e697469616c697a6564a2646970667358221220f148942a39c21e8e5358f38f4b54c3db0b3445a15dc7b2c41576a4dbab7bb20b64736f6c63430007060033",
+}
+
 // QHolderRewardPoolABI is the input ABI used to generate the binding from.
-const QHolderRewardPoolABI = "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"RewardTransferedToQVault\",\"type\":\"event\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_registry\",\"type\":\"address\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_rewardAmount\",\"type\":\"uint256\"}],\"name\":\"requestRewardTransfer\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+// Deprecated: Use QHolderRewardPoolMetaData.ABI instead.
+var QHolderRewardPoolABI = QHolderRewardPoolMetaData.ABI
 
 // QHolderRewardPoolBin is the compiled bytecode used for deploying new contracts.
-var QHolderRewardPoolBin = "0x608060405234801561001057600080fd5b5061044a806100206000396000f3fe60806040526004361061002d5760003560e01c8063c4d66de814610039578063e9f891f51461006e57610034565b3661003457005b600080fd5b34801561004557600080fd5b5061006c6004803603602081101561005c57600080fd5b50356001600160a01b03166100aa565b005b34801561007a57600080fd5b506100986004803603602081101561009157600080fd5b503561016f565b60408051918252519081900360200190f35b600054610100900460ff16806100c357506100c361038e565b806100d1575060005460ff16155b61010c5760405162461bcd60e51b815260040180806020018281038252602e815260200180610395602e913960400191505060405180910390fd5b600054610100900460ff16158015610137576000805460ff1961ff0019909116610100171660011790555b6000805462010000600160b01b031916620100006001600160a01b03851602179055801561016b576000805461ff00191690555b5050565b6000805460408051633fb9027160e01b815260206004820181905260156024830152741d1bdad95b9958dbdb9bdb5a58dccb9c55985d5b1d605a1b60448301529151620100009093046001600160a01b031692633fb9027192606480840193919291829003018186803b1580156101e557600080fd5b505afa1580156101f9573d6000803e3d6000fd5b505050506040513d602081101561020f57600080fd5b50516001600160a01b031633146102575760405162461bcd60e51b81526004018080602001828103825260528152602001806103c36052913960600191505060405180910390fd5b60005460408051633fb9027160e01b815260206004820181905260156024830152741d1bdad95b9958dbdb9bdb5a58dccb9c55985d5b1d605a1b60448301529151620100009093046001600160a01b031692633fb9027192606480840193919291829003018186803b1580156102cc57600080fd5b505afa1580156102e0573d6000803e3d6000fd5b505050506040513d60208110156102f657600080fd5b505160408051630633136b60e31b815290516001600160a01b03909216916331989b58918591600480830192600092919082900301818588803b15801561033c57600080fd5b505af1158015610350573d6000803e3d6000fd5b50506040805186815290517f4c3dc86535ba84f8434ea47b1c4fb201cfdd30398118d9ba50ce2164d176783c94509081900360200192509050a15090565b303b159056fe496e697469616c697a61626c653a20636f6e747261637420697320616c726561647920696e697469616c697a65645b5145432d3031353030305d2d5468652063616c6c657220646f6573206e6f742068617665206163636573732c206f6e6c792074686520515661756c7420636f6e747261637420686173206163636573732ea2646970667358221220e178acda266e76bf5add8b50a6bdeb31c2d774735bb16aad31e42d9ebf6e644164736f6c63430007060033"
+// Deprecated: Use QHolderRewardPoolMetaData.Bin instead.
+var QHolderRewardPoolBin = QHolderRewardPoolMetaData.Bin
 
 // DeployQHolderRewardPool deploys a new Ethereum contract, binding an instance of QHolderRewardPool to it.
 func DeployQHolderRewardPool(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *QHolderRewardPool, error) {
-	parsed, err := abi.JSON(strings.NewReader(QHolderRewardPoolABI))
+	parsed, err := QHolderRewardPoolMetaData.GetAbi()
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+	if parsed == nil {
+		return common.Address{}, nil, nil, errors.New("GetABI returned nil")
+	}
 
-	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(QHolderRewardPoolBin), backend)
+	address, tx, contract, err := bind.DeployContract(auth, *parsed, common.FromHex(QHolderRewardPoolBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
@@ -154,7 +167,7 @@ func bindQHolderRewardPool(address common.Address, caller bind.ContractCaller, t
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_QHolderRewardPool *QHolderRewardPoolRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_QHolderRewardPool *QHolderRewardPoolRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _QHolderRewardPool.Contract.QHolderRewardPoolCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -173,7 +186,7 @@ func (_QHolderRewardPool *QHolderRewardPoolRaw) Transact(opts *bind.TransactOpts
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_QHolderRewardPool *QHolderRewardPoolCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_QHolderRewardPool *QHolderRewardPoolCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _QHolderRewardPool.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -381,5 +394,6 @@ func (_QHolderRewardPool *QHolderRewardPoolFilterer) ParseRewardTransferedToQVau
 	if err := _QHolderRewardPool.contract.UnpackLog(event, "RewardTransferedToQVault", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }

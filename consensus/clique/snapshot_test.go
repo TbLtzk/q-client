@@ -18,7 +18,6 @@ package clique
 
 import (
 	"crypto/ecdsa"
-	"math/big"
 	"sort"
 
 	"gitlab.com/q-dev/q-client/common"
