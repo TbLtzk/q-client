@@ -20,10 +20,17 @@ import (
 	"sync"
 	"time"
 
+<<<<<<< HEAD
 	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/log"
+=======
+	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/log"
+>>>>>>> 26675454bf93bf904be7a43cce6b3f550115ff90
 )
 
 // pruner is responsible for pruning historical light chain data.

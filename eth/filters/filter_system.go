@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	ethereum "gitlab.com/q-dev/q-client"
+	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"

@@ -28,6 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 const (
@@ -330,8 +331,12 @@ func (f *BlockFetcher) FilterBodies(peer string, transactions [][]*types.Transac
 // events.
 func (f *BlockFetcher) loop() {
 	// Iterate the block fetching until a quit is requested
-	fetchTimer := time.NewTimer(0)
-	completeTimer := time.NewTimer(0)
+	var (
+		fetchTimer    = time.NewTimer(0)
+		completeTimer = time.NewTimer(0)
+	)
+	<-fetchTimer.C // clear out the channel
+	<-completeTimer.C
 	defer fetchTimer.Stop()
 	defer completeTimer.Stop()
 
@@ -540,7 +545,7 @@ func (f *BlockFetcher) loop() {
 						announce.time = task.time
 
 						// If the block is empty (header only), short circuit into the final import queue
-						if header.TxHash == types.DeriveSha(types.Transactions{}) && header.UncleHash == types.CalcUncleHash([]*types.Header{}) {
+						if header.TxHash == types.EmptyRootHash && header.UncleHash == types.EmptyUncleHash {
 							log.Trace("Block empty, skipping body retrieval", "peer", announce.origin, "number", header.Number, "hash", header.Hash())
 
 							block := types.NewBlockWithHeader(header)
@@ -619,7 +624,7 @@ func (f *BlockFetcher) loop() {
 							continue
 						}
 						if txnHash == (common.Hash{}) {
-							txnHash = types.DeriveSha(types.Transactions(task.transactions[i]))
+							txnHash = types.DeriveSha(types.Transactions(task.transactions[i]), trie.NewStackTrie(nil))
 						}
 						if txnHash != announce.header.TxHash {
 							continue
@@ -828,15 +833,17 @@ func (f *BlockFetcher) importBlocks(peer string, block *types.Block) {
 // internal state.
 func (f *BlockFetcher) forgetHash(hash common.Hash) {
 	// Remove all pending announces and decrement DOS counters
-	for _, announce := range f.announced[hash] {
-		f.announces[announce.origin]--
-		if f.announces[announce.origin] <= 0 {
-			delete(f.announces, announce.origin)
+	if announceMap, ok := f.announced[hash]; ok {
+		for _, announce := range announceMap {
+			f.announces[announce.origin]--
+			if f.announces[announce.origin] <= 0 {
+				delete(f.announces, announce.origin)
+			}
 		}
-	}
-	delete(f.announced, hash)
-	if f.announceChangeHook != nil {
-		f.announceChangeHook(hash, false)
+		delete(f.announced, hash)
+		if f.announceChangeHook != nil {
+			f.announceChangeHook(hash, false)
+		}
 	}
 	// Remove any pending fetches and decrement the DOS counters
 	if announce := f.fetching[hash]; announce != nil {

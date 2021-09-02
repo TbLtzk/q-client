@@ -1,7 +1,12 @@
-# Build Geth in a stock Go builder container
-FROM golang:1.14.4-alpine3.12 as builder
+# Support setting various labels on the final image
+ARG COMMIT=""
+ARG VERSION=""
+ARG BUILDNUM=""
 
-RUN apk add --no-cache make gcc musl-dev linux-headers git
+# Build Geth in a stock Go builder container
+FROM golang:1.16-alpine as builder
+
+RUN apk add --no-cache gcc musl-dev linux-headers git
 
 ADD . /q-client
 ARG BUILD_TOKEN
@@ -16,5 +21,12 @@ FROM alpine:3.12.0
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /q-client/build/bin/geth /usr/local/bin/
 
-EXPOSE 8545 8546 8547 30303 30303/udp
+EXPOSE 8545 8546 30303 30303/udp
 ENTRYPOINT ["geth"]
+
+# Add some metadata labels to help programatic image consumption
+ARG COMMIT=""
+ARG VERSION=""
+ARG BUILDNUM=""
+
+LABEL commit="$COMMIT" version="$VERSION" buildnum="$BUILDNUM"

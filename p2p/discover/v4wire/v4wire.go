@@ -42,8 +42,6 @@ const (
 	NeighborsPacket
 	ENRRequestPacket
 	ENRResponsePacket
-	RequestAllPacket
-	RespondWithAllPacket
 )
 
 // RPC request structures
@@ -52,6 +50,8 @@ type (
 		Version    uint
 		From, To   Endpoint
 		Expiration uint64
+		ENRSeq     uint64 `rlp:"optional"` // Sequence number of local record, added by EIP-868.
+
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
@@ -64,6 +64,8 @@ type (
 		To         Endpoint
 		ReplyTok   []byte // This contains the hash of the ping packet.
 		Expiration uint64 // Absolute timestamp at which the packet becomes invalid.
+		ENRSeq     uint64 `rlp:"optional"` // Sequence number of local record, added by EIP-868.
+
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
@@ -80,13 +82,6 @@ type (
 	Neighbors struct {
 		Nodes      []Node
 		Expiration uint64
-		// TotalCount of nodes that a requesting peer should receive.
-		// Note: without this number, the requesting peer was waiting
-		// for more than bucketSize nodes even if responding peer
-		// sent everything it had and then dropped responder as timed out.
-		// Because of this, peers with small number of items in table
-		// didn't participate in discovery. ¯\_(ツ)_/¯
-		TotalCount uint
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
@@ -104,18 +99,6 @@ type (
 		Record   enr.Record
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
-	}
-
-	// requestAll asks node for its known peers.
-	RequestAll struct {
-		Expiration uint64
-	}
-
-	// respondWithAll is the reply to requestAll.
-	RespondWithAll struct {
-		Nodes      []Node
-		TotalCount uint
-		Expiration uint64
 	}
 )
 
@@ -183,13 +166,11 @@ type Packet interface {
 	Kind() byte
 }
 
-func (req *Ping) Name() string   { return "PING/v4" }
-func (req *Ping) Kind() byte     { return PingPacket }
-func (req *Ping) ENRSeq() uint64 { return seqFromTail(req.Rest) }
+func (req *Ping) Name() string { return "PING/v4" }
+func (req *Ping) Kind() byte   { return PingPacket }
 
-func (req *Pong) Name() string   { return "PONG/v4" }
-func (req *Pong) Kind() byte     { return PongPacket }
-func (req *Pong) ENRSeq() uint64 { return seqFromTail(req.Rest) }
+func (req *Pong) Name() string { return "PONG/v4" }
+func (req *Pong) Kind() byte   { return PongPacket }
 
 func (req *Findnode) Name() string { return "FINDNODE/v4" }
 func (req *Findnode) Kind() byte   { return FindnodePacket }
@@ -203,24 +184,9 @@ func (req *ENRRequest) Kind() byte   { return ENRRequestPacket }
 func (req *ENRResponse) Name() string { return "ENRRESPONSE/v4" }
 func (req *ENRResponse) Kind() byte   { return ENRResponsePacket }
 
-func (req *RespondWithAll) Name() string { return "RESPONDWITHALL/V4" }
-func (req *RespondWithAll) Kind() byte   { return RespondWithAllPacket }
-
-func (req *RequestAll) Name() string { return "REQUESTALL/v4" }
-func (req *RequestAll) Kind() byte   { return RequestAllPacket }
-
 // Expired checks whether the given UNIX time stamp is in the past.
 func Expired(ts uint64) bool {
 	return time.Unix(int64(ts), 0).Before(time.Now())
-}
-
-func seqFromTail(tail []rlp.RawValue) uint64 {
-	if len(tail) == 0 {
-		return 0
-	}
-	var seq uint64
-	rlp.DecodeBytes(tail[0], &seq)
-	return seq
 }
 
 // Encoder/decoder.
@@ -268,10 +234,6 @@ func Decode(input []byte) (Packet, Pubkey, []byte, error) {
 		req = new(ENRRequest)
 	case ENRResponsePacket:
 		req = new(ENRResponse)
-	case RequestAllPacket:
-		req = new(RequestAll)
-	case RespondWithAllPacket:
-		req = new(RespondWithAll)
 	default:
 		return nil, fromKey, hash, fmt.Errorf("unknown type: %d", ptype)
 	}
