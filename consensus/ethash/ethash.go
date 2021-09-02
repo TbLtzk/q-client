@@ -39,8 +39,6 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/rpc"
-
-	mmap "github.com/edsrzf/mmap-go"
 )
 
 var ErrInvalidDumpMagic = errors.New("invalid dump magic")

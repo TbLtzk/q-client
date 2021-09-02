@@ -4,6 +4,7 @@
 package generated
 
 import (
+	"errors"
 	"math/big"
 	"strings"
 
@@ -17,6 +18,7 @@ import (
 
 // Reference imports to suppress errors if they are not otherwise used.
 var (
+	_ = errors.New
 	_ = big.NewInt
 	_ = strings.NewReader
 	_ = ethereum.NotFound
@@ -26,20 +28,31 @@ var (
 	_ = event.NewSubscription
 )
 
+// AddressStorageStakesSortedMetaData contains all meta data concerning the AddressStorageStakesSorted contract.
+var AddressStorageStakesSortedMetaData = &bind.MetaData{
+	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"AddressAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"AddressRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_stake\",\"type\":\"uint256\"}],\"name\":\"StakeUpdated\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"addrStake\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"linkedList\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"listSize\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_stake\",\"type\":\"uint256\"}],\"name\":\"addAddr\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_stake\",\"type\":\"uint256\"}],\"name\":\"updateStake\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"removeLast\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"contains\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getAddresses\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	Bin: "0x608060405234801561001057600080fd5b50600061001b6100a3565b600080546001600160a01b0319166001600160a01b0383169081178255604051929350917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908290a350600160005260026020527fe90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e080546001600160a01b03191690556100a7565b3390565b610dfb806100b66000396000f3fe608060405234801561001057600080fd5b50600436106100995760003560e01c806340b7a9361461009e5780635dbe47e8146100de578063715018a6146101045780638da5cb5b1461010e578063972c5356146101325780639f65080b1461014c578063a39fac1214610178578063cf527e8b146101d0578063d092e186146101f6578063d9034503146101fe578063f2fde38b14610224575b600080fd5b6100ca600480360360408110156100b457600080fd5b506001600160a01b03813516906020013561024a565b604080519115158252519081900360200190f35b6100ca600480360360208110156100f457600080fd5b50356001600160a01b0316610411565b61010c61042e565b005b6101166104d0565b604080516001600160a01b039092168252519081900360200190f35b61013a6104df565b60408051918252519081900360200190f35b6100ca6004803603604081101561016257600080fd5b506001600160a01b0381351690602001356104e5565b610180610726565b60408051602080825283518183015283519192839290830191858101910280838360005b838110156101bc5781810151838201526020016101a4565b505050509050019250505060405180910390f35b610116600480360360208110156101e657600080fd5b50356001600160a01b03166107da565b6101166107f5565b61013a6004803603602081101561021457600080fd5b50356001600160a01b0316610936565b61010c6004803603602081101561023a57600080fd5b50356001600160a01b0316610948565b6000610254610a40565b6000546001600160a01b039081169116146102a4576040805162461bcd60e51b81526020600482018190526024820152600080516020610d0e833981519152604482015290519081900360640190fd5b6102ad83610411565b156102e95760405162461bcd60e51b8152600401808060200182810382526073815260200180610c9b6073913960800191505060405180910390fd5b600082116103285760405162461bcd60e51b8152600401808060200182810382526045815260200180610d2e6045913960600191505060405180910390fd5b600061033383610a44565b6001600160a01b0380821660009081526002602052604090205491925016158061038d576001600160a01b03808316600090815260026020526040808220548884168352912080546001600160a01b031916919092161790555b6001600160a01b03828116600090815260026020908152604080832080546001600160a01b031916948a16948517905583835260019182905280832088905560038054909201909155517fa226db3f664042183ee0281230bba26cbf7b5057e50aee7f25a175ff45ce4d7f9190a261040485610abd565b6001925050505b92915050565b6001600160a01b0316600090815260016020526040902054151590565b610436610a40565b6000546001600160a01b03908116911614610486576040805162461bcd60e51b81526020600482018190526024820152600080516020610d0e833981519152604482015290519081900360640190fd5b600080546040516001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080546001600160a01b0319169055565b6000546001600160a01b031690565b60035481565b60006104ef610a40565b6000546001600160a01b0390811691161461053f576040805162461bcd60e51b81526020600482018190526024820152600080516020610d0e833981519152604482015290519081900360640190fd5b61054883610411565b6105835760405162461bcd60e51b815260040180806020018281038252604b815260200180610bed604b913960600191505060405180910390fd5b6001600160a01b03808416600090815260026020819052604082205490921691906105ad86610b5f565b6001600160a01b0390811682526020808301939093526040918201600090812080549583166001600160a01b031996871617905590871680825260028452828220805490951690945560018352819020859055805185815290517fab0e25dc39626189cfb41155020ba89e726b10244275733e9d7c63cf33ffccdb929181900390910190a28161068a57600380546000190190556001600160a01b038316600081815260016020526040808220829055517f24a12366c02e13fe4a9e03d86a8952e85bb74a456c16e4a18b6d8295700b74bb9190a250600161040b565b600061069583610a44565b6001600160a01b038082166000908152600260205260409020549192501615806106ef576001600160a01b03808316600090815260026020526040808220548884168352912080546001600160a01b031916919092161790555b6001600160a01b03828116600090815260026020526040902080546001600160a01b03191691871691909117905561040485610abd565b6060600060019050600060035467ffffffffffffffff8111801561074957600080fd5b50604051908082528060200260200182016040528015610773578160200160208202803683370190505b506003549091505b80156107d3576001600160a01b0392831660009081526002602052604090205482519316928390839060001984019081106107b257fe5b6001600160a01b03909216602092830291909101909101526000190161077b565b5091505090565b6002602052600090815260409020546001600160a01b031681565b60006107ff610a40565b6000546001600160a01b0390811691161461084f576040805162461bcd60e51b81526020600482018190526024820152600080516020610d0e833981519152604482015290519081900360640190fd5b6000600354116108905760405162461bcd60e51b815260040180806020018281038252603d815260200180610c5e603d913960400191505060405180910390fd5b600260209081527fe90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e080546001600160a01b038082166000818152604080822080549094166001600160a01b0319958616179095558254909316909155600190935281812081905560038054600019019055905182917f24a12366c02e13fe4a9e03d86a8952e85bb74a456c16e4a18b6d8295700b74bb91a261093181610abd565b905090565b60016020526000908152604090205481565b610950610a40565b6000546001600160a01b039081169116146109a0576040805162461bcd60e51b81526020600482018190526024820152600080516020610d0e833981519152604482015290519081900360640190fd5b6001600160a01b0381166109e55760405162461bcd60e51b8152600401808060200182810382526026815260200180610c386026913960400191505060405180910390fd5b600080546040516001600160a01b03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080546001600160a01b0319166001600160a01b0392909216919091179055565b3390565b600060015b6001600160a01b03808216600090815260026020908152604080832054909316825260019052205483118015610a9857506001600160a01b038181166000908152600260205260409020541615155b1561040b576001600160a01b0390811660009081526002602052604090205416610a49565b610ac681610411565b15610aef576001600160a01b038116600090815260016020526040902054610aea57fe5b610b0f565b6001600160a01b03811660009081526001602052604090205415610b0f57fe5b6001600160a01b03808216600090815260026020526040902054168015610b5b576001600160a01b038083166000908152600160205260408082205492841682529020541015610b5b57fe5b5050565b6000610b6a82610411565b610ba55760405162461bcd60e51b8152600401808060200182810382526053815260200180610d736053913960600191505060405180910390fd5b60015b6001600160a01b0381811660009081526002602052604090205481169084161461040b576001600160a01b0390811660009081526002602052604090205416610ba856fe5b5145432d3033373030325d2d5468652061646472657373206973206e6f7420696e207468652073746f726167652c206661696c656420746f2075706461746520746865207374616b652e4f776e61626c653a206e6577206f776e657220697320746865207a65726f20616464726573735b5145432d3033373030335d2d546865206c69737420697320656d7074792c206661696c656420746f2072656d6f76652074686520616464726573732e5b5145432d3033373030305d2d54686520616464726573732068617320616c7265616479206265656e20616464656420746f207468652073746f726167652c206661696c656420746f2061646420746f207468652061646472657373207374616b657320736f727465642073746f726167652e4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e65725b5145432d3033373030315d2d496e76616c6964207374616b652c206661696c656420746f2061646420746865206164647265737320746f207468652073746f726167652e5b5145432d3033373030345d2d5468652061646472657373206973206e6f7420696e207468652073746f726167652c206661696c656420746f20676574207468652070726576696f757320616464726573732ea264697066735822122028d93485ab6543268914cd73cc4477fdc2ecf18d637adcc21985393ab2affe1e64736f6c63430007060033",
+}
+
 // AddressStorageStakesSortedABI is the input ABI used to generate the binding from.
-const AddressStorageStakesSortedABI = "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"AddressAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"AddressRemoved\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_stake\",\"type\":\"uint256\"}],\"name\":\"StakeUpdated\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"addrStake\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"linkedList\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"listSize\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_stake\",\"type\":\"uint256\"}],\"name\":\"addAddr\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_stake\",\"type\":\"uint256\"}],\"name\":\"updateStake\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"removeLast\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_addr\",\"type\":\"address\"}],\"name\":\"contains\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getAddresses\",\"outputs\":[{\"internalType\":\"address[]\",\"name\":\"\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]"
+// Deprecated: Use AddressStorageStakesSortedMetaData.ABI instead.
+var AddressStorageStakesSortedABI = AddressStorageStakesSortedMetaData.ABI
 
 // AddressStorageStakesSortedBin is the compiled bytecode used for deploying new contracts.
-var AddressStorageStakesSortedBin = "0x608060405234801561001057600080fd5b50600061001b6100a3565b600080546001600160a01b0319166001600160a01b0383169081178255604051929350917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908290a350600160005260026020527fe90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e080546001600160a01b03191690556100a7565b3390565b610d16806100b66000396000f3fe608060405234801561001057600080fd5b50600436106100995760003560e01c806340b7a9361461009e5780635dbe47e8146100de578063715018a6146101045780638da5cb5b1461010e578063972c5356146101325780639f65080b1461014c578063a39fac1214610178578063cf527e8b146101d0578063d092e186146101f6578063d9034503146101fe578063f2fde38b14610224575b600080fd5b6100ca600480360360408110156100b457600080fd5b506001600160a01b03813516906020013561024a565b604080519115158252519081900360200190f35b6100ca600480360360208110156100f457600080fd5b50356001600160a01b0316610408565b61010c610425565b005b6101166104c7565b604080516001600160a01b039092168252519081900360200190f35b61013a6104d6565b60408051918252519081900360200190f35b6100ca6004803603604081101561016257600080fd5b506001600160a01b0381351690602001356104dc565b61018061071f565b60408051602080825283518183015283519192839290830191858101910280838360005b838110156101bc5781810151838201526020016101a4565b505050509050019250505060405180910390f35b610116600480360360208110156101e657600080fd5b50356001600160a01b03166107d3565b6101166107ee565b61013a6004803603602081101561021457600080fd5b50356001600160a01b0316610926565b61010c6004803603602081101561023a57600080fd5b50356001600160a01b0316610938565b6000610254610a30565b6000546001600160a01b039081169116146102a4576040805162461bcd60e51b81526020600482018190526024820152600080516020610c3d833981519152604482015290519081900360640190fd5b6102ad83610408565b156102e95760405162461bcd60e51b8152600401808060200182810382526066815260200180610b616066913960800191505060405180910390fd5b600082116103285760405162461bcd60e51b8152600401808060200182810382526046815260200180610c9b6046913960600191505060405180910390fd5b600061033383610a34565b6001600160a01b0380821660009081526002602052604090205491925016158061038d576001600160a01b03808316600090815260026020526040808220548884168352912080546001600160a01b031916919092161790555b6001600160a01b03828116600090815260026020908152604080832080546001600160a01b031916948a16948517905583835260019182905280832088905560038054909201909155517fa226db3f664042183ee0281230bba26cbf7b5057e50aee7f25a175ff45ce4d7f9190a26001925050505b92915050565b6001600160a01b0316600090815260016020526040902054151590565b61042d610a30565b6000546001600160a01b0390811691161461047d576040805162461bcd60e51b81526020600482018190526024820152600080516020610c3d833981519152604482015290519081900360640190fd5b600080546040516001600160a01b03909116907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0908390a3600080546001600160a01b0319169055565b6000546001600160a01b031690565b60035481565b60006104e6610a30565b6000546001600160a01b03908116911614610536576040805162461bcd60e51b81526020600482018190526024820152600080516020610c3d833981519152604482015290519081900360640190fd5b61053f83610408565b61057a5760405162461bcd60e51b815260040180806020018281038252603e815260200180610c5d603e913960400191505060405180910390fd5b6001600160a01b03808416600090815260026020819052604082205490921691906105a486610aad565b6001600160a01b0390811682526020808301939093526040918201600090812080549583166001600160a01b031996871617905590871680825260028452828220805490951690945560018352819020859055805185815290517fab0e25dc39626189cfb41155020ba89e726b10244275733e9d7c63cf33ffccdb929181900390910190a28161068157600380546000190190556001600160a01b038316600081815260016020526040808220829055517f24a12366c02e13fe4a9e03d86a8952e85bb74a456c16e4a18b6d8295700b74bb9190a2506001610402565b600061068c83610a34565b6001600160a01b038082166000908152600260205260409020549192501615806106e6576001600160a01b03808316600090815260026020526040808220548884168352912080546001600160a01b031916919092161790555b506001600160a01b03908116600090815260026020526040902080546001600160a01b0319169490911693909317909255506001919050565b6060600060019050600060035467ffffffffffffffff8111801561074257600080fd5b5060405190808252806020026020018201604052801561076c578160200160208202803683370190505b506003549091505b80156107cc576001600160a01b0392831660009081526002602052604090205482519316928390839060001984019081106107ab57fe5b6001600160a01b039092166020928302919091019091015260001901610774565b5091505090565b6002602052600090815260409020546001600160a01b031681565b60006107f8610a30565b6000546001600160a01b03908116911614610848576040805162461bcd60e51b81526020600482018190526024820152600080516020610c3d833981519152604482015290519081900360640190fd5b6000600354116108895760405162461bcd60e51b8152600401808060200182810382526030815260200180610c0d6030913960400191505060405180910390fd5b600260209081527fe90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e080546001600160a01b038082166000818152604080822080549094166001600160a01b0319958616179095558254909316909155600190935281812081905560038054600019019055905182917f24a12366c02e13fe4a9e03d86a8952e85bb74a456c16e4a18b6d8295700b74bb91a2905090565b60016020526000908152604090205481565b610940610a30565b6000546001600160a01b03908116911614610990576040805162461bcd60e51b81526020600482018190526024820152600080516020610c3d833981519152604482015290519081900360640190fd5b6001600160a01b0381166109d55760405162461bcd60e51b8152600401808060200182810382526026815260200180610b3b6026913960400191505060405180910390fd5b600080546040516001600160a01b03808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080546001600160a01b0319166001600160a01b0392909216919091179055565b3390565b600060015b6001600160a01b03808216600090815260026020908152604080832054909316825260019052205483118015610a8857506001600160a01b038181166000908152600260205260409020541615155b15610402576001600160a01b0390811660009081526002602052604090205416610a39565b6000610ab882610408565b610af35760405162461bcd60e51b8152600401808060200182810382526046815260200180610bc76046913960600191505060405180910390fd5b60015b6001600160a01b03818116600090815260026020526040902054811690841614610402576001600160a01b0390811660009081526002602052604090205416610af656fe4f776e61626c653a206e6577206f776e657220697320746865207a65726f206164647265737354686520616464726573732068617320616c7265616479206265656e20616464656420746f207468652073746f726167652c206661696c656420746f2061646420746f207468652061646472657373207374616b657320736f727465642073746f726167652e5468652061646472657373206973206e6f7420696e207468652073746f726167652c206661696c656420746f20676574207468652070726576696f757320616464726573732e546865206c69737420697320656d7074792c206661696c656420746f2072656d6f76652074686520616464726573732e4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e65725468652061646472657373206973206e6f7420696e207468652073746f726167652c206661696c656420746f2075706461746520746865207374616b652e496e76616c69642076616c756520666f7220746865207374616b652c206661696c656420746f2061646420746865206164647265737320746f207468652073746f726167652ea2646970667358221220c146c940eebc0c8f4fa7b4e1ccf239afd31c32a8f47b62f8f1cfed61ccdd713564736f6c63430007060033"
+// Deprecated: Use AddressStorageStakesSortedMetaData.Bin instead.
+var AddressStorageStakesSortedBin = AddressStorageStakesSortedMetaData.Bin
 
 // DeployAddressStorageStakesSorted deploys a new Ethereum contract, binding an instance of AddressStorageStakesSorted to it.
 func DeployAddressStorageStakesSorted(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *AddressStorageStakesSorted, error) {
-	parsed, err := abi.JSON(strings.NewReader(AddressStorageStakesSortedABI))
+	parsed, err := AddressStorageStakesSortedMetaData.GetAbi()
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
+	if parsed == nil {
+		return common.Address{}, nil, nil, errors.New("GetABI returned nil")
+	}
 
-	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(AddressStorageStakesSortedBin), backend)
+	address, tx, contract, err := bind.DeployContract(auth, *parsed, common.FromHex(AddressStorageStakesSortedBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
@@ -154,7 +167,7 @@ func bindAddressStorageStakesSorted(address common.Address, caller bind.Contract
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_AddressStorageStakesSorted *AddressStorageStakesSortedRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_AddressStorageStakesSorted *AddressStorageStakesSortedRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _AddressStorageStakesSorted.Contract.AddressStorageStakesSortedCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -173,7 +186,7 @@ func (_AddressStorageStakesSorted *AddressStorageStakesSortedRaw) Transact(opts 
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_AddressStorageStakesSorted *AddressStorageStakesSortedCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_AddressStorageStakesSorted *AddressStorageStakesSortedCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _AddressStorageStakesSorted.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -192,12 +205,17 @@ func (_AddressStorageStakesSorted *AddressStorageStakesSortedTransactorRaw) Tran
 //
 // Solidity: function addrStake(address ) view returns(uint256)
 func (_AddressStorageStakesSorted *AddressStorageStakesSortedCaller) AddrStake(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _AddressStorageStakesSorted.contract.Call(opts, out, "addrStake", arg0)
-	return *ret0, err
+	var out []interface{}
+	err := _AddressStorageStakesSorted.contract.Call(opts, &out, "addrStake", arg0)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // AddrStake is a free data retrieval call binding the contract method 0xd9034503.
@@ -218,12 +236,17 @@ func (_AddressStorageStakesSorted *AddressStorageStakesSortedCallerSession) Addr
 //
 // Solidity: function contains(address _addr) view returns(bool)
 func (_AddressStorageStakesSorted *AddressStorageStakesSortedCaller) Contains(opts *bind.CallOpts, _addr common.Address) (bool, error) {
-	var (
-		ret0 = new(bool)
-	)
-	out := ret0
-	err := _AddressStorageStakesSorted.contract.Call(opts, out, "contains", _addr)
-	return *ret0, err
+	var out []interface{}
+	err := _AddressStorageStakesSorted.contract.Call(opts, &out, "contains", _addr)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
 }
 
 // Contains is a free data retrieval call binding the contract method 0x5dbe47e8.
@@ -244,12 +267,17 @@ func (_AddressStorageStakesSorted *AddressStorageStakesSortedCallerSession) Cont
 //
 // Solidity: function getAddresses() view returns(address[])
 func (_AddressStorageStakesSorted *AddressStorageStakesSortedCaller) GetAddresses(opts *bind.CallOpts) ([]common.Address, error) {
-	var (
-		ret0 = new([]common.Address)
-	)
-	out := ret0
-	err := _AddressStorageStakesSorted.contract.Call(opts, out, "getAddresses")
-	return *ret0, err
+	var out []interface{}
+	err := _AddressStorageStakesSorted.contract.Call(opts, &out, "getAddresses")
+
+	if err != nil {
+		return *new([]common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([]common.Address)).(*[]common.Address)
+
+	return out0, err
+
 }
 
 // GetAddresses is a free data retrieval call binding the contract method 0xa39fac12.
@@ -270,12 +298,17 @@ func (_AddressStorageStakesSorted *AddressStorageStakesSortedCallerSession) GetA
 //
 // Solidity: function linkedList(address ) view returns(address)
 func (_AddressStorageStakesSorted *AddressStorageStakesSortedCaller) LinkedList(opts *bind.CallOpts, arg0 common.Address) (common.Address, error) {
-	var (
-		ret0 = new(common.Address)
-	)
-	out := ret0
-	err := _AddressStorageStakesSorted.contract.Call(opts, out, "linkedList", arg0)
-	return *ret0, err
+	var out []interface{}
+	err := _AddressStorageStakesSorted.contract.Call(opts, &out, "linkedList", arg0)
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
 }
 
 // LinkedList is a free data retrieval call binding the contract method 0xcf527e8b.
@@ -296,12 +329,17 @@ func (_AddressStorageStakesSorted *AddressStorageStakesSortedCallerSession) Link
 //
 // Solidity: function listSize() view returns(uint256)
 func (_AddressStorageStakesSorted *AddressStorageStakesSortedCaller) ListSize(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _AddressStorageStakesSorted.contract.Call(opts, out, "listSize")
-	return *ret0, err
+	var out []interface{}
+	err := _AddressStorageStakesSorted.contract.Call(opts, &out, "listSize")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // ListSize is a free data retrieval call binding the contract method 0x972c5356.
@@ -322,12 +360,17 @@ func (_AddressStorageStakesSorted *AddressStorageStakesSortedCallerSession) List
 //
 // Solidity: function owner() view returns(address)
 func (_AddressStorageStakesSorted *AddressStorageStakesSortedCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
-	var (
-		ret0 = new(common.Address)
-	)
-	out := ret0
-	err := _AddressStorageStakesSorted.contract.Call(opts, out, "owner")
-	return *ret0, err
+	var out []interface{}
+	err := _AddressStorageStakesSorted.contract.Call(opts, &out, "owner")
+
+	if err != nil {
+		return *new(common.Address), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+
+	return out0, err
+
 }
 
 // Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
@@ -589,6 +632,7 @@ func (_AddressStorageStakesSorted *AddressStorageStakesSortedFilterer) ParseAddr
 	if err := _AddressStorageStakesSorted.contract.UnpackLog(event, "AddressAdded", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -732,6 +776,7 @@ func (_AddressStorageStakesSorted *AddressStorageStakesSortedFilterer) ParseAddr
 	if err := _AddressStorageStakesSorted.contract.UnpackLog(event, "AddressRemoved", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -884,6 +929,7 @@ func (_AddressStorageStakesSorted *AddressStorageStakesSortedFilterer) ParseOwne
 	if err := _AddressStorageStakesSorted.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -1028,5 +1074,6 @@ func (_AddressStorageStakesSorted *AddressStorageStakesSortedFilterer) ParseStak
 	if err := _AddressStorageStakesSorted.contract.UnpackLog(event, "StakeUpdated", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }

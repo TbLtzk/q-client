@@ -29,10 +29,12 @@ import (
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/eth/gasprice"
 	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/governance"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/node"
@@ -203,10 +205,15 @@ type Config struct {
 }
 
 // CreateConsensusEngine creates a consensus engine for the given chain configuration.
-func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database) consensus.Engine {
+func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database, rm *governance.RootManager, reg *contracts.Registry) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	if chainConfig.Clique != nil {
-		return clique.New(chainConfig.Clique, db)
+		if rm == nil {
+			log.Warn("creating clique in test mode; exclusion set will always be empty!")
+			return clique.New(chainConfig.Clique, db, &clique.NoopExclusionSetProvider{}, reg)
+		}
+
+		return clique.New(chainConfig.Clique, db, rm, reg)
 	}
 	// Otherwise assume proof-of-work
 	switch config.PowMode {

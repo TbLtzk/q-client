@@ -31,6 +31,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/eth/downloader"
+	"gitlab.com/q-dev/q-client/eth/gasprice"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/miner"
@@ -43,7 +44,8 @@ type EthAPIBackend struct {
 	extRPCEnabled       bool
 	allowUnprotectedTxs bool
 	eth                 *Ethereum
-	gpo                 core.GasPriceProvider
+	gpp                 core.GasPriceProvider
+	gpo                 *gasprice.Oracle
 }
 
 // ChainConfig returns the active chain configuration.

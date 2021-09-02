@@ -1839,6 +1839,12 @@ func TestGolangBindings(t *testing.T) {
 			t.Fatalf("test %d: failed to write tests: %v", i, err)
 		}
 	}
+	// Disable sum db
+	sum := exec.Command(gocmd, "env", "-w", "GOSUMDB=off")
+	sum.Dir = pkg
+	if out, err := sum.CombinedOutput(); err != nil {
+		t.Fatalf("failed to disable sum db: %v\n%s", err, out)
+	}
 	// Convert the package to go modules and use the current source for go-ethereum
 	moder := exec.Command(gocmd, "mod", "init", "bindtest")
 	moder.Dir = pkg

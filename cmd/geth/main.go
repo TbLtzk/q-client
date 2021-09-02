@@ -138,7 +138,6 @@ var (
 		utils.RopstenFlag,
 		utils.RinkebyFlag,
 		utils.GoerliFlag,
-		utils.YoloV1Flag,
 
 		// q networks
 		utils.DevnetFlag,
@@ -227,6 +226,7 @@ func init() {
 		removedbCommand,
 		dumpCommand,
 		dumpGenesisCommand,
+		writeAddrCommand,
 		// See accountcmd.go:
 		accountCommand,
 		walletCommand,
@@ -347,9 +347,6 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend) {
 
 	// Unlock any account specifically requested
 	unlockAccounts(ctx, stack)
-
-	// Start up the node itself
-	utils.StartNode(stack)
 
 	// Register wallet event handlers to open and auto-derive wallets
 	events := make(chan accounts.WalletEvent, 16)

@@ -17,7 +17,7 @@ type database struct {
 }
 
 func newDatabase(path string) (*database, error) {
-	db, err := leveldb.New(path, 0, 0, "gov")
+	db, err := leveldb.New(path, 0, 0, "gov", false)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init leveldb")
 	}

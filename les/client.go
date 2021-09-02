@@ -21,24 +21,21 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/q-dev/q-client/ethclient"
-
-	"gitlab.com/q-dev/q-client/contracts"
-
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/common/mclock"
 	"gitlab.com/q-dev/q-client/consensus"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/bloombits"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/eth/ethconfig"
 	"gitlab.com/q-dev/q-client/eth/filters"
 	"gitlab.com/q-dev/q-client/eth/gasprice"
+	"gitlab.com/q-dev/q-client/ethclient"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/les/vflux"
@@ -122,9 +119,9 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		eventMux:       stack.EventMux(),
 		reqDist:        newRequestDistributor(peers, &mclock.System{}),
 		accountManager: stack.AccountManager(),
-		engine:         eth.CreateConsensusEngine(stack, chainConfig, &config.Ethash, nil, false, chainDb, nil, reg),
+		engine:         ethconfig.CreateConsensusEngine(stack, chainConfig, &config.Ethash, nil, false, chainDb, nil, reg),
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
-		bloomIndexer:   eth.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations),
+		bloomIndexer:   core.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations),
 		p2pServer:      stack.Server(),
 		p2pConfig:      &stack.Config().P2P,
 		udpEnabled:     stack.Config().P2P.DiscoveryV5,
