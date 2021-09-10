@@ -32,8 +32,9 @@ import (
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/eth/downloader"
+	ethdownloader "gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/eth/ethconfig"
+	"gitlab.com/q-dev/q-client/les/downloader"
 	"gitlab.com/q-dev/q-client/les/flowcontrol"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
@@ -494,14 +495,14 @@ func testSim(t *testing.T, serverCount, clientCount int, serverDir, clientDir []
 
 func newLesClientService(ctx *adapters.ServiceContext, stack *node.Node) (node.Lifecycle, error) {
 	config := ethconfig.Defaults
-	config.SyncMode = downloader.LightSync
+	config.SyncMode = (ethdownloader.SyncMode)(downloader.LightSync)
 	config.Ethash.PowMode = ethash.ModeFake
 	return New(stack, &config)
 }
 
 func newLesServerService(ctx *adapters.ServiceContext, stack *node.Node) (node.Lifecycle, error) {
 	config := ethconfig.Defaults
-	config.SyncMode = downloader.FullSync
+	config.SyncMode = (ethdownloader.SyncMode)(downloader.FullSync)
 	config.LightServ = testServerCapacity
 	config.LightPeers = testMaxClients
 	ethereum, err := eth.New(stack, &config)
