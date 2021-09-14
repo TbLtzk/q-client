@@ -61,7 +61,8 @@ type Keystore interface {
 }
 
 func NewRootManager(ks Keystore, networkId uint64, datadir string, cfg *Config) (*RootManager, error) {
-	db, err := newDatabase(filepath.Join(datadir, "gov"))
+	dbName := fmt.Sprintf("gov-%d", networkId)
+	db, err := newDatabase(filepath.Join(datadir, dbName))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init gov database")
 	}
