@@ -86,7 +86,7 @@ var (
 
 	// errInvalidCheckpointBeneficiary is returned if a checkpoint/epoch transition
 	// block has a beneficiary set to non-zeroes.
-	errInvalidCheckpointBeneficiary = errors.New("beneficiary in checkpoint block non-zero")
+	// errInvalidCheckpointBeneficiary = errors.New("beneficiary in checkpoint block non-zero")
 
 	// errInvalidRewardReceiver is returned if block has a reward receiver set to
 	// invalid value.
