@@ -29,7 +29,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/rawdb"
-	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/state/snapshot"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -426,7 +425,7 @@ func extractGenesis(db ethdb.Database, stateBloom *stateBloom) error {
 		// If it's a leaf node, yes we are touching an account,
 		// dig into the storage trie further.
 		if accIter.Leaf() {
-			var acc state.Account
+			var acc types.StateAccount
 			if err := rlp.DecodeBytes(accIter.LeafBlob(), &acc); err != nil {
 				return err
 			}

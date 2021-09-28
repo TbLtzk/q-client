@@ -23,6 +23,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/rawdb"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethdb/memorydb"
@@ -203,7 +204,7 @@ func testIterativeStateSync(t *testing.T, count int, commit bool, bypath bool) {
 				}
 				results[len(hashQueue)+i] = trie.SyncResult{Hash: crypto.Keccak256Hash(data), Data: data}
 			} else {
-				var acc Account
+				var acc types.StateAccount
 				if err := rlp.DecodeBytes(srcTrie.Get(path[0]), &acc); err != nil {
 					t.Fatalf("failed to decode account on path %x: %v", path, err)
 				}

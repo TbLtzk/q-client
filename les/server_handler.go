@@ -27,7 +27,7 @@ import (
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/forkid"
 	"gitlab.com/q-dev/q-client/core/rawdb"
-	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/les/flowcontrol"
 	"gitlab.com/q-dev/q-client/light"
@@ -358,20 +358,20 @@ func (h *serverHandler) AddTxsSync() bool {
 }
 
 // getAccount retrieves an account from the state based on root.
-func getAccount(triedb *trie.Database, root, hash common.Hash) (state.Account, error) {
+func getAccount(triedb *trie.Database, root, hash common.Hash) (types.StateAccount, error) {
 	trie, err := trie.New(root, triedb)
 	if err != nil {
-		return state.Account{}, err
+		return types.StateAccount{}, err
 	}
 	blob, err := trie.TryGet(hash[:])
 	if err != nil {
-		return state.Account{}, err
+		return types.StateAccount{}, err
 	}
-	var account state.Account
-	if err = rlp.DecodeBytes(blob, &account); err != nil {
-		return state.Account{}, err
+	var acc types.StateAccount
+	if err = rlp.DecodeBytes(blob, &acc); err != nil {
+		return types.StateAccount{}, err
 	}
-	return account, nil
+	return acc, nil
 }
 
 // getHelperTrie returns the post-processed trie root for the given trie ID and section index

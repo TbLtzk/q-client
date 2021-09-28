@@ -23,7 +23,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
-	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
@@ -319,7 +319,7 @@ func handleMessage(backend Backend, peer *Peer) error {
 				if err != nil {
 					return p2p.Send(peer.rw, StorageRangesMsg, &StorageRangesPacket{ID: req.ID})
 				}
-				var acc state.Account
+				var acc types.StateAccount
 				if err := rlp.DecodeBytes(accTrie.Get(account[:]), &acc); err != nil {
 					return p2p.Send(peer.rw, StorageRangesMsg, &StorageRangesPacket{ID: req.ID})
 				}

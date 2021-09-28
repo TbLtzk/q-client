@@ -24,8 +24,10 @@ import (
 	"sync"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 var (
@@ -244,6 +246,14 @@ func (t *Trie) Update(key, value []byte) {
 	if err := t.TryUpdate(key, value); err != nil {
 		log.Error(fmt.Sprintf("Unhandled trie error: %v", err))
 	}
+}
+
+func (t *Trie) TryUpdateAccount(key []byte, acc *types.StateAccount) error {
+	data, err := rlp.EncodeToBytes(acc)
+	if err != nil {
+		return fmt.Errorf("can't encode object at %x: %w", key[:], err)
+	}
+	return t.TryUpdate(key, data)
 }
 
 // TryUpdate associates key with value in the trie. Subsequent calls to
