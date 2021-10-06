@@ -417,17 +417,17 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		return err
 	}
 
-	// Skip signers list checking for blocks older than one hour
-	if time.Unix(int64(header.Time), 0).Before(time.Now().Add(-time.Hour)) {
-		return nil
-	}
-
 	// If the block is a checkpoint block, verify the signer list
 	if number%c.config.Epoch == 0 {
 		err = c.updateProposals(number, snap)
 		if err != nil {
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return err // todo wrap error
+		}
+
+		// Skip signers list checking for blocks older than one hour
+		if time.Unix(int64(header.Time), 0).Before(time.Now().Add(-time.Hour)) {
+			return nil
 		}
 
 		signers := make([]byte, len(snap.Signers)*common.AddressLength)
