@@ -81,15 +81,19 @@ var YoloV1Bootnodes = []string{
 // Q Networks
 // -----------------------------------------
 
-var MainnetBootnodes = DarrowBootnodes
+// MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
+// Q network.
+var MainnetBootnodes = TestnetBootnodes
 
-// DevnetBootnodes.
+// DevnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
+// Q devnet network.
 var DevnetBootnodes = []string{
-	"enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@54.218.22.38:30301",
+	"enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@35.161.73.158:30301",
 }
 
-// DarrowBootnodes.
-var DarrowBootnodes = []string{
+// TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
+// Q testnet network.
+var TestnetBootnodes = []string{
 	"enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@18.158.7.68:30301",
 }
 

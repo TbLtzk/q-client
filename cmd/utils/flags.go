@@ -164,9 +164,9 @@ var (
 		Name:  "devnet",
 		Usage: "Devnet network: pre-configured poa short-lived test network",
 	}
-	DarrowFlag = cli.BoolFlag{
-		Name:  "darrow",
-		Usage: "Darrow network: pre-configured poa test network",
+	TestnetFlag = cli.BoolFlag{
+		Name:  "testnet",
+		Usage: "Testnet network: pre-configured poa test network",
 	}
 
 	DeveloperFlag = cli.BoolFlag{
@@ -863,6 +863,10 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	switch {
 	case ctx.GlobalIsSet(BootnodesFlag.Name):
 		urls = SplitAndTrim(ctx.GlobalString(BootnodesFlag.Name))
+	case ctx.GlobalIsSet(DevnetFlag.Name):
+		urls = params.DevnetBootnodes
+	case ctx.GlobalIsSet(TestnetFlag.Name):
+		urls = params.TestnetBootnodes
 	case ctx.GlobalBool(RopstenFlag.Name):
 		urls = params.RopstenBootnodes
 	case ctx.GlobalBool(RinkebyFlag.Name):
@@ -1499,8 +1503,8 @@ func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
 		switch true {
 		case ctx.GlobalBool(DevnetFlag.Name):
 			cfg.RootList = params.DevnetRootNodes
-		case ctx.GlobalBool(DarrowFlag.Name):
-			cfg.RootList = params.DarrowRootNodes
+		case ctx.GlobalBool(TestnetFlag.Name):
+			cfg.RootList = params.TestnetRootNodes
 		default:
 			cfg.RootList = params.MainnetRootNodes
 		}

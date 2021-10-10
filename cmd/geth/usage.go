@@ -47,7 +47,7 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.RopstenFlag,
 
 			utils.DevnetFlag,
-			utils.DarrowFlag,
+			utils.TestnetFlag,
 
 			utils.SyncModeFlag,
 			utils.ExitWhenSyncedFlag,
