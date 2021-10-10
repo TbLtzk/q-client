@@ -444,6 +444,10 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 }
 
 func (c *Clique) updateProposals(number uint64, snap *Snapshot) error {
+	if c.exclusionSetProvider == nil {
+		return nil
+	}
+
 	excludedSigners := c.exclusionSetProvider.ExclusionSetValidators()
 
 	provider := c.registry.Validators()
