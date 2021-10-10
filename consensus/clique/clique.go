@@ -591,6 +591,12 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 		return err
 	}
 
+	err = c.updateProposals(number, snap)
+	if err != nil {
+		log.Error("failed to update proposals", "error", err, "step", "prepare")
+		return err // todo wrap error
+	}
+
 	// Resolve the authorization key and check against signers
 	signer, err := ecrecover(header, c.signatures)
 	if err != nil {
@@ -633,6 +639,13 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	if err != nil {
 		return err
 	}
+
+	err = c.updateProposals(number, snap)
+	if err != nil {
+		log.Error("failed to update proposals", "error", err, "step", "prepare")
+		return err // todo wrap error
+	}
+
 	/*if number%c.config.Epoch != 0 {
 		c.lock.RLock()
 
@@ -664,12 +677,6 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	header.Extra = header.Extra[:extraVanity]
 
 	if number%c.config.Epoch == 0 {
-		err = c.updateProposals(number, snap)
-		if err != nil {
-			log.Error("failed to update proposals", "error", err, "step", "prepare")
-			return err // todo wrap error
-		}
-
 		for _, signer := range snap.signers() {
 			header.Extra = append(header.Extra, signer[:]...)
 		}
