@@ -425,11 +425,6 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 			return err // todo wrap error
 		}
 
-		// Skip signers list checking for blocks older than one hour
-		if time.Unix(int64(header.Time), 0).Before(time.Now().Add(-time.Hour)) {
-			return nil
-		}
-
 		signers := make([]byte, len(snap.Signers)*common.AddressLength)
 		for i, signer := range snap.signers() {
 			copy(signers[i*common.AddressLength:], signer[:])
