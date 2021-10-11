@@ -663,11 +663,6 @@ func (bc *BlockChain) RevalidateChain(number uint64) error {
 	}
 
 	log.Info("Inserting blocks on top of rewinded head", "count", len(blocks))
-	if len(blocks) > 0 {
-		firstBlock := blocks[0]
-		log.Info("First block", "number", firstBlock.Number(), "hash", firstBlock.Hash(), "parent", firstBlock.ParentHash())
-	}
-
 	bc.InsertChain(blocks)
 
 	return nil
