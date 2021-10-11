@@ -643,8 +643,6 @@ func (w *worker) resultLoop() {
 			_, err := w.chain.WriteBlockWithState(block, receipts, logs, task.state, true)
 			if err != nil {
 				log.Error("Failed writing block to chain", "err", err)
-				// Resume mining from the head block of the canonical chain
-				w.chainHeadCh <- core.ChainHeadEvent{Block: w.chain.CurrentBlock()}
 				continue
 			}
 			log.Info("Successfully sealed new block", "number", block.Number(), "sealhash", sealhash, "hash", hash,
