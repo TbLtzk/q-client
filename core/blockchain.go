@@ -631,6 +631,10 @@ func (bc *BlockChain) RevalidateChain(number uint64) error {
 		return errors.New("trying to revalidate genesis block")
 	}
 
+	defer func() {
+		bc.chainHeadFeed.Send(ChainHeadEvent{Block: bc.CurrentBlock()})
+	}()
+
 	// If we didn't reach block number of revalidation, skip it
 	currentBlock := bc.CurrentBlock()
 	if currentBlock.NumberU64() < number {
