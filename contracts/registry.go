@@ -72,7 +72,7 @@ func (r *Registry) Roots() *generated.Roots {
 func (r *Registry) ValidatorsAddress() *common.Address {
 	addr := r.getAddr("governance.validators")
 	if (addr == common.Address{}) {
-		log.Warn("governance.validators contract is not deployed")
+		log.Debug("governance.validators contract is not deployed")
 		return nil
 	}
 
@@ -82,7 +82,7 @@ func (r *Registry) ValidatorsAddress() *common.Address {
 func (r *Registry) RootNodesAddress() *common.Address {
 	addr := r.getAddr("governance.rootNodes")
 	if (addr == common.Address{}) {
-		log.Warn("governance.rootNodes contract is not deployed")
+		log.Debug("governance.rootNodes contract is not deployed")
 		return nil
 	}
 
@@ -97,7 +97,7 @@ func (r *Registry) RewardReceiver() common.Address {
 
 	addr := r.getAddr("tokeneconomics.defaultAllocationProxy")
 	if (addr == common.Address{}) {
-		log.Warn("tokeneconomics.defaultAllocationProxy is not deployed")
+		log.Debug("tokeneconomics.defaultAllocationProxy is not deployed")
 		return r.defaultRewardReceiver
 	}
 
@@ -108,7 +108,7 @@ func (r *Registry) RewardReceiver() common.Address {
 func (r *Registry) ActiveValidatorsNumber() *int64 {
 	addr := r.getAddr("governance.constitution.parameters")
 	if (addr == common.Address{}) {
-		log.Warn("governance.constitution.parameters is not deployed")
+		log.Debug("governance.constitution.parameters is not deployed")
 		return nil
 	}
 
@@ -119,7 +119,7 @@ func (r *Registry) ActiveValidatorsNumber() *int64 {
 
 	num, err := params.GetUint(nil, "constitution.maxNValidators")
 	if err != nil {
-		log.Warn("failed to get constitution.maxNValidators", "err", err)
+		log.Debug("failed to get constitution.maxNValidators", "err", err)
 		return nil
 	}
 
@@ -131,7 +131,7 @@ func (r *Registry) ActiveValidatorsNumber() *int64 {
 func (r *Registry) EpqfiParameters() *generated.EPQFIParameters {
 	addr := r.getAddr("governance.experts.EPQFI.parameters")
 	if (addr == common.Address{}) {
-		log.Warn("governance.experts.EPQFI.parameters is not deployed")
+		log.Debug("governance.experts.EPQFI.parameters is not deployed")
 		return nil
 	}
 

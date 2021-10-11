@@ -143,6 +143,10 @@ var (
 
 	// errUnauthorizedSigner is returned if a header is signed by a non-authorized entity.
 	errUnauthorizedSigner = errors.New("unauthorized signer")
+
+	// errRecentlySigned is returned if a header is signed by an authorized entity
+	// that already signed a header recently, thus is temporarily not allowed to.
+	errRecentlySigned = errors.New("recently signed")
 )
 
 // SignerFn hashes and signs the data to be signed by a backing account.
@@ -413,11 +417,6 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		return err
 	}
 
-	// Skip signers list checking for blocks older than one hour
-	if time.Unix(int64(header.Time), 0).Before(time.Now().Add(-time.Hour)) {
-		return nil
-	}
-
 	// If the block is a checkpoint block, verify the signer list
 	if number%c.config.Epoch == 0 {
 		err = c.updateProposals(number, snap)
@@ -440,6 +439,10 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 }
 
 func (c *Clique) updateProposals(number uint64, snap *Snapshot) error {
+	if c.exclusionSetProvider == nil {
+		return nil
+	}
+
 	excludedSigners := c.exclusionSetProvider.ExclusionSetValidators()
 
 	provider := c.registry.Validators()
@@ -583,6 +586,12 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 		return err
 	}
 
+	err = c.updateProposals(number, snap)
+	if err != nil {
+		log.Error("failed to update proposals", "error", err, "step", "prepare")
+		return err // todo wrap error
+	}
+
 	// Resolve the authorization key and check against signers
 	signer, err := ecrecover(header, c.signatures)
 	if err != nil {
@@ -591,14 +600,14 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 	if _, ok := snap.Signers[signer]; !ok {
 		return errUnauthorizedSigner
 	}
-	/*for seen, recent := range snap.Recents {
+	for seen, recent := range snap.Recents {
 		if recent == signer {
 			// Signer is among recents, only fail if the current block doesn't shift it out
 			if limit := uint64(len(snap.Signers)/2 + 1); seen > number-limit {
 				return errRecentlySigned
 			}
 		}
-	}*/
+	}
 	// Ensure that the difficulty corresponds to the turn-ness of the signer
 	if !c.fakeDiff {
 		inturn := snap.inturn(header.Number.Uint64(), signer)
@@ -625,6 +634,13 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	if err != nil {
 		return err
 	}
+
+	err = c.updateProposals(number, snap)
+	if err != nil {
+		log.Error("failed to update proposals", "error", err, "step", "prepare")
+		return err // todo wrap error
+	}
+
 	/*if number%c.config.Epoch != 0 {
 		c.lock.RLock()
 
@@ -656,12 +672,6 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	header.Extra = header.Extra[:extraVanity]
 
 	if number%c.config.Epoch == 0 {
-		err = c.updateProposals(number, snap)
-		if err != nil {
-			log.Error("failed to update proposals", "error", err, "step", "prepare")
-			return err // todo wrap error
-		}
-
 		for _, signer := range snap.signers() {
 			header.Extra = append(header.Extra, signer[:]...)
 		}
@@ -738,11 +748,13 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 	if err != nil {
 		return err
 	}
+
+	c.updateProposals(number, snap)
 	if _, authorized := snap.Signers[signer]; !authorized {
 		return errUnauthorizedSigner
 	}
 	// If we're amongst the recent signers, wait for the next block
-	/*for seen, recent := range snap.Recents {
+	for seen, recent := range snap.Recents {
 		if recent == signer {
 			// Signer is among recents, only wait if the current block doesn't shift it out
 			if limit := uint64(len(snap.Signers)/2 + 1); number < limit || seen > number-limit {
@@ -750,7 +762,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 				return nil
 			}
 		}
-	}*/
+	}
 	// Sweet, the protocol permits us to sign the block, wait for our time
 	delay := time.Unix(int64(header.Time), 0).Sub(time.Now()) // nolint: gosimple
 	if header.Difficulty.Cmp(diffNoTurn) == 0 {

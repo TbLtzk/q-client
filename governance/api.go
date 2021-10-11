@@ -3,7 +3,6 @@ package governance
 import (
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/log"
 )
 
 // GovernanceAPI.
@@ -62,34 +61,7 @@ func (a *GovernanceAPI) ProposeOnchainRootList() (common.Hash, error) {
 }
 
 func (a *GovernanceAPI) AcceptProposedRootList() error {
-	rm := a.gov.RootManager
-
-	rm.rootLock.Lock()
-	defer rm.rootLock.Unlock()
-
-	if rm.proposed == nil {
-		return errors.New("proposed list is empty")
-	}
-
-	if rm.desired != nil && rm.proposed.timestamp <= rm.desired.timestamp {
-		return errors.New("proposed list is obsolete")
-	}
-
-	if rm.signRootSet(rm.proposed) {
-		log.Info("Signed proposed root list", "hash", rm.proposed.hash.Hex())
-	}
-
-	rm.desired = rm.proposed
-	rm.desiredRootFeed.Send(rm.desired)
-
-	// very edge case but still possible
-	if rm.active.isAcceptable(rm.proposed) {
-		rm.upgradeRootSet(rm.proposed)
-	}
-
-	rm.proposed = nil
-	rm.db.deleteProposedRootSet()
-	return nil
+	return a.gov.RootManager.acceptProposedRootList()
 }
 
 func (a *GovernanceAPI) DiffRootList(nameA, nameB string) ([]DiffEntry, error) {
@@ -123,32 +95,7 @@ func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusio
 }
 
 func (a *GovernanceAPI) AcceptProposedExclusionList() error {
-	rm := a.gov.RootManager
-
-	rm.exLock.Lock()
-	defer rm.exLock.Unlock()
-
-	if rm.proposedExSet == nil {
-		return errors.New("proposed list is empty")
-	}
-
-	if rm.desiredExSet != nil && rm.proposedExSet.timestamp <= rm.desiredExSet.timestamp {
-		return errors.New("proposed list is obsolete")
-	}
-
-	rm.signExclusionSet(rm.proposedExSet)
-
-	rm.desiredExSet = rm.proposedExSet
-	rm.desiredExFeed.Send(rm.desiredExSet.copy())
-
-	// very edge case but still possible
-	if rm.getActiveRootSet().isEnoughExSetSignatures(rm.proposedExSet) {
-		rm.upgradeExclusionSet(rm.proposedExSet)
-	}
-
-	rm.proposedExSet = nil
-	rm.db.deleteProposedExclusionSet()
-	return nil
+	return a.gov.RootManager.acceptProposedExclusionList()
 }
 
 func (a *GovernanceAPI) DiffExclusionList(nameA, nameB string) ([]DiffEntry, error) {
