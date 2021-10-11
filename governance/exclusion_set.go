@@ -149,6 +149,39 @@ func (s *exclusionSet) copy() *exclusionSet {
 	}
 }
 
+// addrToBlockExclusiveDiff returns map with exclusive set of address-to-block pairs from two exclusion sets
+func (s1 *exclusionSet) addrToBlockExclusiveDiff(s2 *exclusionSet) map[common.Address]uint64 {
+	if s2 == nil {
+		return s1.addrToBlock
+	}
+
+	res := make(map[common.Address]uint64)
+
+	// add addess-to-block that is only in s1, but not in s2
+	for addr, block := range s1.addrToBlock {
+		if b, ok := s2.addrToBlock[addr]; ok && b == block {
+			continue
+		}
+
+		if b, ok := res[addr]; !ok || b > block {
+			res[addr] = block
+		}
+	}
+
+	// add addess-to-block that is only in s2, but not in s1
+	for addr, block := range s2.addrToBlock {
+		if b, ok := s1.addrToBlock[addr]; ok && b == block {
+			continue
+		}
+
+		if b, ok := res[addr]; !ok || b > block {
+			res[addr] = block
+		}
+	}
+
+	return res
+}
+
 func (s *exclusionSet) getAddresses() []common.Address {
 	if s == nil {
 		return nil

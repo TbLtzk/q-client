@@ -2,6 +2,7 @@ package governance
 
 import (
 	"fmt"
+	"math"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -11,14 +12,22 @@ import (
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/contracts"
+	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 )
 
 var (
-	errInvalidSignature     = errors.New("list contains invalid signature")
-	errHashMismatch         = errors.New("hash mismatch")
-	errInvalidExclusionList = errors.New("invalid exclusion list")
+	errNotRootNode      = errors.New("not a root node")
+	errInvalidSignature = errors.New("list contains invalid signature")
+	errHashMismatch     = errors.New("hash mismatch")
+
+	errInvalidExclusionList          = errors.New("invalid exclusion list")
+	errProposedExclusionListObsolete = errors.New("proposed exclusion list is obsolete")
+	errProposedExclusionListEmpty    = errors.New("proposed exclusion list is empty")
+
+	errProposedRootListObsolete = errors.New("proposed root list is obsolete")
+	errProposedRootListEmpty    = errors.New("proposed root list is empty")
 )
 
 // RootManager stores root and exclusion lists.
@@ -27,8 +36,7 @@ type RootManager struct {
 	keystore  Keystore
 	networkId uint64
 
-	db  *database
-	reg *contracts.Registry
+	db *database
 
 	rootLock        sync.Mutex
 	desiredRootFeed *event.Feed
@@ -43,6 +51,10 @@ type RootManager struct {
 	activeExSet   *exclusionSet
 	desiredExSet  *exclusionSet
 	proposedExSet *exclusionSet
+
+	// initialized externaly
+	bc  *core.BlockChain
+	reg *contracts.Registry
 }
 
 // Config of root manager
@@ -108,6 +120,10 @@ func NewRootManager(ks Keystore, networkId uint64, datadir string, cfg *Config) 
 	return manager, nil
 }
 
+func (s *RootManager) InitBlockChain(bc *core.BlockChain) {
+	s.bc = bc
+}
+
 func (s *RootManager) InitRegistry(reg *contracts.Registry) {
 	s.reg = reg
 }
@@ -156,12 +172,12 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 		isMember = true
 		signature, err := s.keystore.SignHash(accounts.Account{Address: addr}, set.hash.Bytes())
 		if err != nil {
-			log.Error("failed to sign root set", "err", err)
+			log.Error("Failed to sign root set", "err", err)
 			continue
 		}
 
 		if set.addSignature(addr, signature) {
-			log.Info("signed root list", "hash", set.hash.Hex(), "signer", addr.Hex())
+			log.Info("Signed root list", "hash", set.hash.Hex(), "signer", addr.Hex())
 		}
 	}
 
@@ -177,7 +193,7 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 
 		signature, err := s.keystore.SignHash(accounts.Account{Address: addr}, set.hash.Bytes())
 		if err != nil {
-			log.Error("failed to sign exclusion list", "err", err)
+			log.Error("Failed to sign exclusion list", "err", err)
 			continue
 		}
 
@@ -192,6 +208,25 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 // unsafe for concurrent usage
 // lock exLock externally first
 func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
+	if s.activeExSet != nil && s.activeExSet.hash == set.hash {
+		log.Debug("Exclsion list is already active, skipping", "hash", set.hash.Hex(), "timestamp", set.timestamp)
+		return
+	}
+
+	// If exclusion set was changed, revalidate blocks up to earliest affected one
+	addrToBlock := set.addrToBlockExclusiveDiff(s.activeExSet)
+	if len(addrToBlock) > 0 {
+		var earliestBlock uint64 = math.MaxUint64
+		for _, block := range addrToBlock {
+			if block < earliestBlock {
+				earliestBlock = block
+			}
+		}
+
+		// Revalidate in separate goroutine to prevent possible deadlocks
+		go s.bc.RevalidateChain(earliestBlock)
+	}
+
 	s.activeExSet = set
 	s.db.saveActiveExclusionSet(set)
 
@@ -216,7 +251,7 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
 
 func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, error) {
 	if !s.isRootNode() {
-		return nil, errors.New("not a root node")
+		return nil, errNotRootNode
 	}
 
 	s.exLock.Lock()
@@ -225,17 +260,54 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 	olderThanActive := s.activeExSet != nil && set.timestamp <= s.activeExSet.timestamp
 	olderThanDesired := s.desiredExSet != nil && set.timestamp <= s.desiredExSet.timestamp
 	if olderThanActive || olderThanDesired {
-		return nil, errors.New("obsolete exclusion list")
+		return nil, errProposedExclusionListObsolete
 	}
 
-	s.signExclusionSet(set)
+	if s.signExclusionSet(set) {
+		log.Info("Signed desired exclusion list", "hash", set.hash.Hex())
+	}
 
-	s.desiredExSet = set
-	s.desiredExFeed.Send(set.copy())
+	if s.getActiveRootSet().isEnoughExSetSignatures(set) {
+		s.upgradeExclusionSet(set)
+	} else {
+		s.desiredExSet = set
+		s.desiredExFeed.Send(set.copy())
 
-	s.db.saveDesiredExclusionSet(set)
+		s.db.saveDesiredExclusionSet(set)
+	}
 
 	return set, nil
+}
+
+func (s *RootManager) acceptProposedExclusionList() error {
+	s.exLock.Lock()
+	defer s.exLock.Unlock()
+
+	if s.proposedExSet == nil {
+		return errProposedExclusionListEmpty
+	}
+
+	if s.desiredExSet != nil && s.proposedExSet.timestamp <= s.desiredExSet.timestamp {
+		return errProposedExclusionListObsolete
+	}
+
+	if s.signExclusionSet(s.proposedExSet) {
+		log.Info("Signed proposed exclusion list", "hash", s.proposedExSet.hash.Hex())
+	}
+
+	if s.getActiveRootSet().isEnoughExSetSignatures(s.proposedExSet) {
+		s.upgradeExclusionSet(s.proposedExSet)
+	} else {
+		s.desiredExSet = s.proposedExSet
+		s.desiredExFeed.Send(s.desiredExSet.copy())
+
+		s.db.saveDesiredExclusionSet(s.desiredExSet)
+	}
+
+	s.proposedExSet = nil
+	s.db.deleteProposedExclusionSet()
+
+	return nil
 }
 
 // unsafe for concurrent calls.
@@ -269,19 +341,50 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 	defer s.rootLock.Unlock()
 
 	if set.timestamp <= s.active.timestamp || (s.desired != nil && set.timestamp <= s.desired.timestamp) {
-		return nil, errors.New("obsolete root list")
+		return nil, errProposedRootListObsolete
 	}
 
 	if s.signRootSet(set) {
-		log.Info("signed desired root list")
+		log.Info("Signed desired root list", "hash", set.hash.Hex())
 	}
 
 	s.desired = set
-	s.desiredRootFeed.Send(set)
+	s.desiredRootFeed.Send(set.copy())
 
 	s.db.saveDesiredRootSet(set)
 
 	return set, nil
+}
+
+func (s *RootManager) acceptProposedRootList() error {
+	s.rootLock.Lock()
+	defer s.rootLock.Unlock()
+
+	if s.proposed == nil {
+		return errProposedRootListEmpty
+	}
+
+	if s.desired != nil && s.proposed.timestamp <= s.desired.timestamp {
+		return errProposedRootListObsolete
+	}
+
+	if s.signRootSet(s.proposed) {
+		log.Info("Signed proposed root list", "hash", s.proposed.hash.Hex())
+	}
+
+	if s.active.isAcceptable(s.proposed) {
+		s.upgradeRootSet(s.proposed)
+	} else {
+		s.desired = s.proposed
+		s.desiredRootFeed.Send(s.desired.copy())
+
+		s.db.saveDesiredRootSet(s.desired)
+	}
+
+	s.proposed = nil
+	s.db.deleteProposedRootSet()
+
+	return nil
 }
 
 func (s *RootManager) diffRootListByName(nameA, nameB string) ([]DiffEntry, error) {
@@ -370,14 +473,6 @@ func (s *RootManager) getOnchainRootSet() *rootSet {
 	return set
 }
 
-func (s *RootManager) isAcceptableExclusionSet(set *exclusionSet) bool {
-	if s.activeExSet != nil && set.timestamp <= s.activeExSet.timestamp {
-		return false
-	}
-
-	return s.getActiveRootSet().isEnoughExSetSignatures(set)
-}
-
 func (s *RootManager) diffExclusionListByName(nameA, nameB string) ([]DiffEntry, error) {
 	setA, err := s.getExclusionSetByName(nameA)
 	if err != nil {
@@ -433,6 +528,16 @@ func (s *RootManager) getProposedExclusionSet() *exclusionSet {
 	defer s.exLock.Unlock()
 
 	return s.proposedExSet.copy()
+}
+
+// isAcceptableExclusionSet returns true if there us enough signatures and
+// exclusion set is not obsolete
+func (s *RootManager) isAcceptableExclusionSet(set *exclusionSet) bool {
+	if s.activeExSet != nil && set.timestamp <= s.activeExSet.timestamp {
+		return false
+	}
+
+	return s.getActiveRootSet().isEnoughExSetSignatures(set)
 }
 
 // addressDiff returns set of addresses which are only first list but not in second

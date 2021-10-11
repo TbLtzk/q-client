@@ -623,6 +623,55 @@ func (bc *BlockChain) SetHeadBeyondRoot(head uint64, root common.Hash) (uint64, 
 	return rootNumber, bc.loadLastState()
 }
 
+// RevalidateChain sets head on the block before specified block number
+// and performs reorg to this block which revalidates higher blocks
+func (bc *BlockChain) RevalidateChain(number uint64) error {
+	// Genesis block is not supported
+	if number == 0 {
+		return errors.New("trying to revalidate genesis block")
+	}
+
+	defer func() {
+		bc.chainHeadFeed.Send(ChainHeadEvent{Block: bc.CurrentBlock()})
+	}()
+
+	// If we didn't reach block number of revalidation, skip it
+	currentBlock := bc.CurrentBlock()
+	if currentBlock.NumberU64() < number {
+		return nil
+	}
+
+	lastValidBlockNumber := number - 1
+	lastValidBlock := bc.GetBlockByNumber(lastValidBlockNumber)
+
+	// Last valid block should be available as we cheched that its number less
+	// than current block number
+	if lastValidBlock == nil {
+		return fmt.Errorf("missing revalidation block %d", lastValidBlockNumber)
+	}
+
+	log.Info("Revalidating from block", "fromnumber", currentBlock.Number(), "fromhash", currentBlock.Hash(), "tonumber", lastValidBlock.Number(), "tohash", lastValidBlock.Hash())
+
+	blocksToRewind := int(currentBlock.NumberU64() - lastValidBlockNumber)
+	blocks := bc.GetBlocksFromHash(currentBlock.Hash(), blocksToRewind)
+
+	// Reverse block array to prepare for insert
+	for i, j := 0, len(blocks)-1; i < j; i, j = i+1, j-1 {
+		blocks[i], blocks[j] = blocks[j], blocks[i]
+	}
+
+	err := bc.SetHead(lastValidBlockNumber)
+	if err != nil {
+		log.Error("Can't rewind head", "number", lastValidBlockNumber, "err", err)
+		return err
+	}
+
+	log.Info("Inserting blocks on top of rewinded head", "count", len(blocks))
+	bc.InsertChain(blocks)
+
+	return nil
+}
+
 // FastSyncCommitHead sets the current head block to the one defined by the hash
 // irrelevant what the chain contents were prior.
 func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
