@@ -158,21 +158,25 @@ func (s1 *exclusionSet) addrToBlockExclusiveDiff(s2 *exclusionSet) map[common.Ad
 	res := make(map[common.Address]uint64)
 
 	// add addess-to-block that is only in s1, but not in s2
-	for _, addr := range s1.addresses {
-		if block, ok := s2.addrToBlock[addr]; ok && block == s1.addrToBlock[addr] {
+	for addr, block := range s1.addrToBlock {
+		if b, ok := s2.addrToBlock[addr]; ok && b == block {
 			continue
 		}
 
-		res[addr] = s1.addrToBlock[addr]
+		if b, ok := res[addr]; !ok || b > block {
+			res[addr] = block
+		}
 	}
 
 	// add addess-to-block that is only in s2, but not in s1
-	for _, addr := range s2.addresses {
-		if block, ok := s1.addrToBlock[addr]; ok && block == s2.addrToBlock[addr] {
+	for addr, block := range s2.addrToBlock {
+		if b, ok := s1.addrToBlock[addr]; ok && b == block {
 			continue
 		}
 
-		res[addr] = s2.addrToBlock[addr]
+		if b, ok := res[addr]; !ok || b > block {
+			res[addr] = block
+		}
 	}
 
 	return res
