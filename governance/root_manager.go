@@ -2,6 +2,7 @@ package governance
 
 import (
 	"fmt"
+	"math"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -11,6 +12,7 @@ import (
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/contracts"
+	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 )
@@ -34,8 +36,7 @@ type RootManager struct {
 	keystore  Keystore
 	networkId uint64
 
-	db  *database
-	reg *contracts.Registry
+	db *database
 
 	rootLock        sync.Mutex
 	desiredRootFeed *event.Feed
@@ -50,6 +51,10 @@ type RootManager struct {
 	activeExSet   *exclusionSet
 	desiredExSet  *exclusionSet
 	proposedExSet *exclusionSet
+
+	// initialized externaly
+	bc  *core.BlockChain
+	reg *contracts.Registry
 }
 
 // Config of root manager
@@ -113,6 +118,10 @@ func NewRootManager(ks Keystore, networkId uint64, datadir string, cfg *Config) 
 	}
 
 	return manager, nil
+}
+
+func (s *RootManager) InitBlockChain(bc *core.BlockChain) {
+	s.bc = bc
 }
 
 func (s *RootManager) InitRegistry(reg *contracts.Registry) {
@@ -199,6 +208,25 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 // unsafe for concurrent usage
 // lock exLock externally first
 func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
+	if s.activeExSet != nil && s.activeExSet.hash == set.hash {
+		log.Debug("Exclsion list is already active, skipping", "hash", set.hash.Hex(), "timestamp", set.timestamp)
+		return
+	}
+
+	// If exclusion set was changed, revalidate blocks up to earliest affected one
+	addrToBlock := set.addrToBlockExclusiveDiff(s.activeExSet)
+	if len(addrToBlock) > 0 {
+		var earliestBlock uint64 = math.MaxUint64
+		for _, block := range addrToBlock {
+			if block < earliestBlock {
+				earliestBlock = block
+			}
+		}
+
+		// Revalidate in separate goroutine to prevent possible deadlocks
+		go s.bc.RevalidateChain(earliestBlock)
+	}
+
 	s.activeExSet = set
 	s.db.saveActiveExclusionSet(set)
 

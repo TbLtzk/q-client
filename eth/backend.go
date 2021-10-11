@@ -212,6 +212,10 @@ func New(stack *node.Node, config *ethconfig.Config, conn bind.ContractBackend, 
 	}
 	eth.bloomIndexer.Start(eth.blockchain)
 
+	if rm != nil {
+		rm.InitBlockChain(eth.blockchain)
+	}
+
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = stack.ResolvePath(config.TxPool.Journal)
 	}
