@@ -172,12 +172,12 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 		isMember = true
 		signature, err := s.keystore.SignHash(accounts.Account{Address: addr}, set.hash.Bytes())
 		if err != nil {
-			log.Error("failed to sign root set", "err", err)
+			log.Error("Failed to sign root set", "err", err)
 			continue
 		}
 
 		if set.addSignature(addr, signature) {
-			log.Info("signed root list", "hash", set.hash.Hex(), "signer", addr.Hex())
+			log.Info("Signed root list", "hash", set.hash.Hex(), "signer", addr.Hex())
 		}
 	}
 
@@ -193,7 +193,7 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 
 		signature, err := s.keystore.SignHash(accounts.Account{Address: addr}, set.hash.Bytes())
 		if err != nil {
-			log.Error("failed to sign exclusion list", "err", err)
+			log.Error("Failed to sign exclusion list", "err", err)
 			continue
 		}
 
@@ -264,7 +264,7 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 	}
 
 	if s.signExclusionSet(set) {
-		log.Info("signed desired exclusion list", "hash", set.hash.Hex())
+		log.Info("Signed desired exclusion list", "hash", set.hash.Hex())
 	}
 
 	if s.getActiveRootSet().isEnoughExSetSignatures(set) {
@@ -345,7 +345,7 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 	}
 
 	if s.signRootSet(set) {
-		log.Info("signed desired root list", "hash", set.hash.Hex())
+		log.Info("Signed desired root list", "hash", set.hash.Hex())
 	}
 
 	s.desired = set
