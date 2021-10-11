@@ -623,6 +623,35 @@ func (bc *BlockChain) SetHeadBeyondRoot(head uint64, root common.Hash) (uint64, 
 	return rootNumber, bc.loadLastState()
 }
 
+// RevalidateChain sets head on the block before specified block number
+// and performs reorg to this block which revalidates higher blocks
+func (bc *BlockChain) RevalidateChain(number uint64) error {
+	bc.chainmu.Lock()
+	defer bc.chainmu.Unlock()
+
+	// Genesis block is not supported
+	if number == 0 {
+		return errors.New("trying to revalidate genesis block")
+	}
+
+	// If we didn't reach block number of revalidation, skip it
+	currentBlock := bc.CurrentBlock()
+	if currentBlock.NumberU64() < number {
+		return nil
+	}
+
+	lastValidBlockNumber := number - 1
+	lastValidBlock := bc.GetBlockByNumber(lastValidBlockNumber)
+
+	// Last valid block should be available as we cheched that its number less
+	// than current block number
+	if lastValidBlock == nil {
+		return fmt.Errorf("missing revalidation block %d", lastValidBlockNumber)
+	}
+
+	return bc.writeKnownBlock(lastValidBlock)
+}
+
 // FastSyncCommitHead sets the current head block to the one defined by the hash
 // irrelevant what the chain contents were prior.
 func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
