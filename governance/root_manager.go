@@ -145,6 +145,17 @@ func (s *RootManager) ExclusionSetValidators() map[common.Address]uint64 {
 	return set
 }
 
+func (s *RootManager) ExclusionSetTimestamp() uint64 {
+	s.exLock.Lock()
+	defer s.exLock.Unlock()
+
+	if s.activeExSet == nil {
+		return 0
+	}
+
+	return s.activeExSet.timestamp
+}
+
 func (s *RootManager) isRootNode() bool {
 	s.rootLock.Lock()
 	defer s.rootLock.Unlock()

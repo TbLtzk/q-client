@@ -180,6 +180,7 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 // ExclusionSetProvider should provide validators exclusion set.
 type ExclusionSetProvider interface {
 	ExclusionSetValidators() map[common.Address]uint64
+	ExclusionSetTimestamp() uint64
 }
 
 // NoopExclusionSetProvider is needed for testing.
@@ -187,6 +188,10 @@ type NoopExclusionSetProvider struct{}
 
 func (p *NoopExclusionSetProvider) ExclusionSetValidators() map[common.Address]uint64 {
 	return make(map[common.Address]uint64)
+}
+
+func (p *NoopExclusionSetProvider) ExclusionSetTimestamp() uint64 {
+	return 0
 }
 
 type ValidatorsProvider interface {
@@ -418,7 +423,9 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 	}
 
 	// If the block is a checkpoint block, verify the signer list
-	if number%c.config.Epoch == 0 {
+	headerTime := time.Unix(int64(header.Time), 0)
+	exclusionTime := time.Unix(int64(c.exclusionSetProvider.ExclusionSetTimestamp()), 0)
+	if number%c.config.Epoch == 0 && headerTime.After(exclusionTime) {
 		err = c.updateProposals(number, snap)
 		if err != nil {
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
