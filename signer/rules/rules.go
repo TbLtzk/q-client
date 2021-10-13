@@ -24,9 +24,9 @@ import (
 
 	"github.com/dop251/goja"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
+	"gitlab.com/q-dev/q-client/internal/jsre/deps"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/signer/core"
-	"gitlab.com/q-dev/q-client/signer/rules/deps"
 	"gitlab.com/q-dev/q-client/signer/storage"
 )
 
