@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/docker/docker/pkg/reexec"
+	"gitlab.com/q-dev/q-client/cmd/evm/internal/t8ntool"
 	"gitlab.com/q-dev/q-client/internal/cmdtest"
 )
 
@@ -264,6 +265,14 @@ func TestT9n(t *testing.T) {
 				stFork: "London",
 			},
 			expOut: "exp.json",
+		},
+		{ // Invalid RLP
+			base: "./testdata/18",
+			input: t9nInput{
+				inTxs:  "invalid.rlp",
+				stFork: "London",
+			},
+			expExitCode: t8ntool.ErrorIO,
 		},
 	} {
 
