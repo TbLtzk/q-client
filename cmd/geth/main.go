@@ -39,6 +39,10 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/node"
+
+	// Force-load the native, to trigger registration
+	_ "gitlab.com/q-dev/q-client/eth/tracers/native"
+
 	"gopkg.in/urfave/cli.v1"
 )
 
