@@ -371,6 +371,21 @@ func (b *Block) WithBody(transactions []*Transaction, uncles []*Header) *Block {
 	return block
 }
 
+// WithHash returns a new block with the given hash.
+func (b *Block) WithHash(hash common.Hash) *Block {
+	block := &Block{
+		header:       CopyHeader(b.header),
+		transactions: make([]*Transaction, len(b.transactions)),
+		uncles:       make([]*Header, len(b.uncles)),
+	}
+	copy(block.transactions, b.transactions)
+	for i := range b.uncles {
+		block.uncles[i] = CopyHeader(b.uncles[i])
+	}
+	block.hash.Store(hash)
+	return block
+}
+
 // Hash returns the keccak256 hash of b's header.
 // The hash is computed on the first call and cached thereafter.
 func (b *Block) Hash() common.Hash {
