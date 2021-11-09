@@ -1090,6 +1090,6 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 }
 
 func (w *worker) prepareSystemTx() map[common.Address]types.Transactions {
-	systemTxPreparer := utils.New(w.chainConfig, w.engine, w.current.state, w.coinbase, w.current.header)
+	systemTxPreparer := utils.New(w.chainConfig, w.engine, w.current.state, w.current.header)
 	return systemTxPreparer.PrepareSystemTx()
 }
