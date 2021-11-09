@@ -43,6 +43,8 @@ func (w *SystemTxPreparer) PrepareSystemTx() map[common.Address]types.Transactio
 	result := make(map[common.Address]types.Transactions)
 
 	if (w.config.Clique != nil) && ((w.header.Number.Uint64()+1)%w.config.Clique.Epoch == 0) {
+		log.Debug("attempting to create system tx")
+
 		cliq, ok := w.engine.(ValidatorProvider)
 		if ok {
 			addr := cliq.Validators()
@@ -55,6 +57,8 @@ func (w *SystemTxPreparer) PrepareSystemTx() map[common.Address]types.Transactio
 				SetSenderFromServer(tx, w.coinbase, w.header.Hash())
 				result[w.coinbase] = types.Transactions{tx}
 				log.Debug("system tx is here")
+			} else {
+				log.Warn("validators contract is not available")
 			}
 		}
 
