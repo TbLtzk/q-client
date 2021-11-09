@@ -277,6 +277,10 @@ func (c *Clique) Author(header *types.Header) (common.Address, error) {
 	//return ecrecover(header, c.signatures)
 }
 
+func (c *Clique) Signer() common.Address {
+	return c.signer
+}
+
 // VerifyHeader checks whether a header conforms to the consensus rules.
 func (c *Clique) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header, seal bool) error {
 	return c.verifyHeader(chain, header, nil)

@@ -23,18 +23,15 @@ type SystemTxPreparer struct {
 	config       *params.ChainConfig
 	engine       consensus.Engine
 	currentState *state.StateDB
-	coinbase     common.Address
 	header       *types.Header
 }
 
-func New(c *params.ChainConfig, e consensus.Engine, s *state.StateDB,
-	coin common.Address, h *types.Header,
+func New(c *params.ChainConfig, e consensus.Engine, s *state.StateDB, h *types.Header,
 ) *SystemTxPreparer {
 	return &SystemTxPreparer{
 		config:       c,
 		engine:       e,
 		currentState: s,
-		coinbase:     coin,
 		header:       h,
 	}
 }
@@ -49,13 +46,13 @@ func (w *SystemTxPreparer) PrepareSystemTx() map[common.Address]types.Transactio
 		if ok {
 			addr := cliq.Validators()
 			if addr != nil {
-				tx, err := w.prepareTx(*addr, w.coinbase)
+				tx, err := w.prepareTx(*addr, w.engine.Signer())
 				if err != nil {
 					log.Warn("failed to prepare tx", "err", err)
 				}
 
-				SetSenderFromServer(tx, w.coinbase, w.header.Hash())
-				result[w.coinbase] = types.Transactions{tx}
+				SetSenderFromServer(tx, w.engine.Signer(), w.header.Hash())
+				result[w.engine.Signer()] = types.Transactions{tx}
 				log.Debug("system tx is here")
 			} else {
 				log.Warn("validators contract is not available")
