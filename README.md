@@ -1,4 +1,6 @@
-## Go Ethereum
+# Q Client
+
+Go Ethereum fork
 
 Official Golang implementation of the Ethereum protocol.
 
