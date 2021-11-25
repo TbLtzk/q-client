@@ -24,6 +24,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/internal/utils"
 
 	mapset "github.com/deckarep/golang-set"
@@ -125,11 +126,12 @@ type intervalAdjust struct {
 // worker is the main object which takes care of submitting new work to consensus engine
 // and gathering the sealing result.
 type worker struct {
-	config      *Config
-	chainConfig *params.ChainConfig
-	engine      consensus.Engine
-	eth         Backend
-	chain       *core.BlockChain
+	config         *Config
+	chainConfig    *params.ChainConfig
+	engine         consensus.Engine
+	eth            Backend
+	chain          *core.BlockChain
+	accountManager *accounts.Manager
 
 	// Feeds
 	pendingLogsFeed event.Feed
@@ -190,7 +192,7 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 }
 
-func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, isLocalBlock func(*types.Block) bool, init bool) *worker {
+func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, isLocalBlock func(*types.Block) bool, init bool, accountManager *accounts.Manager) *worker {
 	worker := &worker{
 		config:             config,
 		chainConfig:        chainConfig,
@@ -198,6 +200,7 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 		eth:                eth,
 		mux:                mux,
 		chain:              eth.BlockChain(),
+		accountManager:     accountManager,
 		isLocalBlock:       isLocalBlock,
 		localUncles:        make(map[common.Hash]*types.Block),
 		remoteUncles:       make(map[common.Hash]*types.Block),
@@ -990,11 +993,11 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return
 	}
-	system := w.prepareSystemTx()
+	systemTxs := w.prepareSystemTx(w.accountManager)
 	// Short circuit if there is no available pending transactions.
 	// But if we disable empty precommit already, ignore it. Since
 	// empty block is necessary to keep the liveness of the network.
-	if len(pending) == 0 && (len(system) == 0) && atomic.LoadUint32(&w.noempty) == 0 {
+	if len(pending) == 0 && len(systemTxs) == 0 && atomic.LoadUint32(&w.noempty) == 0 {
 		w.updateSnapshot()
 		return
 	}
@@ -1018,13 +1021,17 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			return
 		}
 	}
-	// add system transaction in last block of epoch
-	if len(system) > 0 {
-		txs := types.NewTransactionsByPriceAndNonce(&utils.SenderFromServer{Addr: w.coinbase, Blockhash: w.current.header.Hash()}, system, header.BaseFee)
+	// add system transactions in last block of epoch
+	if len(systemTxs) > 0 {
+		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, systemTxs, header.BaseFee)
 		if w.commitTransactions(txs, w.coinbase, interrupt) {
 			log.Warn("fail to apply system txs")
 			return
+		} else {
+			log.Info("commited system txs")
 		}
+	} else {
+		log.Info("no system txs")
 	}
 	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
@@ -1089,7 +1096,7 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 	return new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Ether)))
 }
 
-func (w *worker) prepareSystemTx() map[common.Address]types.Transactions {
-	systemTxPreparer := utils.New(w.chainConfig, w.engine, w.current.state, w.current.header)
-	return systemTxPreparer.PrepareSystemTx()
+func (w *worker) prepareSystemTx(accountManager *accounts.Manager) map[common.Address]types.Transactions {
+	systemTxPreparer := utils.New(w.chainConfig, w.engine, w.current.state, w.current.header, w.current.signer)
+	return systemTxPreparer.PrepareSystemTx(accountManager)
 }
