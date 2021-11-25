@@ -52,7 +52,7 @@ type RootManager struct {
 	desiredExSet  *exclusionSet
 	proposedExSet *exclusionSet
 
-	// initialized externaly
+	// initialized externally
 	bc  *core.BlockChain
 	reg *contracts.Registry
 }

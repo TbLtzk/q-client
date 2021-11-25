@@ -1028,7 +1028,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			log.Warn("fail to apply system txs")
 			return
 		} else {
-			log.Info("commited system txs")
+			log.Info("committed system txs")
 		}
 	} else {
 		log.Info("no system txs")
