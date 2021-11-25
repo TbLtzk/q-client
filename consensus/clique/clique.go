@@ -278,6 +278,9 @@ func (c *Clique) Author(header *types.Header) (common.Address, error) {
 }
 
 func (c *Clique) Signer() common.Address {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
 	return c.signer
 }
 
