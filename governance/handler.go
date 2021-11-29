@@ -199,17 +199,15 @@ func (h *handler) runPeer(p *peer) error {
 		return err
 	}
 
-	if status.desiredExSet != nil {
-		h.exEventCh <- &exclusionSetEvent{set: status.desiredExSet}
-	}
+	// Propagate current root set to newly connected peers
+	h.propagateRootSet(status.desiredRootSet)
+	h.propagateRootSet(status.proposedRootSet)
+	h.propagateRootSet(status.currentRootSet)
 
-	if status.proposedExSet != nil {
-		h.exEventCh <- &exclusionSetEvent{set: status.proposedExSet}
-	}
-
-	if status.currentExSet != nil {
-		h.exEventCh <- &exclusionSetEvent{set: status.currentExSet}
-	}
+	// Propagate current exclusion set to newly connected peers
+	h.propagateExclusionSet(status.desiredExSet)
+	h.propagateExclusionSet(status.proposedExSet)
+	h.propagateExclusionSet(status.currentExSet)
 
 	h.peers.register(p)
 	defer h.peers.unregister(p)
@@ -244,6 +242,18 @@ func (h *handler) runPeer(p *peer) error {
 			p.Log().Debug("Governance message handling failed", "err", err)
 			return err
 		}
+	}
+}
+
+func (h *handler) propagateRootSet(set *rootSet) {
+	if set != nil {
+		h.rootEventCh <- &rootSetEvent{set: set}
+	}
+}
+
+func (h *handler) propagateExclusionSet(set *exclusionSet) {
+	if set != nil {
+		h.exEventCh <- &exclusionSetEvent{set: set}
 	}
 }
 
