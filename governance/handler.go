@@ -199,6 +199,18 @@ func (h *handler) runPeer(p *peer) error {
 		return err
 	}
 
+	if status.desiredExSet != nil {
+		h.exEventCh <- &exclusionSetEvent{set: status.desiredExSet}
+	}
+
+	if status.proposedExSet != nil {
+		h.exEventCh <- &exclusionSetEvent{set: status.proposedExSet}
+	}
+
+	if status.currentExSet != nil {
+		h.exEventCh <- &exclusionSetEvent{set: status.currentExSet}
+	}
+
 	h.peers.register(p)
 	defer h.peers.unregister(p)
 
@@ -396,11 +408,6 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		rm.upgradeExclusionSet(rm.desiredExSet)
 		h.exEventCh <- &exclusionSetEvent{set: rm.activeExSet}
 	default:
-		if !rm.isRootNode() {
-			log.Debug("Ignoring proposed exclusion list: not a root node")
-			return nil
-		}
-
 		if len(rm.getActiveRootSet().knownSigners(received.signers)) == 0 {
 			log.Debug("Ignoring proposed exclusion list: no active root node signatures")
 			return nil
