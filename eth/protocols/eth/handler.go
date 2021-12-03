@@ -29,7 +29,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/enr"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/trie"
 )
 
 const (
@@ -68,9 +67,6 @@ type Handler func(peer *Peer) error
 type Backend interface {
 	// Chain retrieves the blockchain object to serve data.
 	Chain() *core.BlockChain
-
-	// StateBloom retrieves the bloom filter - if any - for state trie nodes.
-	StateBloom() *trie.SyncBloom
 
 	// TxPool retrieves the transaction pool object to serve data.
 	TxPool() TxPool
