@@ -38,6 +38,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 // testEthHandler is a mock event handler to listen for inbound network requests
@@ -560,15 +561,17 @@ func testCheckpointChallenge(t *testing.T, syncmode downloader.SyncMode, checkpo
 		// Create a block to reply to the challenge if no timeout is simulated.
 		if !timeout {
 			if empty {
-				if err := remote.ReplyBlockHeaders(request.RequestId, []*types.Header{}); err != nil {
+				if err := remote.ReplyBlockHeadersRLP(request.RequestId, []rlp.RawValue{}); err != nil {
 					t.Fatalf("failed to answer challenge: %v", err)
 				}
 			} else if match {
-				if err := remote.ReplyBlockHeaders(request.RequestId, []*types.Header{response}); err != nil {
+				responseRlp, _ := rlp.EncodeToBytes(response)
+				if err := remote.ReplyBlockHeadersRLP(request.RequestId, []rlp.RawValue{responseRlp}); err != nil {
 					t.Fatalf("failed to answer challenge: %v", err)
 				}
 			} else {
-				if err := remote.ReplyBlockHeaders(request.RequestId, []*types.Header{{Number: response.Number}}); err != nil {
+				responseRlp, _ := rlp.EncodeToBytes(types.Header{Number: response.Number})
+				if err := remote.ReplyBlockHeadersRLP(request.RequestId, []rlp.RawValue{responseRlp}); err != nil {
 					t.Fatalf("failed to answer challenge: %v", err)
 				}
 			}
