@@ -5,7 +5,6 @@
 Official Golang implementation of the Q Blockchain.
 
 [<img src="https://q.org/assets/img/favicon.png" width="20" height="20" />](https://q.org)
-[![Discord](https://img.shields.io/badge/discord-join%20chat-blue.svg)](https://discord.com/channels/902893347239247952/908713049404358706)
 
 ## Building the source
 
