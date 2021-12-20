@@ -282,10 +282,10 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 		s.upgradeExclusionSet(set)
 	} else {
 		s.desiredExSet = set
-		s.desiredExFeed.Send(set.copy())
-
 		s.db.saveDesiredExclusionSet(set)
 	}
+
+	s.desiredExFeed.Send(set.copy())
 
 	return set, nil
 }
@@ -306,17 +306,17 @@ func (s *RootManager) acceptProposedExclusionList() error {
 		log.Info("Signed proposed exclusion list", "hash", s.proposedExSet.hash.Hex())
 	}
 
+	exSetToSend := s.proposedExSet
 	if s.getActiveRootSet().isEnoughExSetSignatures(s.proposedExSet) {
 		s.upgradeExclusionSet(s.proposedExSet)
 	} else {
 		s.desiredExSet = s.proposedExSet
-		s.desiredExFeed.Send(s.desiredExSet.copy())
-
 		s.db.saveDesiredExclusionSet(s.desiredExSet)
 	}
 
 	s.proposedExSet = nil
 	s.db.deleteProposedExclusionSet()
+	s.desiredExFeed.Send(exSetToSend.copy())
 
 	return nil
 }
@@ -383,17 +383,18 @@ func (s *RootManager) acceptProposedRootList() error {
 		log.Info("Signed proposed root list", "hash", s.proposed.hash.Hex())
 	}
 
+	rootSetToSend := s.proposed
 	if s.active.isAcceptable(s.proposed) {
 		s.upgradeRootSet(s.proposed)
 	} else {
 		s.desired = s.proposed
-		s.desiredRootFeed.Send(s.desired.copy())
-
 		s.db.saveDesiredRootSet(s.desired)
 	}
 
 	s.proposed = nil
 	s.db.deleteProposedRootSet()
+
+	s.desiredRootFeed.Send(rootSetToSend.copy())
 
 	return nil
 }

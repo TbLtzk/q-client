@@ -55,7 +55,6 @@ build:
   only:
     - master
     - latest
-    - /^v\d+\.\d+\.\d+$/ # semver tags
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
     # build binary
@@ -78,7 +77,8 @@ release:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
     - version=$(test -z $CI_COMMIT_TAG && echo $CI_COMMIT_SHA || echo $CI_COMMIT_TAG)
     - image=$IMAGE_NAME:$CI_COMMIT_TAG
-    - docker build --build-arg version="$version" --build-arg BUILD_TOKEN=${CI_JOB_TOKEN} --build-arg USERNAME=gitlab-ci-token -t $image -f $BUILD_DOCKERFILE .
+    - docker build --build-arg version="$version" --build-arg BUILD_TOKEN=${CI_JOB_TOKEN} --build-arg USERNAME=gitlab-ci-token -t $BUILD_IMAGE -t $image -f $BUILD_DOCKERFILE .
+    - docker push $BUILD_IMAGE
     - docker push $image
 
 # deploy_devnet:
