@@ -334,11 +334,6 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 		rm.upgradeRootSet(rm.desired)
 		h.rootEventCh <- &rootSetEvent{set: rm.active.copy()}
 	default:
-		if !rm.isMember(received.rootAddresses) {
-			log.Debug("Ignoring proposed root list: not a member of the new list", "hash", received.hash.Hex())
-			return nil
-		}
-
 		signers := rm.active.knownSigners(received.signers)
 		if len(signers) == 0 {
 			log.Debug("Ignoring proposed root list: not signed by any known root node",
