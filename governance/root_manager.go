@@ -175,7 +175,7 @@ func (s *RootManager) isMember(set []common.Address) bool {
 
 func (s *RootManager) signRootSet(set *rootSet) bool {
 	var isMember bool
-	for _, addr := range set.rootAddresses {
+	for _, addr := range s.active.rootAddresses {
 		if !s.keystore.IsUnlocked(addr) {
 			continue
 		}
