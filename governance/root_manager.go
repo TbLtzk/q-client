@@ -180,6 +180,8 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 			continue
 		}
 
+		log.Info("Atempting to sign root set")
+
 		isMember = true
 		signature, err := s.keystore.SignHash(accounts.Account{Address: addr}, set.hash.Bytes())
 		if err != nil {
@@ -381,6 +383,8 @@ func (s *RootManager) acceptProposedRootList() error {
 
 	if s.signRootSet(s.proposed) {
 		log.Info("Signed proposed root list", "hash", s.proposed.hash.Hex())
+	} else {
+		log.Info("Failed to sign proposed root list", "list", s.proposed)
 	}
 
 	rootSetToSend := s.proposed
