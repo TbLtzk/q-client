@@ -333,6 +333,21 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 
 		rm.upgradeRootSet(rm.desired)
 		h.rootEventCh <- &rootSetEvent{set: rm.active.copy()}
+	case rm.proposed != nil && rm.proposed.hash == received.hash:
+		newSignatures := rm.proposed.mergeSignatures(received.hash, received.signers)
+		if len(newSignatures) == 0 {
+			return nil
+		}
+
+		log.Debug("Received proposed root list signatures", "from", p.id, "signers", toSigners(newSignatures))
+		if !rm.active.isAcceptable(rm.proposed) {
+			h.rootEventCh <- &rootSetEvent{fromID: p.id, set: rm.proposed.copy()}
+			rm.db.saveProposedRootSet(rm.proposed)
+			return nil
+		}
+
+		rm.upgradeRootSet(rm.proposed)
+		h.rootEventCh <- &rootSetEvent{set: rm.active.copy()}
 	default:
 		signers := rm.active.knownSigners(received.signers)
 		if len(signers) == 0 {
