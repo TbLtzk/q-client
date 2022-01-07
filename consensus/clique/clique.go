@@ -59,7 +59,7 @@ const (
 
 // Clique proof-of-authority protocol constants.
 var (
-	CliqueBlockReward = new(big.Int).Mul(big.NewInt(params.Ether), big.NewInt(15)) // Block reward in wei for successfully mining a block
+	CliqueBlockReward = new(big.Int).Div(new(big.Int).Mul(big.NewInt(params.Ether), big.NewInt(15)), big.NewInt(10)) // Block reward in wei for successfully mining a block
 
 	epochLength = uint64(30000) // Default number of blocks after which to checkpoint and reset the pending votes
 
