@@ -302,7 +302,7 @@ github.com/tklauser/numcpus
 ## explicit
 github.com/tyler-smith/go-bip39
 github.com/tyler-smith/go-bip39/wordlists
-# gitlab.com/q-dev/system-contracts v0.0.0-20211123113353-4131a0aebcd7
+# gitlab.com/q-dev/system-contracts v0.0.0-20220116094019-3d61023730df
 ## explicit
 gitlab.com/q-dev/system-contracts/generated
 # golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
