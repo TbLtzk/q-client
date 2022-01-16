@@ -575,6 +575,7 @@ gitlab.com/q-dev/q-client v1.9.15-0.20201001100021-0d9775d47b0b/go.mod h1:WYbaY9
 gitlab.com/q-dev/q-client v1.9.22-0.20210902222014-3ed08c979b9f/go.mod h1:fXfGBmpnC/gD4D6Jtm2xThzLoDJqIhT3YuNqiUwnJN4=
 gitlab.com/q-dev/q-client v1.9.22-0.20211117134432-71e4e55f7312/go.mod h1:1o+vbE27SiKGvoKuldoeNyy+aE04YvlClizh4Nt5kTA=
 gitlab.com/q-dev/q-client v1.9.22-0.20211117135158-f6e48bb53696/go.mod h1:OxyZnGwelH8MU/XToCq6FfjZPFKdOU6biKo3H4yjDeg=
+gitlab.com/q-dev/q-client v1.9.22-0.20211124080536-fe063185527d/go.mod h1:1RJNz6qE8wUMJYoRhvCtJgr3AYJfGwpzfc9SMkbSE6k=
 gitlab.com/q-dev/system-contracts v0.0.0-20200820154320-37349a608c81/go.mod h1:mqcOY+a/B6t1gFGn/XQT2ayAMSFYMnQirlApfSdKOV4=
 gitlab.com/q-dev/system-contracts v0.0.0-20200924175257-548112073ac8/go.mod h1:wZnqR14V29M8MJwpU56Mk/8xMYypSKgEmh1XcQ//3ws=
 gitlab.com/q-dev/system-contracts v0.0.0-20210902151101-8b889f36584a h1:cZo+5XkoKzCnp5ksf7MbMY9xG1gvgkh/oE0KCBe1TWA=
@@ -586,6 +587,8 @@ gitlab.com/q-dev/system-contracts v0.0.0-20211014092226-934c7bcd2c0a/go.mod h1:B
 gitlab.com/q-dev/system-contracts v0.0.0-20211117134947-5fee222fecd8/go.mod h1:wXQsaXoHPKvxNSVMhWQ1JBOPAJjivmSx37OkkQ3+Rvs=
 gitlab.com/q-dev/system-contracts v0.0.0-20211123113353-4131a0aebcd7 h1:WSvph+KWuqMGVeVd+h/357wRaz8qXR7Iu/XQ4DMrLKI=
 gitlab.com/q-dev/system-contracts v0.0.0-20211123113353-4131a0aebcd7/go.mod h1:FNpXDnRxwZU/ictxrOiLJPThChsN9T4gIlfdhV9HUGM=
+gitlab.com/q-dev/system-contracts v0.0.0-20220116094019-3d61023730df h1:9w02QoAOw059pGKIM33JJwiL3qyt3e2NAHGAkSTzCYI=
+gitlab.com/q-dev/system-contracts v0.0.0-20220116094019-3d61023730df/go.mod h1:qV29ajFhjkcTqliiJLvvNo6Jv4LV68cE6eI/uVTAWxg=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=
