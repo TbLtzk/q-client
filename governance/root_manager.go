@@ -29,7 +29,7 @@ var (
 
 	errProposedRootListObsolete = errors.New("proposed root list is obsolete")
 	errProposedRootListEmpty    = errors.New("proposed root list is empty")
-    errRootManagerCannotSign = errors.New("RootManager cannot sign hash")
+	errRootManagerCannotSign    = errors.New("RootManager cannot sign hash")
 )
 
 // RootManager stores root and exclusion lists.
@@ -587,14 +587,14 @@ func (s *RootManager) IsUnlocked(addr common.Address) bool {
 	if _ks := s.manager.Backends(keystore.KeyStoreType); len(_ks) > 0 {
 		ks := _ks[0].(*keystore.KeyStore)
 		return ks.IsUnlocked(addr)
-	} 
+	}
 	return false
 }
 
-func (s *RootManager) SignHash(a accounts.Account, hash []byte) ([]byte, error){
+func (s *RootManager) SignHash(a accounts.Account, hash []byte) ([]byte, error) {
 	if _ks := s.manager.Backends(keystore.KeyStoreType); len(_ks) > 0 {
 		ks := _ks[0].(*keystore.KeyStore)
-        return ks.SignHash(a, hash)
-    }
-    return nil, errRootManagerCannotSign
+		return ks.SignHash(a, hash)
+	}
+	return nil, errRootManagerCannotSign
 }
