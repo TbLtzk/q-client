@@ -184,7 +184,7 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 			continue
 		}
 
-		log.Info("Atempting to sign root set")
+		log.Info("Attempting to sign root set")
 
 		isMember = true
 		signature, err := s.SignHash(accounts.Account{Address: addr}, set.hash.Bytes())
