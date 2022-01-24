@@ -1994,8 +1994,8 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 }
 
 func MakeRootManager(stack *node.Node, networkId uint64, govCfg *governance.Config) *governance.RootManager {
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	rm, err := governance.NewRootManager(ks, networkId, stack.InstanceDir(), govCfg)
+
+	rm, err := governance.NewRootManager(stack.AccountManager(), networkId, stack.InstanceDir(), govCfg)
 	if err != nil {
 		Fatalf("Can't create RootManager: %v", err)
 	}
