@@ -195,7 +195,7 @@ func (h *handler) runPeer(p *peer) error {
 
 	statusBody := h.makeStatusBody(rm)
 	status, err := p.handshake(statusBody)
-	if err != nil {
+	if err != nil || status == nil {
 		return err
 	}
 
