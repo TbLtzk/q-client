@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/accounts"
+	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
@@ -28,12 +29,14 @@ var (
 
 	errProposedRootListObsolete = errors.New("proposed root list is obsolete")
 	errProposedRootListEmpty    = errors.New("proposed root list is empty")
+	errRootManagerCannotSign    = errors.New("RootManager cannot sign hash")
 )
 
 // RootManager stores root and exclusion lists.
 // todo: shouldn't be exported
 type RootManager struct {
-	keystore  Keystore
+	Keystore
+	manager   *accounts.Manager
 	networkId uint64
 
 	db *database
@@ -72,7 +75,7 @@ type Keystore interface {
 	SignHash(a accounts.Account, hash []byte) ([]byte, error)
 }
 
-func NewRootManager(ks Keystore, networkId uint64, datadir string, cfg *Config) (*RootManager, error) {
+func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg *Config) (*RootManager, error) {
 	dbName := fmt.Sprintf("gov-%d", networkId)
 	db, err := newDatabase(filepath.Join(datadir, dbName))
 	if err != nil {
@@ -101,7 +104,7 @@ func NewRootManager(ks Keystore, networkId uint64, datadir string, cfg *Config) 
 	proposedRootSet, _ := db.getProposedRootSet()
 
 	manager := &RootManager{
-		keystore:  ks,
+		manager:   am,
 		networkId: networkId,
 
 		db: db,
@@ -165,7 +168,7 @@ func (s *RootManager) isRootNode() bool {
 
 func (s *RootManager) isMember(set []common.Address) bool {
 	for _, addr := range set {
-		if s.keystore.IsUnlocked(addr) {
+		if s.IsUnlocked(addr) {
 			return true
 		}
 	}
@@ -175,15 +178,16 @@ func (s *RootManager) isMember(set []common.Address) bool {
 
 func (s *RootManager) signRootSet(set *rootSet) bool {
 	var isMember bool
+
 	for _, addr := range s.active.rootAddresses {
-		if !s.keystore.IsUnlocked(addr) {
+		if !s.IsUnlocked(addr) {
 			continue
 		}
 
-		log.Info("Atempting to sign root set")
+		log.Info("Attempting to sign root set")
 
 		isMember = true
-		signature, err := s.keystore.SignHash(accounts.Account{Address: addr}, set.hash.Bytes())
+		signature, err := s.SignHash(accounts.Account{Address: addr}, set.hash.Bytes())
 		if err != nil {
 			log.Error("Failed to sign root set", "err", err)
 			continue
@@ -200,11 +204,11 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 	var isSigned bool
 	for _, addr := range s.getActiveRootSet().rootAddresses {
-		if !s.keystore.IsUnlocked(addr) {
+		if !s.IsUnlocked(addr) {
 			continue
 		}
 
-		signature, err := s.keystore.SignHash(accounts.Account{Address: addr}, set.hash.Bytes())
+		signature, err := s.SignHash(accounts.Account{Address: addr}, set.hash.Bytes())
 		if err != nil {
 			log.Error("Failed to sign exclusion list", "err", err)
 			continue
@@ -577,4 +581,20 @@ func (s *RootManager) addressContains(arr []common.Address, addr common.Address)
 	}
 
 	return false
+}
+
+func (s *RootManager) IsUnlocked(addr common.Address) bool {
+	if _ks := s.manager.Backends(keystore.KeyStoreType); len(_ks) > 0 {
+		ks := _ks[0].(*keystore.KeyStore)
+		return ks.IsUnlocked(addr)
+	}
+	return false
+}
+
+func (s *RootManager) SignHash(a accounts.Account, hash []byte) ([]byte, error) {
+	if _ks := s.manager.Backends(keystore.KeyStoreType); len(_ks) > 0 {
+		ks := _ks[0].(*keystore.KeyStore)
+		return ks.SignHash(a, hash)
+	}
+	return nil, errRootManagerCannotSign
 }
