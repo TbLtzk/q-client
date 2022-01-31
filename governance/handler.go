@@ -195,12 +195,12 @@ func (h *handler) runPeer(p *peer) error {
 
 	statusBody := h.makeStatusBody(rm)
 	status, err := p.handshake(statusBody)
-	if err != nil  {
+	if err != nil {
 		return err
-	} 
-    if status == nil {
-        return errors.New("Status is nil")
-    }
+	}
+	if status == nil {
+		return errors.New("status is nil")
+	}
 
 	// Propagate current root set to newly connected peers
 	h.propagateRootSet(status.desiredRootSet)
