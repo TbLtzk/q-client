@@ -12,8 +12,8 @@ variables:
     - go env -w GOPRIVATE=gitlab.com/${CI_PROJECT_NAMESPACE}
 
 stages:
-  - test
   - build
+  - test
   - release
   - deploy
 
@@ -63,6 +63,21 @@ build:
     - docker push $BUILD_IMAGE
     - docker tag $BUILD_IMAGE $IMAGE_NAME:latest
     - docker push $IMAGE_NAME:latest
+
+build-mr:
+  image: docker:latest
+  stage: build
+  tags:
+    - gitlab-org-docker
+  only:
+    - merge_requests
+  script:
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+    # build binary
+    - version=$(test -z $CI_COMMIT_TAG && echo $CI_COMMIT_SHA || echo $CI_COMMIT_TAG)
+    - docker build --build-arg version="$version" --build-arg BUILD_TOKEN=${CI_JOB_TOKEN} --build-arg USERNAME=gitlab-ci-token -t $BUILD_IMAGE -f $BUILD_DOCKERFILE .
+    - docker push $BUILD_IMAGE
+  interruptible: true
 
 # it's not really a good way to do this
 # but ok for now
