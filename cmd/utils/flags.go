@@ -45,7 +45,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth"
-	"gitlab.com/q-dev/q-client/eth/catalyst"
+	ethcatalyst "gitlab.com/q-dev/q-client/eth/catalyst"
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/eth/ethconfig"
 	"gitlab.com/q-dev/q-client/eth/gasprice"
@@ -56,6 +56,7 @@ import (
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/les"
+	lescatalyst "gitlab.com/q-dev/q-client/les/catalyst"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/metrics/exp"
@@ -1724,7 +1725,7 @@ func RegisterEthService(stack *node.Node, cfg *ethconfig.Config, isCatalyst bool
 		}
 		stack.RegisterAPIs(tracers.APIs(backend.ApiBackend))
 		if isCatalyst {
-			if err := catalyst.RegisterLight(stack, backend); err != nil {
+			if err := lescatalyst.Register(stack, backend); err != nil {
 				Fatalf("Failed to register the catalyst service: %v", err)
 			}
 		}
@@ -1741,7 +1742,7 @@ func RegisterEthService(stack *node.Node, cfg *ethconfig.Config, isCatalyst bool
 		}
 	}
 	if isCatalyst {
-		if err := catalyst.Register(stack, backend); err != nil {
+		if err := ethcatalyst.Register(stack, backend); err != nil {
 			Fatalf("Failed to register the catalyst service: %v", err)
 		}
 	}
