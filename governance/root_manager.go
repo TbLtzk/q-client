@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -266,6 +267,41 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
 	}
 }
 
+func (s *RootManager) validateExclusionSet(set *exclusionSet) error {
+	currentBlock := s.bc.CurrentBlock().Number().Uint64()
+	for addr, block := range s.activeExSet.addrToBlock {
+		if b, ok := set.addrToBlock[addr]; ok && currentBlock > block && block != b {
+			return errors.New("Cannot ban " + addr.String() + " from block: " +
+				strconv.FormatUint(b, 10) + ", block: " + strconv.FormatUint(block, 10) +
+				" in active exclusion set less then current: " + strconv.FormatUint(currentBlock, 10))
+		} else if ok && currentBlock > b && block != b {
+			return errors.New("Cannot ban " + addr.String() + " from block: " +
+				strconv.FormatUint(b, 10) + ", block: " + strconv.FormatUint(b, 10) +
+				" in proposing set less then current: " + strconv.FormatUint(currentBlock, 10))
+		} else if ok && currentBlock == block && b > currentBlock {
+			return errors.New("Cannot ban " + addr.String() + " from block: " +
+				strconv.FormatUint(b, 10) + ", block: " + strconv.FormatUint(block, 10) +
+				" in proposing set equals current: " + strconv.FormatUint(currentBlock, 10))
+		} else if ok && currentBlock == b && block > currentBlock {
+			return errors.New("Cannot ban " + addr.String() + " from block: " +
+				strconv.FormatUint(b, 10) + ", block: " + strconv.FormatUint(b, 10) +
+				" in active exclusion set equals current: " + strconv.FormatUint(currentBlock, 10))
+		} else if !ok && currentBlock >= block {
+			return errors.New("Cannot unban " + addr.String() + ", was banned on block: " +
+				strconv.FormatUint(block, 10) + " in active exclusion set less or equals current: " +
+				strconv.FormatUint(currentBlock, 10))
+		}
+	}
+	for addr, block := range set.addrToBlock {
+		if _, ok := s.activeExSet.addrToBlock[addr]; !ok && currentBlock >= block {
+			return errors.New("Cannot ban " + addr.String() + " from block: " +
+				strconv.FormatUint(block, 10) + " in proposing set less or equals current: " +
+				strconv.FormatUint(currentBlock, 10))
+		}
+	}
+	return nil
+}
+
 func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, error) {
 	if !s.isRootNode() {
 		return nil, errNotRootNode
@@ -278,6 +314,11 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 	olderThanDesired := s.desiredExSet != nil && set.timestamp <= s.desiredExSet.timestamp
 	if olderThanActive || olderThanDesired {
 		return nil, errProposedExclusionListObsolete
+	}
+
+	err := s.validateExclusionSet(set)
+	if err != nil {
+		return nil, err
 	}
 
 	if s.signExclusionSet(set) {
@@ -306,6 +347,11 @@ func (s *RootManager) acceptProposedExclusionList() error {
 
 	if s.desiredExSet != nil && s.proposedExSet.timestamp <= s.desiredExSet.timestamp {
 		return errProposedExclusionListObsolete
+	}
+
+	err := s.validateExclusionSet(nil)
+	if err != nil {
+		return err
 	}
 
 	if s.signExclusionSet(s.proposedExSet) {
