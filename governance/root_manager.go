@@ -272,31 +272,31 @@ func (s *RootManager) validateExclusionSet(set *exclusionSet) error {
 	for addr, block := range s.activeExSet.addrToBlock {
 		if b, ok := set.addrToBlock[addr]; ok && currentBlock > block && block != b {
 			return errors.New("Cannot ban " + addr.String() + " from block: " +
-				strconv.FormatUint(b, 10) + ", block: " + strconv.FormatUint(block, 10) +
-				" in active exclusion set less then current: " + strconv.FormatUint(currentBlock, 10))
+				s.formatBlock(b) + ", block: " + s.formatBlock(block) +
+				" in active exclusion set less then current: " + s.formatBlock(currentBlock))
 		} else if ok && currentBlock > b && block != b {
 			return errors.New("Cannot ban " + addr.String() + " from block: " +
-				strconv.FormatUint(b, 10) + ", block: " + strconv.FormatUint(b, 10) +
-				" in proposing set less then current: " + strconv.FormatUint(currentBlock, 10))
+				s.formatBlock(b) + ", block: " + s.formatBlock(b) +
+				" in proposing set less then current: " + s.formatBlock(currentBlock))
 		} else if ok && currentBlock == block && b > currentBlock {
 			return errors.New("Cannot ban " + addr.String() + " from block: " +
-				strconv.FormatUint(b, 10) + ", block: " + strconv.FormatUint(block, 10) +
-				" in proposing set equals current: " + strconv.FormatUint(currentBlock, 10))
+				s.formatBlock(b) + ", block: " + s.formatBlock(block) +
+				" in proposing set equals current: " + s.formatBlock(currentBlock))
 		} else if ok && currentBlock == b && block > currentBlock {
 			return errors.New("Cannot ban " + addr.String() + " from block: " +
-				strconv.FormatUint(b, 10) + ", block: " + strconv.FormatUint(b, 10) +
-				" in active exclusion set equals current: " + strconv.FormatUint(currentBlock, 10))
+				s.formatBlock(b) + ", block: " + s.formatBlock(b) +
+				" in active exclusion set equals current: " + s.formatBlock(currentBlock))
 		} else if !ok && currentBlock >= block {
 			return errors.New("Cannot unban " + addr.String() + ", was banned on block: " +
-				strconv.FormatUint(block, 10) + " in active exclusion set less or equals current: " +
-				strconv.FormatUint(currentBlock, 10))
+				s.formatBlock(block) + " in active exclusion set less or equals current: " +
+				s.formatBlock(currentBlock))
 		}
 	}
 	for addr, block := range set.addrToBlock {
 		if _, ok := s.activeExSet.addrToBlock[addr]; !ok && currentBlock >= block {
 			return errors.New("Cannot ban " + addr.String() + " from block: " +
-				strconv.FormatUint(block, 10) + " in proposing set less or equals current: " +
-				strconv.FormatUint(currentBlock, 10))
+				s.formatBlock(block) + " in proposing set less or equals current: " +
+				s.formatBlock(currentBlock))
 		}
 	}
 	return nil
@@ -643,4 +643,8 @@ func (s *RootManager) SignHash(a accounts.Account, hash []byte) ([]byte, error) 
 		return ks.SignHash(a, hash)
 	}
 	return nil, errRootManagerCannotSign
+}
+
+func (s *RootManager) formatBlock(block uint64) string {
+	return strconv.FormatUint(block, 10)
 }
