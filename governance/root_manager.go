@@ -395,6 +395,17 @@ func (s *RootManager) upgradeRootSet(set *rootSet) {
 	s.db.deleteDesiredRootSet()
 }
 
+func (s *RootManager) validateRootSet() error {
+	arr, err := s.diffRootListByName("onchain", "proposed")
+	if err != nil {
+		return err
+	}
+	if len(arr[0].Diff) != 0 {
+		return errors.New("Dropping root list that removes on-chain nodes")
+	}
+	return nil
+}
+
 func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 	if !s.isMember(set.rootAddresses) {
 		return nil, errors.New("not a member of new list")
@@ -405,6 +416,11 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 
 	if set.timestamp <= s.active.timestamp || (s.desired != nil && set.timestamp <= s.desired.timestamp) {
 		return nil, errProposedRootListObsolete
+	}
+
+	err := s.validateRootSet()
+	if err != nil {
+		return nil, err
 	}
 
 	if s.signRootSet(set) {
@@ -429,6 +445,11 @@ func (s *RootManager) acceptProposedRootList() error {
 
 	if s.desired != nil && s.proposed.timestamp <= s.desired.timestamp {
 		return errProposedRootListObsolete
+	}
+
+	err := s.validateRootSet()
+	if err != nil {
+		return err
 	}
 
 	if s.signRootSet(s.proposed) {
