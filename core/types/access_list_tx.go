@@ -22,7 +22,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 )
 
-//go:generate gencodec -type AccessTuple -out gen_access_tuple.go
+//go:generate go run github.com/fjl/gencodec@latest -type AccessTuple -out gen_access_tuple.go
 
 // AccessList is an EIP-2930 access list.
 type AccessList []AccessTuple
