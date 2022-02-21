@@ -80,6 +80,17 @@ web3._extend({
 			params: 1,
 			inputFormatter: [null]
 		}),
+		new web3._extend.Method({
+			name: 'getOutOfTurnStatsByHash',
+			call: 'clique_getOutOfTurnStatsByHash',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'getOutOfTurnStatsByNumber',
+			call: 'clique_getOutOfTurnStatsByNumber',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
+		}),
 	],
 	properties: [
 		new web3._extend.Property({
