@@ -2,7 +2,7 @@ services:
   - docker:dind
 
 variables:
-  IMAGE_NAME: registry.gitlab.com/q-dev/q-client
+  IMAGE_NAME: qdevelopment/q-client
   BUILD_IMAGE: $IMAGE_NAME:$CI_COMMIT_SHA
   BUILD_DOCKERFILE: Dockerfile.alltools
 
@@ -16,6 +16,10 @@ stages:
   - test
   - release
   - deploy
+
+.docker-login: &docker-login
+  before_script:
+    - docker login -u $REGISTRY_USER -p $REGISTRY_PASS
 
 test:
   image: golang:1.16.7
@@ -46,8 +50,8 @@ lint:
   script:
     - go run build/ci.go lint
 
-# build and publish docker image to the registry
 build:
+  <<: [*docker-login]
   image: docker:latest
   stage: build
   tags:
@@ -56,8 +60,6 @@ build:
     - master
     - latest
   script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
-    # build binary
     - version=$(test -z $CI_COMMIT_TAG && echo $CI_COMMIT_SHA || echo $CI_COMMIT_TAG)
     - docker build --build-arg version="$version" --build-arg BUILD_TOKEN=${CI_JOB_TOKEN} --build-arg USERNAME=gitlab-ci-token -t $BUILD_IMAGE -f $BUILD_DOCKERFILE .
     - docker push $BUILD_IMAGE
@@ -65,6 +67,7 @@ build:
     - docker push $IMAGE_NAME:latest
 
 build-mr:
+  <<: [*docker-login]
   image: docker:latest
   stage: build
   tags:
@@ -72,16 +75,13 @@ build-mr:
   only:
     - merge_requests
   script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
-    # build binary
     - version=$(test -z $CI_COMMIT_TAG && echo $CI_COMMIT_SHA || echo $CI_COMMIT_TAG)
     - docker build --build-arg version="$version" --build-arg BUILD_TOKEN=${CI_JOB_TOKEN} --build-arg USERNAME=gitlab-ci-token -t $BUILD_IMAGE -f $BUILD_DOCKERFILE .
     - docker push $BUILD_IMAGE
   interruptible: true
 
-# it's not really a good way to do this
-# but ok for now
 release:
+  <<: [*docker-login]
   image: docker:latest
   stage: release
   tags:
@@ -89,30 +89,8 @@ release:
   only:
     - tags
   script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
     - version=$(test -z $CI_COMMIT_TAG && echo $CI_COMMIT_SHA || echo $CI_COMMIT_TAG)
     - image=$IMAGE_NAME:$CI_COMMIT_TAG
     - docker build --build-arg version="$version" --build-arg BUILD_TOKEN=${CI_JOB_TOKEN} --build-arg USERNAME=gitlab-ci-token -t $BUILD_IMAGE -t $image -f $BUILD_DOCKERFILE .
     - docker push $BUILD_IMAGE
     - docker push $image
-
-# deploy_devnet:
-#   image: alpine
-#   stage: deploy
-#   tags:
-#     - gitlab-org-docker
-#   only:
-#     - master
-#   script:
-#     - apk add openssh
-#     - mkdir -p ~/.ssh
-#     - echo "${DEV_SSH_PRIVATE_KEY}" | tr -d '\r' >> ~/.ssh/id_rsa
-#     - chmod 600 ~/.ssh/id_rsa
-#     - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-#     - sed -i "s@{{ .Image }}@${BUILD_IMAGE}@g" docker-compose.yaml    # replace image in docker-compose
-#     - scp docker-compose.yaml ubuntu@$DEV_HOST:~/developer-edition/docker-compose.yaml
-#     - ssh ubuntu@$DEV_HOST "docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
-#                             && cd developer-edition
-#                             && docker-compose down
-#                             && docker image prune -a -f
-#                             && docker-compose up -d"
