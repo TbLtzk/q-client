@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -266,6 +267,41 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
 	}
 }
 
+func (s *RootManager) validateExclusionSet(set *exclusionSet) error {
+	currentBlock := s.bc.CurrentBlock().Number().Uint64()
+	for addr, block := range s.activeExSet.addrToBlock {
+		if b, ok := set.addrToBlock[addr]; ok && currentBlock > block && block != b {
+			return errors.New("Cannot ban " + addr.String() + " from block: " +
+				s.formatBlock(b) + ", block: " + s.formatBlock(block) +
+				" in active exclusion set less then current: " + s.formatBlock(currentBlock))
+		} else if ok && currentBlock > b && block != b {
+			return errors.New("Cannot ban " + addr.String() + " from block: " +
+				s.formatBlock(b) + ", block: " + s.formatBlock(b) +
+				" in proposing set less then current: " + s.formatBlock(currentBlock))
+		} else if ok && currentBlock == block && b > currentBlock {
+			return errors.New("Cannot ban " + addr.String() + " from block: " +
+				s.formatBlock(b) + ", block: " + s.formatBlock(block) +
+				" in proposing set equals current: " + s.formatBlock(currentBlock))
+		} else if ok && currentBlock == b && block > currentBlock {
+			return errors.New("Cannot ban " + addr.String() + " from block: " +
+				s.formatBlock(b) + ", block: " + s.formatBlock(b) +
+				" in active exclusion set equals current: " + s.formatBlock(currentBlock))
+		} else if !ok && currentBlock >= block {
+			return errors.New("Cannot unban " + addr.String() + ", was banned on block: " +
+				s.formatBlock(block) + " in active exclusion set less or equals current: " +
+				s.formatBlock(currentBlock))
+		}
+	}
+	for addr, block := range set.addrToBlock {
+		if _, ok := s.activeExSet.addrToBlock[addr]; !ok && currentBlock >= block {
+			return errors.New("Cannot ban " + addr.String() + " from block: " +
+				s.formatBlock(block) + " in proposing set less or equals current: " +
+				s.formatBlock(currentBlock))
+		}
+	}
+	return nil
+}
+
 func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, error) {
 	if !s.isRootNode() {
 		return nil, errNotRootNode
@@ -278,6 +314,11 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 	olderThanDesired := s.desiredExSet != nil && set.timestamp <= s.desiredExSet.timestamp
 	if olderThanActive || olderThanDesired {
 		return nil, errProposedExclusionListObsolete
+	}
+
+	err := s.validateExclusionSet(set)
+	if err != nil {
+		return nil, err
 	}
 
 	if s.signExclusionSet(set) {
@@ -306,6 +347,11 @@ func (s *RootManager) acceptProposedExclusionList() error {
 
 	if s.desiredExSet != nil && s.proposedExSet.timestamp <= s.desiredExSet.timestamp {
 		return errProposedExclusionListObsolete
+	}
+
+	err := s.validateExclusionSet(nil)
+	if err != nil {
+		return err
 	}
 
 	if s.signExclusionSet(s.proposedExSet) {
@@ -349,6 +395,17 @@ func (s *RootManager) upgradeRootSet(set *rootSet) {
 	s.db.deleteDesiredRootSet()
 }
 
+func (s *RootManager) validateRootSet() error {
+	arr, err := s.diffRootListByName("onchain", "proposed")
+	if err != nil {
+		return err
+	}
+	if len(arr[0].Diff) != 0 {
+		return errors.New("Dropping root list that removes on-chain nodes")
+	}
+	return nil
+}
+
 func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 	if !s.isMember(set.rootAddresses) {
 		return nil, errors.New("not a member of new list")
@@ -359,6 +416,11 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 
 	if set.timestamp <= s.active.timestamp || (s.desired != nil && set.timestamp <= s.desired.timestamp) {
 		return nil, errProposedRootListObsolete
+	}
+
+	err := s.validateRootSet()
+	if err != nil {
+		return nil, err
 	}
 
 	if s.signRootSet(set) {
@@ -383,6 +445,11 @@ func (s *RootManager) acceptProposedRootList() error {
 
 	if s.desired != nil && s.proposed.timestamp <= s.desired.timestamp {
 		return errProposedRootListObsolete
+	}
+
+	err := s.validateRootSet()
+	if err != nil {
+		return err
 	}
 
 	if s.signRootSet(s.proposed) {
@@ -597,4 +664,8 @@ func (s *RootManager) SignHash(a accounts.Account, hash []byte) ([]byte, error) 
 		return ks.SignHash(a, hash)
 	}
 	return nil, errRootManagerCannotSign
+}
+
+func (s *RootManager) formatBlock(block uint64) string {
+	return strconv.FormatUint(block, 10)
 }
