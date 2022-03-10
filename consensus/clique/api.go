@@ -19,6 +19,7 @@ package clique
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
@@ -225,4 +226,60 @@ func (api *API) GetSigner(rlpOrBlockNr *blockNumberOrHashOrRLP) (common.Address,
 		return common.Address{}, err
 	}
 	return api.clique.Author(header)
+}
+
+type outOfTurnStats struct {
+	BlockNumber  uint64         `json:"blockNumber"`
+	BlockHash    common.Hash    `json:"blockHash"`
+	Difficulty   *big.Int       `json:"difficulty"`
+	ActualSigner common.Address `json:"actualSigner"`
+	InTurnSigner common.Address `json:"inTurnSigner"`
+}
+
+// GetOutOfTurnStatsByNumber returns the stats by block:
+// - the block number
+// - the block hash
+// - the difficulty
+// - the actual signer
+// - the inturn signer
+func (api *API) GetOutOfTurnStatsByNumber(block *rpc.BlockNumber) (*outOfTurnStats, error) {
+	header := api.chain.GetHeaderByNumber(uint64(block.Int64()))
+	snapshot, err := api.GetSnapshot(block)
+	if err != nil {
+		return nil, err
+	}
+	return api.getOutOfTurnStatsFromSnapshot(header, snapshot)
+}
+
+// GetOutOfTurnStatsByHash returns the stats by hash.
+// See function GetOutOfTurnStatsByNumber for return data.
+func (api *API) GetOutOfTurnStatsByHash(hash common.Hash) (*outOfTurnStats, error) {
+	header := api.chain.GetHeaderByHash(hash)
+	snapshot, err := api.GetSnapshotAtHash(hash)
+	if err != nil {
+		return nil, err
+	}
+	return api.getOutOfTurnStatsFromSnapshot(header, snapshot)
+}
+
+func (api *API) getOutOfTurnStatsFromSnapshot(header *types.Header, snapshot *Snapshot) (*outOfTurnStats, error) {
+	actualSigner, err := ecrecover(header, snapshot.sigcache)
+	if err != nil {
+		return nil, err
+	}
+	inTurnSigner := api.getInTurnSigner(snapshot)
+	return &outOfTurnStats{
+		BlockNumber:  snapshot.Number,
+		BlockHash:    snapshot.Hash,
+		Difficulty:   header.Difficulty,
+		ActualSigner: actualSigner,
+		InTurnSigner: inTurnSigner,
+	}, nil
+}
+
+func (api *API) getInTurnSigner(snapshot *Snapshot) common.Address {
+	signers := snapshot.signers()
+	index := snapshot.Number % uint64(len(signers))
+	inTurnSigner := signers[index]
+	return inTurnSigner
 }
