@@ -17,19 +17,19 @@ func NewGovernanceAPI(back *Governance) *GovernanceAPI {
 
 // ActiveRootList.
 func (a *GovernanceAPI) ActiveRootList() *RootList {
-	return newRootList(a.gov.RootManager.getActiveRootSet())
+	return newRootList(a.gov.RootManager.getActiveRootSet(true))
 }
 
 func (a *GovernanceAPI) DesiredRootList() *RootList {
-	return newRootList(a.gov.RootManager.getDesiredRootSet())
+	return newRootList(a.gov.RootManager.getDesiredRootSet(true))
 }
 
 func (a *GovernanceAPI) ProposedRootList() *RootList {
-	return newRootList(a.gov.RootManager.getProposedRootSet())
+	return newRootList(a.gov.RootManager.getProposedRootSet(true))
 }
 
 func (a *GovernanceAPI) OnchainRootList() *RootList {
-	return newRootList(a.gov.RootManager.getOnchainRootSet())
+	return newRootList(a.gov.RootManager.getOnchainRootSet(true))
 }
 
 func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList) (common.Hash, error) {
@@ -47,7 +47,7 @@ func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList) (common.Hash
 }
 
 func (a *GovernanceAPI) ProposeOnchainRootList() (common.Hash, error) {
-	set := a.gov.RootManager.getOnchainRootSet()
+	set := a.gov.RootManager.getOnchainRootSet(true)
 	if set == nil {
 		return common.Hash{}, errors.New("can't get on-cain root set")
 	}
@@ -65,7 +65,7 @@ func (a *GovernanceAPI) AcceptProposedRootList() error {
 }
 
 func (a *GovernanceAPI) DiffRootList(nameA, nameB string) ([]DiffEntry, error) {
-	return a.gov.RootManager.diffRootListByName(nameA, nameB)
+	return a.gov.RootManager.diffRootListByName(nameA, nameB, true)
 }
 
 func (a *GovernanceAPI) ActiveExclusionList() *ExclusionList {

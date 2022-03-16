@@ -204,7 +204,7 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 
 func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 	var isSigned bool
-	for _, addr := range s.getActiveRootSet().rootAddresses {
+	for _, addr := range s.getActiveRootSet(true).rootAddresses {
 		if !s.IsUnlocked(addr) {
 			continue
 		}
@@ -325,7 +325,7 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 		log.Info("Signed desired exclusion list", "hash", set.hash.Hex())
 	}
 
-	if s.getActiveRootSet().isEnoughExSetSignatures(set) {
+	if s.getActiveRootSet(true).isEnoughExSetSignatures(set) {
 		s.upgradeExclusionSet(set)
 	} else {
 		s.desiredExSet = set
@@ -359,7 +359,7 @@ func (s *RootManager) acceptProposedExclusionList() error {
 	}
 
 	exSetToSend := s.proposedExSet
-	if s.getActiveRootSet().isEnoughExSetSignatures(s.proposedExSet) {
+	if s.getActiveRootSet(true).isEnoughExSetSignatures(s.proposedExSet) {
 		s.upgradeExclusionSet(s.proposedExSet)
 	} else {
 		s.desiredExSet = s.proposedExSet
@@ -395,14 +395,16 @@ func (s *RootManager) upgradeRootSet(set *rootSet) {
 	s.db.deleteDesiredRootSet()
 }
 
-func (s *RootManager) validateRootSet() error {
-	arr, err := s.diffRootListByName("onchain", "proposed")
+func (s *RootManager) validateRootSet(lock bool) error {
+	arr, err := s.diffRootListByName("onchain", "proposed", lock)
 	if err != nil {
 		return err
 	}
+
 	if len(arr[0].Diff) != 0 {
 		return errors.New("Dropping root list that removes on-chain nodes")
 	}
+
 	return nil
 }
 
@@ -418,7 +420,7 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 		return nil, errProposedRootListObsolete
 	}
 
-	err := s.validateRootSet()
+	err := s.validateRootSet(false)
 	if err != nil {
 		return nil, err
 	}
@@ -447,7 +449,7 @@ func (s *RootManager) acceptProposedRootList() error {
 		return errProposedRootListObsolete
 	}
 
-	err := s.validateRootSet()
+	err := s.validateRootSet(false)
 	if err != nil {
 		return err
 	}
@@ -474,13 +476,18 @@ func (s *RootManager) acceptProposedRootList() error {
 	return nil
 }
 
-func (s *RootManager) diffRootListByName(nameA, nameB string) ([]DiffEntry, error) {
-	setA, err := s.getRootSetByName(nameA)
+func (s *RootManager) diffRootListByName(nameA, nameB string, lock bool) ([]DiffEntry, error) {
+	if lock {
+		s.rootLock.Lock()
+		defer s.rootLock.Unlock()
+	}
+
+	setA, err := s.getRootSetByName(nameA, lock)
 	if err != nil {
 		return nil, err
 	}
 
-	setB, err := s.getRootSetByName(nameB)
+	setB, err := s.getRootSetByName(nameB, lock)
 	if err != nil {
 		return nil, err
 	}
@@ -497,43 +504,54 @@ func (s *RootManager) diffRootListByName(nameA, nameB string) ([]DiffEntry, erro
 	}, nil
 }
 
-func (s *RootManager) getRootSetByName(name string) (*rootSet, error) {
+func (s *RootManager) getRootSetByName(name string, lock bool) (*rootSet, error) {
 	switch strings.ToLower(name) {
 	case "active":
-		return s.getActiveRootSet(), nil
+		return s.getActiveRootSet(lock), nil
 	case "desired":
-		return s.getDesiredRootSet(), nil
+		return s.getDesiredRootSet(lock), nil
 	case "proposed":
-		return s.getProposedRootSet(), nil
+		return s.getProposedRootSet(lock), nil
 	case "onchain":
-		return s.getOnchainRootSet(), nil
+		return s.getOnchainRootSet(lock), nil
 	}
 
 	return nil, fmt.Errorf("invalid root set name: %s", name)
 }
 
-func (s *RootManager) getActiveRootSet() *rootSet {
-	s.rootLock.Lock()
-	defer s.rootLock.Unlock()
+func (s *RootManager) getActiveRootSet(lock bool) *rootSet {
+	if lock {
+		s.rootLock.Lock()
+		defer s.rootLock.Unlock()
+	}
 
 	return s.active.copy()
 }
 
-func (s *RootManager) getDesiredRootSet() *rootSet {
-	s.rootLock.Lock()
-	defer s.rootLock.Unlock()
+func (s *RootManager) getDesiredRootSet(lock bool) *rootSet {
+	if lock {
+		s.rootLock.Lock()
+		defer s.rootLock.Unlock()
+	}
 
 	return s.desired.copy()
 }
 
-func (s *RootManager) getProposedRootSet() *rootSet {
-	s.rootLock.Lock()
-	defer s.rootLock.Unlock()
+func (s *RootManager) getProposedRootSet(lock bool) *rootSet {
+	if lock {
+		s.rootLock.Lock()
+		defer s.rootLock.Unlock()
+	}
 
 	return s.proposed.copy()
 }
 
-func (s *RootManager) getOnchainRootSet() *rootSet {
+func (s *RootManager) getOnchainRootSet(lock bool) *rootSet {
+	if lock {
+		s.rootLock.Lock()
+		defer s.rootLock.Unlock()
+	}
+
 	if s.reg == nil {
 		return nil
 	}
@@ -624,7 +642,7 @@ func (s *RootManager) isAcceptableExclusionSet(set *exclusionSet) bool {
 		return false
 	}
 
-	return s.getActiveRootSet().isEnoughExSetSignatures(set)
+	return s.getActiveRootSet(true).isEnoughExSetSignatures(set)
 }
 
 // addressDiff returns set of addresses which are only first list but not in second
