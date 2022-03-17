@@ -160,7 +160,7 @@ func (h *handler) makeProtocol(version uint) p2p.Protocol {
 			return h.runPeer(newPeer(int(version), p, rw))
 		},
 		NodeInfo: func() interface{} {
-			active := h.rootManager.getActiveRootSet()
+			active := h.rootManager.getActiveRootSet(true)
 			return struct {
 				Timestamp uint64
 			}{
@@ -422,7 +422,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		}
 
 		log.Debug("Received new desired exclusion list signatures", "from", p.id, "singers", toSigners(newSignatures))
-		if !rm.getActiveRootSet().isEnoughExSetSignatures(rm.desiredExSet) {
+		if !rm.getActiveRootSet(true).isEnoughExSetSignatures(rm.desiredExSet) {
 			h.exEventCh <- &exclusionSetEvent{fromID: p.id, set: rm.desiredExSet}
 			rm.db.saveDesiredExclusionSet(rm.desiredExSet)
 			return nil
@@ -431,7 +431,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		rm.upgradeExclusionSet(rm.desiredExSet)
 		h.exEventCh <- &exclusionSetEvent{set: rm.activeExSet}
 	default:
-		if len(rm.getActiveRootSet().knownSigners(received.signers)) == 0 {
+		if len(rm.getActiveRootSet(true).knownSigners(received.signers)) == 0 {
 			log.Debug("Ignoring proposed exclusion list: no active root node signatures")
 			return nil
 		}
