@@ -482,12 +482,12 @@ func (s *RootManager) diffRootListByName(nameA, nameB string, lock bool) ([]Diff
 		defer s.rootLock.Unlock()
 	}
 
-	setA, err := s.getRootSetByName(nameA, lock)
+	setA, err := s.getRootSetByName(nameA, false)
 	if err != nil {
 		return nil, err
 	}
 
-	setB, err := s.getRootSetByName(nameB, lock)
+	setB, err := s.getRootSetByName(nameB, false)
 	if err != nil {
 		return nil, err
 	}
