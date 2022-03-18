@@ -402,7 +402,7 @@ func (s *RootManager) validateRootSet(lock bool) error {
 	}
 
 	if len(arr[0].Diff) != 0 {
-		return errors.New("Dropping root list that removes on-chain nodes")
+		// return errors.New("Dropping root list that removes on-chain nodes")
 	}
 
 	return nil
