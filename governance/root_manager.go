@@ -397,7 +397,7 @@ func (s *RootManager) upgradeRootSet(set *rootSet) {
 
 func (s *RootManager) validateRootSet(addresses []common.Address, lock bool) error {
 	onChainRootSet := s.getOnchainRootSet(lock)
-	diff := s.addressDiff(addresses, onChainRootSet.getAddresses())
+	diff := s.addressDiff(onChainRootSet.getAddresses(), addresses)
 
 	if len(diff) > 0 {
 		return errors.New("Dropping root list that removes on-chain nodes")
