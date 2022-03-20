@@ -395,13 +395,11 @@ func (s *RootManager) upgradeRootSet(set *rootSet) {
 	s.db.deleteDesiredRootSet()
 }
 
-func (s *RootManager) validateRootSet(lock bool) error {
-	arr, err := s.diffRootListByName("onchain", "proposed", lock)
-	if err != nil {
-		return err
-	}
+func (s *RootManager) validateRootSet(addresses []common.Address, lock bool) error {
+	onChainRootSet := s.getOnchainRootSet(lock)
+	diff := s.addressDiff(addresses, onChainRootSet.getAddresses())
 
-	if len(arr[0].Diff) != 0 {
+	if len(diff) > 0 {
 		return errors.New("Dropping root list that removes on-chain nodes")
 	}
 
@@ -420,7 +418,7 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 		return nil, errProposedRootListObsolete
 	}
 
-	err := s.validateRootSet(false)
+	err := s.validateRootSet(set.getAddresses(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -449,7 +447,7 @@ func (s *RootManager) acceptProposedRootList() error {
 		return errProposedRootListObsolete
 	}
 
-	err := s.validateRootSet(false)
+	err := s.validateRootSet(s.proposed.getAddresses(), false)
 	if err != nil {
 		return err
 	}
