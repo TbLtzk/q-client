@@ -268,6 +268,10 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
 }
 
 func (s *RootManager) validateExclusionSet(set *exclusionSet) error {
+	if set == nil {
+		return nil
+	}
+
 	currentBlock := s.bc.CurrentBlock().Number().Uint64()
 	for addr, block := range s.activeExSet.addrToBlock {
 		if b, ok := set.addrToBlock[addr]; ok && currentBlock > block && block != b {
@@ -349,7 +353,7 @@ func (s *RootManager) acceptProposedExclusionList() error {
 		return errProposedExclusionListObsolete
 	}
 
-	err := s.validateExclusionSet(nil)
+	err := s.validateExclusionSet(s.proposedExSet)
 	if err != nil {
 		return err
 	}
