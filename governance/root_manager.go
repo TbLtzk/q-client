@@ -418,6 +418,9 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 		return nil, errProposedRootListObsolete
 	}
 
+	onChainSet := s.getOnchainRootSet(false)
+	log.Info("Proposed addresses", "proposed", set.getAddresses(), "onchain", onChainSet.getAddresses())
+
 	err := s.validateRootSet(set.getAddresses(), false)
 	if err != nil {
 		return nil, err
