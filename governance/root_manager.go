@@ -268,7 +268,7 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
 }
 
 func (s *RootManager) validateExclusionSet(set *exclusionSet) error {
-	if set == nil {
+	if set == nil || s.activeExSet == nil {
 		return nil
 	}
 
@@ -296,6 +296,7 @@ func (s *RootManager) validateExclusionSet(set *exclusionSet) error {
 				s.formatBlock(currentBlock))
 		}
 	}
+
 	for addr, block := range set.addrToBlock {
 		if _, ok := s.activeExSet.addrToBlock[addr]; !ok && currentBlock >= block {
 			return errors.New("Cannot ban " + addr.String() + " from block: " +
@@ -303,6 +304,7 @@ func (s *RootManager) validateExclusionSet(set *exclusionSet) error {
 				s.formatBlock(currentBlock))
 		}
 	}
+
 	return nil
 }
 
