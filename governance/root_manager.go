@@ -282,11 +282,11 @@ func (s *RootManager) validateExclusionSet(set *exclusionSet) error {
 				return fmt.Errorf("cannot remove banned validator: %s", addr.String())
 			}
 
-			if activeBanBlock > currentBlock && newBanBlock > currentBlock {
+			if ok && activeBanBlock > currentBlock && newBanBlock > currentBlock {
 				continue
 			}
 
-			if newBanBlock != activeBanBlock {
+			if ok && newBanBlock != activeBanBlock {
 				return fmt.Errorf("cannot change banned validator block: %s", addr.String())
 			}
 		}
