@@ -294,9 +294,11 @@ func (s *RootManager) validateExclusionSet(set *exclusionSet) error {
 
 	// new members of exclusion list should be in future
 	for addr, newBanBlock := range set.addrToBlock {
-		_, ok := s.activeExSet.addrToBlock[addr]
-		if ok {
-			continue
+		if s.activeExSet != nil {
+			_, ok := s.activeExSet.addrToBlock[addr]
+			if ok {
+				continue
+			}
 		}
 
 		if newBanBlock <= currentBlock {
