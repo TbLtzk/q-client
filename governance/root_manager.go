@@ -273,35 +273,28 @@ func (s *RootManager) validateExclusionSet(set *exclusionSet) error {
 	}
 
 	currentBlock := s.bc.CurrentBlock().Number().Uint64()
-	for addr, block := range s.activeExSet.addrToBlock {
-		if b, ok := set.addrToBlock[addr]; ok && currentBlock > block && block != b {
-			return errors.New("Cannot ban " + addr.String() + " from block: " +
-				s.formatBlock(b) + ", block: " + s.formatBlock(block) +
-				" in active exclusion set less then current: " + s.formatBlock(currentBlock))
-		} else if ok && currentBlock > b && block != b {
-			return errors.New("Cannot ban " + addr.String() + " from block: " +
-				s.formatBlock(b) + ", block: " + s.formatBlock(b) +
-				" in proposing set less then current: " + s.formatBlock(currentBlock))
-		} else if ok && currentBlock == block && b > currentBlock {
-			return errors.New("Cannot ban " + addr.String() + " from block: " +
-				s.formatBlock(b) + ", block: " + s.formatBlock(block) +
-				" in proposing set equals current: " + s.formatBlock(currentBlock))
-		} else if ok && currentBlock == b && block > currentBlock {
-			return errors.New("Cannot ban " + addr.String() + " from block: " +
-				s.formatBlock(b) + ", block: " + s.formatBlock(b) +
-				" in active exclusion set equals current: " + s.formatBlock(currentBlock))
-		} else if !ok && currentBlock >= block {
-			return errors.New("Cannot unban " + addr.String() + ", was banned on block: " +
-				s.formatBlock(block) + " in active exclusion set less or equals current: " +
-				s.formatBlock(currentBlock))
+
+	// current members of exclusion list should not be removed and left unchanged
+	for addr, activeBanBlock := range s.activeExSet.addrToBlock {
+		newBanBlock, ok := set.addrToBlock[addr]
+		if !ok && activeBanBlock <= currentBlock {
+			return fmt.Errorf("cannot remove banned validator: %s", addr.String())
+		}
+
+		if newBanBlock != activeBanBlock {
+			return fmt.Errorf("cannot change banned validator block: %s", addr.String())
 		}
 	}
 
-	for addr, block := range set.addrToBlock {
-		if _, ok := s.activeExSet.addrToBlock[addr]; !ok && currentBlock >= block {
-			return errors.New("Cannot ban " + addr.String() + " from block: " +
-				s.formatBlock(block) + " in proposing set less or equals current: " +
-				s.formatBlock(currentBlock))
+	// new members of exclusion list should be in future
+	for addr, newBanBlock := range set.addrToBlock {
+		_, ok := s.activeExSet.addrToBlock[addr]
+		if ok {
+			continue
+		}
+
+		if newBanBlock <= currentBlock {
+			return fmt.Errorf("cannot ban validator in past: %s", addr.String())
 		}
 	}
 
