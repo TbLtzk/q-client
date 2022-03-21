@@ -268,21 +268,27 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
 }
 
 func (s *RootManager) validateExclusionSet(set *exclusionSet) error {
-	if set == nil || s.activeExSet == nil {
+	if set == nil {
 		return nil
 	}
 
 	currentBlock := s.bc.CurrentBlock().Number().Uint64()
 
-	// current members of exclusion list should not be removed and left unchanged
-	for addr, activeBanBlock := range s.activeExSet.addrToBlock {
-		newBanBlock, ok := set.addrToBlock[addr]
-		if !ok && activeBanBlock <= currentBlock {
-			return fmt.Errorf("cannot remove banned validator: %s", addr.String())
-		}
+	if s.activeExSet != nil {
+		// current members of exclusion list should be left unchanged
+		for addr, activeBanBlock := range s.activeExSet.addrToBlock {
+			newBanBlock, ok := set.addrToBlock[addr]
+			if !ok && activeBanBlock <= currentBlock {
+				return fmt.Errorf("cannot remove banned validator: %s", addr.String())
+			}
 
-		if newBanBlock != activeBanBlock {
-			return fmt.Errorf("cannot change banned validator block: %s", addr.String())
+			if activeBanBlock > currentBlock && newBanBlock > currentBlock {
+				continue
+			}
+
+			if newBanBlock != activeBanBlock {
+				return fmt.Errorf("cannot change banned validator block: %s", addr.String())
+			}
 		}
 	}
 
