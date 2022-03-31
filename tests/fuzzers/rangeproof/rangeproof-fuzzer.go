@@ -24,6 +24,7 @@ import (
 	"sort"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/ethdb/memorydb"
 	"gitlab.com/q-dev/q-client/trie"
 )
@@ -61,8 +62,7 @@ func (f *fuzzer) readInt() uint64 {
 }
 
 func (f *fuzzer) randomTrie(n int) (*trie.Trie, map[string]*kv) {
-
-	trie := new(trie.Trie)
+	trie, _ := trie.New(common.Hash{}, trie.NewDatabase(rawdb.NewMemoryDatabase()))
 	vals := make(map[string]*kv)
 	size := f.readInt()
 	// Fill it with some fluff
