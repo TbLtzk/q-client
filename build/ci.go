@@ -59,6 +59,7 @@ import (
 	"time"
 
 	"github.com/cespare/cp"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto/signify"
 	"gitlab.com/q-dev/q-client/internal/build"
 	"gitlab.com/q-dev/q-client/params"
@@ -163,7 +164,7 @@ func executablePath(name string) string {
 func main() {
 	log.SetFlags(log.Lshortfile)
 
-	if _, err := os.Stat(filepath.Join("build", "ci.go")); os.IsNotExist(err) {
+	if !common.FileExist(filepath.Join("build", "ci.go")) {
 		log.Fatal("this script must be run from the root of the repository")
 	}
 	if len(os.Args) < 2 {
@@ -733,7 +734,7 @@ func ppaUpload(workdir, ppa, sshUser string, files []string) {
 	var idfile string
 	if sshkey := getenvBase64("PPA_SSH_KEY"); len(sshkey) > 0 {
 		idfile = filepath.Join(workdir, "sshkey")
-		if _, err := os.Stat(idfile); os.IsNotExist(err) {
+		if !common.FileExist(idfile) {
 			ioutil.WriteFile(idfile, sshkey, 0600)
 		}
 	}

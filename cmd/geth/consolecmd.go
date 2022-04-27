@@ -18,11 +18,11 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/console"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/rpc"
@@ -130,7 +130,7 @@ func remoteConsole(ctx *cli.Context) error {
 				// Maintain compatibility with older Geth configurations storing the
 				// Ropsten database in `testnet` instead of `ropsten`.
 				legacyPath := filepath.Join(path, "testnet")
-				if _, err := os.Stat(legacyPath); !os.IsNotExist(err) {
+				if common.FileExist(legacyPath) {
 					path = legacyPath
 				} else {
 					path = filepath.Join(path, "ropsten")
