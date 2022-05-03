@@ -197,3 +197,22 @@ func TestSuggestTipCap(t *testing.T) {
 		}
 	}
 }
+
+func TestCalcGasPice(t *testing.T){
+	
+	var cases = []struct {
+		txFee, qQusdExchangeRate, txSize *big.Int
+		expect *big.Int
+	}{
+		{big.NewInt(1), big.NewInt(1_000_000_000), big.NewInt(1), big.NewInt(1_000_000_000)},
+		{big.NewInt(1), big.NewInt(1_000_000_000), big.NewInt(1_000_000_000), big.NewInt(1)},
+		{big.NewInt(47_619_047_619), big.NewInt(1_000_000_000_000_000_000), big.NewInt(21_000), big.NewInt(2_267_573)},
+		{big.NewInt(47_619_047_619), big.NewInt(1_000_000_000_000_000_000), big.NewInt(42_000), big.NewInt(1_133_786)},
+	}
+	for _, c := range cases {
+		actual := calcGasPrice(c.txFee, c.qQusdExchangeRate, c.txSize)
+		if actual.Cmp(c.expect) != 0 {
+			t.Fatalf("Gas price mismatch, want %d, got %d", c.expect, actual)
+		}
+	}
+}
