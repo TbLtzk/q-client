@@ -21,56 +21,40 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"math/big"
 	"strings"
 	"sync/atomic"
 	"time"
-	"unicode"
 	"unsafe"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
-	tracers2 "gitlab.com/q-dev/q-client/eth/tracers"
-	"gitlab.com/q-dev/q-client/eth/tracers/js/internal/tracers"
+	"gitlab.com/q-dev/q-client/eth/tracers"
+	jsassets "gitlab.com/q-dev/q-client/eth/tracers/js/internal/tracers"
 	"gitlab.com/q-dev/q-client/log"
 	"gopkg.in/olebedev/go-duktape.v3"
 )
 
-// camel converts a snake cased input string into a camel cased output.
-func camel(str string) string {
-	pieces := strings.Split(str, "_")
-	for i := 1; i < len(pieces); i++ {
-		pieces[i] = string(unicode.ToUpper(rune(pieces[i][0]))) + pieces[i][1:]
-	}
-	return strings.Join(pieces, "")
-}
-
-var assetTracers = make(map[string]string)
-
 // init retrieves the JavaScript transaction tracers included in go-ethereum.
 func init() {
-	err := fs.WalkDir(tracers.FS, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			return nil
-		}
-		b, err := fs.ReadFile(tracers.FS, path)
-		if err != nil {
-			return err
-		}
-		name := camel(strings.TrimSuffix(path, ".js"))
-		assetTracers[name] = string(b)
-		return nil
-	})
+	assetTracers, err := jsassets.Load()
 	if err != nil {
 		panic(err)
 	}
-	tracers2.RegisterLookup(true, newJsTracer)
+	// TODO: Either disable duktape or solve conflicts between goja and duktape
+	tracers.RegisterLookup(false, func(name string, ctx *tracers.Context) (tracers.Tracer, error) {
+		if !strings.HasSuffix(name, "Duktape") {
+			return nil, errors.New("only suffix Duktape supported")
+		}
+		name = strings.TrimSuffix(name, "Duktape")
+		code, ok := assetTracers[name]
+		if !ok {
+			return nil, errors.New("only pre-built tracers supported")
+		}
+		return newJsTracer(code, ctx)
+	})
 }
 
 // makeSlice convert an unsafe memory pointer with the given type into a Go byte
@@ -439,12 +423,9 @@ type jsTracer struct {
 // New instantiates a new tracer instance. code specifies a Javascript snippet,
 // which must evaluate to an expression returning an object with 'step', 'fault'
 // and 'result' functions.
-func newJsTracer(code string, ctx *tracers2.Context) (tracers2.Tracer, error) {
-	if c, ok := assetTracers[code]; ok {
-		code = c
-	}
+func newJsTracer(code string, ctx *tracers.Context) (tracers.Tracer, error) {
 	if ctx == nil {
-		ctx = new(tracers2.Context)
+		ctx = new(tracers.Context)
 	}
 	tracer := &jsTracer{
 		vm:              duktape.New(),
