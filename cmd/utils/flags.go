@@ -49,6 +49,7 @@ import (
 	"gitlab.com/q-dev/q-client/eth/gasprice"
 	"gitlab.com/q-dev/q-client/eth/tracers"
 	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/ethdb/remotedb"
 	"gitlab.com/q-dev/q-client/ethstats"
 	"gitlab.com/q-dev/q-client/graphql"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
@@ -112,6 +113,10 @@ var (
 		Name:  "datadir",
 		Usage: "Data directory for the databases and keystore",
 		Value: DirectoryString(node.DefaultDataDir()),
+	}
+	RemoteDBFlag = cli.StringFlag{
+		Name:  "remotedb",
+		Usage: "URL for remote database",
 	}
 	AncientFlag = DirectoryFlag{
 		Name:  "datadir.ancient",
@@ -840,6 +845,7 @@ var (
 	DatabasePathFlags = []cli.Flag{
 		DataDirFlag,
 		AncientFlag,
+		RemoteDBFlag,
 	}
 )
 
@@ -1962,12 +1968,14 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node, readonly bool) ethdb.
 		err     error
 		chainDb ethdb.Database
 	)
-	if ctx.GlobalString(SyncModeFlag.Name) == "light" {
-		name := "lightchaindata"
-		chainDb, err = stack.OpenDatabase(name, cache, handles, "", readonly)
-	} else {
-		name := "chaindata"
-		chainDb, err = stack.OpenDatabaseWithFreezer(name, cache, handles, ctx.GlobalString(AncientFlag.Name), "", readonly)
+	switch {
+	case ctx.GlobalIsSet(RemoteDBFlag.Name):
+		log.Info("Using remote db", "url", ctx.GlobalString(RemoteDBFlag.Name))
+		chainDb, err = remotedb.New(ctx.GlobalString(RemoteDBFlag.Name))
+	case ctx.GlobalString(SyncModeFlag.Name) == "light":
+		chainDb, err = stack.OpenDatabase("lightchaindata", cache, handles, "", readonly)
+	default:
+		chainDb, err = stack.OpenDatabaseWithFreezer("chaindata", cache, handles, ctx.GlobalString(AncientFlag.Name), "", readonly)
 	}
 	if err != nil {
 		Fatalf("Could not open database: %v", err)
