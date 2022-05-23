@@ -19,14 +19,13 @@ package clique
 import (
 	"encoding/json"
 	"fmt"
-	"math/big"
-
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
+	"math/big"
 )
 
 // API is a user facing RPC API to allow controlling the signer and voting
@@ -228,7 +227,7 @@ func (api *API) GetSigner(rlpOrBlockNr *blockNumberOrHashOrRLP) (common.Address,
 	return api.clique.Author(header)
 }
 
-type outOfTurnStats struct {
+type OutOfTurnStats struct {
 	BlockNumber  uint64         `json:"blockNumber"`
 	BlockHash    common.Hash    `json:"blockHash"`
 	Difficulty   *big.Int       `json:"difficulty"`
@@ -242,7 +241,7 @@ type outOfTurnStats struct {
 // - the difficulty
 // - the actual signer
 // - the inturn signer
-func (api *API) GetOutOfTurnStatsByNumber(block *rpc.BlockNumber) (*outOfTurnStats, error) {
+func (api *API) GetOutOfTurnStatsByNumber(block *rpc.BlockNumber) (*OutOfTurnStats, error) {
 	header := api.chain.GetHeaderByNumber(uint64(block.Int64()))
 	snapshot, err := api.GetSnapshot(block)
 	if err != nil {
@@ -253,7 +252,7 @@ func (api *API) GetOutOfTurnStatsByNumber(block *rpc.BlockNumber) (*outOfTurnSta
 
 // GetOutOfTurnStatsByHash returns the stats by hash.
 // See function GetOutOfTurnStatsByNumber for return data.
-func (api *API) GetOutOfTurnStatsByHash(hash common.Hash) (*outOfTurnStats, error) {
+func (api *API) GetOutOfTurnStatsByHash(hash common.Hash) (*OutOfTurnStats, error) {
 	header := api.chain.GetHeaderByHash(hash)
 	snapshot, err := api.GetSnapshotAtHash(hash)
 	if err != nil {
@@ -262,13 +261,13 @@ func (api *API) GetOutOfTurnStatsByHash(hash common.Hash) (*outOfTurnStats, erro
 	return api.getOutOfTurnStatsFromSnapshot(header, snapshot)
 }
 
-func (api *API) getOutOfTurnStatsFromSnapshot(header *types.Header, snapshot *Snapshot) (*outOfTurnStats, error) {
+func (api *API) getOutOfTurnStatsFromSnapshot(header *types.Header, snapshot *Snapshot) (*OutOfTurnStats, error) {
 	actualSigner, err := ecrecover(header, snapshot.sigcache)
 	if err != nil {
 		return nil, err
 	}
 	inTurnSigner := api.getInTurnSigner(snapshot)
-	return &outOfTurnStats{
+	return &OutOfTurnStats{
 		BlockNumber:  snapshot.Number,
 		BlockHash:    snapshot.Hash,
 		Difficulty:   header.Difficulty,
