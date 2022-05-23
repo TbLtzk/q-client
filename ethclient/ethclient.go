@@ -22,8 +22,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gitlab.com/q-dev/q-client/consensus/clique"
 	"math/big"
+
+	"gitlab.com/q-dev/q-client/consensus/clique"
 
 	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/common"

@@ -19,13 +19,14 @@ package clique
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
-	"math/big"
 )
 
 // API is a user facing RPC API to allow controlling the signer and voting
