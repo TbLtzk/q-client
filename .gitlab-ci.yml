@@ -31,7 +31,7 @@ test:
     - merge_requests
     - master
   script:
-    - go get gotest.tools/gotestsum
+    - GO111MODULE=off go get gotest.tools/gotestsum
     - gotestsum --junitfile report.xml --format testname --packages="./..."
   artifacts:
     when: always
