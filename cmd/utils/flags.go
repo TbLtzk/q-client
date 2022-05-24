@@ -168,6 +168,10 @@ var (
 		Name:  "testnet",
 		Usage: "Testnet network: pre-configured poa test network",
 	}
+	FischerFlag = cli.BoolFlag{
+		Name:  "fischer",
+		Usage: "Testnet network: pre-configured poa test network",
+	}
 
 	DeveloperFlag = cli.BoolFlag{
 		Name:  "dev",
@@ -867,6 +871,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = params.DevnetBootnodes
 	case ctx.GlobalIsSet(TestnetFlag.Name):
 		urls = params.TestnetBootnodes
+	case ctx.GlobalIsSet(FischerFlag.Name):
+		urls = params.TestnetBootnodes
 	case ctx.GlobalBool(RopstenFlag.Name):
 		urls = params.RopstenBootnodes
 	case ctx.GlobalBool(RinkebyFlag.Name):
@@ -1505,6 +1511,8 @@ func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
 			cfg.RootList = params.DevnetRootNodes
 		case ctx.GlobalBool(TestnetFlag.Name):
 			cfg.RootList = params.TestnetRootNodes
+		case ctx.GlobalBool(FischerFlag.Name):
+			cfg.RootList = params.TestnetRootNodes
 		default:
 			cfg.RootList = params.MainnetRootNodes
 		}
@@ -1668,9 +1676,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	switch {
 	case ctx.GlobalBool(MainnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 1
+			cfg.NetworkId = 35441
 		}
-		cfg.Genesis = core.DefaultGenesisBlock()
+		cfg.Genesis = core.DefaultMainnetGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 	case ctx.GlobalBool(RopstenFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
@@ -1690,6 +1698,18 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		}
 		cfg.Genesis = core.DefaultGoerliGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.GoerliGenesisHash)
+	case ctx.GlobalIsSet(TestnetFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 35443
+		}
+		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+		SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
+	case ctx.GlobalIsSet(FischerFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 35443
+		}
+		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+		SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
@@ -1738,7 +1758,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 			cfg.Miner.GasPrice = big.NewInt(1)
 		}
 	default:
-		if cfg.NetworkId == 1 {
+		if cfg.NetworkId == 35441 {
+			cfg.Genesis = core.DefaultMainnetGenesisBlock()
 			SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 		}
 	}
@@ -1918,13 +1939,17 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	var genesis *core.Genesis
 	switch {
 	case ctx.GlobalBool(MainnetFlag.Name):
-		genesis = core.DefaultGenesisBlock()
+		genesis = core.DefaultMainnetGenesisBlock()
 	case ctx.GlobalBool(RopstenFlag.Name):
 		genesis = core.DefaultRopstenGenesisBlock()
 	case ctx.GlobalBool(RinkebyFlag.Name):
 		genesis = core.DefaultRinkebyGenesisBlock()
 	case ctx.GlobalBool(GoerliFlag.Name):
 		genesis = core.DefaultGoerliGenesisBlock()
+	case ctx.GlobalBool(TestnetFlag.Name):
+		genesis = core.DefaultTestnetGenesisBlock()
+	case ctx.GlobalBool(FischerFlag.Name):
+		genesis = core.DefaultTestnetGenesisBlock()
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
 	}

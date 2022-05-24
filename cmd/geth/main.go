@@ -142,6 +142,7 @@ var (
 		// Q networks
 		utils.DevnetFlag,
 		utils.TestnetFlag,
+		utils.FischerFlag,
 
 		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
@@ -292,7 +293,9 @@ func prepare(ctx *cli.Context) {
 	case ctx.GlobalIsSet(utils.DevnetFlag.Name):
 		log.Info("Starting q-client on devnet...")
 	case ctx.GlobalIsSet(utils.TestnetFlag.Name):
-		log.Info("Starting q-client on testnet...")
+		log.Info("Starting q-client on Q testnet...")
+	case ctx.GlobalIsSet(utils.FischerFlag.Name):
+		log.Info("Starting q-client on Q testnet...")
 	case !ctx.GlobalIsSet(utils.NetworkIdFlag.Name):
 		log.Info("Starting q-client on Q mainnet...")
 	}
