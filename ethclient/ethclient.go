@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"gitlab.com/q-dev/q-client/consensus/clique"
+
 	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
@@ -92,6 +94,12 @@ func (ec *Client) BlockNumber(ctx context.Context) (uint64, error) {
 	var result hexutil.Uint64
 	err := ec.c.CallContext(ctx, &result, "eth_blockNumber")
 	return uint64(result), err
+}
+
+func (ec *Client) OotStats(ctx context.Context, number *big.Int) (*clique.OutOfTurnStats, error) {
+	var result *clique.OutOfTurnStats
+	err := ec.c.CallContext(ctx, &result, "clique_getOutOfTurnStatsByNumber", toBlockNumArg(number))
+	return result, err
 }
 
 type rpcBlock struct {
