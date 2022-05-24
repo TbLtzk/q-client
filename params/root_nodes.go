@@ -22,4 +22,11 @@ var TestnetRootNodes = common.RootList{
 	},
 }
 
-var MainnetRootNodes = TestnetRootNodes
+// MainnetRootNodes - initial root nodes list on mainnet.
+var MainnetRootNodes = common.RootList{
+	Timestamp: 0x62319c55,
+	Nodes: []common.Address{
+		common.HexToAddress("0xBADA551878e60B7D9173452695c1b3D190c3a3DC"),
+		common.HexToAddress("0xFd3ba4c7EbDa55C038316C776F2479b2909da7a5"),
+	},
+}

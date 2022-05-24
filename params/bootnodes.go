@@ -83,7 +83,9 @@ var YoloV1Bootnodes = []string{
 
 // MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Q network.
-var MainnetBootnodes = TestnetBootnodes
+var MainnetBootnodes = []string{
+	"enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@bootnode.q.org:30301",
+}
 
 // DevnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Q devnet network.
@@ -94,7 +96,7 @@ var DevnetBootnodes = []string{
 // TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Q testnet network.
 var TestnetBootnodes = []string{
-	"enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@18.158.7.68:30301",
+	"enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@bootnode.qtestnet.org:30301",
 }
 
 const dnsPrefix = "enrtree://AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE@"
