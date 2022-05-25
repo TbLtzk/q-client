@@ -32,7 +32,7 @@ test:
     - master
   script:
     - GO111MODULE=off go get gotest.tools/gotestsum
-    - gotestsum --junitfile report.xml --format testname --packages="./..."
+    - gotestsum --junitfile report.xml --format testname
   artifacts:
     when: always
     reports:
