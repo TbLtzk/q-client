@@ -25,7 +25,6 @@ import (
 	"io"
 	"sort"
 
-	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/trie"
 	"golang.org/x/crypto/sha3"
@@ -144,7 +143,7 @@ func (f *fuzzer) fuzz() int {
 	var (
 		spongeA     = &spongeDb{sponge: sha3.NewLegacyKeccak256()}
 		dbA         = trie.NewDatabase(spongeA)
-		trieA, _    = trie.New(common.Hash{}, dbA)
+		trieA       = trie.NewEmpty(dbA)
 		spongeB     = &spongeDb{sponge: sha3.NewLegacyKeccak256()}
 		trieB       = trie.NewStackTrie(spongeB)
 		vals        kvs
