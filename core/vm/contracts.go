@@ -29,8 +29,6 @@ import (
 	"gitlab.com/q-dev/q-client/crypto/bls12381"
 	"gitlab.com/q-dev/q-client/crypto/bn256"
 	"gitlab.com/q-dev/q-client/params"
-
-	//lint:ignore SA1019 Needed for precompile
 	"golang.org/x/crypto/ripemd160"
 )
 
