@@ -24,16 +24,16 @@ import (
 	"github.com/cloudflare/cloudflare-go"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p/dnsdisc"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 var (
-	cloudflareTokenFlag = cli.StringFlag{
-		Name:   "token",
-		Usage:  "CloudFlare API token",
-		EnvVar: "CLOUDFLARE_API_TOKEN",
+	cloudflareTokenFlag = &cli.StringFlag{
+		Name:    "token",
+		Usage:   "CloudFlare API token",
+		EnvVars: []string{"CLOUDFLARE_API_TOKEN"},
 	}
-	cloudflareZoneIDFlag = cli.StringFlag{
+	cloudflareZoneIDFlag = &cli.StringFlag{
 		Name:  "zoneid",
 		Usage: "CloudFlare Zone ID (optional)",
 	}

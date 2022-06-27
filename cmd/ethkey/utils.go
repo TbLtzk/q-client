@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 // getPassphrase obtains a passphrase given by the user.  It first checks the

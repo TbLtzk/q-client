@@ -19,24 +19,23 @@ package main
 import (
 	"fmt"
 
-	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
-var commandStatus = cli.Command{
+var commandStatus = &cli.Command{
 	Name:  "status",
 	Usage: "Fetches the signers and checkpoint status of the oracle contract",
 	Flags: []cli.Flag{
 		nodeURLFlag,
 	},
-	Action: utils.MigrateFlags(status),
+	Action: status,
 }
 
 // status fetches the admin list of specified registrar contract.
 func status(ctx *cli.Context) error {
 	// Create a wrapper around the checkpoint oracle contract
-	addr, oracle := newContract(newRPCClient(ctx.GlobalString(nodeURLFlag.Name)))
+	addr, oracle := newContract(newRPCClient(ctx.String(nodeURLFlag.Name)))
 	fmt.Printf("Oracle => %s\n", addr.Hex())
 	fmt.Println()
 

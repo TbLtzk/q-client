@@ -24,7 +24,7 @@ import (
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 type outputInspect struct {
@@ -34,13 +34,13 @@ type outputInspect struct {
 }
 
 var (
-	privateFlag = cli.BoolFlag{
+	privateFlag = &cli.BoolFlag{
 		Name:  "private",
 		Usage: "include the private key in the output",
 	}
 )
 
-var commandInspect = cli.Command{
+var commandInspect = &cli.Command{
 	Name:      "inspect",
 	Usage:     "inspect a keyfile",
 	ArgsUsage: "<keyfile>",

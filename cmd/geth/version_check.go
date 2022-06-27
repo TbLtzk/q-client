@@ -28,7 +28,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/log"
 	"github.com/jedisct1/go-minisign"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 var gethPubKeys []string = []string{
