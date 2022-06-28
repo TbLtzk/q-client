@@ -44,47 +44,49 @@ func (w *SystemTxPreparer) PrepareSystemTx(accountManager *accounts.Manager) map
 
 	if (w.config.Clique != nil) && ((w.header.Number.Uint64()+1)%w.config.Clique.Epoch == 0) {
 		signer := w.engine.Signer()
-		log.Info("attempting to create system tx", "signer", signer)
+		if (signer != common.Address{}) {
+			log.Info("attempting to create system tx", "signer", signer)
 
-		cliq, ok := w.engine.(ValidatorProvider)
-		if ok {
-			addr := cliq.Validators()
-			if addr != nil {
-				tx, err := w.prepareTx(*addr, signer)
-				if err != nil {
-					log.Warn("failed to prepare tx", "err", err)
-					return result
+			cliq, ok := w.engine.(ValidatorProvider)
+			if ok {
+				addr := cliq.Validators()
+				if addr != nil {
+					tx, err := w.prepareTx(*addr, signer)
+					if err != nil {
+						log.Warn("failed to prepare tx", "err", err)
+						return result
+					}
+
+					if accountManager == nil {
+						log.Warn("account manager is not available")
+						return result
+					}
+
+					account := accounts.Account{Address: signer}
+					wallet, err := accountManager.Find(account)
+					if err != nil {
+						log.Warn("failed to find account", "err", err)
+						return result
+					}
+
+					tx, err = wallet.SignTx(account, tx, w.config.ChainID)
+					if err != nil {
+						log.Warn("failed to sign tx", "err", err)
+						return result
+					}
+
+					types.Sender(w.signer, tx)
+					result[signer] = types.Transactions{tx}
+					log.Debug("system tx is here")
+					log.Info("system tx", "tx", *tx)
+				} else {
+					log.Warn("validators contract is not available")
 				}
-
-				if accountManager == nil {
-					log.Warn("account manager is not available")
-					return result
-				}
-
-				account := accounts.Account{Address: signer}
-				wallet, err := accountManager.Find(account)
-				if err != nil {
-					log.Warn("failed to find account", "err", err)
-					return result
-				}
-
-				tx, err = wallet.SignTx(account, tx, w.config.ChainID)
-				if err != nil {
-					log.Warn("failed to sign tx", "err", err)
-					return result
-				}
-
-				types.Sender(w.signer, tx)
-				result[signer] = types.Transactions{tx}
-				log.Debug("system tx is here")
-				log.Info("system tx", "tx", *tx)
-			} else {
-				log.Warn("validators contract is not available")
 			}
-		}
 
-		if len(result) == 0 {
-			log.Warn("there is no system tx")
+			if len(result) == 0 {
+				log.Warn("there is no system tx")
+			}
 		}
 	}
 
