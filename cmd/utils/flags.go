@@ -1513,8 +1513,10 @@ func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
 			cfg.RootList = params.TestnetRootNodes
 		case ctx.GlobalBool(FischerFlag.Name):
 			cfg.RootList = params.TestnetRootNodes
-		default:
+		case !ctx.GlobalIsSet(NetworkIdFlag.Name):
 			cfg.RootList = params.MainnetRootNodes
+		default:
+			cfg.RootList = params.TestnetRootNodes
 		}
 		return
 	}
