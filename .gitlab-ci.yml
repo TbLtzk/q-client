@@ -1,11 +1,13 @@
-services:
-  - docker:dind
+---
+
+include:
+  - project: "q-dev/infrastructure/common-ci"
+    ref: "main"
+    file: "semantic-release-basic.yml"
 
 variables:
-  IMAGE_NAME: qdevelopment/q-client
-  RELEASE_IMAGE_NAME: qblockchain/q-client
-  BUILD_IMAGE: $IMAGE_NAME:$CI_COMMIT_SHA
-  BUILD_DOCKERFILE: Dockerfile.alltools
+  IMAGE_NAME: "qdevelopment/q-client"
+  RELEASE_IMAGE_NAME: "qblockchain/q-client"
 
 .before_script_template:
   before_script:
@@ -13,14 +15,12 @@ variables:
     - go env -w GOPRIVATE=gitlab.com/${CI_PROJECT_NAMESPACE}
 
 stages:
-  - build
-  - test
-  - release
-  - deploy
-
-.docker-login: &docker-login
-  before_script:
-    - docker login -u $REGISTRY_USER -p $REGISTRY_PASS
+  - ".pre"
+  - "build"
+  - "test"
+  - "release"
+  - "deploy"
+  - ".post"
 
 test:
   image: golang:1.16.7
@@ -52,46 +52,33 @@ lint:
     - go run build/ci.go lint
 
 build:
-  <<: [*docker-login]
-  image: docker:latest
-  stage: build
+  image:
+    name: "gcr.io/kaniko-project/executor:v1.8.1-debug"
+    entrypoint: [""]
+  stage: "build"
   tags:
-    - gitlab-org-docker
-  only:
-    - master
-    - latest
+    - "gitlab-org-docker"
   script:
-    - version=$(test -z $CI_COMMIT_TAG && echo $CI_COMMIT_SHA || echo $CI_COMMIT_TAG)
-    - docker build --build-arg version="$version" --build-arg BUILD_TOKEN=${CI_JOB_TOKEN} --build-arg USERNAME=gitlab-ci-token -t $BUILD_IMAGE -f $BUILD_DOCKERFILE .
-    - docker push $BUILD_IMAGE
-    - docker tag $BUILD_IMAGE $IMAGE_NAME:latest
-    - docker push $IMAGE_NAME:latest
+    - >-
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}"
+      --dockerfile "${CI_PROJECT_DIR}/Dockerfile.alltools"
+      --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}"
+      --destination "${CI_REGISTRY_IMAGE}:latest"
+      --build-arg VERSION="${RELEASE_VERSION}"
+      --build-arg BUILD_TOKEN=${CI_JOB_TOKEN}
+      --build-arg USERNAME=gitlab-ci-token
 
-build-mr:
-  <<: [*docker-login]
-  image: docker:latest
-  stage: build
-  tags:
-    - gitlab-org-docker
-  only:
-    - merge_requests
-  script:
-    - version=$(test -z $CI_COMMIT_TAG && echo $CI_COMMIT_SHA || echo $CI_COMMIT_TAG)
-    - docker build --build-arg version="$version" --build-arg BUILD_TOKEN=${CI_JOB_TOKEN} --build-arg USERNAME=gitlab-ci-token -t $BUILD_IMAGE -f $BUILD_DOCKERFILE .
-    - docker push $BUILD_IMAGE
-  interruptible: true
 
 release:
-  <<: [*docker-login]
-  image: docker:latest
-  stage: release
+  image:
+    name: "gcr.io/go-containerregistry/crane:v0.10.0-debug"
+    entrypoint: [""]
+  stage: "release"
   tags:
-    - gitlab-org-docker
+    - "gitlab-org-docker"
   only:
-    - tags
+    - "master"
   script:
-    - version=$(test -z $CI_COMMIT_TAG && echo $CI_COMMIT_SHA || echo $CI_COMMIT_TAG)
-    - image=$RELEASE_IMAGE_NAME:$CI_COMMIT_TAG
-    - docker build --build-arg version="$version" --build-arg BUILD_TOKEN=${CI_JOB_TOKEN} --build-arg USERNAME=gitlab-ci-token -t $BUILD_IMAGE -t $image -f $BUILD_DOCKERFILE .
-    - docker push $BUILD_IMAGE
-    - docker push $image
+    - >-
+      crance copy "${CI_REGISTRY_IMAGE}:${CI_COMMIT_TAG}" "${RELEASE_IMAGE_NAME}:${RELEASE_VERSION}"
