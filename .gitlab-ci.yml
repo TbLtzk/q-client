@@ -67,9 +67,11 @@ build:
       --context "${CI_PROJECT_DIR}"
       --dockerfile "${CI_PROJECT_DIR}/Dockerfile.alltools"
       --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}"
+      --build-arg COMMIT="${CI_COMMIT_SHORT_SHA}"
       --build-arg VERSION="${RELEASE_VERSION}"
-      --build-arg BUILD_TOKEN=${CI_JOB_TOKEN}
-      --build-arg USERNAME=gitlab-ci-token
+      --build-arg BUILDNUM="${CI_JOB_ID}"
+      --build-arg BUILD_TOKEN="${CI_JOB_TOKEN}"
+      --build-arg USERNAME="gitlab-ci-token"
 
 release:
   image:
