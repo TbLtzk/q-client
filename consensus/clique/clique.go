@@ -181,10 +181,15 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 type ExclusionSetProvider interface {
 	ExclusionSetValidators() map[common.Address]uint64
 	ExclusionSetTimestamp() uint64
+	HandleTransitionBlockSignature(header *types.Header)
 }
 
 // NoopExclusionSetProvider is needed for testing.
 type NoopExclusionSetProvider struct{}
+
+func (p *NoopExclusionSetProvider) HandleTransitionBlockSignature(header *types.Header) {
+	return
+}
 
 func (p *NoopExclusionSetProvider) ExclusionSetValidators() map[common.Address]uint64 {
 	return make(map[common.Address]uint64)
@@ -631,6 +636,10 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 		if !inturn && header.Difficulty.Cmp(diffNoTurn) != 0 {
 			return errWrongDifficulty
 		}
+	}
+
+	if  number%c.config.Epoch== 0 {
+		c.exclusionSetProvider.HandleTransitionBlockSignature(header)
 	}
 	return nil
 }

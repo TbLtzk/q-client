@@ -12,6 +12,7 @@ import (
 const (
 	rootListThresholdPercentage      = 75
 	exclusionListThresholdPercentage = 75
+	approvalsThresholdPercentage     = 75
 )
 
 type rootSet struct {

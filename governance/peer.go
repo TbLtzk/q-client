@@ -1,6 +1,7 @@
 package governance
 
 import (
+	"gitlab.com/q-dev/q-client/common"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -30,8 +31,12 @@ func (s *peerSet) register(p *peer) {
 	}
 
 	s.peers[p.id] = p
+
 	go p.listenForRootSets()
 	go p.listenForExclusionSets()
+	if p.version >= qgov3 {
+		go p.listenApprovals()
+	}
 }
 
 func (s *peerSet) unregister(p *peer) {
@@ -73,8 +78,9 @@ type peer struct {
 
 	version int
 
-	rootSetCh      chan *rootSet
+	rootSetCh         chan *rootSet
 	exclusionSetCh chan *exclusionSet
+	approvalCh     chan *common.RootNodeApprovalList
 	done           chan struct{}
 }
 
@@ -86,6 +92,7 @@ func newPeer(version int, conn *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		version:        version,
 		rootSetCh:      make(chan *rootSet),
 		exclusionSetCh: make(chan *exclusionSet),
+		approvalCh:     make(chan *common.RootNodeApprovalList),
 		done:           make(chan struct{}),
 	}
 }
@@ -194,6 +201,21 @@ func (p *peer) listenForExclusionSets() {
 	}
 }
 
+func (p *peer) listenApprovals() {
+	for {
+		select {
+		case approval := <-p.approvalCh:
+			if p.version >= qgov3 {
+				if err := p.sendApprovalList(approval); err != nil {
+					p.Log().Error("failed to send approval", "err", err)
+				}
+			}
+		case <-p.done:
+			return
+		}
+	}
+}
+
 func (p *peer) asyncSendRootList(set *rootSet) {
 	select {
 	case p.rootSetCh <- set:
@@ -214,6 +236,18 @@ func (p *peer) asyncSendExclusionList(set *exclusionSet) {
 	}
 }
 
+func (p *peer) asyncSendApprovals(approvalList *common.RootNodeApprovalList) {
+	select {
+	case p.approvalCh <- approvalList:
+	case <-p.done:
+		return
+	}
+}
+
 func (p *peer) sendExclusionList(set *exclusionSet) error {
 	return p2p.Send(p.rw, ExclusionListMsg, set.makeList())
+}
+
+func (p *peer) sendApprovalList(approvalList *common.RootNodeApprovalList) error {
+	return p2p.Send(p.rw, ApprovalMsg, approvalList)
 }

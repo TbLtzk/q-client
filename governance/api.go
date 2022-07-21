@@ -3,6 +3,7 @@ package governance
 import (
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
+	"math/big"
 )
 
 // GovernanceAPI.
@@ -100,6 +101,15 @@ func (a *GovernanceAPI) AcceptProposedExclusionList() error {
 
 func (a *GovernanceAPI) DiffExclusionList(nameA, nameB string) ([]DiffEntry, error) {
 	return a.gov.RootManager.diffExclusionListByName(nameA, nameB)
+}
+
+func (a *GovernanceAPI) GetRootNodeApprovals(blockNumber *big.Int,hash *common.Hash) (*[]common.RootNodeApproval,error) {
+	list,err := a.gov.RootManager.getActiveApprovalList(blockNumber,hash)
+	res:=[]common.RootNodeApproval{}
+	if list!=nil {
+		res = list.Approvals
+	}
+	return &res,err
 }
 
 type RootList struct {

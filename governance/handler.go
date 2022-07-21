@@ -1,6 +1,8 @@
 package governance
 
 import (
+	"bytes"
+	"gitlab.com/q-dev/q-client/crypto"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -20,9 +22,13 @@ type handler struct {
 	desiredExCh  chan *exclusionSet
 	desiredExSub event.Subscription
 
-	rootEventCh chan *rootSetEvent
-	exEventCh   chan *exclusionSetEvent
-	done        chan struct{}
+	rootEventCh      chan *rootSetEvent
+	exEventCh       chan *exclusionSetEvent
+	approvalEventCh chan *approvalEvent
+	done            chan struct{}
+
+	approvalCh  chan *common.RootNodeApprovalList
+	approvalSub event.Subscription
 
 	peerWG sync.WaitGroup
 	peers  *peerSet
@@ -35,6 +41,9 @@ func newHandler(rootManager *RootManager) *handler {
 	desiredExCh := make(chan *exclusionSet)
 	desiredExSub := rootManager.desiredExFeed.Subscribe(desiredExCh)
 
+	approvalCh := make(chan *common.RootNodeApprovalList)
+	approvalSub := rootManager.approvalFeed.Subscribe(approvalCh)
+
 	return &handler{
 		rootManager: rootManager,
 
@@ -44,9 +53,13 @@ func newHandler(rootManager *RootManager) *handler {
 		desiredExCh:  desiredExCh,
 		desiredExSub: desiredExSub,
 
-		rootEventCh: make(chan *rootSetEvent),
-		exEventCh:   make(chan *exclusionSetEvent),
-		done:        make(chan struct{}),
+		rootEventCh:     make(chan *rootSetEvent),
+		exEventCh:       make(chan *exclusionSetEvent),
+		approvalEventCh: make(chan *approvalEvent),
+		done:            make(chan struct{}),
+
+		approvalCh:  approvalCh,
+		approvalSub: approvalSub,
 
 		peerWG: sync.WaitGroup{},
 		peers:  newPeerSet(),
@@ -59,6 +72,9 @@ func (h *handler) run() {
 
 	go h.listenForDesiredExclusionList()
 	go h.broadcastExclusionSets()
+
+	go h.listenRNApprovals()
+	go h.broadcastApprovals()
 }
 
 type rootSetEvent struct {
@@ -69,6 +85,11 @@ type rootSetEvent struct {
 type exclusionSetEvent struct {
 	fromID string
 	set    *exclusionSet
+}
+
+type approvalEvent struct {
+	fromID   string
+	approval *common.RootNodeApprovalList
 }
 
 func (h *handler) listenForDesiredRootList() {
@@ -132,6 +153,46 @@ func (h *handler) broadcastExclusionSets() {
 				}
 
 				p.asyncSendExclusionList(msg.set)
+			}
+		case <-h.done:
+			return
+		}
+	}
+}
+
+func (h *handler) listenRNApprovals() {
+	for {
+		select {
+		case approval := <-h.approvalCh:
+			for _, p := range h.peers.all() {
+				if p.version<qgov3 {
+					continue
+				}
+				log.Debug("Sending approval list root node approvals", "to", p.id)
+				p.asyncSendApprovals(approval)
+			}
+		case err := <-h.approvalSub.Err():
+			log.Debug("no new approvals", "err", err)
+			return
+		case <-h.done:
+			return
+		}
+	}
+}
+
+func (h *handler) broadcastApprovals() {
+	for {
+		select {
+		case msg := <-h.approvalEventCh:
+			for _, p := range h.peers.all() {
+				if p.version<qgov3 {
+					continue
+				}
+				if msg.fromID == p.id {
+					continue
+				}
+
+				p.asyncSendApprovals(msg.approval)
 			}
 		case <-h.done:
 			return
@@ -212,6 +273,10 @@ func (h *handler) runPeer(p *peer) error {
 	h.propagateExclusionSet(status.proposedExSet)
 	h.propagateExclusionSet(status.currentExSet)
 
+	if p.version >= qgov3 {
+		h.propagateApprovals(rm.db.getLastApprovals())
+	}
+
 	h.peers.register(p)
 	defer h.peers.unregister(p)
 
@@ -235,6 +300,7 @@ func (h *handler) runPeer(p *peer) error {
 				return err
 			}
 		}
+
 	}
 
 	h.peerWG.Add(1)
@@ -242,7 +308,7 @@ func (h *handler) runPeer(p *peer) error {
 
 	for {
 		if err := h.handleMsg(p); err != nil {
-			p.Log().Debug("Governance message handling failed", "err", err)
+			p.Log().Error("Governance message handling failed", "err", err)
 			return err
 		}
 	}
@@ -257,6 +323,12 @@ func (h *handler) propagateRootSet(set *rootSet) {
 func (h *handler) propagateExclusionSet(set *exclusionSet) {
 	if set != nil {
 		h.exEventCh <- &exclusionSetEvent{set: set}
+	}
+}
+
+func (h *handler) propagateApprovals(approvals *common.RootNodeApprovalList) {
+	if approvals != nil {
+		h.approvalEventCh <- &approvalEvent{approval: approvals}
 	}
 }
 
@@ -279,6 +351,8 @@ func (h *handler) handleMsg(p *peer) error {
 		return h.handleRootListMsg(p, msg)
 	case ExclusionListMsg:
 		return h.handleExclusionList(p, msg)
+	case ApprovalMsg:
+		return h.handleApprovalMsg(p, msg)
 	default:
 		return errors.New("unknown msg code")
 	}
@@ -296,6 +370,16 @@ func (h *handler) handleRootListMsg(p *peer, msg p2p.Msg) error {
 	}
 
 	return h.handleRootSet(p, received)
+}
+
+func (h *handler) handleApprovalMsg(p *peer, msg p2p.Msg) error {
+	var approval common.RootNodeApprovalList
+	if err := msg.Decode(&approval); err != nil {
+		return err
+	}
+
+	received := approval
+	return h.handleIncomingApproval(p, &received)
 }
 
 func (h *handler) handleRootSet(p *peer, received *rootSet) error {
@@ -448,6 +532,62 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 
 		log.Warn("Received a new proposed exclusion list", "hash", received.hash.Hex(), "timestamp", received.timestamp)
 	}
+
+	return nil
+}
+
+func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeApprovalList) error {
+	rm := h.rootManager
+	rm.approvalLock.Lock()
+	defer rm.approvalLock.Unlock()
+
+	if received == nil {
+		return errProposedApprovalListEmpty
+	}
+
+	if received.BlockNumber.Uint64()%rm.bc.Config().Clique.Epoch != 0 {
+		log.Error("Received root node approval list contains invalid block number",  "blockNumber", received.BlockNumber)
+		return errInvalidApprovalBlockNumber
+	}
+
+	exApprovals, errEx := rm.db.getApprovalRecordsByBlockNumber(received.BlockNumber)
+	if errEx != nil {
+		log.Warn(errEx.Error()) //todo
+	}
+
+	for _, approval := range received.Approvals {
+
+		pubkey, err := crypto.SigToPub(approval.Hash.Bytes(), approval.Signature)
+		if err != nil {
+			return errInvalidSignature
+		}
+
+		//TODO REMOVE BEFORE COMMIT
+		rn1 := common.HexToAddress("0xe3d50388f8136eac453229d0f88e377a2eb5a80b")
+		rn2 := common.HexToAddress("0xa713a6d7a695c95eb4eafdd588b170a17bf64a58")
+
+		addr := crypto.PubkeyToAddress(*pubkey)
+		if addr != rn1 && addr != rn2 {
+			if _, ok := rm.active.roots[addr]; !ok {
+				log.Warn("Received root node approval contains non-root signature", "addr", addr, "blockNumber", received.BlockNumber)
+				continue
+			}
+		}
+
+		for _, signature := range exApprovals {
+			if bytes.Equal(approval.Signature, signature.Signature) {
+				continue
+			}
+		}
+
+
+		if errSave := rm.db.saveApprovalRecord(approval,false); errSave != nil {
+			//TODO
+		}
+
+	}
+
+	h.approvalEventCh <- &approvalEvent{fromID: p.id, approval: received}
 
 	return nil
 }

@@ -2,7 +2,10 @@ package governance
 
 import (
 	"fmt"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/eth/downloader"
 	"math"
+	"math/big"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -31,6 +34,10 @@ var (
 	errProposedRootListObsolete = errors.New("proposed root list is obsolete")
 	errProposedRootListEmpty    = errors.New("proposed root list is empty")
 	errRootManagerCannotSign    = errors.New("RootManager cannot sign hash")
+
+	errInvalidApprovalList        = errors.New("invalid approval list")
+	errProposedApprovalListEmpty  = errors.New("proposed approval list is empty")
+	errInvalidApprovalBlockNumber = errors.New("proposed approval list contains wrong block number")
 )
 
 // RootManager stores root and exclusion lists.
@@ -56,9 +63,13 @@ type RootManager struct {
 	desiredExSet  *exclusionSet
 	proposedExSet *exclusionSet
 
+	approvalLock sync.Mutex
+	approvalFeed *event.Feed
+
 	// initialized externally
 	bc  *core.BlockChain
 	reg *contracts.Registry
+	dl  *downloader.Downloader
 }
 
 // Config of root manager
@@ -119,9 +130,15 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 		activeExSet:   db.getActiveExclusionSet(),
 		desiredExSet:  db.getDesiredExclusionSet(),
 		proposedExSet: db.getProposedExclusionSet(),
+
+		approvalFeed: &event.Feed{},
 	}
 
 	return manager, nil
+}
+
+func (s *RootManager) InitDownloader(dl *downloader.Downloader) {
+	s.dl = dl
 }
 
 func (s *RootManager) InitBlockChain(bc *core.BlockChain) {
@@ -626,6 +643,38 @@ func (s *RootManager) getActiveExclusionSet() *exclusionSet {
 	return s.activeExSet.copy()
 }
 
+func (s *RootManager) getActiveApprovalList(blockNumber *big.Int, hash *common.Hash) (*common.RootNodeApprovalList, error) {
+	s.approvalLock.Lock()
+	defer s.approvalLock.Unlock()
+
+	switch {
+	case blockNumber != nil && hash != nil:
+		return &common.RootNodeApprovalList{}, errors.New("Block number and hash cannot be specified at the same time")
+	case blockNumber != nil:
+		if s.bc.GetBlockByNumber(blockNumber.Uint64()) == nil {
+			return nil, errors.New("Specified block number doesn't exit")
+		}
+		return s.getActiveApprovalListByBlockNumber(blockNumber)
+	case hash != nil:
+		block := s.bc.GetBlockByHash(*hash)
+		if block == nil {
+			return nil, errors.New("Can't find block by specified hash")
+		}
+		return s.getActiveApprovalListByBlockNumber(block.Number())
+	default:
+		return s.db.getLastApprovals().Copy(), nil
+	}
+}
+
+func (s *RootManager) getActiveApprovalListByBlockNumber(blockNumber *big.Int) (*common.RootNodeApprovalList, error) {
+	approvals, err := s.db.getApprovalRecordsByBlockNumber(blockNumber)
+	if err != nil {
+		return nil, err
+	}
+	res := &common.RootNodeApprovalList{}
+	return res.FillFromArray(approvals), nil
+}
+
 func (s *RootManager) getDesiredExclusionSet() *exclusionSet {
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
@@ -691,4 +740,57 @@ func (s *RootManager) SignHash(a accounts.Account, hash []byte) ([]byte, error) 
 
 func (s *RootManager) formatBlock(block uint64) string {
 	return strconv.FormatUint(block, 10)
+}
+
+func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
+	if s.dl == nil {
+		return
+	}
+	s.approvalLock.Lock()
+	defer s.approvalLock.Unlock()
+
+	if (s.dl.Progress().HighestBlock - s.bc.Config().Clique.Epoch) < header.Number.Uint64() { //No need to sign blocks that are not fresh enough
+		prevBlockAddress := new(big.Int).SetUint64(header.Number.Uint64() - s.bc.Config().Clique.Epoch)
+		if recs, errRecs := s.db.getApprovalRecordsByBlockNumber(prevBlockAddress); errRecs == nil {
+			percentage := (100 * len(recs) / len(s.active.rootAddresses))
+			if percentage < approvalsThresholdPercentage {
+				log.Warn("Root node approval list contains less than ", approvalsThresholdPercentage, "% records!")
+			}
+		}
+
+		var roots []common.Address
+		//roots = s.active.rootAddresses
+		//TODO remove before commit!!
+		roots = append(roots, common.HexToAddress("0xe3d50388f8136eac453229d0f88e377a2eb5a80b"), common.HexToAddress("0xa713a6d7a695c95eb4eafdd588b170a17bf64a58"))
+		for _, addr := range roots {
+			if !s.IsUnlocked(addr) {
+				continue
+			}
+
+			signature, err := s.SignHash(accounts.Account{Address: addr}, header.Hash().Bytes())
+			if err != nil {
+				log.Error("Failed to co-sign transition block by root node", "err", err)
+				continue
+			}
+
+			approval := common.RootNodeApproval{
+				BlockNumber: header.Number,
+				Hash:        header.Hash(),
+				Signature:   signature,
+				Signer:      addr,
+			}
+
+			if err := s.db.saveApprovalRecord(approval, true); err != nil {
+				log.Error("Failed to save approval of the transition block", "err", err)
+			} else {
+				resList := common.RootNodeApprovalList{
+					BlockNumber: approval.BlockNumber,
+					Approvals:   []common.RootNodeApproval{approval},
+				}
+				s.approvalFeed.Send(&resList)
+			}
+
+		}
+	}
+
 }

@@ -245,6 +245,10 @@ func New(stack *node.Node, config *ethconfig.Config, conn bind.ContractBackend, 
 		return nil, err
 	}
 
+	if rm != nil {
+		rm.InitDownloader(eth.Downloader())
+	}
+
 	eth.miner = miner.New(eth, &config.Miner, chainConfig, eth.EventMux(), eth.engine, eth.isLocalBlock, eth.accountManager)
 	eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
