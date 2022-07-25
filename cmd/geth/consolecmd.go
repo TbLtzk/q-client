@@ -22,6 +22,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/console"
+	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/rpc"
 	"github.com/urfave/cli/v2"
@@ -34,7 +35,7 @@ var (
 		Action: localConsole,
 		Name:   "console",
 		Usage:  "Start an interactive JavaScript environment",
-		Flags:  utils.GroupFlags(nodeFlags, rpcFlags, consoleFlags),
+		Flags:  flags.Merge(nodeFlags, rpcFlags, consoleFlags),
 		Description: `
 The Geth console is an interactive shell for the JavaScript runtime environment
 which exposes a node admin interface as well as the Ðapp JavaScript API.
@@ -46,7 +47,7 @@ See https://geth.ethereum.org/docs/interface/javascript-console.`,
 		Name:      "attach",
 		Usage:     "Start an interactive JavaScript environment (connect to node)",
 		ArgsUsage: "[endpoint]",
-		Flags:     utils.GroupFlags([]cli.Flag{utils.DataDirFlag}, consoleFlags),
+		Flags:     flags.Merge([]cli.Flag{utils.DataDirFlag}, consoleFlags),
 		Description: `
 The Geth console is an interactive shell for the JavaScript runtime environment
 which exposes a node admin interface as well as the Ðapp JavaScript API.
@@ -59,7 +60,7 @@ This command allows to open a console on a running geth node.`,
 		Name:      "js",
 		Usage:     "(DEPRECATED) Execute the specified JavaScript files",
 		ArgsUsage: "<jsfile> [jsfile...]",
-		Flags:     utils.GroupFlags(nodeFlags, consoleFlags),
+		Flags:     flags.Merge(nodeFlags, consoleFlags),
 		Description: `
 The JavaScript VM exposes a node admin interface as well as the Ðapp
 JavaScript API. See https://geth.ethereum.org/docs/interface/javascript-console`,
