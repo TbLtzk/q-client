@@ -25,6 +25,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 type stateTest struct {
@@ -40,7 +41,7 @@ func newStateTest() *stateTest {
 
 func TestDump(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
-	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, nil), nil)
+	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, &trie.Config{Preimages: true}), nil)
 	s := &stateTest{db: db, state: sdb}
 
 	// generate a few entries
