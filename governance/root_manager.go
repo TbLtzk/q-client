@@ -750,13 +750,17 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 	defer s.approvalLock.Unlock()
 
 	if (s.dl.Progress().HighestBlock - s.bc.Config().Clique.Epoch) < header.Number.Uint64() { //No need to sign blocks that are not fresh enough
+		log.Info("Handling new transition block", "block number", header.Number.Uint64())
+
 		prevBlockAddress := new(big.Int).SetUint64(header.Number.Uint64() - s.bc.Config().Clique.Epoch)
 		if recs, errRecs := s.db.getApprovalRecordsByBlockNumber(prevBlockAddress); errRecs == nil {
 			percentage := (100 * len(recs) / len(s.active.rootAddresses))
 			if percentage < approvalsThresholdPercentage {
-				log.Warn("Root node approval list contains less than ", approvalsThresholdPercentage, "% records!")
+				log.Warn("Root node approval list contains less than 75% records!")
 			}
 		}
+
+
 
 		var roots []common.Address
 		//roots = s.active.rootAddresses
