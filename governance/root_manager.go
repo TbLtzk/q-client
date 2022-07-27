@@ -763,9 +763,7 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 
 
 		var roots []common.Address
-		//roots = s.active.rootAddresses
-		//TODO remove before commit!!
-		roots = append(roots, common.HexToAddress("0xe3d50388f8136eac453229d0f88e377a2eb5a80b"), common.HexToAddress("0xa713a6d7a695c95eb4eafdd588b170a17bf64a58"))
+		roots = s.active.rootAddresses
 		for _, addr := range roots {
 			if !s.IsUnlocked(addr) {
 				continue

@@ -22,7 +22,7 @@ type handler struct {
 	desiredExCh  chan *exclusionSet
 	desiredExSub event.Subscription
 
-	rootEventCh      chan *rootSetEvent
+	rootEventCh     chan *rootSetEvent
 	exEventCh       chan *exclusionSetEvent
 	approvalEventCh chan *approvalEvent
 	done            chan struct{}
@@ -165,7 +165,7 @@ func (h *handler) listenRNApprovals() {
 		select {
 		case approval := <-h.approvalCh:
 			for _, p := range h.peers.all() {
-				if p.version<qgov3 {
+				if p.version < qgov3 {
 					continue
 				}
 				log.Debug("Sending approval list root node approvals", "to", p.id)
@@ -185,7 +185,7 @@ func (h *handler) broadcastApprovals() {
 		select {
 		case msg := <-h.approvalEventCh:
 			for _, p := range h.peers.all() {
-				if p.version<qgov3 {
+				if p.version < qgov3 {
 					continue
 				}
 				if msg.fromID == p.id {
@@ -546,7 +546,7 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 	}
 
 	if received.BlockNumber.Uint64()%rm.bc.Config().Clique.Epoch != 0 {
-		log.Error("Received root node approval list contains invalid block number",  "blockNumber", received.BlockNumber)
+		log.Error("Received root node approval list contains invalid block number", "blockNumber", received.BlockNumber)
 		return errInvalidApprovalBlockNumber
 	}
 
@@ -562,16 +562,10 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 			return errInvalidSignature
 		}
 
-		//TODO REMOVE BEFORE COMMIT
-		rn1 := common.HexToAddress("0xe3d50388f8136eac453229d0f88e377a2eb5a80b")
-		rn2 := common.HexToAddress("0xa713a6d7a695c95eb4eafdd588b170a17bf64a58")
-
 		addr := crypto.PubkeyToAddress(*pubkey)
-		if addr != rn1 && addr != rn2 {
-			if _, ok := rm.active.roots[addr]; !ok {
-				log.Warn("Received root node approval contains non-root signature", "addr", addr, "blockNumber", received.BlockNumber)
-				continue
-			}
+		if _, ok := rm.active.roots[addr]; !ok {
+			log.Warn("Received root node approval contains non-root signature", "addr", addr, "blockNumber", received.BlockNumber)
+			continue
 		}
 
 		for _, signature := range exApprovals {
@@ -580,8 +574,7 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 			}
 		}
 
-
-		if errSave := rm.db.saveApprovalRecord(approval,false); errSave != nil {
+		if errSave := rm.db.saveApprovalRecord(approval, false); errSave != nil {
 			//TODO
 		}
 
