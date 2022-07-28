@@ -338,8 +338,17 @@ Please make sure your contributions adhere to our coding guidelines:
  * Code must be documented adhering to the official Go [commentary](https://golang.org/doc/effective_go.html#commentary)
    guidelines.
  * Pull requests need to be based on and opened against the `master` branch.
- * Commit messages should be prefixed with the package(s) they modify.
-   * E.g. "eth, rpc: make trace configs optional"
+ * Commit messages has to be in [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) standard.
+
+```text
+<type>(<scope>): <short summary>
+  │       │             │
+  │       │             └─> Summary in present tense, not capitalized, with no period at the end.
+  │       │
+  │       └─> Commit Scope: e.g.: eth, rpc
+  │
+  └─> Commit Type: build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test
+```
 
 Please see the [Developers' Guide](https://geth.ethereum.org/docs/developers/devguide)
 for more details on configuring your environment, managing project dependencies, and
