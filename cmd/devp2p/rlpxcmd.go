@@ -22,7 +22,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/cmd/devp2p/internal/ethtest"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/internal/utesting"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/rlpx"
 	"gitlab.com/q-dev/q-client/rlp"
@@ -110,12 +109,7 @@ func rlpxEthTest(ctx *cli.Context) error {
 	if err != nil {
 		exit(err)
 	}
-	// check if given node supports eth66, and if so, run eth66 protocol tests as well
-	is66Failed, _ := utesting.Run(utesting.Test{Name: "Is_66", Fn: suite.Is_66})
-	if is66Failed {
-		return runTests(ctx, suite.EthTests())
-	}
-	return runTests(ctx, suite.AllEthTests())
+	return runTests(ctx, suite.EthTests())
 }
 
 // rlpxSnapTest runs the snap protocol test suite.
