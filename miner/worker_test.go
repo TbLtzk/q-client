@@ -218,7 +218,7 @@ func testGenerateBlockAndImport(t *testing.T, isClique bool) {
 	)
 	if isClique {
 		chainConfig = params.AllCliqueProtocolChanges
-		chainConfig.Clique = &params.CliqueConfig{Period: 1, Epoch: 30000}
+		chainConfig.Clique = &params.CliqueConfig{Period: 1, Epoch: 101}
 		chainConfig.Clique.RewardReceiver = common.HexToAddress("92C35a964624D9cbF90c2A0525e116093FAF867E")
 		engine = clique.New(chainConfig.Clique, db, nil, contracts.NewTestModeRegistry())
 	} else {

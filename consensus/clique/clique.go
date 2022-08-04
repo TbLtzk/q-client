@@ -431,7 +431,10 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 
 	// If the block is a checkpoint block, verify the signer list
 	headerTime := time.Unix(int64(header.Time), 0)
-	exclusionTime := time.Unix(int64(c.exclusionSetProvider.ExclusionSetTimestamp()), 0)
+	exclusionTime := time.Time{}
+	if c.exclusionSetProvider != nil {
+		exclusionTime = time.Unix(int64(c.exclusionSetProvider.ExclusionSetTimestamp()), 0)
+	}
 	if number%c.config.Epoch == 0 && headerTime.After(exclusionTime) {
 		err = c.updateProposals(number, snap)
 		if err != nil {
