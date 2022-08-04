@@ -31,8 +31,8 @@ import (
 )
 
 func TestDefaultGenesisBlock(t *testing.T) {
-	block := DefaultGenesisBlock().ToBlock(nil)
-	if block.Hash() != params.MainnetGenesisHash {
+	block := DefaultMainnetGenesisBlock().ToBlock(nil)
+	if block.Hash() != params.QMainnetGenesisHash {
 		t.Errorf("wrong mainnet genesis hash, got %v, want %v", block.Hash(), params.MainnetGenesisHash)
 	}
 	block = DefaultRopstenGenesisBlock().ToBlock(nil)
@@ -73,7 +73,7 @@ func TestSetupGenesis(t *testing.T) {
 			fn: func(db ethdb.Database) (*params.ChainConfig, common.Hash, error) {
 				return SetupGenesisBlock(db, nil)
 			},
-			wantHash:   params.MainnetGenesisHash,
+			wantHash:   params.QMainnetGenesisHash,
 			wantConfig: params.MainnetChainConfig,
 		},
 		{
