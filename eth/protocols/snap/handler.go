@@ -23,14 +23,12 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
-	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/enr"
-	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/trie"
 )
 
@@ -415,15 +413,15 @@ func ServiceGetStorageRangesQuery(chain *core.BlockChain, req *GetStorageRangesP
 		if origin != (common.Hash{}) || (abort && len(storage) > 0) {
 			// Request started at a non-zero hash or was capped prematurely, add
 			// the endpoint Merkle proofs
-			accTrie, err := trie.New(common.Hash{}, req.Root, chain.StateCache().TrieDB())
+			accTrie, err := trie.NewStateTrie(common.Hash{}, req.Root, chain.StateCache().TrieDB())
 			if err != nil {
 				return nil, nil
 			}
-			var acc types.StateAccount
-			if err := rlp.DecodeBytes(accTrie.Get(account[:]), &acc); err != nil {
+			acc, err := accTrie.TryGetAccountWithPreHashedKey(account[:])
+			if err != nil || acc == nil {
 				return nil, nil
 			}
-			stTrie, err := trie.New(account, acc.Root, chain.StateCache().TrieDB())
+			stTrie, err := trie.NewStateTrie(account, acc.Root, chain.StateCache().TrieDB())
 			if err != nil {
 				return nil, nil
 			}
@@ -489,7 +487,7 @@ func ServiceGetTrieNodesQuery(chain *core.BlockChain, req *GetTrieNodesPacket, s
 	// Make sure we have the state associated with the request
 	triedb := chain.StateCache().TrieDB()
 
-	accTrie, err := trie.NewSecure(common.Hash{}, req.Root, triedb)
+	accTrie, err := trie.NewStateTrie(common.Hash{}, req.Root, triedb)
 	if err != nil {
 		// We don't have the requested state available, bail out
 		return nil, nil
@@ -531,7 +529,7 @@ func ServiceGetTrieNodesQuery(chain *core.BlockChain, req *GetTrieNodesPacket, s
 			if err != nil || account == nil {
 				break
 			}
-			stTrie, err := trie.NewSecure(common.BytesToHash(pathset[0]), common.BytesToHash(account.Root), triedb)
+			stTrie, err := trie.NewStateTrie(common.BytesToHash(pathset[0]), common.BytesToHash(account.Root), triedb)
 			loads++ // always account database reads, even for failures
 			if err != nil {
 				break
