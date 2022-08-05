@@ -75,7 +75,7 @@ build:
 
 release:
   image:
-    name: "gcr.io/go-containerregistry/crane:v0.10.0-debug"
+    name: "gcr.io/go-containerregistry/crane:v0.11.0"
     entrypoint: [""]
   stage: "release"
   tags:
