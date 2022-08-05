@@ -73,7 +73,7 @@ build:
       --build-arg BUILD_TOKEN="${CI_JOB_TOKEN}"
       --build-arg USERNAME="gitlab-ci-token"
 
-release:
+publish:
   image:
     name: "gcr.io/go-containerregistry/crane:v0.11.0"
     entrypoint: [""]
