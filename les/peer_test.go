@@ -28,7 +28,6 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/forkid"
-	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/enode"
@@ -100,7 +99,7 @@ type fakeChain struct{}
 
 func (f *fakeChain) Config() *params.ChainConfig { return params.MainnetChainConfig }
 func (f *fakeChain) Genesis() *types.Block {
-	return core.DefaultGenesisBlock().ToBlock(rawdb.NewMemoryDatabase())
+	return core.DefaultGenesisBlock().ToBlock()
 }
 func (f *fakeChain) CurrentHeader() *types.Header { return &types.Header{Number: big.NewInt(10000000)} }
 
