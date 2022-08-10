@@ -158,7 +158,7 @@ func (oracle *Oracle) SuggestTipCapExt(ctx context.Context, gpp core.GasPricePro
 	if gpp != nil {
 		price, err = gpp.GetGasPrice()
 	}
-	if price == nil || price == new(big.Int) || err != nil {
+	if price == nil || price.Uint64() == 0 || err != nil {
 		price, err = oracle.SuggestTipCap(ctx)
 	}
 	if err == nil && price != nil && oracle.factor != 0 {
