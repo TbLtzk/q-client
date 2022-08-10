@@ -717,6 +717,11 @@ var (
 		Usage: "Gas price below which gpo will ignore transactions",
 		Value: ethconfig.Defaults.GPO.IgnorePrice.Int64(),
 	}
+	GpoGasPriceFactor = cli.Float64Flag{
+		Name:  "gpo.gaspricefactor",
+		Usage: "Factor that is applied on top of the calculated minimum transaction price to be recommended for transactions",
+		Value: ethconfig.Defaults.GPO.Factor,
+	}
 
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{
@@ -1342,6 +1347,9 @@ func setGPO(ctx *cli.Context, cfg *gasprice.Config, light bool) {
 	}
 	if ctx.GlobalIsSet(GpoIgnoreGasPriceFlag.Name) {
 		cfg.IgnorePrice = big.NewInt(ctx.GlobalInt64(GpoIgnoreGasPriceFlag.Name))
+	}
+	if ctx.GlobalIsSet(GpoGasPriceFactor.Name) {
+		cfg.Factor = ctx.GlobalFloat64(GpoGasPriceFactor.Name)
 	}
 }
 
