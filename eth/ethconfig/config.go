@@ -49,6 +49,7 @@ var FullNodeGPO = gasprice.Config{
 	MaxBlockHistory:  1024,
 	MaxPrice:         gasprice.DefaultMaxPrice,
 	IgnorePrice:      gasprice.DefaultIgnorePrice,
+	Factor:           1,
 }
 
 // LightClientGPO contains default gasprice oracle settings for light client.
@@ -59,6 +60,7 @@ var LightClientGPO = gasprice.Config{
 	MaxBlockHistory:  5,
 	MaxPrice:         gasprice.DefaultMaxPrice,
 	IgnorePrice:      gasprice.DefaultIgnorePrice,
+	Factor:           1,
 }
 
 // Defaults contains default settings for use on the Ethereum main net.
@@ -93,6 +95,7 @@ var Defaults = Config{
 	RPCGasCap:   50000000,
 	GPO:         FullNodeGPO,
 	RPCTxFeeCap: 1, // 1 ether
+
 }
 
 func init() {
