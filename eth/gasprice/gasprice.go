@@ -47,6 +47,7 @@ type Config struct {
 	Default          *big.Int `toml:",omitempty"`
 	MaxPrice         *big.Int `toml:",omitempty"`
 	IgnorePrice      *big.Int `toml:",omitempty"`
+	Factor           float64  `toml:",omitempty"`
 }
 
 // OracleBackend includes all necessary background APIs for oracle.
@@ -73,6 +74,8 @@ type Oracle struct {
 	checkBlocks, percentile           int
 	maxHeaderHistory, maxBlockHistory int
 	historyCache                      *lru.Cache
+
+	factor float64
 }
 
 // NewOracle returns a new gasprice oracle which can recommend suitable
@@ -87,8 +90,7 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 	if percent < 0 {
 		percent = 0
 		log.Warn("Sanitizing invalid gasprice oracle sample percentile", "provided", params.Percentile, "updated", percent)
-	}
-	if percent > 100 {
+	} else if percent > 100 {
 		percent = 100
 		log.Warn("Sanitizing invalid gasprice oracle sample percentile", "provided", params.Percentile, "updated", percent)
 	}
@@ -104,6 +106,16 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 	} else if ignorePrice.Int64() > 0 {
 		log.Info("Gasprice oracle is ignoring threshold set", "threshold", ignorePrice)
 	}
+	maxHeaderHistory := params.MaxHeaderHistory
+	if maxHeaderHistory < 1 {
+		maxHeaderHistory = 1
+		log.Warn("Sanitizing invalid gasprice oracle max header history", "provided", params.MaxHeaderHistory, "updated", maxHeaderHistory)
+	}
+	maxBlockHistory := params.MaxBlockHistory
+	if maxBlockHistory < 1 {
+		maxBlockHistory = 1
+		log.Warn("Sanitizing invalid gasprice oracle max block history", "provided", params.MaxBlockHistory, "updated", maxBlockHistory)
+	}
 
 	cache, _ := lru.New(2048)
 	headEvent := make(chan core.ChainHeadEvent, 1)
@@ -118,6 +130,11 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 		}
 	}()
 
+	factor := params.Factor
+	if factor == 0 {
+		factor = 1
+	}
+
 	return &Oracle{
 		backend:          backend,
 		lastPrice:        params.Default,
@@ -125,10 +142,29 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 		ignorePrice:      ignorePrice,
 		checkBlocks:      blocks,
 		percentile:       percent,
-		maxHeaderHistory: params.MaxHeaderHistory,
-		maxBlockHistory:  params.MaxBlockHistory,
+		maxHeaderHistory: maxHeaderHistory,
+		maxBlockHistory:  maxBlockHistory,
 		historyCache:     cache,
+		factor:           factor,
 	}
+}
+
+//SuggestTipCapExt returns price from GasPriceProvider if it's possible. Otherwise, it returns standard price
+//from SuggestTipCap
+//Price can be multiplied by cli gpo.gaspricefactor parameter, which can increase/decrease it
+func (oracle *Oracle) SuggestTipCapExt(ctx context.Context, gpp core.GasPriceProvider) (*big.Int, error) {
+	var price *big.Int
+	var err error
+	if gpp != nil {
+		price, err = gpp.GetGasPrice()
+	}
+	if price == nil || price == new(big.Int) || err != nil {
+		price, err = oracle.SuggestTipCap(ctx)
+	}
+	if err == nil && price != nil && oracle.factor != 0 {
+		price = new(big.Int).SetUint64(uint64(float64(price.Uint64()) * oracle.factor))
+	}
+	return price, err
 }
 
 // SuggestTipCap returns a tip cap so that newly created transaction can have a
@@ -146,6 +182,7 @@ func (oracle *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 	lastHead, lastPrice := oracle.lastHead, oracle.lastPrice
 	oracle.cacheLock.RUnlock()
 	if headHash == lastHead {
+
 		return new(big.Int).Set(lastPrice), nil
 	}
 	oracle.fetchLock.Lock()
