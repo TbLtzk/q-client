@@ -39,7 +39,7 @@ import (
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/tests"
 
-	// Force-load native and js pacakges, to trigger registration
+	// Force-load native and js packages, to trigger registration
 	_ "gitlab.com/q-dev/q-client/eth/tracers/js"
 	_ "gitlab.com/q-dev/q-client/eth/tracers/native"
 )
