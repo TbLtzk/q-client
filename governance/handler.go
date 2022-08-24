@@ -177,6 +177,14 @@ func (h *handler) makeStatusBody(rm *RootManager) statusMsgBody {
 	rm.exLock.Lock()
 	defer rm.exLock.Unlock()
 
+	rm.active.aliases = rm.getAliasesOfRoots(rm.active.rootAddresses)
+	if rm.desired != nil {
+		rm.desired.aliases = rm.getAliasesOfRoots(rm.desired.rootAddresses)
+	}
+	if rm.proposed != nil {
+		rm.proposed.aliases = rm.getAliasesOfRoots(rm.proposed.rootAddresses)
+	}
+
 	return statusMsgBody{
 		CurrentRootList:  rm.active.copy().makeList(),
 		DesiredRootList:  rm.desired.copy().makeList(),
@@ -194,7 +202,7 @@ func (h *handler) runPeer(p *peer) error {
 	rm := h.rootManager
 
 	statusBody := h.makeStatusBody(rm)
-	status, err := p.handshake(statusBody)
+	status, err := p.handshake(statusBody, h.rootManager)
 	if err != nil {
 		return err
 	}
@@ -294,6 +302,11 @@ func (h *handler) handleRootListMsg(p *peer, msg p2p.Msg) error {
 	if err != nil {
 		return err
 	}
+	received.updateAliases(h.rootManager.getAliasesOfRoots(received.rootAddresses))
+	errV := received.validateSignatures()
+	if errV != nil {
+		return errV
+	}
 
 	return h.handleRootSet(p, received)
 }
@@ -302,6 +315,8 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 	rm := h.rootManager
 	rm.rootLock.Lock()
 	defer rm.rootLock.Unlock()
+
+	received.aliases = rm.getAliasesOfRoots(received.rootAddresses)
 
 	switch {
 	case rm.active.isAcceptable(received) && (rm.desired == nil || rm.desired.hash != received.hash):
@@ -389,9 +404,20 @@ func (h *handler) handleExclusionList(p *peer, msg p2p.Msg) error {
 }
 
 func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
+	if received.blockRanges == nil && received.addrToBlock != nil {
+		for address, blockAddress := range received.addrToBlock {
+			received.blockRanges[address] = []common.BlockRange{
+				{
+					StartAddress: blockAddress,
+				},
+			}
+		}
+	}
 	rm := h.rootManager
 	rm.exLock.Lock()
 	defer rm.exLock.Unlock()
+
+	rm.active.aliases = rm.getAliasesOfRoots(rm.active.rootAddresses)
 
 	switch true {
 	case rm.isAcceptableExclusionSet(received):

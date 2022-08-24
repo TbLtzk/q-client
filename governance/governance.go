@@ -40,7 +40,7 @@ func (g *Governance) APIs() []rpc.API {
 	return []rpc.API{
 		{
 			Namespace: "gov",
-			Version:   "1.0",
+			Version:   "1.1",
 			Service:   NewGovernanceAPI(g),
 			Public:    false,
 		},

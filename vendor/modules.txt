@@ -223,9 +223,17 @@ github.com/jedisct1/go-minisign
 # github.com/julienschmidt/httprouter v1.2.0
 ## explicit
 github.com/julienschmidt/httprouter
-# github.com/karalabe/usb v0.0.0-20190919080040-51dc0efba356
+# github.com/karalabe/usb v0.0.2
 ## explicit
 github.com/karalabe/usb
+github.com/karalabe/usb/hidapi
+github.com/karalabe/usb/hidapi/hidapi
+github.com/karalabe/usb/hidapi/libusb
+github.com/karalabe/usb/hidapi/mac
+github.com/karalabe/usb/hidapi/windows
+github.com/karalabe/usb/libusb
+github.com/karalabe/usb/libusb/libusb
+github.com/karalabe/usb/libusb/libusb/os
 # github.com/mattn/go-colorable v0.1.8
 ## explicit
 github.com/mattn/go-colorable
@@ -302,7 +310,7 @@ github.com/tklauser/numcpus
 ## explicit
 github.com/tyler-smith/go-bip39
 github.com/tyler-smith/go-bip39/wordlists
-# gitlab.com/q-dev/system-contracts v0.0.0-20220310093032-03bb6d546e26
+# gitlab.com/q-dev/system-contracts v1.0.0-rc.5.0.20220603095006-aacc5f400f99
 ## explicit
 gitlab.com/q-dev/system-contracts/generated
 # golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2

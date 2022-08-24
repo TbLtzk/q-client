@@ -104,7 +104,7 @@ type peerStatus struct {
 	proposedExSet *exclusionSet
 }
 
-func (p *peer) handshake(msg statusMsgBody) (*peerStatus, error) {
+func (p *peer) handshake(msg statusMsgBody, rm *RootManager) (*peerStatus, error) {
 	err := p2p.Send(p.rw, StatusMsg, msg)
 	if err != nil {
 		return nil, err
@@ -132,23 +132,46 @@ func (p *peer) handshake(msg statusMsgBody) (*peerStatus, error) {
 	if currentRootSet == nil {
 		return nil, errors.New("empty current root list")
 	}
+	if currentRootSet != nil {
+		currentRootSet.updateAliases(rm.getAliasesOfRoots(currentRootSet.rootAddresses))
+		errV := currentRootSet.validateSignatures()
+		if errV != nil {
+			return nil, errV
+		}
+	}
 
 	desiredRootSet, err := newRootSet(&status.DesiredRootList)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid desired root list")
+	}
+	if desiredRootSet != nil {
+		desiredRootSet.updateAliases(rm.getAliasesOfRoots(desiredRootSet.rootAddresses))
+		errD := desiredRootSet.validateSignatures()
+		if errD != nil {
+			return nil, errD
+		}
 	}
 
 	proposedRootSet, err := newRootSet(&status.ProposedRootList)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid proposed root list")
 	}
+	if proposedRootSet != nil {
+		proposedRootSet.updateAliases(rm.getAliasesOfRoots(proposedRootSet.rootAddresses))
+		errP := proposedRootSet.validateSignatures()
+		if errP != nil {
+			return nil, errP
+		}
+	}
+
+	//Validators
 
 	currentExSet, err := newExclusionSet(&status.CurrentExclusionList)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid exclusion list")
 	}
 
-	desiredExSet, err := newExclusionSet(&status.CurrentExclusionList)
+	desiredExSet, err := newExclusionSet(&status.DesiredExclusionList)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid desired exclusion list")
 	}

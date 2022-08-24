@@ -179,15 +179,15 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 
 // ExclusionSetProvider should provide validators exclusion set.
 type ExclusionSetProvider interface {
-	ExclusionSetValidators() map[common.Address]uint64
+	ExclusionSetValidators() map[common.Address][]common.BlockRange
 	ExclusionSetTimestamp() uint64
 }
 
 // NoopExclusionSetProvider is needed for testing.
 type NoopExclusionSetProvider struct{}
 
-func (p *NoopExclusionSetProvider) ExclusionSetValidators() map[common.Address]uint64 {
-	return make(map[common.Address]uint64)
+func (p *NoopExclusionSetProvider) ExclusionSetValidators() map[common.Address][]common.BlockRange {
+	return make(map[common.Address][]common.BlockRange)
 }
 
 func (p *NoopExclusionSetProvider) ExclusionSetTimestamp() uint64 {
@@ -409,7 +409,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 	}
 	// Verify that the gasUsed is <= gasLimit
 	if header.GasUsed > header.GasLimit {
-		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
+		return fmt.Errorf("invalid gasUxsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
 	}
 	if !chain.Config().IsLondon(header.Number) {
 		// Verify BaseFee not present before EIP-1559 fork.
@@ -436,7 +436,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		exclusionTime = time.Unix(int64(c.exclusionSetProvider.ExclusionSetTimestamp()), 0)
 	}
 	if number%c.config.Epoch == 0 && headerTime.After(exclusionTime) {
-		err = c.updateProposals(number, snap)
+		err = c.updateProposals(number, snap, chain.Config())
 		if err != nil {
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return err // todo wrap error
@@ -455,7 +455,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 	return c.verifySeal(chain, header, parents)
 }
 
-func (c *Clique) updateProposals(number uint64, snap *Snapshot) error {
+func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *params.ChainConfig) error {
 	if c.exclusionSetProvider == nil {
 		return nil
 	}
@@ -487,7 +487,62 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot) error {
 	}
 
 	snap.Signers = toSet(filtered)
+
+	if chainConfig.IsHF001(new(big.Int).SetUint64(number)) {
+		filteredWithAliases := c.aliasAccounts(filtered, true)
+
+		//we need to filter one more time because exclusion list can contain the alias but not the validator itself for some reasons.
+		snap.Signers = toSet(filterSigners(number, filteredWithAliases, excludedSigners))
+	}
+
 	return nil
+}
+
+func (c *Clique) aliasAccounts(filtered []common.Address, isHF001 bool) []common.Address {
+	if !isHF001 {
+		return filtered
+	}
+	providerAliases := c.registry.AccountAliases()
+	if providerAliases == nil { //signers are set already
+		log.Error("failed to get account aliases list from smart contract")
+		return filtered
+	}
+
+	blockSealingPurpose, _ := new(big.Int).SetString("ac1c67647cbdc0261ee21863e0dcd233307d62845e0ab39b5e890ce32de5a917", 16) //crypto.Keccak256([]byte("BLOCK_SEALING")
+	var purposes []*big.Int
+	for range filtered {
+		purposes = append(purposes, blockSealingPurpose)
+	}
+	filteredWithAliases, errAlias := providerAliases.ResolveBatch(nil, filtered, purposes)
+	if errAlias != nil {
+		log.Error("failed to get account aliases from smart contract", "error", errAlias)
+		filteredWithAliases = filtered
+	}
+	return filteredWithAliases
+}
+
+//TODO remove in production
+func (c *Clique) unAliasAccounts(filtered []common.Address, isHF001 bool) []common.Address {
+	if !isHF001 {
+		return filtered
+	}
+	providerAliases := c.registry.AccountAliases()
+	if providerAliases == nil { //signers are set already
+		log.Error("failed to get account aliases list from smart contract")
+		return filtered
+	}
+
+	blockSealingPurpose, _ := new(big.Int).SetString("ac1c67647cbdc0261ee21863e0dcd233307d62845e0ab39b5e890ce32de5a917", 16) //crypto.Keccak256([]byte("BLOCK_SEALING")
+	var purposes []*big.Int
+	for range filtered {
+		purposes = append(purposes, blockSealingPurpose)
+	}
+	filteredWithAliases, errAlias := providerAliases.ResolveBatchReverse(nil, filtered, purposes)
+	if errAlias != nil {
+		log.Error("failed to get account aliases from smart contract", "error", errAlias)
+		filteredWithAliases = filtered
+	}
+	return filteredWithAliases
 }
 
 func min(a, b int64) int64 {
@@ -603,7 +658,7 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 		return err
 	}
 
-	err = c.updateProposals(number, snap)
+	err = c.updateProposals(number, snap, chain.Config())
 	if err != nil {
 		log.Error("failed to update proposals", "error", err, "step", "prepare")
 		return err // todo wrap error
@@ -617,6 +672,7 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 	if _, ok := snap.Signers[signer]; !ok {
 		return errUnauthorizedSigner
 	}
+
 	for seen, recent := range snap.Recents {
 		if recent == signer {
 			// Signer is among recents, only fail if the current block doesn't shift it out
@@ -652,7 +708,7 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 		return err
 	}
 
-	err = c.updateProposals(number, snap)
+	err = c.updateProposals(number, snap, chain.Config())
 	if err != nil {
 		log.Error("failed to update proposals", "error", err, "step", "prepare")
 		return err // todo wrap error
@@ -766,7 +822,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 		return err
 	}
 
-	c.updateProposals(number, snap)
+	c.updateProposals(number, snap, chain.Config())
 	if _, authorized := snap.Signers[signer]; !authorized {
 		return errUnauthorizedSigner
 	}
@@ -823,7 +879,10 @@ func (c *Clique) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, 
 	if err != nil {
 		return nil
 	}
-	return calcDifficulty(snap, c.signer)
+	c.lock.RLock()
+	signer := c.signer
+	c.lock.Unlock()
+	return calcDifficulty(snap, signer)
 }
 
 func calcDifficulty(snap *Snapshot, signer common.Address) *big.Int {
@@ -922,12 +981,19 @@ func (c *Clique) Validators() *common.Address {
 	return c.registry.ValidatorsAddress()
 }
 
-func filterSigners(number uint64, signers []common.Address, excludedSigners map[common.Address]uint64) []common.Address {
+func filterSigners(number uint64, signers []common.Address, excludedSigners map[common.Address][]common.BlockRange) []common.Address {
 	var filtered []common.Address
 	for _, addr := range signers {
-		block, ok := excludedSigners[addr]
+		blockRanges, ok := excludedSigners[addr]
 
-		if ok && number >= block {
+		banned := false
+		for _, blockRange := range blockRanges {
+			if blockRange.ContainsAddress(number) {
+				banned = true
+				break
+			}
+		}
+		if ok && banned {
 			continue
 		}
 
