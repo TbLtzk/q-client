@@ -108,7 +108,8 @@ Prints current exclusion list (`null` if none). Example:
   timestamp: 1597927820,
   validators: [{
       address: "0xbe945ab6371280d7483fe0b5c682b445a7c726d4",
-      block: 100
+      block: 100,
+      endBlock: 200
   }, {
       address: "0xb9f15ab8e22569cd5f46fd011133242f3517ac8b",
       block: 200
@@ -116,7 +117,9 @@ Prints current exclusion list (`null` if none). Example:
 }
 ----
 
-Here, `signers` - root nodes that signed the list, `validators` - list of excluded validators (`address` - validator's address and `block` is block number since which validator is excluded)
+Here, `signers` - root nodes that signed the list, `validators` - list of excluded validators (`address` - validator's address and
+`block` is block number since which validator is excluded. If an endBlock non 0 value is set up - validator exclusion ends after that
+block address. There can be several records per one validator: eg first one with the closed end and other on in future)
 
 * `gov.desiredExclusionList`
 
@@ -130,10 +133,15 @@ Prints exclusion list in process of collecting root nodes signatures in order to
   timestamp: 1597927820,
   validators: [{
       address: "0xbe945ab6371280d7483fe0b5c682b445a7c726d4",
-      block: 100
+      block: 100,
+      endBlock: 200
   }, {
       address: "0xb9f15ab8e22569cd5f46fd011133242f3517ac8b",
-      block: 200
+      block: 200,
+      endBlock: 200
+  }, {
+      address: "0xb9f15ab8e22569cd5f46fd011133242f3517ac8b",
+      block: 500
   }]
 }
 ----
@@ -144,7 +152,10 @@ Prints exclusion list waiting for your approval.
 
 * `gov.proposeExclusionListUpdate`
 
-Propose new version of exclusion list. `timestamp` must be larger than current exclusion list's `timestamp`. Can be called only on q-client with one of root nodes keys unlocked. Example:
+Propose new version of exclusion list. `timestamp` must be larger than current exclusion list's `timestamp`. Can be called only on
+q-client with one of root nodes keys unlocked. Submitted exclusion list must contain all previous records. Also, if record is not
+before current block address - it is possible to end open-ended ban (set up endBlock).
+Example:
 [source,bash]
 ----
 > gov.proposeExclusionListUpdate({
@@ -152,12 +163,13 @@ Propose new version of exclusion list. `timestamp` must be larger than current e
 ......     "validators": [
 ......         {
 .........             "address": "0xbe945ab6371280D7483Fe0b5C682B445a7C726D4",
-.........             "block": 100
+.........             "block": 100,
+.........             "endBlock": 200,
 .........         },
 ......         {
 .........             "address": "0xb9f15AB8E22569Cd5F46Fd011133242F3517AC8B",
 .........             "block": 200
-.........         }        
+.........         }
 ......     ]
 ...... })
 
