@@ -18,6 +18,7 @@ package clique
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -233,7 +234,99 @@ type OutOfTurnStats struct {
 	BlockHash    common.Hash    `json:"blockHash"`
 	Difficulty   *big.Int       `json:"difficulty"`
 	ActualSigner common.Address `json:"actualSigner"`
+	MainAccount  common.Address `json:"mainAccount"`
 	InTurnSigner common.Address `json:"inTurnSigner"`
+}
+
+type ValidatorBlocks struct {
+	DueBlocks       uint64 `json:"dueBlocks"`
+	InTurnBlocks    uint64 `json:"inTurnBlocks"`
+	OutOfTurnBlocks uint64 `json:"outOfTurnBlocks"`
+}
+
+type ValidatorMetrics struct {
+	CycleNumber  uint64          `json:"cycleNumber"`
+	StartBlock   uint64          `json:"startBlock"`
+	EndBlock     uint64          `json:"endBlock"`
+	MinerAccount common.Address  `json:"minerAccount"`
+	MainAccount  common.Address  `json:"mainAccount"`
+	BlockMetrics ValidatorBlocks `json:"blockMetrics"`
+	Status       string          `json:"status"`
+}
+
+func (api *API) GetValidatorsMetricsForCycle(cycleSeqNumber uint64) ([]ValidatorMetrics, error) {
+	epoch := api.clique.config.Epoch
+	if cycleSeqNumber == 0 ||
+		(cycleSeqNumber-1)*epoch > api.chain.CurrentHeader().Number.Uint64() {
+		return nil, errors.New("number of cycle cannot be null or haven't mined yet")
+	}
+	endOfCycleBlock := cycleSeqNumber * epoch
+	startOfCycleBlock := endOfCycleBlock - epoch + 1
+	transitionBlock := rpc.BlockNumber(endOfCycleBlock - epoch)
+	status := "Final"
+	if endOfCycleBlock < api.chain.CurrentHeader().Number.Uint64() {
+		status = "Pending"
+		endOfCycleBlock = api.chain.CurrentHeader().Number.Uint64()
+	}
+	snapshot, err := api.GetSnapshot(&transitionBlock)
+	if err != nil {
+		return []ValidatorMetrics{}, err
+	}
+	signers := snapshot.signers()
+	validatorMetrics := make([]ValidatorMetrics, len(signers))
+	blockMetrics, err := api.calcMetrics(startOfCycleBlock, endOfCycleBlock, *snapshot)
+	if err != nil {
+		return []ValidatorMetrics{}, err
+	}
+	mainAccounts := api.clique.unAliasAccounts(signers, api.chain.Config().IsHF001(api.chain.CurrentHeader().Number))
+	for idx, signer := range signers {
+		if entry, ok := blockMetrics[signer]; ok {
+			entry.DueBlocks = epoch / uint64(len(signers))
+			if uint64(api.getIndexInAddressSlice(signers, signer)) < epoch%uint64(len(signers)) {
+				entry.DueBlocks++
+			}
+			blockMetrics[signer] = entry
+		}
+		validatorMetrics[idx] = ValidatorMetrics{
+			CycleNumber:  cycleSeqNumber,
+			StartBlock:   endOfCycleBlock - epoch + 1,
+			EndBlock:     endOfCycleBlock,
+			MinerAccount: signers[idx],
+			MainAccount:  mainAccounts[idx],
+			BlockMetrics: blockMetrics[signer],
+			Status:       status,
+		}
+	}
+	return validatorMetrics, nil
+}
+
+func (api *API) calcMetrics(startOfCycleBlock uint64, endOfCycleBlock uint64, snapshot Snapshot) (map[common.Address]ValidatorBlocks, error) {
+	blockMetrics := make(map[common.Address]ValidatorBlocks)
+	for _, signer := range snapshot.signers() {
+		blockMetrics[signer] = ValidatorBlocks{}
+	}
+	for startOfCycleBlock <= endOfCycleBlock {
+		blockOfCycle := rpc.BlockNumber(startOfCycleBlock)
+		header := api.chain.GetHeaderByNumber(startOfCycleBlock)
+		snapshotOfBlock, err := api.GetSnapshot(&blockOfCycle)
+		if err != nil {
+			return blockMetrics, err
+		}
+		actualSigner, err := ecrecover(header, snapshotOfBlock.sigcache)
+		if err != nil {
+			return blockMetrics, err
+		}
+		if entry, ok := blockMetrics[actualSigner]; ok {
+			if snapshot.inturn(startOfCycleBlock, actualSigner) {
+				entry.InTurnBlocks++
+			} else {
+				entry.OutOfTurnBlocks++
+			}
+			blockMetrics[actualSigner] = entry
+		}
+		startOfCycleBlock++
+	}
+	return blockMetrics, nil
 }
 
 // GetOutOfTurnStatsByNumber returns the stats by block:
@@ -244,7 +337,12 @@ type OutOfTurnStats struct {
 // - the inturn signer
 func (api *API) GetOutOfTurnStatsByNumber(block *rpc.BlockNumber) (*OutOfTurnStats, error) {
 	header := api.chain.GetHeaderByNumber(uint64(block.Int64()))
-	snapshot, err := api.GetSnapshot(block)
+	transitionBlock := rpc.BlockNumber(block.Int64() / 101 * 101)
+	snapshot, err := api.GetSnapshot(&transitionBlock)
+	if err != nil {
+		return nil, err
+	}
+	err = api.clique.updateProposals(uint64(block.Int64()), snapshot, api.chain.Config())
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +353,12 @@ func (api *API) GetOutOfTurnStatsByNumber(block *rpc.BlockNumber) (*OutOfTurnSta
 // See function GetOutOfTurnStatsByNumber for return data.
 func (api *API) GetOutOfTurnStatsByHash(hash common.Hash) (*OutOfTurnStats, error) {
 	header := api.chain.GetHeaderByHash(hash)
-	snapshot, err := api.GetSnapshotAtHash(hash)
+	transitionBlockHeader := api.chain.GetHeaderByNumber(header.Number.Uint64() / 101 * 101)
+	snapshot, err := api.GetSnapshotAtHash(transitionBlockHeader.Hash())
+	if err != nil {
+		return nil, err
+	}
+	err = api.clique.updateProposals(transitionBlockHeader.Number.Uint64(), snapshot, api.chain.Config())
 	if err != nil {
 		return nil, err
 	}
@@ -263,18 +366,32 @@ func (api *API) GetOutOfTurnStatsByHash(hash common.Hash) (*OutOfTurnStats, erro
 }
 
 func (api *API) getOutOfTurnStatsFromSnapshot(header *types.Header, snapshot *Snapshot) (*OutOfTurnStats, error) {
-	actualSigner, err := ecrecover(header, snapshot.sigcache)
+	actualSigner, err := ecrecover(header, api.clique.signatures)
 	if err != nil {
 		return nil, err
 	}
+	origAccount := actualSigner
+	if api.chain.Config().IsHF001(header.Number) {
+		origAccount = api.clique.unAliasAccounts([]common.Address{actualSigner}, api.chain.Config().IsHF001(api.chain.CurrentHeader().Number))[0]
+	}
 	inTurnSigner := api.getInTurnSigner(snapshot)
 	return &OutOfTurnStats{
-		BlockNumber:  snapshot.Number,
-		BlockHash:    snapshot.Hash,
+		BlockNumber:  header.Number.Uint64(),
+		BlockHash:    header.Hash(),
 		Difficulty:   header.Difficulty,
 		ActualSigner: actualSigner,
+		MainAccount:  origAccount,
 		InTurnSigner: inTurnSigner,
 	}, nil
+}
+
+func (api *API) getIndexInAddressSlice(a []common.Address, x common.Address) int {
+	for i, n := range a {
+		if x == n {
+			return i
+		}
+	}
+	return -1
 }
 
 func (api *API) getInTurnSigner(snapshot *Snapshot) common.Address {

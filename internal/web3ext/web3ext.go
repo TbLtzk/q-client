@@ -91,6 +91,12 @@ web3._extend({
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
 		}),
+		new web3._extend.Method({
+			name: 'getValidatorsMetricsForCycle',
+			call: 'clique_getValidatorsMetricsForCycle',
+			params: 1,
+			inputFormatter: []
+		}),
 	],
 	properties: [
 		new web3._extend.Property({

@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 const (
@@ -19,9 +20,10 @@ type rootSet struct {
 	hash      common.Hash
 
 	rootAddresses []common.Address
+	aliases       map[common.Address]common.Address
 	roots         map[common.Address]struct{}
 
-	signers map[common.Address][]byte
+	signers map[common.Address][]byte //who actually signed list
 }
 
 func (s *rootSet) addSignature(signer common.Address, signature []byte) bool {
@@ -83,15 +85,55 @@ func newRootSet(list *common.RootList) (*rootSet, error) {
 		}
 
 		addr := crypto.PubkeyToAddress(*pubkey)
-		if _, ok := roots[addr]; !ok {
-			continue
-		}
+		//if _, ok := roots[addr]; !ok {
+		//	continue
+		//}
 
 		signers[addr] = sig
 	}
 
 	set.signers = signers
 	return set, nil
+}
+
+func (s *rootSet) validateSignatures() error {
+	if s.aliases == nil {
+		log.Error("Empty account aliases")
+		return nil
+	}
+
+	signers := make(map[common.Address][]byte)
+	hash := s.hash.Bytes()
+
+	for _, sig := range s.signers {
+		pubkey, err := crypto.SigToPub(hash, sig)
+		if err != nil {
+			return err
+		}
+
+		addr := crypto.PubkeyToAddress(*pubkey)
+
+		exists := false
+		for _, alias := range s.aliases {
+			if alias == addr {
+				exists = true
+				break
+			}
+		}
+
+		if !exists {
+			continue
+		}
+
+		signers[addr] = sig
+	}
+
+	s.signers = signers
+	return nil
+}
+
+func (s *rootSet) updateAliases(aliases map[common.Address]common.Address) {
+	s.aliases = aliases
 }
 
 func (s *rootSet) isAcceptable(set *rootSet) bool {
@@ -105,8 +147,10 @@ func (s *rootSet) isAcceptable(set *rootSet) bool {
 
 	var sigsCount int
 	for signer := range set.signers {
-		if _, ok := s.roots[signer]; ok {
-			sigsCount++
+		for root, alias := range s.aliases {
+			if (signer == root && signer == alias) || (root != alias && signer == alias) {
+				sigsCount++
+			}
 		}
 	}
 
@@ -117,8 +161,10 @@ func (s *rootSet) isAcceptable(set *rootSet) bool {
 func (s *rootSet) isEnoughExSetSignatures(set *exclusionSet) bool {
 	var signaturesCount int
 	for signer := range set.signers {
-		if _, ok := s.roots[signer]; ok {
-			signaturesCount++
+		for root, alias := range s.aliases {
+			if (signer == root && signer == alias) || (root != alias && signer == alias) {
+				signaturesCount++
+			}
 		}
 	}
 
@@ -148,8 +194,10 @@ func (s *rootSet) mergeSignatures(hash common.Hash, signatures map[common.Addres
 func (s *rootSet) knownSigners(signers map[common.Address][]byte) []common.Address {
 	var intersection []common.Address
 	for addr := range signers {
-		if _, ok := s.roots[addr]; ok {
-			intersection = append(intersection, addr)
+		for root, alias := range s.aliases {
+			if (addr == root && addr == alias) || (root != alias && addr == alias) {
+				intersection = append(intersection, addr)
+			}
 		}
 	}
 
@@ -170,6 +218,7 @@ func (s *rootSet) copy() *rootSet {
 		hash:          s.hash,
 		timestamp:     s.timestamp,
 		rootAddresses: s.rootAddresses,
+		aliases:       s.aliases,
 		roots:         s.roots,
 		signers:       signers,
 	}
