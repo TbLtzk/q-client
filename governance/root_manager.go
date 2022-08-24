@@ -3,6 +3,7 @@ package governance
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -130,20 +131,34 @@ func (s *RootManager) InitBlockChain(bc *core.BlockChain) {
 
 func (s *RootManager) InitRegistry(reg *contracts.Registry) {
 	s.reg = reg
+	s.updateAliasesOfRootSets()
+}
+
+func (s *RootManager) updateAliasesOfRootSets() {
+	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
+	s.active.validateSignatures()
+	if s.desired != nil {
+		s.desired.updateAliases(s.getAliasesOfRoots(s.desired.rootAddresses))
+		s.desired.validateSignatures()
+	}
+	if s.proposed != nil {
+		s.proposed.updateAliases(s.getAliasesOfRoots(s.proposed.rootAddresses))
+		s.proposed.validateSignatures()
+	}
 }
 
 // ExclusionSet returns set of excluded validators addresses.
-func (s *RootManager) ExclusionSetValidators() map[common.Address]uint64 {
+func (s *RootManager) ExclusionSetValidators() map[common.Address][]common.BlockRange {
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
 
-	set := make(map[common.Address]uint64)
+	set := make(map[common.Address][]common.BlockRange)
 	if s.activeExSet == nil {
 		return set
 	}
 
-	for addr, block := range s.activeExSet.addrToBlock {
-		set[addr] = block
+	for addr, br := range s.activeExSet.blockRanges {
+		set[addr] = append(set[addr], br...)
 	}
 
 	return set
@@ -173,7 +188,6 @@ func (s *RootManager) isMember(set []common.Address) bool {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -181,6 +195,9 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 	var isMember bool
 
 	for _, addr := range s.active.rootAddresses {
+		roots := []common.Address{addr}
+		aliasedAddr := s.getAliasesOfRoots(roots)[addr]
+
 		if !s.IsUnlocked(addr) {
 			continue
 		}
@@ -188,14 +205,14 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 		log.Info("Attempting to sign root set")
 
 		isMember = true
-		signature, err := s.SignHash(accounts.Account{Address: addr}, set.hash.Bytes())
+		signature, err := s.SignHash(accounts.Account{Address: aliasedAddr}, set.hash.Bytes())
 		if err != nil {
 			log.Error("Failed to sign root set", "err", err)
 			continue
 		}
 
-		if set.addSignature(addr, signature) {
-			log.Info("Signed root list", "hash", set.hash.Hex(), "signer", addr.Hex())
+		if set.addSignature(aliasedAddr, signature) {
+			log.Info("Signed root list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex())
 		}
 	}
 
@@ -205,19 +222,22 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 	var isSigned bool
 	for _, addr := range s.getActiveRootSet(true).rootAddresses {
-		if !s.IsUnlocked(addr) {
+		roots := []common.Address{addr}
+		aliasedAddr := s.getAliasesOfRoots(roots)[addr]
+
+		if !s.IsUnlocked(aliasedAddr) {
 			continue
 		}
 
-		signature, err := s.SignHash(accounts.Account{Address: addr}, set.hash.Bytes())
+		signature, err := s.SignHash(accounts.Account{Address: aliasedAddr}, set.hash.Bytes())
 		if err != nil {
 			log.Error("Failed to sign exclusion list", "err", err)
 			continue
 		}
 
-		set.addSignature(addr, signature)
+		set.addSignature(aliasedAddr, signature)
 		isSigned = true
-		log.Info("Signed exclusion list", "hash", set.hash.Hex(), "signer", addr.Hex())
+		log.Info("Signed exclusion list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex())
 	}
 
 	return isSigned
@@ -227,18 +247,21 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 // lock exLock externally first
 func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
 	if s.activeExSet != nil && s.activeExSet.hash == set.hash {
-		log.Debug("Exclsion list is already active, skipping", "hash", set.hash.Hex(), "timestamp", set.timestamp)
+		log.Debug("Exclusion list is already active, skipping", "hash", set.hash.Hex(), "timestamp", set.timestamp)
 		return
 	}
 
 	// If exclusion set was changed, revalidate blocks up to earliest affected one
-	addrToBlock := set.addrToBlockExclusiveDiff(s.activeExSet)
-	if len(addrToBlock) > 0 {
+	addrToBlockRange := set.addrToBlockRangeExclusiveDiff(s.activeExSet)
+	if len(addrToBlockRange) > 0 {
 		var earliestBlock uint64 = math.MaxUint64
-		for _, block := range addrToBlock {
-			if block < earliestBlock {
-				earliestBlock = block
+		for _, blockRanges := range addrToBlockRange {
+			for _, bRange := range blockRanges {
+				if bRange.StartAddress < earliestBlock {
+					earliestBlock = bRange.StartAddress
+				}
 			}
+
 		}
 
 		// Revalidate in separate goroutine to prevent possible deadlocks
@@ -267,7 +290,7 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
 	}
 }
 
-func (s *RootManager) validateExclusionSet(set *exclusionSet) error {
+func (s *RootManager) validateOldExclusionSet(set *exclusionSet) error {
 	if set == nil {
 		return nil
 	}
@@ -309,6 +332,127 @@ func (s *RootManager) validateExclusionSet(set *exclusionSet) error {
 	return nil
 }
 
+func (s *RootManager) validateExclusionSet(proposedSet *exclusionSet) error {
+	if proposedSet == nil {
+		return nil
+	}
+
+	if !s.isHF001Reached() {
+		return s.validateOldExclusionSet(proposedSet)
+	} else {
+		return s.validateNewExclusionSet(proposedSet)
+	}
+}
+
+func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
+	if proposedSet == nil {
+		return nil
+	}
+
+	currentBlock := s.bc.CurrentBlock().Number()
+
+	if s.activeExSet != nil {
+		//Upgraded L0 governance
+		for addr, currentBanBlockRanges := range s.activeExSet.blockRanges {
+			newBanBlockRanges, newSetContainsRanges := proposedSet.blockRanges[addr]
+
+			if !newSetContainsRanges {
+				return fmt.Errorf("proposed exclusion set doesn't contain blocks for address %s", addr.String())
+			}
+
+			if len(newBanBlockRanges) == 0 {
+				return fmt.Errorf("couldn't find any blocks in proposal for address %s", addr.String())
+			}
+
+			for _, exBlockRange := range currentBanBlockRanges {
+				inNewSet := false
+
+				for _, newBlockRange := range newBanBlockRanges {
+					if exBlockRange.StartsWithTheSameBlock(newBlockRange) {
+
+						if !newBlockRange.IsValid() {
+							return fmt.Errorf("invalid block addresses in proposal: %d - %d for address %s", newBlockRange.StartAddress,
+								newBlockRange.EndAddress,
+								addr.String())
+						}
+
+						if newBlockRange.IsEqualTo(exBlockRange) {
+							inNewSet = true
+							continue
+						}
+
+						//Attempt to close existing range in past
+						if !exBlockRange.IsClosed() && !newBlockRange.EndsInFuture(currentBlock.Uint64()) {
+							return fmt.Errorf("cannot close ban in past: %d - %d for address %s",
+								newBlockRange.StartAddress,
+								newBlockRange.EndAddress,
+								addr.String())
+						}
+
+						inNewSet = true
+					}
+				}
+				if !inNewSet {
+					return fmt.Errorf("active exclusion record for range %d - %d for address  %s doesn't exist in proposed set",
+						exBlockRange.StartAddress,
+						exBlockRange.EndAddress,
+						addr.String())
+				}
+			}
+
+		}
+	}
+
+	for addr, newBanBlockRanges := range proposedSet.blockRanges {
+
+		if len(newBanBlockRanges) == 0 {
+			return fmt.Errorf("set should contain at least 1 record")
+		}
+
+		for i, newBlockRange := range newBanBlockRanges {
+
+			if !newBlockRange.IsValid() {
+				return fmt.Errorf("invalid block addresses in proposal: %d - %d for address %s", newBlockRange.StartAddress,
+					newBlockRange.EndAddress,
+					addr.String())
+			}
+
+			for j, newBlockRangeAlt := range newBanBlockRanges {
+				if i != j && newBlockRangeAlt.IntersectsWithRange(newBlockRange) {
+					return fmt.Errorf("proposed block range %d - %d intersects with proposed block range  %d - %d for address %s",
+						newBlockRange.StartAddress,
+						newBlockRange.EndAddress,
+						newBlockRangeAlt.StartAddress,
+						newBlockRangeAlt.EndAddress,
+						addr.String())
+				}
+			}
+
+			if !newBlockRange.IsClosed() && !newBlockRange.StartsInFuture(currentBlock.Uint64()) {
+				inValidRanges := false
+
+				for _, validRange := range s.activeExSet.blockRanges {
+					for _, exBlockRange := range validRange {
+						if newBlockRange.StartsWithTheSameBlock(exBlockRange) {
+							inValidRanges = true
+							break
+						}
+					}
+
+				}
+				if !inValidRanges {
+					return fmt.Errorf("cannot add bans in past: %d - %d for address %s",
+						newBlockRange.StartAddress,
+						newBlockRange.EndAddress,
+						addr.String())
+
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, error) {
 	if !s.isRootNode() {
 		return nil, errNotRootNode
@@ -330,7 +474,9 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 
 	if s.signExclusionSet(set) {
 		log.Info("Signed desired exclusion list", "hash", set.hash.Hex())
+
 	}
+	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
 
 	if s.getActiveRootSet(true).isEnoughExSetSignatures(set) {
 		s.upgradeExclusionSet(set)
@@ -366,6 +512,9 @@ func (s *RootManager) acceptProposedExclusionList() error {
 	}
 
 	exSetToSend := s.proposedExSet
+
+	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
+
 	if s.getActiveRootSet(true).isEnoughExSetSignatures(s.proposedExSet) {
 		s.upgradeExclusionSet(s.proposedExSet)
 	} else {
@@ -466,6 +615,9 @@ func (s *RootManager) acceptProposedRootList() error {
 	}
 
 	rootSetToSend := s.proposed
+
+	s.proposed.aliases = s.getAliasesOfRoots(s.proposed.rootAddresses)
+
 	if s.active.isAcceptable(s.proposed) {
 		s.upgradeRootSet(s.proposed)
 	} else {
@@ -530,6 +682,10 @@ func (s *RootManager) getActiveRootSet(lock bool) *rootSet {
 		defer s.rootLock.Unlock()
 	}
 
+	if s.active != nil {
+		s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
+	}
+
 	return s.active.copy()
 }
 
@@ -539,6 +695,10 @@ func (s *RootManager) getDesiredRootSet(lock bool) *rootSet {
 		defer s.rootLock.Unlock()
 	}
 
+	if s.desired != nil {
+		s.desired.aliases = s.getAliasesOfRoots(s.desired.rootAddresses)
+	}
+
 	return s.desired.copy()
 }
 
@@ -546,6 +706,10 @@ func (s *RootManager) getProposedRootSet(lock bool) *rootSet {
 	if lock {
 		s.rootLock.Lock()
 		defer s.rootLock.Unlock()
+	}
+
+	if s.proposed != nil {
+		s.proposed.aliases = s.getAliasesOfRoots(s.proposed.rootAddresses)
 	}
 
 	return s.proposed.copy()
@@ -577,6 +741,11 @@ func (s *RootManager) getOnchainRootSet(lock bool) *rootSet {
 	})
 
 	if err != nil {
+		return nil
+	}
+	set.updateAliases(s.getAliasesOfRoots(set.rootAddresses))
+	errD := set.validateSignatures()
+	if errD != nil {
 		return nil
 	}
 
@@ -676,9 +845,88 @@ func (s *RootManager) addressContains(arr []common.Address, addr common.Address)
 func (s *RootManager) IsUnlocked(addr common.Address) bool {
 	if _ks := s.manager.Backends(keystore.KeyStoreType); len(_ks) > 0 {
 		ks := _ks[0].(*keystore.KeyStore)
-		return ks.IsUnlocked(addr)
+		return ks.IsUnlocked(s.getAliasByAccount(addr)) || ks.IsUnlocked(s.getAccountByAlias(addr))
 	}
 	return false
+}
+
+func (s *RootManager) getAliasByAccount(addr common.Address) common.Address {
+	if !s.isHF001Reached() {
+		return addr
+	}
+
+	providerAliases := s.reg.AccountAliases()
+	if providerAliases == nil { //signers are set already
+		log.Warn("failed to get aliases list from smart contract or smart contract not deployed")
+		return addr
+	}
+	rnOperationPurpose, _ := new(big.Int).SetString("33a9d3006f267399569cda2996bb19776f92c98b990053176d19c710ed251a5d", 16) //crypto.Keccak256([]byte("ROOT_NODE_OPERATION")
+	alias, errAlias := providerAliases.Resolve(nil, addr, rnOperationPurpose)
+	if errAlias != nil {
+		log.Error("failed to get account by alias from smart contract", "error", errAlias)
+		return addr
+	}
+	return alias
+}
+
+func (s *RootManager) getAccountByAlias(addr common.Address) common.Address {
+	if !s.isHF001Reached() {
+		return addr
+	}
+
+	providerAliases := s.reg.AccountAliases()
+	if providerAliases == nil { //signers are set already
+		log.Warn("failed to get aliases list from smart contract or smart contract not deployed")
+		return addr
+	}
+	rnOperationPurpose, _ := new(big.Int).SetString("33a9d3006f267399569cda2996bb19776f92c98b990053176d19c710ed251a5d", 16) //crypto.Keccak256([]byte("ROOT_NODE_OPERATION")
+	alias, errAlias := providerAliases.ResolveReverse(nil, addr, rnOperationPurpose)
+	if errAlias != nil {
+		log.Error("failed to get account by alias from smart contract", "error", errAlias)
+		return addr
+	}
+	return alias
+}
+
+func (s *RootManager) getAliasesOfRoots(addresses []common.Address) map[common.Address]common.Address {
+	res := make(map[common.Address]common.Address)
+
+	if !s.isHF001Reached() {
+		for _, address := range addresses {
+			res[address] = address
+		}
+		return res
+	}
+
+	providerAliases := s.reg.AccountAliases()
+	if providerAliases == nil { //signers are set already
+		log.Warn("failed to get aliases list from smart contract or smart contract not deployed")
+		for _, address := range addresses {
+			res[address] = address
+		}
+		return res
+	}
+	rnOperationPurpose, _ := new(big.Int).SetString("33a9d3006f267399569cda2996bb19776f92c98b990053176d19c710ed251a5d", 16) //crypto.Keccak256([]byte("ROOT_NODE_OPERATION")
+
+	var purposes []*big.Int
+	for range addresses {
+		purposes = append(purposes, rnOperationPurpose)
+	}
+
+	aliases, errAlias := providerAliases.ResolveBatch(nil, addresses, purposes)
+	if errAlias != nil {
+		log.Error("failed to get root list account aliases from smart contract", "error", errAlias)
+		for _, address := range addresses {
+			res[address] = address
+		}
+		return res
+	}
+
+	for i, address := range addresses {
+		res[address] = aliases[i]
+	}
+
+	return res
 }
 
 func (s *RootManager) SignHash(a accounts.Account, hash []byte) ([]byte, error) {
@@ -691,4 +939,12 @@ func (s *RootManager) SignHash(a accounts.Account, hash []byte) ([]byte, error) 
 
 func (s *RootManager) formatBlock(block uint64) string {
 	return strconv.FormatUint(block, 10)
+}
+
+func (s *RootManager) isHF001Reached() bool {
+	if s.bc == nil {
+		return false
+	}
+	currentBlock := s.bc.CurrentBlock().Number()
+	return s.bc.Config().IsHF001(currentBlock)
 }

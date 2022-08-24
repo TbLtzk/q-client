@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	"gitlab.com/q-dev/q-client/common"
+	common "gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 )
 
@@ -16,6 +16,7 @@ type exclusionSet struct {
 
 	addresses   []common.Address
 	addrToBlock map[common.Address]uint64
+	blockRanges map[common.Address][]common.BlockRange //Several address ranges can be assigned to one validator
 
 	signers map[common.Address][]byte
 }
@@ -26,26 +27,47 @@ func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error)
 	}
 
 	var validators []common.Address
-	validatorsSet := make(map[common.Address]uint64)
+	validatorsSet := make(map[common.Address][]common.BlockRange)
+
 	for _, val := range list.Validators {
 		// consider duplicates as error since
 		// they can lead to ambiguity in block number
-		if _, ok := validatorsSet[val.Address]; ok {
-			return nil, errors.Errorf("duplicated address %s", val.Address.Hex())
+		if banBlocks, ok := validatorsSet[val.Address]; ok {
+			contains := false
+			for _, block := range banBlocks {
+				if block.StartAddress == val.Block && block.EndAddress == val.EndBlock {
+					contains = true
+					break
+				}
+			}
+			if contains {
+				return nil, errors.Errorf("duplicated address range %s", val.Address.Hex())
+			}
 		}
 
 		validators = append(validators, val.Address)
-		validatorsSet[val.Address] = val.Block
+		validatorsSet[val.Address] = append(validatorsSet[val.Address], common.BlockRange{StartAddress: val.Block,
+			EndAddress: val.EndBlock})
 	}
 
 	sort.SliceStable(validators, func(i, j int) bool {
 		return bytes.Compare(validators[i].Bytes(), validators[j].Bytes()) > 0
 	})
 
+	addrs := make(map[common.Address]uint64)
+	for address, br := range validatorsSet {
+		var ba uint64
+		if len(br) > 0 {
+			ba = br[0].StartAddress
+		}
+		addrs[address] = ba
+	}
+
 	set := &exclusionSet{
 		timestamp:   list.Timestamp,
 		addresses:   validators,
-		addrToBlock: validatorsSet,
+		addrToBlock: addrs,
+		blockRanges: validatorsSet,
 	}
 	set.hash = set.calcHash()
 
@@ -114,11 +136,15 @@ func (s *exclusionSet) makeList() common.ValidatorExclusionList {
 	}
 
 	var validators []common.ExcludedValidator
-	for addr, block := range s.addrToBlock {
-		validators = append(validators, common.ExcludedValidator{
-			Address: addr,
-			Block:   block,
-		})
+	for address, blocks := range s.blockRanges {
+		for _, blockAddr := range blocks {
+			validators = append(validators, common.ExcludedValidator{
+				Address:  address,
+				Block:    blockAddr.StartAddress,
+				EndBlock: blockAddr.EndAddress,
+			})
+		}
+
 	}
 
 	return common.ValidatorExclusionList{
@@ -139,46 +165,71 @@ func (s *exclusionSet) copy() *exclusionSet {
 	for signer, sig := range s.signers {
 		signers[signer] = sig
 	}
+	addrs := make(map[common.Address]uint64)
+	for address, br := range s.blockRanges {
+		var ba uint64
+		if len(br) > 0 {
+			ba = br[0].StartAddress
+		}
+		addrs[address] = ba
+	}
 
 	return &exclusionSet{
 		timestamp:   s.timestamp,
 		hash:        s.hash,
 		addresses:   s.addresses,
-		addrToBlock: s.addrToBlock,
+		addrToBlock: addrs,
+		blockRanges: s.blockRanges,
 		signers:     signers,
 	}
 }
 
-// addrToBlockExclusiveDiff returns map with exclusive set of address-to-block pairs from two exclusion sets
-func (s1 *exclusionSet) addrToBlockExclusiveDiff(s2 *exclusionSet) map[common.Address]uint64 {
+// addrToBlockRangeExclusiveDiff returns map with exclusive set of address-to-block pairs from two exclusion sets
+func (s1 *exclusionSet) addrToBlockRangeExclusiveDiff(s2 *exclusionSet) map[common.Address][]common.BlockRange {
 	if s2 == nil {
-		return s1.addrToBlock
+		return s1.blockRanges
 	}
 
-	res := make(map[common.Address]uint64)
+	res := make(map[common.Address][]common.BlockRange)
 
 	// add addess-to-block that is only in s1, but not in s2
-	for addr, block := range s1.addrToBlock {
-		if b, ok := s2.addrToBlock[addr]; ok && b == block {
-			continue
-		}
+	for addr, blockRangesFromS1 := range s1.blockRanges {
+		for _, blockRangeFromS1 := range blockRangesFromS1 {
 
-		if b, ok := res[addr]; !ok || b > block {
-			res[addr] = block
+			exist := false
+			for _, blockRangeFromS2 := range s2.blockRanges[addr] {
+				blockRangeFromS1.IsEqualTo(blockRangeFromS2)
+				{
+					exist = true
+					break
+				}
+			}
+
+			if !exist {
+				res[addr] = append(res[addr], blockRangeFromS1)
+			}
+
 		}
 	}
 
 	// add addess-to-block that is only in s2, but not in s1
-	for addr, block := range s2.addrToBlock {
-		if b, ok := s1.addrToBlock[addr]; ok && b == block {
-			continue
-		}
+	for addr, blockRangesFromS2 := range s2.blockRanges {
+		for _, blockRangeFromS2 := range blockRangesFromS2 {
+			exist := false
+			for _, blockRangeFromS1 := range s1.blockRanges[addr] {
+				blockRangeFromS2.IsEqualTo(blockRangeFromS1)
+				{
+					exist = true
+					break
+				}
+			}
 
-		if b, ok := res[addr]; !ok || b > block {
-			res[addr] = block
+			if !exist {
+				res[addr] = append(res[addr], blockRangeFromS2)
+			}
+
 		}
 	}
-
 	return res
 }
 

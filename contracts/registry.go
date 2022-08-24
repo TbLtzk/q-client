@@ -185,3 +185,28 @@ func (r *Registry) getAddr(key string) common.Address {
 
 	return addr
 }
+
+// Validators returns Validators contract backend if available.
+func (r *Registry) AccountAliases() *generated.AccountAliases {
+	addr := r.AccountAliasesAddress()
+	if addr == nil {
+		return nil
+	}
+
+	val, err := generated.NewAccountAliases(*addr, r.Backend)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to init accountAlies contract"))
+	}
+
+	return val
+}
+
+func (r *Registry) AccountAliasesAddress() *common.Address {
+	addr := r.getAddr("governance.accountAliases")
+	if (addr == common.Address{}) {
+		log.Debug("governance.accountAliases contract is not deployed")
+		return nil
+	}
+
+	return &addr
+}
