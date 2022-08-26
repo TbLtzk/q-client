@@ -2,8 +2,6 @@ package governance
 
 import (
 	"fmt"
-	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/eth/downloader"
 	"math"
 	"math/big"
 	"path/filepath"
@@ -11,6 +9,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/eth/downloader"
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/accounts"
@@ -35,7 +36,7 @@ var (
 	errProposedRootListEmpty    = errors.New("proposed root list is empty")
 	errRootManagerCannotSign    = errors.New("RootManager cannot sign hash")
 
-	errInvalidApprovalList        = errors.New("invalid approval list")
+	//errInvalidApprovalList        = errors.New("invalid approval list")
 	errProposedApprovalListEmpty  = errors.New("proposed approval list is empty")
 	errInvalidApprovalBlockNumber = errors.New("proposed approval list contains wrong block number")
 )
@@ -754,13 +755,11 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 
 		prevBlockAddress := new(big.Int).SetUint64(header.Number.Uint64() - s.bc.Config().Clique.Epoch)
 		if recs, errRecs := s.db.getApprovalRecordsByBlockNumber(prevBlockAddress); errRecs == nil {
-			percentage := (100 * len(recs) / len(s.active.rootAddresses))
+			percentage := 100 * len(recs) / len(s.active.rootAddresses)
 			if percentage < approvalsThresholdPercentage {
 				log.Warn("Root node approval list contains less than 75% records!")
 			}
 		}
-
-
 
 		var roots []common.Address
 		roots = s.active.rootAddresses

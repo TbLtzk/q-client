@@ -2,8 +2,9 @@ package governance
 
 import (
 	"bytes"
-	"gitlab.com/q-dev/q-client/crypto"
 	"sync"
+
+	"gitlab.com/q-dev/q-client/crypto"
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
@@ -73,7 +74,7 @@ func (h *handler) run() {
 	go h.listenForDesiredExclusionList()
 	go h.broadcastExclusionSets()
 
-	go h.listenRNApprovals()
+	go h.listenForRNApprovals()
 	go h.broadcastApprovals()
 }
 
@@ -160,7 +161,7 @@ func (h *handler) broadcastExclusionSets() {
 	}
 }
 
-func (h *handler) listenRNApprovals() {
+func (h *handler) listenForRNApprovals() {
 	for {
 		select {
 		case approval := <-h.approvalCh:
