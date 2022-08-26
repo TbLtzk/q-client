@@ -17,6 +17,7 @@ type RootList struct {
 // ValidatorExclusionList.
 type ValidatorExclusionList struct {
 	Timestamp  uint64              `json:"timestamp"`
+	CreatedAt  uint64              `json:"createdAt"`
 	Validators []ExcludedValidator `json:"validators"`
 	Hash       Hash                `json:"hash"`
 

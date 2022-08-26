@@ -10,7 +10,8 @@ import (
 // Governance service is responsible
 // for 2nd layer functionality.
 type Governance struct {
-	RootManager *RootManager
+	RootManager         *RootManager
+	ConstitutionManager *ConstitutionManager
 
 	handler *handler
 }
@@ -19,9 +20,15 @@ type Governance struct {
 func New(stack *node.Node, rm *RootManager) (*Governance, error) {
 	handler := newHandler(rm)
 
+	cm, errCm := NewConstitutionManager(stack.InstanceDir(), rm.db, rm)
+	if errCm != nil {
+		log.Error("Can't create ConstitutionManager: %v", errCm)
+	}
+
 	return &Governance{
-		RootManager: rm,
-		handler:     handler,
+		RootManager:         rm,
+		ConstitutionManager: cm,
+		handler:             handler,
 	}, nil
 }
 

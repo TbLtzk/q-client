@@ -673,6 +673,11 @@ web3._extend({
 			params: 2,
 			inputFormatter: [null, null]
 		}),
+	    new web3._extend.Method({
+			name: 'addConstitutionFile',
+			call: 'gov_addConstitutionFile',
+			params: 2
+		}),
     ],
 	properties: []
 });

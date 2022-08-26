@@ -245,7 +245,7 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 // lock exLock externally first
 func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
 	if s.activeExSet != nil && s.activeExSet.hash == set.hash {
-		log.Debug("Exclsion list is already active, skipping", "hash", set.hash.Hex(), "timestamp", set.timestamp)
+		log.Debug("Exclusion list is already active, skipping", "hash", set.hash.Hex(), "timestamp", set.timestamp)
 		return
 	}
 

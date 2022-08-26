@@ -3,8 +3,9 @@ package governance
 import (
 	"bytes"
 	"encoding/json"
-	"gitlab.com/q-dev/q-client/common"
 	"math/big"
+
+	"gitlab.com/q-dev/q-client/common"
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/ethdb"
@@ -34,6 +35,8 @@ var (
 	approvalPrefix          = []byte("wl-cosign-")
 	approvalLastBlockPrefix = []byte("wl-block")
 )
+
+var constitutionStorageKey = []byte("constitution-storage")
 
 func newDatabase(path string) (*database, error) {
 	db, err := leveldb.New(path, 0, 0, "gov", false)
@@ -326,7 +329,7 @@ func (db *database) getApprovalRecordsByBlockNumber(blockNumber *big.Int) ([]com
 
 	raw, err := db.store.Get(key)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get from db")
+		return nil, errors.Wrap(err, "failed to get root node approvals from db")
 	}
 
 	var signs []common.RootNodeApproval
@@ -334,4 +337,35 @@ func (db *database) getApprovalRecordsByBlockNumber(blockNumber *big.Int) ([]com
 		panic(errors.Wrap(err, "failed to unmarshal root node approvals"))
 	}
 	return signs, nil
+}
+
+func (db *database) getConstitutionFiles() ([]ConstitutionFile, error) {
+
+	has, err := db.store.Has(constitutionStorageKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check if constitution storage exists")
+	}
+	if !has {
+		db.saveConstitutionStorage(&[]ConstitutionFile{})
+	}
+	raw, errGet := db.store.Get(constitutionStorageKey)
+	if errGet != nil {
+		return nil, errors.Wrap(errGet, "failed to get constitution storage from db")
+	}
+	var files []ConstitutionFile
+	if err := json.Unmarshal(raw, &files); err != nil {
+		panic(errors.Wrap(err, "failed to unmarshal constitution storage"))
+	}
+
+	return files, nil
+
+}
+
+func (db *database) saveConstitutionStorage(storage *[]ConstitutionFile) error {
+	raw, err := json.Marshal(storage)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to marshal constitution storage"))
+	}
+
+	return db.store.Put(constitutionStorageKey, raw)
 }
