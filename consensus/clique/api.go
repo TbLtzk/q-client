@@ -337,7 +337,7 @@ func (api *API) calcMetrics(startOfCycleBlock uint64, endOfCycleBlock uint64, sn
 // - the inturn signer
 func (api *API) GetOutOfTurnStatsByNumber(block *rpc.BlockNumber) (*OutOfTurnStats, error) {
 	header := api.chain.GetHeaderByNumber(uint64(block.Int64()))
-	transitionBlock := rpc.BlockNumber(block.Int64() / 101 * 101)
+	transitionBlock := rpc.BlockNumber(block.Int64() - (block.Int64() % int64(api.clique.config.Epoch)))
 	snapshot, err := api.GetSnapshot(&transitionBlock)
 	if err != nil {
 		return nil, err
@@ -353,7 +353,7 @@ func (api *API) GetOutOfTurnStatsByNumber(block *rpc.BlockNumber) (*OutOfTurnSta
 // See function GetOutOfTurnStatsByNumber for return data.
 func (api *API) GetOutOfTurnStatsByHash(hash common.Hash) (*OutOfTurnStats, error) {
 	header := api.chain.GetHeaderByHash(hash)
-	transitionBlockHeader := api.chain.GetHeaderByNumber(header.Number.Uint64() - (header.Number.Uint64() % 101))
+	transitionBlockHeader := api.chain.GetHeaderByNumber(header.Number.Uint64() - (header.Number.Uint64() % api.clique.config.Epoch))
 	snapshot, err := api.GetSnapshotAtHash(transitionBlockHeader.Hash())
 	if err != nil {
 		return nil, err
