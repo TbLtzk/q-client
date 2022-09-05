@@ -258,7 +258,7 @@ func (api *API) GetValidatorsMetricsForCycle(cycleSeqNumber uint64) ([]Validator
 	epoch := api.clique.config.Epoch
 	if cycleSeqNumber == 0 ||
 		(cycleSeqNumber-1)*epoch > api.chain.CurrentHeader().Number.Uint64() {
-		return nil, errors.New("number of cycle cannot be null or haven't mined yet")
+		return []ValidatorMetrics{}, errors.New("number of cycle cannot be null or haven't mined yet")
 	}
 	endOfCycleBlock := cycleSeqNumber * epoch
 	startOfCycleBlock := endOfCycleBlock - epoch + 1

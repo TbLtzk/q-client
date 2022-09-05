@@ -102,8 +102,8 @@ func (ec *Client) OotStats(ctx context.Context, number *big.Int) (*clique.OutOfT
 	return result, err
 }
 
-func (ec *Client) ValidatorMetrics(ctx context.Context, cycleSeqNumber uint64) (*clique.ValidatorMetrics, error) {
-	var result *clique.ValidatorMetrics
+func (ec *Client) ValidatorMetrics(ctx context.Context, cycleSeqNumber uint64) ([]*clique.ValidatorMetrics, error) {
+	var result []*clique.ValidatorMetrics
 	err := ec.c.CallContext(ctx, &result, "clique_getValidatorsMetricsForCycle", cycleSeqNumber)
 	return result, err
 }
