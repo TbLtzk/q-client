@@ -96,6 +96,11 @@ web3._extend({
 			call: 'clique_getValidatorsMetricsForCycle',
 			params: 1,
 		}),
+		new web3._extend.Method({
+			name: 'getEpochLength',
+			call: 'clique_getEpochLength',
+			params: 0,
+		}),
 	],
 	properties: [
 		new web3._extend.Property({

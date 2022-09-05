@@ -108,6 +108,12 @@ func (ec *Client) ValidatorMetrics(ctx context.Context, cycleSeqNumber uint64) (
 	return result, err
 }
 
+func (ec *Client) EpochLength(ctx context.Context) (uint64, error) {
+	var result uint64
+	err := ec.c.CallContext(ctx, &result, "clique_getEpochLength")
+	return result, err
+}
+
 type rpcBlock struct {
 	Hash         common.Hash      `json:"hash"`
 	Transactions []rpcTransaction `json:"transactions"`

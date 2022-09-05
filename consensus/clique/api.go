@@ -256,18 +256,20 @@ type ValidatorMetrics struct {
 
 func (api *API) GetValidatorsMetricsForCycle(cycleSeqNumber uint64) ([]ValidatorMetrics, error) {
 	epoch := api.clique.config.Epoch
+	highestBlock := api.chain.CurrentHeader().Number.Uint64()
 	if cycleSeqNumber == 0 ||
 		(cycleSeqNumber-1)*epoch > api.chain.CurrentHeader().Number.Uint64() {
-		return []ValidatorMetrics{}, errors.New("number of cycle cannot be null or haven't mined yet")
+		return []ValidatorMetrics{}, errors.New("number of cycle cannot be null or haven't been mined yet")
 	}
 	endOfCycleBlock := cycleSeqNumber * epoch
 	startOfCycleBlock := endOfCycleBlock - epoch + 1
-	transitionBlock := rpc.BlockNumber(endOfCycleBlock - epoch)
 	status := "Final"
-	if endOfCycleBlock < api.chain.CurrentHeader().Number.Uint64() {
+	latestFullCycleBlock := highestBlock - (highestBlock % epoch)
+	if endOfCycleBlock > latestFullCycleBlock {
 		status = "Pending"
-		endOfCycleBlock = api.chain.CurrentHeader().Number.Uint64()
+		endOfCycleBlock = highestBlock
 	}
+	transitionBlock := rpc.BlockNumber(endOfCycleBlock - epoch)
 	snapshot, err := api.GetSnapshot(&transitionBlock)
 	if err != nil {
 		return []ValidatorMetrics{}, err
@@ -327,6 +329,10 @@ func (api *API) calcMetrics(startOfCycleBlock uint64, endOfCycleBlock uint64, sn
 		startOfCycleBlock++
 	}
 	return blockMetrics, nil
+}
+
+func (api *API) GetEpochLength() uint64 {
+	return api.clique.config.Epoch
 }
 
 // GetOutOfTurnStatsByNumber returns the stats by block:
