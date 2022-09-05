@@ -95,7 +95,6 @@ web3._extend({
 			name: 'getValidatorsMetricsForCycle',
 			call: 'clique_getValidatorsMetricsForCycle',
 			params: 1,
-			inputFormatter: []
 		}),
 	],
 	properties: [
