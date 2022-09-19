@@ -991,11 +991,11 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	}
 
 	if ctx.GlobalIsSet(LegacyRPCApiFlag.Name) {
-		cfg.HTTPModules = SplitAndTrim(ctx.GlobalString(LegacyRPCApiFlag.Name))
+		cfg.HTTPModules = filterProtectedAPIs(SplitAndTrim(ctx.GlobalString(LegacyRPCApiFlag.Name)), "http")
 		log.Warn("The flag --rpcapi is deprecated and will be removed June 2021, please use --http.api")
 	}
 	if ctx.GlobalIsSet(HTTPApiFlag.Name) {
-		cfg.HTTPModules = SplitAndTrim(ctx.GlobalString(HTTPApiFlag.Name))
+		cfg.HTTPModules = filterProtectedAPIs(SplitAndTrim(ctx.GlobalString(HTTPApiFlag.Name)), "http")
 	}
 
 	if ctx.GlobalIsSet(LegacyRPCVirtualHostsFlag.Name) {
@@ -1012,6 +1012,22 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	if ctx.GlobalIsSet(AllowUnprotectedTxs.Name) {
 		cfg.AllowUnprotectedTxs = ctx.GlobalBool(AllowUnprotectedTxs.Name)
 	}
+}
+
+//Prevents opening gov api as external endpoint
+func filterProtectedAPIs(ret []string, ns string) []string {
+	res := []string{}
+	for _, api := range ret {
+		if strings.TrimSpace(api) == "gov" {
+			log.Error("-------------------------------------------------------------------")
+			log.Error(fmt.Sprintf("The %s api flag `gov` is forbidden!", ns))
+			log.Error("This api shouldn't be opened as an external!")
+			log.Error("-------------------------------------------------------------------\n")
+			continue
+		}
+		res = append(res, api)
+	}
+	return res
 }
 
 // setGraphQL creates the GraphQL listener interface string from the set
@@ -1043,7 +1059,7 @@ func setWS(ctx *cli.Context, cfg *node.Config) {
 	}
 
 	if ctx.GlobalIsSet(WSApiFlag.Name) {
-		cfg.WSModules = SplitAndTrim(ctx.GlobalString(WSApiFlag.Name))
+		cfg.WSModules = filterProtectedAPIs(SplitAndTrim(ctx.GlobalString(WSApiFlag.Name)), "ws")
 	}
 
 	if ctx.GlobalIsSet(WSPathPrefixFlag.Name) {
@@ -1185,7 +1201,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	setBootstrapNodesV5(ctx, cfg)
 
 	lightClient := ctx.GlobalString(SyncModeFlag.Name) == "light"
-	lightServer := (ctx.GlobalInt(LightServeFlag.Name) != 0)
+	lightServer := ctx.GlobalInt(LightServeFlag.Name) != 0
 
 	lightPeers := ctx.GlobalInt(LightMaxPeersFlag.Name)
 	if lightClient && !ctx.GlobalIsSet(LightMaxPeersFlag.Name) {
