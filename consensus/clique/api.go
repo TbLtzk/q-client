@@ -280,7 +280,7 @@ func (api *API) GetValidatorsMetricsForCycle(cycleSeqNumber uint64) ([]Validator
 	if err != nil {
 		return []ValidatorMetrics{}, err
 	}
-	mainAccounts := api.clique.unAliasAccounts(signers, api.chain.Config().IsHF001(api.chain.CurrentHeader().Number))
+	mainAccounts := api.clique.unAliasAccounts(signers, api.chain.Config().IsAthos(api.chain.CurrentHeader().Number))
 	for idx, signer := range signers {
 		if entry, ok := blockMetrics[signer]; ok {
 			entry.DueBlocks = epoch / uint64(len(signers))
@@ -367,8 +367,8 @@ func (api *API) getOutOfTurnStatsFromSnapshot(header *types.Header, snapshot *Sn
 		return nil, err
 	}
 	origAccount := actualSigner
-	if api.chain.Config().IsHF001(header.Number) {
-		origAccount = api.clique.unAliasAccounts([]common.Address{actualSigner}, api.chain.Config().IsHF001(api.chain.CurrentHeader().Number))[0]
+	if api.chain.Config().IsAthos(header.Number) {
+		origAccount = api.clique.unAliasAccounts([]common.Address{actualSigner}, api.chain.Config().IsAthos(api.chain.CurrentHeader().Number))[0]
 	}
 	inTurnSigner := api.getInTurnSigner(snapshot)
 	return &OutOfTurnStats{
