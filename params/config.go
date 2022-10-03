@@ -72,7 +72,7 @@ var (
 			RewardReceiver: common.HexToAddress("0xc4D32b94f039991703b869AA8AcB1A354c32AFd1"),
 			Registry:       common.HexToAddress("0xc3E589056Ece16BCB88c6f9318e9a7343b663522"),
 		},
-		HF001Block: nil,
+		AthosBlock: nil,
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -243,7 +243,7 @@ var (
 			RewardReceiver: common.HexToAddress("0xc4D32b94f039991703b869AA8AcB1A354c32AFd1"),
 			Registry:       common.HexToAddress("0xc3E589056Ece16BCB88c6f9318e9a7343b663522"),
 		},
-		HF001Block: nil,
+		AthosBlock: nil,
 	}
 
 	TestnetChainConfig = &ChainConfig{
@@ -263,7 +263,7 @@ var (
 			RewardReceiver: common.HexToAddress("0xc4D32b94f039991703b869AA8AcB1A354c32AFd1"),
 			Registry:       common.HexToAddress("0xc3E589056Ece16BCB88c6f9318e9a7343b663522"),
 		},
-		HF001Block: nil,
+		AthosBlock: nil,
 	}
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
@@ -359,7 +359,7 @@ type ChainConfig struct {
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
 	BerlinBlock         *big.Int `json:"berlinBlock,omitempty"`         // Berlin switch block (nil = no fork, 0 = already on berlin)
-	HF001Block          *big.Int `json:"hf001Block,omitempty"`          //Improve Layer 0 Governance epic. //TODO set in configs
+	AthosBlock          *big.Int `json:"athosBlock,omitempty"`          //Improve Layer 0 Governance epic. //TODO set in configs
 
 	LondonBlock *big.Int `json:"londonBlock,omitempty"` // London switch block (nil = no fork, 0 = already on london)
 
@@ -403,7 +403,7 @@ func (c *ChainConfig) String() string {
 	default:
 		engine = "unknown"
 	}
-	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Berlin: %v, London: %v, Engine: %v, HF001: %v}",
+	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Berlin: %v, London: %v, Engine: %v, Athos: %v}",
 		c.ChainID,
 		c.HomesteadBlock,
 		c.DAOForkBlock,
@@ -418,8 +418,8 @@ func (c *ChainConfig) String() string {
 		c.MuirGlacierBlock,
 		c.BerlinBlock,
 		c.LondonBlock,
-		c.HF001Block,
 		engine,
+		c.AthosBlock,
 	)
 }
 
@@ -490,12 +490,12 @@ func (c *ChainConfig) IsCatalyst(num *big.Int) bool {
 	return isForked(c.CatalystBlock, num)
 }
 
-// IsHF001 returns whether num is either equal to the Sirius (Q HF001) fork block or greater.
-func (c *ChainConfig) IsHF001(num *big.Int) bool {
-	if c.HF001Block != nil && c.HF001Block.Uint64() == 0 {
-		c.HF001Block = nil
+// IsAthos returns whether num is either equal to the IsAthos (Q HF001) fork block or greater.
+func (c *ChainConfig) IsAthos(num *big.Int) bool {
+	if c.AthosBlock != nil && c.AthosBlock.Uint64() == 0 {
+		c.AthosBlock = nil
 	}
-	return isForked(c.HF001Block, num)
+	return isForked(c.AthosBlock, num)
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
@@ -536,8 +536,8 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 		{name: "petersburgBlock", block: c.PetersburgBlock},
 		{name: "istanbulBlock", block: c.IstanbulBlock},
 		{name: "muirGlacierBlock", block: c.MuirGlacierBlock, optional: true},
-		//{name: "berlinBlock", block: c.BerlinBlock},
-		{name: "hf001Block", block: c.HF001Block},
+		{name: "berlinBlock", block: c.BerlinBlock},
+		{name: "athosBlock", block: c.AthosBlock},
 		//{name: "londonBlock", block: c.LondonBlock},
 	} {
 		if lastFork.name != "" {
@@ -608,8 +608,8 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *Confi
 	if isForkIncompatible(c.LondonBlock, newcfg.LondonBlock, head) {
 		return newCompatError("London fork block", c.LondonBlock, newcfg.LondonBlock)
 	}
-	if isForkIncompatible(c.HF001Block, newcfg.HF001Block, head) {
-		return newCompatError("HF001 fork block", c.HF001Block, newcfg.HF001Block)
+	if isForkIncompatible(c.AthosBlock, newcfg.AthosBlock, head) {
+		return newCompatError("IsAthos fork block", c.AthosBlock, newcfg.AthosBlock)
 	}
 	return nil
 }
@@ -678,7 +678,7 @@ type Rules struct {
 	ChainID                                                 *big.Int
 	IsHomestead, IsEIP150, IsEIP155, IsEIP158               bool
 	IsByzantium, IsConstantinople, IsPetersburg, IsIstanbul bool
-	IsBerlin, IsLondon, IsCatalyst, IsHF001                 bool
+	IsBerlin, IsLondon, IsCatalyst, IsAthos                 bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -700,6 +700,6 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsBerlin:         c.IsBerlin(num),
 		IsLondon:         c.IsLondon(num),
 		IsCatalyst:       c.IsCatalyst(num),
-		IsHF001:          c.IsHF001(num),
+		IsAthos:          c.IsAthos(num),
 	}
 }

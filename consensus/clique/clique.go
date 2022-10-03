@@ -488,7 +488,7 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 
 	snap.Signers = toSet(filtered)
 
-	if chainConfig.IsHF001(new(big.Int).SetUint64(number)) {
+	if chainConfig.IsAthos(new(big.Int).SetUint64(number)) {
 		filteredWithAliases := c.aliasAccounts(filtered, true)
 
 		//we need to filter one more time because exclusion list can contain the alias but not the validator itself for some reasons.
@@ -498,8 +498,8 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 	return nil
 }
 
-func (c *Clique) aliasAccounts(filtered []common.Address, isHF001 bool) []common.Address {
-	if !isHF001 {
+func (c *Clique) aliasAccounts(filtered []common.Address, isAthos bool) []common.Address {
+	if !isAthos {
 		return filtered
 	}
 	providerAliases := c.registry.AccountAliases()
@@ -522,8 +522,8 @@ func (c *Clique) aliasAccounts(filtered []common.Address, isHF001 bool) []common
 }
 
 //TODO remove in production
-func (c *Clique) unAliasAccounts(filtered []common.Address, isHF001 bool) []common.Address {
-	if !isHF001 {
+func (c *Clique) unAliasAccounts(filtered []common.Address, isAthos bool) []common.Address {
+	if !isAthos {
 		return filtered
 	}
 	providerAliases := c.registry.AccountAliases()

@@ -337,7 +337,7 @@ func (s *RootManager) validateExclusionSet(proposedSet *exclusionSet) error {
 		return nil
 	}
 
-	if !s.isHF001Reached() {
+	if !s.isAthosReached() {
 		return s.validateOldExclusionSet(proposedSet)
 	} else {
 		return s.validateNewExclusionSet(proposedSet)
@@ -851,7 +851,7 @@ func (s *RootManager) IsUnlocked(addr common.Address) bool {
 }
 
 func (s *RootManager) getAliasByAccount(addr common.Address) common.Address {
-	if !s.isHF001Reached() {
+	if !s.isAthosReached() {
 		return addr
 	}
 
@@ -870,7 +870,7 @@ func (s *RootManager) getAliasByAccount(addr common.Address) common.Address {
 }
 
 func (s *RootManager) getAccountByAlias(addr common.Address) common.Address {
-	if !s.isHF001Reached() {
+	if !s.isAthosReached() {
 		return addr
 	}
 
@@ -891,7 +891,7 @@ func (s *RootManager) getAccountByAlias(addr common.Address) common.Address {
 func (s *RootManager) getAliasesOfRoots(addresses []common.Address) map[common.Address]common.Address {
 	res := make(map[common.Address]common.Address)
 
-	if !s.isHF001Reached() {
+	if !s.isAthosReached() {
 		for _, address := range addresses {
 			res[address] = address
 		}
@@ -941,10 +941,10 @@ func (s *RootManager) formatBlock(block uint64) string {
 	return strconv.FormatUint(block, 10)
 }
 
-func (s *RootManager) isHF001Reached() bool {
+func (s *RootManager) isAthosReached() bool {
 	if s.bc == nil {
 		return false
 	}
 	currentBlock := s.bc.CurrentBlock().Number()
-	return s.bc.Config().IsHF001(currentBlock)
+	return s.bc.Config().IsAthos(currentBlock)
 }
