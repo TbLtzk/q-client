@@ -1,7 +1,12 @@
 package governance
 
 import (
+	"bytes"
+	"compress/gzip"
+	"fmt"
 	"gitlab.com/q-dev/q-client/common"
+	"log"
+	"path/filepath"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -35,7 +40,7 @@ func (s *peerSet) register(p *peer) {
 	go p.listenForRootSets()
 	go p.listenForExclusionSets()
 	if p.version >= qgov3 {
-		go p.listenApprovals()
+		go p.listenForRNApprovals()
 	}
 }
 
@@ -78,22 +83,24 @@ type peer struct {
 
 	version int
 
-	rootSetCh         chan *rootSet
-	exclusionSetCh chan *exclusionSet
-	approvalCh     chan *common.RootNodeApprovalList
-	done           chan struct{}
+	rootSetCh           chan *rootSet
+	exclusionSetCh      chan *exclusionSet
+	approvalCh          chan *common.RootNodeApprovalList
+	constitutionFilesCh chan *common.ConstitutionFilesResponse
+	done                chan struct{}
 }
 
 func newPeer(version int, conn *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
-		Peer:           conn,
-		id:             conn.ID().String(),
-		rw:             rw,
-		version:        version,
-		rootSetCh:      make(chan *rootSet),
-		exclusionSetCh: make(chan *exclusionSet),
-		approvalCh:     make(chan *common.RootNodeApprovalList),
-		done:           make(chan struct{}),
+		Peer:                conn,
+		id:                  conn.ID().String(),
+		rw:                  rw,
+		version:             version,
+		rootSetCh:           make(chan *rootSet),
+		exclusionSetCh:      make(chan *exclusionSet),
+		approvalCh:          make(chan *common.RootNodeApprovalList),
+		constitutionFilesCh: make(chan *common.ConstitutionFilesResponse),
+		done:                make(chan struct{}),
 	}
 }
 
@@ -201,7 +208,7 @@ func (p *peer) listenForExclusionSets() {
 	}
 }
 
-func (p *peer) listenApprovals() {
+func (p *peer) listenForRNApprovals() {
 	for {
 		select {
 		case approval := <-p.approvalCh:
@@ -244,6 +251,44 @@ func (p *peer) asyncSendApprovals(approvalList *common.RootNodeApprovalList) {
 	}
 }
 
+func (p *peer) asyncSendConstitutionFiles(cm *ConstitutionManager, files []common.ConstitutionFile) {
+	var res common.ConstitutionFilesResponse
+	for _, file := range files {
+
+		if errE := cm.fileExists(filepath.Join(cm.baseDir, file.Name)); errE != nil {
+			p.Log().Error("failed to open requested file", "err", errE)
+			continue
+		}
+		content, errC := cm.getFileContents(filepath.Join(cm.baseDir, file.Name))
+		if errC != nil {
+			p.Log().Error("failed to open requested file", "err", errC)
+			continue
+		}
+
+		var b bytes.Buffer
+		gz := gzip.NewWriter(&b)
+		if _, err := gz.Write(content); err != nil {
+			log.Fatal(err)
+		}
+		if err := gz.Close(); err != nil {
+			log.Fatal(err)
+		}
+
+		res.Files = append(res.Files, common.ConstitutionFileContent{
+			Hash: file.Hash,
+			Data: b.Bytes(),
+		})
+	}
+	p.sendConstitutionFiles(&res)
+}
+
+func stringToBin(s string) (binString string) {
+	for _, c := range s {
+		binString = fmt.Sprintf("%s%b", binString, c)
+	}
+	return
+}
+
 func (p *peer) sendExclusionList(set *exclusionSet) error {
 	return p2p.Send(p.rw, ExclusionListMsg, set.makeList())
 }
@@ -251,3 +296,13 @@ func (p *peer) sendExclusionList(set *exclusionSet) error {
 func (p *peer) sendApprovalList(approvalList *common.RootNodeApprovalList) error {
 	return p2p.Send(p.rw, ApprovalMsg, approvalList)
 }
+
+func (p *peer) sendConstitutionFileRequest(request *common.ConstitutionFilesRequest) error {
+	return p2p.Send(p.rw, ConstitutionFileRequestMsg, request)
+}
+
+func (p *peer) sendConstitutionFiles(files *common.ConstitutionFilesResponse) error {
+	return p2p.Send(p.rw, ConstitutionFilesMsg, files)
+}
+
+//TODO avoid

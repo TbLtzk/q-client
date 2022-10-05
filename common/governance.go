@@ -17,7 +17,6 @@ type RootList struct {
 // ValidatorExclusionList.
 type ValidatorExclusionList struct {
 	Timestamp  uint64              `json:"timestamp"`
-	CreatedAt  uint64              `json:"createdAt"`
 	Validators []ExcludedValidator `json:"validators"`
 	Hash       Hash                `json:"hash"`
 
@@ -33,6 +32,15 @@ type ExcludedValidator struct {
 type RootNodeApprovalList struct {
 	BlockNumber *big.Int `json:"blockNumber"`
 	Approvals   []RootNodeApproval
+}
+
+type ConstitutionFilesRequest struct {
+	//TODO do we need to sign the request? Regular node can start client without the unlocking any account
+	Hashes []Hash `json:"hashes"`
+}
+
+type ConstitutionFilesResponse struct {
+	Files []ConstitutionFileContent `json:"files"`
 }
 
 type RootNodeApproval struct {
@@ -63,8 +71,6 @@ func (list *RootNodeApprovalList) Copy() *RootNodeApprovalList {
 		return nil
 	}
 
-	// copy concurrently mutable list
-
 	return &RootNodeApprovalList{
 		BlockNumber: list.BlockNumber,
 		Approvals:   list.Approvals,
@@ -81,4 +87,15 @@ func (RootNodeApprovalList) FillFromArray(arr []RootNodeApproval) *RootNodeAppro
 		res.Approvals = append(res.Approvals, approval)
 	}
 	return &res
+}
+
+type ConstitutionFile struct {
+	Name      string `json:"name"`
+	Hash      Hash   `json:"hash"`
+	CreatedAt int64
+}
+
+type ConstitutionFileContent struct {
+	Hash Hash   `json:"hash"`
+	Data []byte `json:"data"`
 }

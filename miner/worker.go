@@ -945,7 +945,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			}
 		}
 	}
-	// Could potentially happen if starting to mine in an odd state.
+	// Could potentially happen if starting to mine in an odd state.eth
 	err := w.makeCurrent(parent, header)
 	if err != nil {
 		log.Error("Failed to create mining context", "err", err)

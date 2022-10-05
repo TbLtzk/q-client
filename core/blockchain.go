@@ -513,7 +513,7 @@ func (bc *BlockChain) SetHeadBeyondRoot(head uint64, root common.Hash) (uint64, 
 				// Block exists, keep rewinding until we find one with state,
 				// keeping rewinding until we exceed the optional threshold
 				// root hash
-				beyondRoot := (root == common.Hash{}) // Flag whether we're beyond the requested root (no root, always true)
+				beyondRoot := root == common.Hash{} // Flag whether we're beyond the requested root (no root, always true)
 
 				for {
 					// If a root threshold was requested but not yet crossed, check

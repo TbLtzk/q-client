@@ -676,7 +676,22 @@ web3._extend({
 	    new web3._extend.Method({
 			name: 'addConstitutionFile',
 			call: 'gov_addConstitutionFile',
-			params: 2
+			params: 1
+		}),
+	    new web3._extend.Method({
+			name: 'requestForConstitutionFile',
+			call: 'gov_requestForConstitutionFile',
+			params: 1
+		}),
+	    new web3._extend.Method({
+			name: 'constitutionFileRequests',
+			call: 'gov_constitutionFileRequests',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'constitutionFiles',
+			call: 'gov_constitutionFiles',
+			params: 0
 		}),
     ],
 	properties: []

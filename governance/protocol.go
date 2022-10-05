@@ -13,14 +13,10 @@ const (
 )
 
 // ProtocolVersions are the supported versions of the gov protocol (first is primary).
-var ProtocolVersions = []uint{qgov3}
-
-//var ProtocolVersions = []uint{qgov2, qgov3}
+var ProtocolVersions = []uint{qgov2, qgov3}
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
-//var protocolLengths = map[uint]uint64{qgov3: 4}
-//
-var protocolLengths = map[uint]uint64{qgov2: 3, qgov3: 4}
+var protocolLengths = map[uint]uint64{qgov2: 3, qgov3: 20}
 
 // maximum possible number of root nodes
 const maxNRootNodes = 101
@@ -31,10 +27,12 @@ const protocolMaxMsgSize = 2*maxNRootNodes*(crypto.SignatureLength+common.Addres
 
 // protocol message codes
 const (
-	StatusMsg        = 0x00
-	RootListMsg      = 0x01
-	ExclusionListMsg = 0x02
-	ApprovalMsg      = 0x03
+	StatusMsg                  = 0x00
+	RootListMsg                = 0x01
+	ExclusionListMsg           = 0x02
+	ApprovalMsg                = 0x03
+	ConstitutionFileRequestMsg = 0x04
+	ConstitutionFilesMsg       = 0x05
 )
 
 type statusMsgBody struct {
