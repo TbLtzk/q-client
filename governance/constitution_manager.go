@@ -1,6 +1,7 @@
 package governance
 
 import (
+	"bytes"
 	"gitlab.com/q-dev/q-client/event"
 	"io/fs"
 	"io/ioutil"
@@ -47,6 +48,7 @@ func NewConstitutionManager(datadir string, db *database, rm *RootManager) (*Con
 		baseDir:          filepath.Join(datadir, "constitution-storage"),
 		db:               db,
 		constitutionFeed: &event.Feed{},
+		reg:              rm.reg,
 	}
 
 	if errE := manager.fileExists(manager.baseDir); errE != nil {
@@ -255,7 +257,7 @@ func (cm *ConstitutionManager) validateStorageDir() ([]string, error) {
 	return validFileNames, nil
 }
 
-//gov.addConstitutionFile("a.adoc","0x912885FB7c72c5a0024Aa6dBC5425F0517878732878732112222222211111111")
+//gov.addConstitutionFile("a.adoc","0x5c5f8818734daeee729e3ff22cec58843d24b11b0addb7b8a6b0f194f6af81c6")
 func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 	cm.validateStorage()
 
@@ -265,12 +267,18 @@ func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 	candidatePath := filepath.Join(cm.baseDir, draftsDir, filename)
 
 	if errE := cm.fileExists(candidatePath); errE != nil {
-		log.Error("Cannot open constitution file", "error", errE)
-		return errE
+		return errors.Wrap(errE, "Cannot open constitution file")
 	}
 
 	hash := cm.getHashOfFile(candidatePath)
-	//TODO validate hash with contractRegistry
+
+	ok, errV := cm.isHashValid(hash)
+	if errV != nil {
+		return errV
+	}
+	if !ok {
+		return errors.New("Provided file's hash is invalid")
+	}
 
 	cFile := common.ConstitutionFile{
 		Name:      cm.filenameFromHash(hash),
@@ -283,6 +291,31 @@ func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 		return errC
 	}
 	return cm.storeConstitutionFile(contents, cFile)
+}
+
+func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
+	wrapped := "Cannot check hash validity"
+	if cm.reg == nil {
+		err := errors.New("Contract registry not initialized")
+		log.Error(wrapped, "error", err)
+		return false, err
+	}
+
+	cv := cm.reg.ConstitutionVoting()
+
+	cvE, err := cv.ConstitutionVotingFilterer.FilterProposalExecuted(nil, nil)
+	if err != nil {
+		return false, errors.Wrap(err, wrapped)
+	}
+	ok := cvE.Next()
+	for ok {
+		if bytes.Equal(cvE.Event.ConstitutionHash[:], hash.Bytes()) {
+			return true, nil
+		}
+		ok = cvE.Next()
+	}
+
+	return false, nil
 }
 
 func (cm *ConstitutionManager) filenameFromHash(constitutionHash common.Hash) string {

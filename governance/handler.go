@@ -328,7 +328,7 @@ func (h *handler) runPeer(p *peer) error {
 
 	for {
 		if err := h.handleMsg(p); err != nil {
-			p.Log().Error("Governance message handling failed", "err", err)
+			p.Log().Debug("Governance message handling failed", "err", err)
 			return err
 		}
 	}
@@ -716,7 +716,15 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 	var presentFiles []common.ConstitutionFile
 	for _, hash := range received.Hashes {
 
-		//TODO check if the requested hash exists in the contract
+		ok, errV := h.constitutionManager.isHashValid(hash)
+		if errV != nil {
+			return errV
+		}
+
+		//If the requested file is not on the list but node has it, it answers anyway (this will allow for draft constitution to be stored in the file system)
+		if !ok {
+			log.Error("Requested file hash doesn't belong to history")
+		}
 
 		for _, exFile := range exFiles {
 			if exFile.Hash == hash {
