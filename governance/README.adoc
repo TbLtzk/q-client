@@ -19,7 +19,8 @@ In order to control root list and validators exclusion list, there's a new rpc n
   proposeOnchainRootList: function(),
   proposeRootListUpdate: function(),
   proposedExclusionList: function(),
-  proposedRootList: function()
+  proposedRootList: function(),
+  getRootNodeApprovals: function()
 }
 ----
 
@@ -210,4 +211,62 @@ Show diff between two exclusion lists. It takes two exclusion list names as para
     Diff: null,
     Name: "proposed"
 }]
+----
+
+* `gov.getRootNodeApprovals`
+
+Prints rootnode approvals for the latest transition block. By default with no params provided - returns signatures of the latest block. If only one parameter specified (`blockNumber`) - returns signatures of specified block. Second parameter - `hash` - hash of the required block. Usage of both `blockNumber` and `hash` is forbidden.
+
+Usage example:
+[source,bash]
+----
+> gov.getRootNodeApprovals()
+[{
+    blockNumber: 2085347,
+    hash: "0x8d1d9cb767b87bd97e3639e1558921014e0bb67d567c7a3189dc651caa5a0674",
+    signature: "zxNakquu/N6zfWgBqqJBiKt+tATpD4PcIBUEL8VvFyMw0s9KDXq/MVc81QfQd2BUkIpbnvG9vYw2JS2L2O0K5AA=",
+    signer: "0xa713a6d7a695c95eb4eafdd588b170a17bf64a58"
+}, {
+    blockNumber: 2085347,
+    hash: "0x8d1d9cb767b87bd97e3639e1558921014e0bb67d567c7a3189dc651caa5a0674",
+    signature: "H7CF0pqD7LywYEKiZ2roNPixz2AfvXWAHPkQRsAS8jUQ+UaUvjRy7GVRVf9NhbbZ4cjuyUb85AFz6LVigPVXygE=",
+    signer: "0xe3d50388f8136eac453229d0f88e377a2eb5a80b"
+}]
+----
+----
+> gov.getRootNodeApprovals(null,"0xba93726efe1681c086f32e242ca39d62b9755599038f80fabe5b56b0b083a3b1")
+[{
+    blockNumber: 2085246,
+    hash: "0xba93726efe1681c086f32e242ca39d62b9755599038f80fabe5b56b0b083a3b1",
+    signature: "J1oJyfw6DbQRVUb4wI8iXOUJMd5O2FtwZzZaItWuuwUHmo45qvFD3ccmOKcYPMSQsfHPCdF9lXcZLsDXOGp3UgE=",
+    signer: "0xe3d50388f8136eac453229d0f88e377a2eb5a80b"
+}, {
+    blockNumber: 2085246,
+    hash: "0xba93726efe1681c086f32e242ca39d62b9755599038f80fabe5b56b0b083a3b1",
+    signature: "GHZqFYSD5bSgkLgJvOX03GJ+lOUrP6p6hBySD2lIfENt9oVIfXrcV4LwQiU0OQ7aI0LPDoM3AsBlCIZsRN4CRAE=",
+    signer: "0xa713a6d7a695c95eb4eafdd588b170a17bf64a58"
+}]
+----
+----
+> gov.getRootNodeApprovals(2085246)
+[{
+    blockNumber: 2085246,
+    hash: "0xba93726efe1681c086f32e242ca39d62b9755599038f80fabe5b56b0b083a3b1",
+    signature: "J1oJyfw6DbQRVUb4wI8iXOUJMd5O2FtwZzZaItWuuwUHmo45qvFD3ccmOKcYPMSQsfHPCdF9lXcZLsDXOGp3UgE=",
+    signer: "0xe3d50388f8136eac453229d0f88e377a2eb5a80b"
+}, {
+    blockNumber: 2085246,
+    hash: "0xba93726efe1681c086f32e242ca39d62b9755599038f80fabe5b56b0b083a3b1",
+    signature: "GHZqFYSD5bSgkLgJvOX03GJ+lOUrP6p6hBySD2lIfENt9oVIfXrcV4LwQiU0OQ7aI0LPDoM3AsBlCIZsRN4CRAE=",
+    signer: "0xa713a6d7a695c95eb4eafdd588b170a17bf64a58"
+}]
+
+----
+----
+> gov.getRootNodeApprovals(2085347,"0x8d1d9cb767b87bd97e3639e1558921014e0bb67d567c7a3189dc651caa5a0674")
+Error: Block number and hash cannot be specified at the same time
+        at web3.js:6357:37(47)
+        at web3.js:5091:62(37)
+        at <eval>:1:25(5)
+
 ----

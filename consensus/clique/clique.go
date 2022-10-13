@@ -181,10 +181,15 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 type ExclusionSetProvider interface {
 	ExclusionSetValidators() map[common.Address][]common.BlockRange
 	ExclusionSetTimestamp() uint64
+	HandleTransitionBlockSignature(header *types.Header)
 }
 
 // NoopExclusionSetProvider is needed for testing.
 type NoopExclusionSetProvider struct{}
+
+func (p *NoopExclusionSetProvider) HandleTransitionBlockSignature(header *types.Header) {
+
+}
 
 func (p *NoopExclusionSetProvider) ExclusionSetValidators() map[common.Address][]common.BlockRange {
 	return make(map[common.Address][]common.BlockRange)
@@ -691,6 +696,10 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 			return errWrongDifficulty
 		}
 	}
+
+	if number%c.config.Epoch == 0 {
+		c.exclusionSetProvider.HandleTransitionBlockSignature(header)
+	}
 	return nil
 }
 
@@ -866,6 +875,10 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 			log.Warn("Sealing result is not read by miner", "sealhash", SealHash(header))
 		}
 	}()
+
+	if number%c.config.Epoch == 0 {
+		c.exclusionSetProvider.HandleTransitionBlockSignature(header)
+	}
 
 	return nil
 }
