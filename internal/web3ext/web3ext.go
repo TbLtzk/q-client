@@ -678,6 +678,12 @@ web3._extend({
 			call: 'gov_diffExclusionList',
 			params: 2
 		}),
+	    new web3._extend.Method({
+			name: 'getRootNodeApprovals',
+			call: 'gov_getRootNodeApprovals',
+			params: 2,
+			inputFormatter: [null, null]
+		}),
     ],
 	properties: []
 });
