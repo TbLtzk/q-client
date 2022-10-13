@@ -23,7 +23,8 @@ const maxNRootNodes = 101
 
 // Maximum cap on the size of a protocol message.
 // (doubled max cap list)
-const protocolMaxMsgSize = 2*maxNRootNodes*(crypto.SignatureLength+common.AddressLength) + common.HashLength
+const maxConstitutionFileSize = 512000 //TODO define correct value
+const protocolMaxMsgSize = maxConstitutionFileSize + 2*maxNRootNodes*(crypto.SignatureLength+common.AddressLength) + common.HashLength
 
 // protocol message codes
 const (

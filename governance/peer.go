@@ -255,11 +255,17 @@ func (p *peer) asyncSendConstitutionFiles(cm *ConstitutionManager, files []commo
 	var res common.ConstitutionFilesResponse
 	for _, file := range files {
 
-		if errE := cm.fileExists(filepath.Join(cm.baseDir, file.Name)); errE != nil {
-			p.Log().Error("failed to open requested file", "err", errE)
-			continue
+		resPath := filepath.Join(cm.baseDir, file.Name)
+
+		if errE := cm.fileExists(resPath); errE != nil {
+			if errD := cm.fileExists(filepath.Join(cm.baseDir, draftsDir, file.Name)); errD != nil {
+				p.Log().Error("failed to open requested file", "err", errD)
+				continue
+			}
+			resPath = filepath.Join(cm.baseDir, draftsDir, file.Name)
 		}
-		content, errC := cm.getFileContents(filepath.Join(cm.baseDir, file.Name))
+
+		content, errC := cm.getFileContents(resPath)
 		if errC != nil {
 			p.Log().Error("failed to open requested file", "err", errC)
 			continue

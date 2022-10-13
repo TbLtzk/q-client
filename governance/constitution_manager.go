@@ -2,6 +2,7 @@ package governance
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"gitlab.com/q-dev/q-client/event"
 	"io/fs"
 	"io/ioutil"
@@ -14,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/contracts"
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
 )
 
@@ -290,7 +290,7 @@ func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 	if errC != nil {
 		return errC
 	}
-	return cm.storeConstitutionFile(contents, cFile)
+	return cm.storeConstitutionFile(contents, cFile, true)
 }
 
 func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
@@ -322,31 +322,39 @@ func (cm *ConstitutionManager) filenameFromHash(constitutionHash common.Hash) st
 	return constitutionFilePrefix + "_" + constitutionHash.String()[:8] + ".adoc"
 }
 
-func (cm *ConstitutionManager) storeConstitutionFile(contents []byte, cFile common.ConstitutionFile) error {
-
+func (cm *ConstitutionManager) storeConstitutionFile(contents []byte, cFile common.ConstitutionFile, regular bool) error {
 	dbFiles, err := cm.db.getConstitutionFiles()
 	if err != nil {
 		return errors.New("Failed to load constitution storage from the database")
 	}
 
-	//No need to update same file
-	for _, dbFile := range dbFiles {
-		if dbFile.Hash == cFile.Hash {
-			return errors.New("Cannot add constitution file. Same file already exists")
+	resDir := cm.baseDir
+
+	if regular {
+		//No need to update same file
+		for _, dbFile := range dbFiles {
+			if dbFile.Hash == cFile.Hash {
+				return errors.New("Cannot add constitution file. Same file already exists")
+			}
 		}
+	} else {
+		resDir = filepath.Join(resDir, draftsDir)
 	}
 
-	newFilePath := filepath.Join(cm.baseDir, cFile.Name)
+	newFilePath := filepath.Join(resDir, cFile.Name)
 
 	if errRn := os.WriteFile(newFilePath, contents, 0644); errRn != nil {
 		log.Error("Cannot save new constitution file to file storage", "error", newFilePath)
 		return errRn
 	}
 
-	dbFiles = append(dbFiles, cFile)
-	if errSave := cm.db.saveConstitutionStorage(&dbFiles); errSave != nil {
-		log.Error("Cannot save new constitution file to database", "error", errSave)
-		return errSave
+	//We only need add a record to the DB in case if file is not a draft
+	if regular {
+		dbFiles = append(dbFiles, cFile)
+		if errSave := cm.db.saveConstitutionStorage(&dbFiles); errSave != nil {
+			log.Error("Cannot save new constitution file to database", "error", errSave)
+			return errSave
+		}
 	}
 	return nil
 }
@@ -410,9 +418,13 @@ func (cm *ConstitutionManager) preformatFileContents(bytes []byte) []byte {
 }
 
 func (cm *ConstitutionManager) getHashByFileContent(bytes []byte) common.Hash {
-	h := crypto.Keccak256(bytes)
+	bytes = cm.preformatFileContents(bytes)
+
+	hasher := sha256.New()
+	hasher.Write(bytes)
+
 	var value common.Hash
-	value.SetBytes(h)
+	value.SetBytes(hasher.Sum(nil)[:])
 	return value
 }
 
@@ -438,4 +450,31 @@ func (cm *ConstitutionManager) getFileContents(fileName string) ([]byte, error) 
 	}
 
 	return cm.preformatFileContents(contents), nil
+}
+
+func (cm *ConstitutionManager) getDraftFiles() ([]common.ConstitutionFile, error) {
+	var resfiles []common.ConstitutionFile
+
+	draftsPath := filepath.Join(cm.baseDir, draftsDir)
+
+	files, err := ioutil.ReadDir(draftsPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "Error processing constitution storage drafts path")
+	}
+
+	for _, file := range files {
+		path := filepath.Join(draftsPath, file.Name())
+
+		cont, errC := cm.getFileContents(path)
+		if errC != nil {
+			return nil, errC
+		}
+
+		resfiles = append(resfiles, common.ConstitutionFile{
+			Name: file.Name(),
+			Hash: cm.getHashByFileContent(cont),
+		})
+	}
+
+	return resfiles, nil
 }

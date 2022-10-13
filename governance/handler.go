@@ -441,9 +441,9 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 					if e2 != nil {
 						return e2
 					}
-					resContent := h.constitutionManager.preformatFileContents(output)
 
-					receivedHash := h.constitutionManager.getHashByFileContent(resContent)
+					receivedHash := h.constitutionManager.getHashByFileContent(output)
+
 					if receivedHash != hash || receivedHash != file.Hash {
 						log.Error("Received file hash doesn't match the requested one", "requested", hash, "got", receivedHash)
 						return errors.New("Received file hash doesn't match the requested one")
@@ -455,7 +455,13 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 						CreatedAt: time.Now().Unix(),
 					}
 
-					errStore := h.constitutionManager.storeConstitutionFile(resContent, cFile)
+					//Received file can be the draft (if was requested previously)
+					regular, errV := h.constitutionManager.isHashValid(hash)
+					if errV != nil {
+						return errV
+					}
+
+					errStore := h.constitutionManager.storeConstitutionFile(output, cFile, regular)
 					if errStore != nil {
 						return errStore
 					}
@@ -713,6 +719,8 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 		return err
 	}
 
+	drafts, err := cm.getDraftFiles()
+
 	var presentFiles []common.ConstitutionFile
 	for _, hash := range received.Hashes {
 
@@ -729,6 +737,12 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 		for _, exFile := range exFiles {
 			if exFile.Hash == hash {
 				presentFiles = append(presentFiles, exFile)
+			}
+		}
+
+		for _, dFile := range drafts {
+			if dFile.Hash == hash {
+				presentFiles = append(presentFiles, dFile)
 			}
 		}
 
