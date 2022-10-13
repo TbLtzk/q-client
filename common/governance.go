@@ -1,5 +1,10 @@
 package common
 
+import (
+	"bytes"
+	"math/big"
+)
+
 // RootList.
 type RootList struct {
 	Timestamp uint64    `json:"timestamp"`
@@ -69,4 +74,55 @@ func (existingBlockRange BlockRange) IntersectsWithRange(candidate BlockRange) (
 func (existingBlockRange BlockRange) ContainsAddress(address uint64) (res bool) {
 	return (existingBlockRange.IsClosed() && existingBlockRange.StartAddress <= address && existingBlockRange.EndAddress >= address) ||
 		(!existingBlockRange.IsClosed() && existingBlockRange.StartAddress <= address)
+}
+
+type RootNodeApprovalList struct {
+	BlockNumber *big.Int `json:"blockNumber"`
+	Approvals   []RootNodeApproval
+}
+
+type RootNodeApproval struct {
+	BlockNumber *big.Int `json:"blockNumber"`
+	Hash        Hash     `json:"hash"`
+	Signer      Address  `json:"signer"`
+	Signature   []byte   `json:"signature"`
+}
+
+func (approval RootNodeApproval) GetApprovalDbKey(prefix []byte) (key []byte) {
+	key = append(prefix, approval.BlockNumber.Bytes()...)
+	return key
+}
+
+func (signature RootNodeApproval) Equals(in RootNodeApproval) bool {
+	res := true
+
+	res = res && (signature.Hash == in.Hash)
+	res = res && signature.BlockNumber == in.BlockNumber
+	res = res && signature.Signer == in.Signer
+	res = res && bytes.Equal(signature.Signature, in.Signature)
+
+	return res
+}
+
+func (list *RootNodeApprovalList) Copy() *RootNodeApprovalList {
+	if list == nil {
+		return nil
+	}
+
+	// copy concurrently mutable list
+
+	return &RootNodeApprovalList{
+		BlockNumber: list.BlockNumber,
+		Approvals:   list.Approvals,
+	}
+}
+
+func (RootNodeApprovalList) FillFromArray(arr []RootNodeApproval) *RootNodeApprovalList {
+	var res RootNodeApprovalList
+	if len(arr) == 0 {
+		return nil
+	}
+	res.BlockNumber = arr[0].BlockNumber
+	res.Approvals = append(res.Approvals, arr...)
+	return &res
 }
