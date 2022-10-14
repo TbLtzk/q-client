@@ -297,6 +297,32 @@ func (r *Registry) EpdrParametersVoting() *generated.EPDRParametersVoting {
 	return epdrParametersVoting
 }
 
+// ContractRegistryAddressVoting returns ContractRegistryAddressVoting contract backend if available.
+func (r *Registry) ContractRegistryAddressVoting() *generated.ContractRegistryAddressVoting {
+	addr := r.getAddr("governance.address.contractRegistryVoting")
+	if (addr == common.Address{}) {
+		log.Debug("governance.address.contractRegistryVoting is not deployed")
+		return nil
+	}
+
+	// err is never returned here
+	contractRegistryAddressVoting, _ := generated.NewContractRegistryAddressVoting(addr, r.Backend)
+	return contractRegistryAddressVoting
+}
+
+// ContractRegistryUpgradeVoting returns ContractRegistryUpgradeVoting contract backend if available.
+func (r *Registry) ContractRegistryUpgradeVoting() *generated.ContractRegistryUpgradeVoting {
+	addr := r.getAddr("governance.upgrade.contractRegistryVoting")
+	if (addr == common.Address{}) {
+		log.Debug("governance.upgrade.contractRegistryVoting is not deployed")
+		return nil
+	}
+
+	// err is never returned here
+	contractRegistryUpgradeVoting, _ := generated.NewContractRegistryUpgradeVoting(addr, r.Backend)
+	return contractRegistryUpgradeVoting
+}
+
 func (r *Registry) registry() *generated.ContractRegistry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
