@@ -1,10 +1,24 @@
 # Q Client
+[![go-github release (latest SemVer)](https://img.shields.io/gitlab/v/release/q-dev/q-client?sort=semver)](https://gitlab.com/q-dev/q-client/releases)
 
 [Go Ethereum](https://github.com/ethereum/go-ethereum) fork
 
-Official Golang implementation of the Q Blockchain.
+[![Q favicon](./favicon-32x32.png)](https://q.org) Official Golang implementation of the Q Blockchain.
 
-[<img src="https://q.org/assets/img/favicon.png" width="20" height="20" />](https://q.org)
+## Requirements
+
+* [GCC](https://gcc.gnu.org/releases.html)
+* [Golang 1.14+](https://go.dev/dl/)
+* [Docker 17.06.0+](https://www.docker.com/get-started)
+* [Compose 3.3+](https://docs.docker.com/compose/install/)
+
+## Public tools
+
+These repositories contain all you need to interact with Q networks.
+They include the sources, scripts and the according tutorials to launch a node, connect to Q network
+via mobile application and make use of the various governance features that Q offers.
+* [Testnet Public Tools](https://gitlab.com/q-dev/testnet-public-tools)
+* [Mainnet Public Tools](https://gitlab.com/q-dev/mainnet-public-tools)
 
 ## Building the source
 
@@ -46,7 +60,7 @@ Going through all the possible command line flags is out of scope here (please c
 but we've enumerated a few common parameter combos to get you up to speed quickly
 on how you can run your own `geth` instance.
 
-### Full node on the main Ethereum network
+### Full node on the Q mainnet network
 
 By far the most common scenario is people wanting to simply interact with the Ethereum
 network: create accounts; transfer funds; deploy and interact with contracts. For this
@@ -54,7 +68,7 @@ particular use-case the user doesn't care about years-old historical data, so we
 fast-sync quickly to the current state of the network. To do so:
 
 ```shell
-$ geth console
+$ geth --mainnet console
 ```
 
 This command will:
@@ -68,7 +82,7 @@ This command will:
    This tool is optional and if you leave it out you can always attach to an already running
    `geth` instance with `geth attach`.
 
-### A Full node on the Görli test network
+### A Full node on the Q testnet network
 
 Transitioning towards developers, if you'd like to play around with creating Ethereum
 contracts, you almost certainly would like to do that without any real money involved until
@@ -77,52 +91,34 @@ network, you want to join the **test** network with your node, which is fully eq
 the main network, but with play-Ether only.
 
 ```shell
-$ geth --goerli console
+$ geth --testnet console
+```
+or
+```shell
+$ geth --fischer console
 ```
 
 The `console` subcommand has the exact same meaning as above and they are equally
 useful on the testnet too. Please, see above for their explanations if you've skipped here.
 
-Specifying the `--goerli` flag, however, will reconfigure your `geth` instance a bit:
+Specifying the `--testnet` or `--fischer` flag, however, will reconfigure your `geth` instance a bit:
 
- * Instead of connecting the main Ethereum network, the client will connect to the Görli
-   test network, which uses different P2P bootnodes, different network IDs and genesis
+ * Instead of connecting the Q mainnet network, the client will connect to the Q
+   testnet network, which uses different P2P bootnodes, different network IDs and genesis
    states.
  * Instead of using the default data directory (`~/.ethereum` on Linux for example), `geth`
-   will nest itself one level deeper into a `goerli` subfolder (`~/.ethereum/goerli` on
+   will nest itself one level deeper into a `qtestnet` subfolder (`~/.ethereum/qtestnet` on
    Linux). Note, on OSX and Linux this also means that attaching to a running testnet node
    requires the use of a custom endpoint since `geth attach` will try to attach to a
    production node endpoint by default, e.g.,
-   `geth attach <datadir>/goerli/geth.ipc`. Windows users are not affected by
+   `geth attach <datadir>/testnet/geth.ipc`. Windows users are not affected by
    this.
 
 *Note: Although there are some internal protective measures to prevent transactions from
-crossing over between the main network and test network, you should make sure to always
+crossing over between the mainnet network and testnet network, you should make sure to always
 use separate accounts for play-money and real-money. Unless you manually move
 accounts, `geth` will by default correctly separate the two networks and will not make any
 accounts available between them.*
-
-### Full node on the Rinkeby test network
-
-Go Ethereum also supports connecting to the older proof-of-authority based test network
-called [*Rinkeby*](https://www.rinkeby.io) which is operated by members of the community.
-
-```shell
-$ geth --rinkeby console
-```
-
-### Full node on the Ropsten test network
-
-In addition to Görli and Rinkeby, Geth also supports the ancient Ropsten testnet. The
-Ropsten test network is based on the Ethash proof-of-work consensus algorithm. As such,
-it has certain extra overhead and is more susceptible to reorganization attacks due to the
-network's low difficulty/security.
-
-```shell
-$ geth --ropsten console
-```
-
-*Note: Older Geth configurations store the Ropsten database in the `testnet` subdirectory.*
 
 ### Configuration
 
@@ -142,16 +138,16 @@ $ geth --your-favourite-flags dumpconfig
 
 *Note: This works only with `geth` v1.6.0 and above.*
 
-#### Docker quick start
+#### Docker-compose quick start
 
 One of the quickest ways to get Ethereum up and running on your machine is by using
-Docker:
+Docker-Compose:
 
 ```shell
-docker run -d --name ethereum-node -v /Users/alice/ethereum:/root \
-           -p 8545:8545 -p 30303:30303 \
-           ethereum/client-go
+docker-compose up -d
 ```
+
+Also you need to configure **.env file** containing parameters for launching docker instances.
 
 This will start `geth` in fast-sync mode with a DB memory allowance of 1GB just as the
 above command does.  It will also create a persistent volume in your home directory for
@@ -189,7 +185,6 @@ HTTP based JSON-RPC API options:
   * `--ws.api` API's offered over the WS-RPC interface (default: `eth,net,web3`)
   * `--ws.origins` Origins from which to accept websockets requests
   * `--ipcdisable` Disable the IPC-RPC server
-  * `--ipcapi` API's offered over the IPC-RPC interface (default: `admin,debug,eth,miner,net,personal,shh,txpool,web3`)
   * `--ipcpath` Filename for IPC socket/pipe within the datadir (explicit paths escape it)
 
 You'll need to use your own programming environments' capabilities (libraries, tools, etc) to
@@ -225,7 +220,8 @@ aware of and agree upon. This consists of a small JSON file (e.g. call it `genes
     "constantinopleBlock": 0,
     "petersburgBlock": 0,
     "istanbulBlock": 0,
-    "berlinBlock": 0
+    "berlinBlock": 0, 
+    "londonBlock": 0,
   },
   "alloc": {},
   "coinbase": "0x0000000000000000000000000000000000000000",
