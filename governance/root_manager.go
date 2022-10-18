@@ -859,7 +859,7 @@ func (s *RootManager) getProposedExclusionSet() *exclusionSet {
 }
 
 // isAcceptableExclusionSet returns true if there us enough signatures and
-// exclusion set is not obsoletere
+// exclusion set is not obsolete
 func (s *RootManager) isAcceptableExclusionSet(set *exclusionSet) bool {
 	if s.activeExSet != nil && set.timestamp <= s.activeExSet.timestamp {
 		return false
@@ -994,7 +994,7 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 	s.approvalLock.Lock()
 	defer s.approvalLock.Unlock()
 
-	roots := s.active.aliases
+	roots := s.getActiveRootSet(true).rootAddresses
 	var unlockedRoots []common.Address
 	for _, addr := range roots {
 		if s.IsUnlocked(addr) {
