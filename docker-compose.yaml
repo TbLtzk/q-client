@@ -1,64 +1,155 @@
 version: "3"
 
 services:
-  bootnode:
-    image: $QCLIENT_IMAGE
-    container_name: bootnode
-    entrypoint: [
-      "geth",
-      "--testnet",
-      "--datadir=/data",
-      "--syncmode=full",
-      "--rpc.allow-unprotected-txs",
-      "--networkid=35443",
-      "--verbosity=3",
-      "--http",
-      "--http.addr=0.0.0.0",
-      "--http.vhosts=*",
-      "--http.corsdomain=*",
-      "--http.api=net,web3,eth,txpool,debug",
-      "--ws",
-      "--ws.addr=0.0.0.0",
-      "--ws.api=net,web3,eth,shh,txpool,debug",
-      "--port=30301"
-    ]
+  bootnode-init:
+    image: {{ .Image }}
+    container_name: bootnode-init
+    environment:
+      - DATADIR=/data
+      - GENESIS_PATH=qdevnet.json
+    entrypoint: ["/bin/sh","./entrypoint.sh"]
     volumes:
-      - bootnode_data:/data
+      - ./bootnode.sh:/entrypoint.sh
+      - ./configs/qdevnet.json:/qdevnet.json
+      - bootnode_v:/data
+
+  bootnode:
+    image: {{ .Image }}
+    container_name: bootnode
+    depends_on:
+      - bootnode-init
+    environment:
+      - DATADIR=/data
+      - IP=54.187.245.252
+      - GENESIS_PATH=qdevnet.json
+    entrypoint: ["geth", "--datadir=/data", "--nat=extip:54.187.245.252", "--syncmode=full", "--networkid=35443", "--verbosity=9", "--nousb", "--rpc", "--allow-insecure-unlock", "--rpcaddr=0.0.0.0", "--port=30301"]
+    volumes:
+      - ./configs/qdevnet.json:/qdevnet.json
+      - ./bootnode.sh:/bootnode.sh
+      - bootnode_v:/data
     ports:
       - 30301:30301
-      - 8545:8545
-      - 8546:8546
-    restart: unless-stopped
+
+  miner-1-init:
+    image: {{ .Image }}
+    container_name: miner-1-init
+    environment:
+      - DATADIR=/data
+      - GENESIS_PATH=qdevnet.json
+    entrypoint: ["/bin/sh","./entrypoint.sh"]
+    volumes:
+      - ./configs/miner1/keystore:/data/keystore
+      - ./init.sh:/entrypoint.sh
+      - ./configs/qdevnet.json:/qdevnet.json
+      - miner1:/data
+
+  miner-2-init:
+    image: {{ .Image }}
+    container_name: miner-2-init
+    environment:
+      - DATADIR=/data
+      - GENESIS_PATH=qdevnet.json
+    entrypoint: ["/bin/sh","./entrypoint.sh"]
+    volumes:
+      - ./configs/miner2/keystore:/data/keystore
+      - ./init.sh:/entrypoint.sh
+      - ./configs/qdevnet.json:/qdevnet.json
+      - miner2:/data
+
+  miner-3-init:
+    image: {{ .Image }}
+    container_name: miner-3-init
+    environment:
+      - DATADIR=/data
+      - GENESIS_PATH=qdevnet.json
+    entrypoint: ["/bin/sh","./entrypoint.sh"]
+    volumes:
+      - ./configs/miner3/keystore:/data/keystore
+      - ./init.sh:/entrypoint.sh
+      - ./configs/qdevnet.json:/qdevnet.json
+      - miner3:/data
 
   miner-1:
-    image: $QCLIENT_IMAGE
+    image: {{ .Image }}
     container_name: miner-1
     depends_on:
       - bootnode
-    entrypoint: [
-      "geth",
-      "--testnet",
-      "--datadir=/data",
-      "--unlock=$ADDRESS",
-      "--password=/data/keystore/pwd.txt",
-      "--mine",
-      "--miner.threads=1",
-      "--miner.gasprice=1",
-      "--syncmode=full",
-      "--rpc.allow-unprotected-txs",
-      "--networkid=35443",
-      "--verbosity=3",
-      "--bootnodes=$BOOTNODE_URI",
-    ]
+      - miner-1-init
+    environment:
+      - ACCOUNT_ADDR=64d4edefe8ba86d3588b213b0a053e7b910cad68
+      - DATADIR=/data
+      - PASS_PATH=/data/keystore/pwd.txt
+      - IP=54.187.245.252
+      - GENESIS_PATH=qdevnet.json
+      - BOOTNODE_ADDR=enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@54.187.245.252:30301
+    entrypoint: ["geth", "--datadir=/data", "--rpccorsdomain=*", "--unlock=64d4edefe8ba86d3588b213b0a053e7b910cad68",  "--password=/data/keystore/pwd.txt", "--nat=extip:54.187.245.252", "--mine", "--miner.threads=1", "--syncmode=full", "--networkid=35443", "--verbosity=3", "--rpcapi=net,web3,eth,shh,debug", "--bootnodes=enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@54.187.245.252:30301", "--nousb", "--gasprice=1", "--rpc", "--allow-insecure-unlock", "--rpcaddr=0.0.0.0"]
     volumes:
       - ./configs/miner1/keystore:/data/keystore
-      - miner1-data:/data
+      - ./entrypoint.sh:/entrypoint.sh
+      - ./configs/qdevnet.json:/qdevnet.json
+      - miner1:/data
     ports:
-      - $EXT_PORT:$EXT_PORT/tcp
-      - $EXT_PORT:$EXT_PORT/udp
-    env_file: .env
-    restart: unless-stopped
+      - 8545:8545
+      - 30303:30303
+
+  miner-2:
+    image: {{ .Image }}
+    container_name: miner-2
+    depends_on:
+      - bootnode
+      - miner-2-init
+    environment:
+      - ACCOUNT_ADDR=6a39b688d591ea00c9ea69658438794204b5cc62
+      - DATADIR=/data
+      - PASS_PATH=/data/keystore/pwd.txt
+      - IP=54.187.245.252
+      - GENESIS_PATH=qdevnet.json
+      - BOOTNODE_ADDR=enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@54.187.245.252:30301
+    entrypoint: ["geth", "--datadir=/data", "--rpccorsdomain=*", "--unlock=6a39b688d591ea00c9ea69658438794204b5cc62",  "--password=/data/keystore/pwd.txt", "--nat=extip:54.187.245.252", "--mine", "--miner.threads=1", "--syncmode=full", "--networkid=35443", "--verbosity=3", "--rpcapi=net,web3,eth,shh,debug", "--bootnodes=enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@54.187.245.252:30301", "--nousb", "--gasprice=1", "--rpc", "--allow-insecure-unlock", "--rpcaddr=0.0.0.0"]
+    volumes:
+      - ./configs/miner2/keystore:/data/keystore
+      - ./entrypoint.sh:/entrypoint.sh
+      - ./configs/qdevnet.json:/qdevnet.json
+      - miner2:/data
+    ports:
+      - 30304:30303
+
+  miner-3:
+    image: {{ .Image }}
+    container_name: miner-3
+    depends_on:
+      - bootnode
+      - miner-3-init
+    environment:
+      - ACCOUNT_ADDR=4a14d788d86d021670ebcece1196631d66595984
+      - DATADIR=/data
+      - PASS_PATH=/data/keystore/pwd.txt
+      - IP=54.187.245.252
+      - GENESIS_PATH=qdevnet.json
+      - BOOTNODE_ADDR=enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@54.187.245.252:30301
+    entrypoint: ["geth", "--datadir=/data", "--rpccorsdomain=*", "--unlock=4a14d788d86d021670ebcece1196631d66595984",  "--password=/data/keystore/pwd.txt", "--nat=extip:54.187.245.252", "--mine", "--miner.threads=1", "--syncmode=full", "--networkid=35443", "--verbosity=3", "--rpcapi=net,web3,eth,shh,debug", "--bootnodes=enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@54.187.245.252:30301", "--nousb", "--gasprice=1", "--rpc", "--allow-insecure-unlock", "--rpcaddr=0.0.0.0"]
+    volumes:
+      - ./configs/miner3/keystore:/data/keystore
+      - ./entrypoint.sh:/entrypoint.sh
+      - ./configs/qdevnet.json:/qdevnet.json
+      - miner3:/data
+    ports:
+      - 30305:30303
+
+  explorer:
+    image: alethio/ethereum-lite-explorer
+    depends_on:
+      - miner-1
+      - miner-2
+      - miner-3
+      - bootnode
+    environment:
+      - APP_NODE_URL=http://54.187.245.252:8545
+    ports:
+      - 80:80
 
 volumes:
-  bootnode_data:
-  miner1-data:
+  bootnode_v:
+  miner1:
+  miner2:
+  miner3:

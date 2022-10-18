@@ -22,7 +22,7 @@ RUN apk add --no-cache ca-certificates
 COPY --from=builder /q-client/build/bin/geth /usr/local/bin/
 
 EXPOSE 8545 8546 30303 30303/udp
-ENTRYPOINT ["geth --mainnet"]
+ENTRYPOINT ["geth"]
 
 # Add some metadata labels to help programatic image consumption
 ARG COMMIT=""
