@@ -589,8 +589,17 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 		}
 
 		addr := crypto.PubkeyToAddress(*pubkey)
-		if _, ok := rm.active.roots[approval.Signer]; !ok {
-			log.Warn("Received root node approval contains non-root signature", "addr", addr, "blockNumber", received.BlockNumber)
+
+		//TODO Refactor
+		ok := false
+		for address, alias := range rm.active.aliases {
+			if address == addr || alias == addr {
+				ok = true
+				break
+			}
+		}
+
+		if !ok {
 			continue
 		}
 
