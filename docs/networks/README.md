@@ -1,13 +1,11 @@
-In order to connect to the QMainnet network:
+This directory contains genesis block config (`genesis.json`) and default list of peers 
+for existing q blockchain networks.
 
-Start node: 
+In order to connect to the network:
+1. Init node:  
+`$ geth --datadir=<datadir> init genesis.json`
 
-`$ geth --datadir=<datadir> --syncmode=full`
+2. Put list of peers for required network under `<datadir>/geth/static-nodes.json`
 
-In order to connect to the QTestnet network:
-
-Start node:
-
-`$ geth --testnet --datadir=<datadir> --syncmode=full` 
-
-Optionally you can put list of peers for required network (for faster syncing) under `<datadir>/geth/static-nodes.json`
+3. Start node with `networkid` from `genesis.json` (`chainId`):  
+`$ geth --datadir=<datadir> --networkid=<networkid> --syncmode=full` 
