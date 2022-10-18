@@ -2,9 +2,8 @@ package governance
 
 import (
 	"bytes"
-	"sync"
-
 	"gitlab.com/q-dev/q-client/crypto"
+	"sync"
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
@@ -589,8 +588,16 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 		}
 
 		addr := crypto.PubkeyToAddress(*pubkey)
-		if _, ok := rm.active.roots[approval.Signer]; !ok {
-			log.Warn("Received root node approval contains non-root signature", "addr", addr, "blockNumber", received.BlockNumber)
+
+		ok := false
+		for address, alias := range rm.active.aliases {
+			if address == addr || alias == addr {
+				ok = true
+				break
+			}
+		}
+
+		if !ok {
 			continue
 		}
 
