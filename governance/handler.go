@@ -570,6 +570,9 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 	if received == nil {
 		return errProposedApprovalListEmpty
 	}
+	if rm == nil || rm.bc == nil {
+		return nil
+	}
 
 	if received.BlockNumber.Uint64()%rm.bc.Config().Clique.Epoch != 0 {
 		log.Error("Received root node approval list contains invalid block number", "blockNumber", received.BlockNumber)
