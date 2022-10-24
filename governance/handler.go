@@ -412,7 +412,7 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 		h.rootEventCh <- &rootSetEvent{set: received}
 	case rm.active.hash == received.hash:
 		if rm.isRootNode(false) {
-			rm.signRootSet(rm.active)
+			rm.signRootSet(received)
 		}
 		newSignatures := rm.active.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
@@ -514,7 +514,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		}
 
 		if rm.isRootNode(false) {
-			rm.signExclusionSet(rm.desiredExSet)
+			rm.signExclusionSet(received)
 		}
 
 		rm.upgradeExclusionSet(received)
@@ -523,7 +523,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 
 		//On very start of the node account can be not unlocked, so isRootNode can return false
 		if rm.isRootNode(false) {
-			rm.signExclusionSet(rm.activeExSet)
+			rm.signExclusionSet(received)
 		}
 		newSignatures := rm.activeExSet.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
