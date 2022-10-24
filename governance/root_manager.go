@@ -192,9 +192,11 @@ func (s *RootManager) ExclusionSetTimestamp() uint64 {
 	return s.activeExSet.timestamp
 }
 
-func (s *RootManager) isRootNode() bool {
-	s.rootLock.Lock()
-	defer s.rootLock.Unlock()
+func (s *RootManager) isRootNode(lock bool) bool {
+	if lock {
+		s.rootLock.Lock()
+		defer s.rootLock.Unlock()
+	}
 
 	return s.isMember(s.active.rootAddresses)
 }
@@ -219,7 +221,7 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 			continue
 		}
 
-		log.Info("Attempting to sign root set")
+		//log.Info("Attempting to sign root set")
 
 		isMember = true
 		signature, err := s.SignHash(accounts.Account{Address: aliasedAddr}, set.hash.Bytes())
@@ -252,9 +254,10 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 			continue
 		}
 
-		set.addSignature(aliasedAddr, signature)
-		isSigned = true
-		log.Info("Signed exclusion list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex())
+		isSigned = set.addSignature(aliasedAddr, signature)
+		if isSigned {
+			log.Info("Signed exclusion list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex())
+		}
 	}
 
 	return isSigned
@@ -471,7 +474,7 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 }
 
 func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, error) {
-	if !s.isRootNode() {
+	if !s.isRootNode(true) {
 		return nil, errNotRootNode
 	}
 
@@ -503,6 +506,9 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 	}
 
 	s.desiredExFeed.Send(set.copy())
+
+	s.proposedExSet = set
+	s.db.saveProposedExclusionSet(set)
 
 	return set, nil
 }
@@ -602,8 +608,10 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 
 	s.desired = set
 	s.desiredRootFeed.Send(set.copy())
-
 	s.db.saveDesiredRootSet(set)
+
+	s.proposed = set
+	s.db.saveProposedRootSet(set)
 
 	return set, nil
 }
