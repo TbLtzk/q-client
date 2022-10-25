@@ -377,10 +377,6 @@ func (h *handler) handleRootListMsg(p *peer, msg p2p.Msg) error {
 		return err
 	}
 	received.updateAliases(h.rootManager.getAliasesOfRoots(received.rootAddresses))
-	errV := received.validateSignatures()
-	if errV != nil {
-		return errV
-	}
 
 	return h.handleRootSet(p, received)
 }

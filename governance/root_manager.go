@@ -153,14 +153,11 @@ func (s *RootManager) InitRegistry(reg *contracts.Registry) {
 
 func (s *RootManager) updateAliasesOfRootSets() {
 	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
-	s.active.validateSignatures()
 	if s.desired != nil {
 		s.desired.updateAliases(s.getAliasesOfRoots(s.desired.rootAddresses))
-		s.desired.validateSignatures()
 	}
 	if s.proposed != nil {
 		s.proposed.updateAliases(s.getAliasesOfRoots(s.proposed.rootAddresses))
-		s.proposed.validateSignatures()
 	}
 }
 
@@ -769,10 +766,6 @@ func (s *RootManager) getOnchainRootSet(lock bool) *rootSet {
 		return nil
 	}
 	set.updateAliases(s.getAliasesOfRoots(set.rootAddresses))
-	errD := set.validateSignatures()
-	if errD != nil {
-		return nil
-	}
 
 	return set
 }
