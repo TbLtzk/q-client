@@ -49,7 +49,6 @@ func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList) (common.Hash
 		return common.Hash{}, errors.Wrap(err, "invalid root list")
 	}
 	set.updateAliases(a.gov.RootManager.getAliasesOfRoots(set.rootAddresses))
-	set.validateSignatures()
 
 	set, err = a.gov.RootManager.proposeRootSet(set)
 	if err != nil {

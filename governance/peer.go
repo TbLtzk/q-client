@@ -141,10 +141,6 @@ func (p *peer) handshake(msg statusMsgBody, rm *RootManager) (*peerStatus, error
 	}
 	if currentRootSet != nil {
 		currentRootSet.updateAliases(rm.getAliasesOfRoots(currentRootSet.rootAddresses))
-		errV := currentRootSet.validateSignatures()
-		if errV != nil {
-			return nil, errV
-		}
 	}
 
 	desiredRootSet, err := newRootSet(&status.DesiredRootList)
@@ -153,10 +149,6 @@ func (p *peer) handshake(msg statusMsgBody, rm *RootManager) (*peerStatus, error
 	}
 	if desiredRootSet != nil {
 		desiredRootSet.updateAliases(rm.getAliasesOfRoots(desiredRootSet.rootAddresses))
-		errD := desiredRootSet.validateSignatures()
-		if errD != nil {
-			return nil, errD
-		}
 	}
 
 	proposedRootSet, err := newRootSet(&status.ProposedRootList)
@@ -165,10 +157,6 @@ func (p *peer) handshake(msg statusMsgBody, rm *RootManager) (*peerStatus, error
 	}
 	if proposedRootSet != nil {
 		proposedRootSet.updateAliases(rm.getAliasesOfRoots(proposedRootSet.rootAddresses))
-		errP := proposedRootSet.validateSignatures()
-		if errP != nil {
-			return nil, errP
-		}
 	}
 
 	//Validators

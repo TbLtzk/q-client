@@ -7,7 +7,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/log"
 )
 
 const (
@@ -95,42 +94,6 @@ func newRootSet(list *common.RootList) (*rootSet, error) {
 
 	set.signers = signers
 	return set, nil
-}
-
-func (s *rootSet) validateSignatures() error {
-	if s.aliases == nil {
-		log.Error("Empty account aliases")
-		return nil
-	}
-
-	signers := make(map[common.Address][]byte)
-	hash := s.hash.Bytes()
-
-	for _, sig := range s.signers {
-		pubkey, err := crypto.SigToPub(hash, sig)
-		if err != nil {
-			return err
-		}
-
-		addr := crypto.PubkeyToAddress(*pubkey)
-
-		exists := false
-		for _, alias := range s.aliases {
-			if alias == addr {
-				exists = true
-				break
-			}
-		}
-
-		if !exists {
-			continue
-		}
-
-		signers[addr] = sig
-	}
-
-	s.signers = signers
-	return nil
 }
 
 func (s *rootSet) updateAliases(aliases map[common.Address]common.Address) {
