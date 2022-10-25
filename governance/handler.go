@@ -407,11 +407,12 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 		rm.upgradeRootSet(received)
 		h.rootEventCh <- &rootSetEvent{set: received}
 	case rm.active.hash == received.hash:
+		signatureAdded := false //In case when alias changed
 		if rm.isRootNode(false) {
-			rm.signRootSet(received)
+			signatureAdded = rm.signRootSet(rm.active)
 		}
 		newSignatures := rm.active.mergeSignatures(received.hash, received.signers)
-		if len(newSignatures) == 0 {
+		if len(newSignatures) == 0 && !signatureAdded {
 			return nil
 		}
 
@@ -516,13 +517,13 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		rm.upgradeExclusionSet(received)
 		h.exEventCh <- &exclusionSetEvent{set: received}
 	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
-
 		//On very start of the node account can be not unlocked, so isRootNode can return false
+		signatureAdded := false //In case when alias changed
 		if rm.isRootNode(false) {
-			rm.signExclusionSet(received)
+			signatureAdded = rm.signExclusionSet(rm.activeExSet)
 		}
 		newSignatures := rm.activeExSet.mergeSignatures(received.hash, received.signers)
-		if len(newSignatures) == 0 {
+		if len(newSignatures) == 0 && !signatureAdded {
 			return nil
 		}
 
