@@ -497,22 +497,23 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 
 	if s.getActiveRootSet(true).isEnoughExSetSignatures(set) {
 		s.upgradeExclusionSet(set)
-	} else {
-		s.desiredExSet = set
-		s.db.saveDesiredExclusionSet(set)
 	}
-
-	s.desiredExFeed.Send(set.copy())
 
 	s.proposedExSet = set
 	s.db.saveProposedExclusionSet(set)
+	err = s.acceptProposedExclusionList(false)
+	if err != nil {
+		return nil, err
+	}
 
 	return set, nil
 }
 
-func (s *RootManager) acceptProposedExclusionList() error {
-	s.exLock.Lock()
-	defer s.exLock.Unlock()
+func (s *RootManager) acceptProposedExclusionList(lock bool) error {
+	if lock {
+		s.exLock.Lock()
+		defer s.exLock.Unlock()
+	}
 
 	if s.proposedExSet == nil {
 		return errProposedExclusionListEmpty
@@ -556,6 +557,13 @@ func (s *RootManager) upgradeRootSet(set *rootSet) {
 	s.db.saveActiveRootSet(s.active)
 
 	log.Info("Upgraded root list", "hash", set.hash.Hex(), "timestamp", set.timestamp)
+
+	if s.proposed != nil && s.proposed.timestamp <= set.timestamp {
+		log.Info("Dropping obsolete proposed root set", "timestamp", set.timestamp)
+
+		s.proposed = nil
+		s.db.deleteProposedRootSet()
+	}
 
 	if s.desired == nil || s.desired.timestamp > set.timestamp {
 		return
@@ -603,19 +611,21 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 		log.Info("Signed desired root list", "hash", set.hash.Hex())
 	}
 
-	s.desired = set
-	s.desiredRootFeed.Send(set.copy())
-	s.db.saveDesiredRootSet(set)
-
 	s.proposed = set
 	s.db.saveProposedRootSet(set)
+	err = s.acceptProposedRootList(false)
+	if err != nil {
+		return nil, err
+	}
 
 	return set, nil
 }
 
-func (s *RootManager) acceptProposedRootList() error {
-	s.rootLock.Lock()
-	defer s.rootLock.Unlock()
+func (s *RootManager) acceptProposedRootList(lock bool) error {
+	if lock {
+		s.rootLock.Lock()
+		defer s.rootLock.Unlock()
+	}
 
 	if s.proposed == nil {
 		return errProposedRootListEmpty
