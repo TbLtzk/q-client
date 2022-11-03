@@ -153,14 +153,11 @@ func (s *RootManager) InitRegistry(reg *contracts.Registry) {
 
 func (s *RootManager) updateAliasesOfRootSets() {
 	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
-	s.active.validateSignatures()
 	if s.desired != nil {
 		s.desired.updateAliases(s.getAliasesOfRoots(s.desired.rootAddresses))
-		s.desired.validateSignatures()
 	}
 	if s.proposed != nil {
 		s.proposed.updateAliases(s.getAliasesOfRoots(s.proposed.rootAddresses))
-		s.proposed.validateSignatures()
 	}
 }
 
@@ -192,9 +189,11 @@ func (s *RootManager) ExclusionSetTimestamp() uint64 {
 	return s.activeExSet.timestamp
 }
 
-func (s *RootManager) isRootNode() bool {
-	s.rootLock.Lock()
-	defer s.rootLock.Unlock()
+func (s *RootManager) isRootNode(lock bool) bool {
+	if lock {
+		s.rootLock.Lock()
+		defer s.rootLock.Unlock()
+	}
 
 	return s.isMember(s.active.rootAddresses)
 }
@@ -219,7 +218,7 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 			continue
 		}
 
-		log.Info("Attempting to sign root set")
+		//log.Info("Attempting to sign root set")
 
 		isMember = true
 		signature, err := s.SignHash(accounts.Account{Address: aliasedAddr}, set.hash.Bytes())
@@ -252,9 +251,10 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 			continue
 		}
 
-		set.addSignature(aliasedAddr, signature)
-		isSigned = true
-		log.Info("Signed exclusion list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex())
+		isSigned = set.addSignature(aliasedAddr, signature)
+		if isSigned {
+			log.Info("Signed exclusion list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex())
+		}
 	}
 
 	return isSigned
@@ -471,7 +471,7 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 }
 
 func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, error) {
-	if !s.isRootNode() {
+	if !s.isRootNode(true) {
 		return nil, errNotRootNode
 	}
 
@@ -497,19 +497,23 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 
 	if s.getActiveRootSet(true).isEnoughExSetSignatures(set) {
 		s.upgradeExclusionSet(set)
-	} else {
-		s.desiredExSet = set
-		s.db.saveDesiredExclusionSet(set)
 	}
 
-	s.desiredExFeed.Send(set.copy())
+	s.proposedExSet = set
+	s.db.saveProposedExclusionSet(set)
+	err = s.acceptProposedExclusionList(false)
+	if err != nil {
+		return nil, err
+	}
 
 	return set, nil
 }
 
-func (s *RootManager) acceptProposedExclusionList() error {
-	s.exLock.Lock()
-	defer s.exLock.Unlock()
+func (s *RootManager) acceptProposedExclusionList(lock bool) error {
+	if lock {
+		s.exLock.Lock()
+		defer s.exLock.Unlock()
+	}
 
 	if s.proposedExSet == nil {
 		return errProposedExclusionListEmpty
@@ -553,6 +557,13 @@ func (s *RootManager) upgradeRootSet(set *rootSet) {
 	s.db.saveActiveRootSet(s.active)
 
 	log.Info("Upgraded root list", "hash", set.hash.Hex(), "timestamp", set.timestamp)
+
+	if s.proposed != nil && s.proposed.timestamp <= set.timestamp {
+		log.Info("Dropping obsolete proposed root set", "timestamp", set.timestamp)
+
+		s.proposed = nil
+		s.db.deleteProposedRootSet()
+	}
 
 	if s.desired == nil || s.desired.timestamp > set.timestamp {
 		return
@@ -600,17 +611,21 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 		log.Info("Signed desired root list", "hash", set.hash.Hex())
 	}
 
-	s.desired = set
-	s.desiredRootFeed.Send(set.copy())
-
-	s.db.saveDesiredRootSet(set)
+	s.proposed = set
+	s.db.saveProposedRootSet(set)
+	err = s.acceptProposedRootList(false)
+	if err != nil {
+		return nil, err
+	}
 
 	return set, nil
 }
 
-func (s *RootManager) acceptProposedRootList() error {
-	s.rootLock.Lock()
-	defer s.rootLock.Unlock()
+func (s *RootManager) acceptProposedRootList(lock bool) error {
+	if lock {
+		s.rootLock.Lock()
+		defer s.rootLock.Unlock()
+	}
 
 	if s.proposed == nil {
 		return errProposedRootListEmpty
@@ -761,10 +776,6 @@ func (s *RootManager) getOnchainRootSet(lock bool) *rootSet {
 		return nil
 	}
 	set.updateAliases(s.getAliasesOfRoots(set.rootAddresses))
-	errD := set.validateSignatures()
-	if errD != nil {
-		return nil
-	}
 
 	return set
 }
