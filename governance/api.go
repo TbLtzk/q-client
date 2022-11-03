@@ -49,7 +49,6 @@ func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList) (common.Hash
 		return common.Hash{}, errors.Wrap(err, "invalid root list")
 	}
 	set.updateAliases(a.gov.RootManager.getAliasesOfRoots(set.rootAddresses))
-	set.validateSignatures()
 
 	set, err = a.gov.RootManager.proposeRootSet(set)
 	if err != nil {
@@ -74,7 +73,7 @@ func (a *GovernanceAPI) ProposeOnchainRootList() (common.Hash, error) {
 }
 
 func (a *GovernanceAPI) AcceptProposedRootList() error {
-	return a.gov.RootManager.acceptProposedRootList()
+	return a.gov.RootManager.acceptProposedRootList(true)
 }
 
 func (a *GovernancePublicAPI) DiffRootList(nameA, nameB string) ([]DiffEntry, error) {
@@ -108,7 +107,7 @@ func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusio
 }
 
 func (a *GovernanceAPI) AcceptProposedExclusionList() error {
-	return a.gov.RootManager.acceptProposedExclusionList()
+	return a.gov.RootManager.acceptProposedExclusionList(true)
 }
 
 func (a *GovernancePublicAPI) DiffExclusionList(nameA, nameB string) ([]DiffEntry, error) {

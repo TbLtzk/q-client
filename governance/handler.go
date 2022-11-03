@@ -377,10 +377,6 @@ func (h *handler) handleRootListMsg(p *peer, msg p2p.Msg) error {
 		return err
 	}
 	received.updateAliases(h.rootManager.getAliasesOfRoots(received.rootAddresses))
-	errV := received.validateSignatures()
-	if errV != nil {
-		return errV
-	}
 
 	return h.handleRootSet(p, received)
 }
@@ -411,8 +407,12 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 		rm.upgradeRootSet(received)
 		h.rootEventCh <- &rootSetEvent{set: received}
 	case rm.active.hash == received.hash:
+		signatureAdded := false //In case when alias changed
+		if rm.isRootNode(false) {
+			signatureAdded = rm.signRootSet(rm.active)
+		}
 		newSignatures := rm.active.mergeSignatures(received.hash, received.signers)
-		if len(newSignatures) == 0 {
+		if len(newSignatures) == 0 && !signatureAdded {
 			return nil
 		}
 
@@ -510,15 +510,20 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			received.mergeSignatures(rm.desiredExSet.hash, rm.desiredExSet.signers)
 		}
 
-		if rm.isRootNode() {
+		if rm.isRootNode(false) {
 			rm.signExclusionSet(received)
 		}
 
 		rm.upgradeExclusionSet(received)
 		h.exEventCh <- &exclusionSetEvent{set: received}
 	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
+		//On very start of the node account can be not unlocked, so isRootNode can return false
+		signatureAdded := false //In case when alias changed
+		if rm.isRootNode(false) {
+			signatureAdded = rm.signExclusionSet(rm.activeExSet)
+		}
 		newSignatures := rm.activeExSet.mergeSignatures(received.hash, received.signers)
-		if len(newSignatures) == 0 {
+		if len(newSignatures) == 0 && !signatureAdded {
 			return nil
 		}
 
