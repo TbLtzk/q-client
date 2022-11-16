@@ -66,13 +66,14 @@ var (
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
+		BerlinBlock:         big.NewInt(5075000),
 		Clique: &CliqueConfig{
 			Period:         5,
 			Epoch:          101,
 			RewardReceiver: common.HexToAddress("0xc4D32b94f039991703b869AA8AcB1A354c32AFd1"),
 			Registry:       common.HexToAddress("0xc3E589056Ece16BCB88c6f9318e9a7343b663522"),
 		},
-		AthosBlock: nil,
+		AthosBlock: big.NewInt(5075000),
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -223,29 +224,6 @@ var (
 		Threshold: 2,
 	}
 
-	DevnetChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(35442),
-		HomesteadBlock:      big.NewInt(0),
-		EIP150Block:         big.NewInt(0),
-		EIP150Hash:          common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-		EIP155Block:         big.NewInt(0),
-		EIP158Block:         big.NewInt(0),
-		ByzantiumBlock:      big.NewInt(0),
-		ConstantinopleBlock: big.NewInt(0),
-		PetersburgBlock:     big.NewInt(0),
-		IstanbulBlock:       big.NewInt(0),
-		MuirGlacierBlock:    big.NewInt(0),
-		BerlinBlock:         big.NewInt(0),
-		LondonBlock:         big.NewInt(0),
-		Clique: &CliqueConfig{
-			Period:         5,
-			Epoch:          101,
-			RewardReceiver: common.HexToAddress("0xc4D32b94f039991703b869AA8AcB1A354c32AFd1"),
-			Registry:       common.HexToAddress("0xc3E589056Ece16BCB88c6f9318e9a7343b663522"),
-		},
-		AthosBlock: nil,
-	}
-
 	TestnetChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(35443),
 		HomesteadBlock:      big.NewInt(0),
@@ -257,13 +235,14 @@ var (
 		ConstantinopleBlock: big.NewInt(0),
 		PetersburgBlock:     big.NewInt(0),
 		IstanbulBlock:       big.NewInt(0),
+		BerlinBlock:         big.NewInt(3459000),
 		Clique: &CliqueConfig{
 			Period:         5,
 			Epoch:          101,
 			RewardReceiver: common.HexToAddress("0xc4D32b94f039991703b869AA8AcB1A354c32AFd1"),
 			Registry:       common.HexToAddress("0xc3E589056Ece16BCB88c6f9318e9a7343b663522"),
 		},
-		AthosBlock: nil,
+		AthosBlock: big.NewInt(3459000),
 	}
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced

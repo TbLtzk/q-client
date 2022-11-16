@@ -226,6 +226,9 @@ func (db *database) getLastApprovals() *common.RootNodeApprovalList {
 	if err != nil {
 		log.Crit("failed to get last root node approval block number", "err", err)
 	}
+	if bn == nil || bn.Uint64() == 0 {
+		return nil
+	}
 	wl, errWl := db.getApprovalRecordsByBlockNumber(bn)
 	if errWl != nil {
 		log.Crit("failed to get root node approvals by block number", "err", errWl)
