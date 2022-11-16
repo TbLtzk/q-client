@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/big"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -29,6 +30,7 @@ var (
 	errHashMismatch     = errors.New("hash mismatch")
 
 	errInvalidExclusionList          = errors.New("invalid exclusion list")
+	errInvalidExclusionListTimestamp = errors.New("invalid exclusion list timestamp")
 	errProposedExclusionListObsolete = errors.New("proposed exclusion list is obsolete")
 	errProposedExclusionListEmpty    = errors.New("proposed exclusion list is empty")
 
@@ -381,6 +383,8 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 				return fmt.Errorf("couldn't find any blocks in proposal for address %s", addr.String())
 			}
 
+			//TODO Passed range can be increased& its baad
+
 			for _, exBlockRange := range currentBanBlockRanges {
 				inNewSet := false
 
@@ -398,8 +402,16 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 							continue
 						}
 
+						//Attempt to reopen closed ban
+						if !exBlockRange.EndsInFuture(currentBlock.Uint64()) && newBlockRange.EndsInFuture(currentBlock.Uint64()) {
+							return fmt.Errorf("cannot reopen closed ban: %d - %d for address %s",
+								exBlockRange.StartAddress,
+								exBlockRange.EndAddress,
+								addr.String())
+						}
+
 						//Attempt to close existing range in past
-						if !exBlockRange.IsClosed() && !newBlockRange.EndsInFuture(currentBlock.Uint64()) {
+						if !newBlockRange.EndsInFuture(currentBlock.Uint64()) {
 							return fmt.Errorf("cannot close ban in past: %d - %d for address %s",
 								newBlockRange.StartAddress,
 								newBlockRange.EndAddress,
@@ -416,7 +428,6 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 						addr.String())
 				}
 			}
-
 		}
 	}
 
@@ -445,15 +456,13 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 				}
 			}
 
-			if !newBlockRange.IsClosed() && !newBlockRange.StartsInFuture(currentBlock.Uint64()) {
+			if !newBlockRange.StartsInFuture(currentBlock.Uint64()) {
 				inValidRanges := false
 
-				for _, validRange := range s.activeExSet.blockRanges {
-					for _, exBlockRange := range validRange {
-						if newBlockRange.StartsWithTheSameBlock(exBlockRange) {
-							inValidRanges = true
-							break
-						}
+				for _, exBlockRange := range s.activeExSet.blockRanges[addr] {
+					if newBlockRange.StartsWithTheSameBlock(exBlockRange) {
+						inValidRanges = true
+						break
 					}
 
 				}
@@ -482,6 +491,25 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 	olderThanDesired := s.desiredExSet != nil && set.timestamp <= s.desiredExSet.timestamp
 	if olderThanActive || olderThanDesired {
 		return nil, errProposedExclusionListObsolete
+	}
+
+	ts := []uint64{uint64(time.Now().UnixNano() / int64(time.Millisecond))}
+
+	if s.activeExSet != nil {
+		ts = append(ts, s.activeExSet.timestamp)
+	}
+	if s.desiredExSet != nil {
+		ts = append(ts, s.desiredExSet.timestamp)
+	}
+	if s.proposedExSet != nil {
+		ts = append(ts, s.proposedExSet.timestamp)
+	}
+	sort.Slice(ts, func(i int, j int) bool {
+		return ts[i] > ts[j]
+	})
+
+	if len(strconv.Itoa(int(set.timestamp))) != len(strconv.Itoa(int(ts[0]))) {
+		return nil, errInvalidExclusionListTimestamp
 	}
 
 	err := s.validateExclusionSet(set)
@@ -600,6 +628,25 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 
 	if set.timestamp <= s.active.timestamp || (s.desired != nil && set.timestamp <= s.desired.timestamp) {
 		return nil, errProposedRootListObsolete
+	}
+
+	ts := []uint64{uint64(time.Now().UnixNano() / int64(time.Millisecond))}
+
+	if s.active != nil {
+		ts = append(ts, s.active.timestamp)
+	}
+	if s.desired != nil {
+		ts = append(ts, s.desired.timestamp)
+	}
+	if s.proposed != nil {
+		ts = append(ts, s.proposed.timestamp)
+	}
+	sort.Slice(ts, func(i int, j int) bool {
+		return ts[i] > ts[j]
+	})
+
+	if len(strconv.Itoa(int(set.timestamp))) != len(strconv.Itoa(int(ts[0]))) {
+		return nil, errInvalidExclusionListTimestamp
 	}
 
 	err := s.validateRootSet(set.getAddresses(), false)

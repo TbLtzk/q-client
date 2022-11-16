@@ -583,6 +583,9 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 		log.Error("Received root node approval list contains invalid block number", "blockNumber", received.BlockNumber)
 		return errInvalidApprovalBlockNumber
 	}
+	if received.BlockNumber.Uint64() == 0 {
+		return nil
+	}
 
 	exApprovals, errEx := rm.db.getApprovalRecordsByBlockNumber(received.BlockNumber)
 	if errEx != nil {
