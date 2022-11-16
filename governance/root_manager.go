@@ -392,7 +392,7 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 					if exBlockRange.StartsWithTheSameBlock(newBlockRange) {
 
 						if !newBlockRange.IsValid() {
-							return fmt.Errorf("invalid block addresses in proposal: %d - %d for address %s", newBlockRange.StartAddress,
+							return fmt.Errorf("specified block range in proposal is invalid: %d - %d for address %s", newBlockRange.StartAddress,
 								newBlockRange.EndAddress,
 								addr.String())
 						}

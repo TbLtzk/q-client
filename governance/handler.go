@@ -405,6 +405,7 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 		}
 
 		rm.upgradeRootSet(received)
+
 		h.rootEventCh <- &rootSetEvent{set: received}
 	case rm.active.hash == received.hash:
 		signatureAdded := false //In case when alias changed
@@ -515,6 +516,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		}
 
 		rm.upgradeExclusionSet(received)
+
 		h.exEventCh <- &exclusionSetEvent{set: received}
 	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
 		//On very start of the node account can be not unlocked, so isRootNode can return false
