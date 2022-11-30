@@ -508,6 +508,7 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 }
 
 func (c *Clique) getValidatorList(number *big.Int, provider *generated.Validators) ([]common.Address, error) {
+	var err error
 	signers, err := provider.GetValidatorsList(nil)
 	if number != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
