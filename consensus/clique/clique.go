@@ -445,7 +445,6 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 	if number%c.config.Epoch == 0 && headerTime.After(exclusionTime) {
 		err = c.updateProposals(number, snap, chain.Config(), false)
 		if err != nil {
-			//panic(errors.Wrap(err, "failed to update proposals"))
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return err // todo wrap error
 		}
@@ -655,7 +654,8 @@ func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 	if signerListFromPast {
 		err := c.updateProposals(number, snap, chain.Config(), signerListFromPast)
 		if err != nil {
-			log.Error("Cannot get signer list from past", "err", err)
+			log.Error("failed to update proposals", "error", err, "step", "prepare")
+			return nil, err
 		}
 	}
 
@@ -870,6 +870,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 
 	err = c.updateProposals(number, snap, chain.Config(), false)
 	if err != nil {
+		log.Error("failed to update proposals", "error", err, "step", "prepare")
 		return err
 	}
 	if _, authorized := snap.Signers[signer]; !authorized {
