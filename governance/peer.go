@@ -218,7 +218,7 @@ func (p *peer) listenApprovals() {
 		case approval := <-p.approvalCh:
 			if p.version >= qgov3 {
 				if err := p.sendApprovalList(approval); err != nil {
-					p.Log().Error("failed to send approval", "err", err)
+					p.Log().Warn("failed to send approval", "err", err)
 				}
 			}
 		case <-p.done:
