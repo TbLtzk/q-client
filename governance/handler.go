@@ -233,11 +233,11 @@ func (h *handler) makeProtocol(version uint) p2p.Protocol {
 }
 
 func (h *handler) makeStatusBody(rm *RootManager) statusMsgBody {
-	rm.rootLock.Lock()
-	defer rm.rootLock.Unlock()
-
 	rm.exLock.Lock()
 	defer rm.exLock.Unlock()
+
+	rm.rootLock.Lock()
+	defer rm.rootLock.Unlock()
 
 	rm.active.aliases = rm.getAliasesOfRoots(rm.active.rootAddresses)
 	if rm.desired != nil {
