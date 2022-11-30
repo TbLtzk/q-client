@@ -94,24 +94,6 @@ func (ec *Client) BlockNumber(ctx context.Context) (uint64, error) {
 	return uint64(result), err
 }
 
-//func (ec *Client) OotStats(ctx context.Context, number *big.Int) (*clique.OutOfTurnStats, error) {
-//	var result *clique.OutOfTurnStats
-//	err := ec.c.CallContext(ctx, &result, "clique_getOutOfTurnStatsByNumber", toBlockNumArg(number))
-//	return result, err
-//}
-//
-//func (ec *Client) ValidatorMetrics(ctx context.Context, cycleSeqNumber uint64) ([]*clique.ValidatorMetrics, error) {
-//	var result []*clique.ValidatorMetrics
-//	err := ec.c.CallContext(ctx, &result, "clique_getValidatorsMetricsForCycle", cycleSeqNumber)
-//	return result, err
-//}
-//
-//func (ec *Client) EpochLength(ctx context.Context) (uint64, error) {
-//	var result uint64
-//	err := ec.c.CallContext(ctx, &result, "clique_getEpochLength")
-//	return result, err
-//}
-
 type rpcBlock struct {
 	Hash         common.Hash      `json:"hash"`
 	Transactions []rpcTransaction `json:"transactions"`
