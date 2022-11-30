@@ -475,7 +475,7 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 		return nil
 	}
 
-	signers, err := c.getValidatorList(big.NewInt(int64(-1)), provider)
+	signers, err := c.getValidatorList(nil, provider)
 	if signerListFromPast {
 		signers, err = c.getValidatorList(big.NewInt(int64(number)), provider)
 	}
@@ -509,8 +509,8 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 
 func (c *Clique) getValidatorList(number *big.Int, provider *generated.Validators) ([]common.Address, error) {
 	signers, err := provider.GetValidatorsList(nil)
-	if number.Int64() != -1 {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	if number != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		byteCode, err := c.registry.Backend.CodeAt(ctx, *c.registry.ValidatorsAddress(), number)
 		if err != nil {
