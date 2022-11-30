@@ -19,7 +19,6 @@ package clique
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"math/big"
@@ -508,27 +507,16 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 }
 
 func (c *Clique) getValidatorList(number *big.Int, provider *generated.Validators) ([]common.Address, error) {
-	var err error
-	signers, err := provider.GetValidatorsList(nil)
-	if number != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		byteCode, err := c.registry.Backend.CodeAt(ctx, *c.registry.ValidatorsAddress(), number)
-		if err != nil {
-			return nil, err
-		}
-		signers = []common.Address{}
-		if len(byteCode) != 0 {
-			signers, err = provider.GetValidatorsList(&bind.CallOpts{
-				BlockNumber: number,
-			})
-		}
+	signers, err := provider.GetValidatorsList(&bind.CallOpts{
+		BlockNumber: number,
+	})
+	if errors.Is(err, bind.ErrNoCode) {
+		return []common.Address{}, nil
 	}
 	if err != nil {
 		log.Error("failed to get validators list from smart contract", "error", err)
-		return nil, err // todo: wrap error
+		return nil, err
 	}
-
 	return signers, nil
 }
 
