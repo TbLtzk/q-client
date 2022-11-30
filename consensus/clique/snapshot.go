@@ -19,6 +19,7 @@ package clique
 import (
 	"bytes"
 	"encoding/json"
+	"math"
 	"sort"
 	"time"
 
@@ -203,6 +204,7 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 		start  = time.Now()
 		logged = time.Now()
 	)
+
 	for i, header := range headers {
 		// Remove any votes on checkpoint blocks
 		number := header.Number.Uint64()
@@ -216,8 +218,12 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 			snap.setSigners(signers)
 		}
 		// Delete the oldest signer from the recent list to allow it signing again
-		if limit := uint64(len(snap.Signers)/2 + 1); number >= limit {
-			delete(snap.Recents, number-limit)
+		if limit := uint64(math.Ceil(float64(len(snap.Signers)/2 + 1))); number >= limit {
+			for block := range snap.Recents {
+				if block < number-limit {
+					delete(snap.Recents, block)
+				}
+			}
 		}
 		// Resolve the authorization key and check against signers
 		signer, err := ecrecover(header, s.sigcache)
