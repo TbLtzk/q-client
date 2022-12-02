@@ -577,6 +577,7 @@ func min(a, b int64) int64 {
 // snapshot retrieves the authorization snapshot at a given point in time.
 func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash common.Hash, parents []*types.Header, signerListFromPast bool) (*Snapshot, error) {
 	// Search for a snapshot in memory or on disk for checkpoints
+	initialNumber := number
 	var (
 		headers []*types.Header
 		snap    *Snapshot
@@ -641,7 +642,8 @@ func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 	}
 
 	if signerListFromPast {
-		err := c.updateProposals(number, snap, chain.Config(), signerListFromPast)
+		err := c.updateProposals(initialNumber, snap, chain.Config(), signerListFromPast)
+		headers = []*types.Header{}
 		if err != nil {
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return nil, err
