@@ -581,6 +581,7 @@ func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 		headers []*types.Header
 		snap    *Snapshot
 	)
+	initialNumber := number
 	for snap == nil {
 		// If an in-memory snapshot was found, use that
 		if s, ok := c.recents.Get(hash); ok {
@@ -641,11 +642,22 @@ func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 	}
 
 	if signerListFromPast {
-		err := c.updateProposals(number, snap, chain.Config(), signerListFromPast)
+		checkpoint := chain.GetHeaderByNumber(number)
+		if checkpoint != nil {
+			hash := checkpoint.Hash()
+
+			signers := make([]common.Address, (len(checkpoint.Extra)-extraVanity-extraSeal)/common.AddressLength)
+			for i := 0; i < len(signers); i++ {
+				copy(signers[i][:], checkpoint.Extra[extraVanity+i*common.AddressLength:])
+			}
+			snap = newSnapshot(c.config, c.signatures, number, hash, signers)
+		}
+		err := c.updateProposals(initialNumber, snap, chain.Config(), signerListFromPast)
 		if err != nil {
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return nil, err
 		}
+		headers = []*types.Header{}
 	}
 
 	snap, err := snap.apply(headers)

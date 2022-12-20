@@ -471,7 +471,6 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 						newBlockRange.StartAddress,
 						newBlockRange.EndAddress,
 						addr.String())
-
 				}
 			}
 		}
@@ -493,7 +492,7 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 		return nil, errProposedExclusionListObsolete
 	}
 
-	ts := []uint64{uint64(time.Now().UnixNano() / int64(time.Millisecond))}
+	ts := []uint64{uint64(time.Now().Unix())}
 
 	if s.activeExSet != nil {
 		ts = append(ts, s.activeExSet.timestamp)
@@ -630,7 +629,7 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 		return nil, errProposedRootListObsolete
 	}
 
-	ts := []uint64{uint64(time.Now().UnixNano() / int64(time.Millisecond))}
+	ts := []uint64{uint64(time.Now().Unix())}
 
 	if s.active != nil {
 		ts = append(ts, s.active.timestamp)
