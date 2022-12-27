@@ -158,7 +158,9 @@ func (r *Registry) registry() *generated.ContractRegistry {
 	defer cancel()
 	code, err := r.Backend.CodeAt(ctx, r.addr, nil)
 	if err != nil {
-		log.Warn("failed to check if contract registry was deployed", "err", err)
+		//TODO consider a best way to do this - init registry after backend start
+		//otherwise it'll always fail until then
+		//log.Warn("failed to check if contract registry was deployed", "err", err)
 		return nil
 	}
 
