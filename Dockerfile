@@ -13,13 +13,13 @@ ARG BUILD_TOKEN
 ARG USERNAME=oauth2
 RUN git config --global url."https://${USERNAME}:${BUILD_TOKEN}@gitlab.com/".insteadOf https://gitlab.com/
 RUN go env -w GOPRIVATE=gitlab.com/q-dev/*
-RUN cd /q-client && make geth
+RUN cd /q-client && make all
 
 # Pull Geth into a second stage deploy alpine container
 FROM alpine:3.12.0
 
 RUN apk add --no-cache ca-certificates
-COPY --from=builder /q-client/build/bin/geth /usr/local/bin/
+COPY --from=builder /q-client/build/bin/* /usr/local/bin/
 
 EXPOSE 8545 8546 30303 30303/udp
 ENTRYPOINT ["geth"]

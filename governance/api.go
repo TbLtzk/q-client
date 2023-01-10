@@ -1,34 +1,45 @@
 package governance
 
 import (
+	"math/big"
+
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
 )
 
-// GovernanceAPI.
+// GovernanceAPI. (shouldn't be opened via http/ws)
 type GovernanceAPI struct {
+	*GovernancePublicAPI
+}
+
+// GovernanceExtAPI
+type GovernancePublicAPI struct {
 	gov *Governance
 }
 
 // NewGovernanceAPI.
-func NewGovernanceAPI(back *Governance) *GovernanceAPI {
-	return &GovernanceAPI{gov: back}
+func NewGovernanceAPI(back *Governance, extApi *GovernancePublicAPI) *GovernanceAPI {
+	return &GovernanceAPI{GovernancePublicAPI: extApi}
 }
 
-// ActiveRootList.
-func (a *GovernanceAPI) ActiveRootList() *RootList {
+// NewGovernancePublicAPI
+func NewGovernancePublicAPI(back *Governance) *GovernancePublicAPI {
+	return &GovernancePublicAPI{gov: back}
+}
+
+func (a *GovernancePublicAPI) ActiveRootList() *RootList {
 	return newRootList(a.gov.RootManager.getActiveRootSet(true))
 }
 
-func (a *GovernanceAPI) DesiredRootList() *RootList {
+func (a *GovernancePublicAPI) DesiredRootList() *RootList {
 	return newRootList(a.gov.RootManager.getDesiredRootSet(true))
 }
 
-func (a *GovernanceAPI) ProposedRootList() *RootList {
+func (a *GovernancePublicAPI) ProposedRootList() *RootList {
 	return newRootList(a.gov.RootManager.getProposedRootSet(true))
 }
 
-func (a *GovernanceAPI) OnchainRootList() *RootList {
+func (a *GovernancePublicAPI) OnchainRootList() *RootList {
 	return newRootList(a.gov.RootManager.getOnchainRootSet(true))
 }
 
@@ -38,7 +49,6 @@ func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList) (common.Hash
 		return common.Hash{}, errors.Wrap(err, "invalid root list")
 	}
 	set.updateAliases(a.gov.RootManager.getAliasesOfRoots(set.rootAddresses))
-	set.validateSignatures()
 
 	set, err = a.gov.RootManager.proposeRootSet(set)
 	if err != nil {
@@ -63,22 +73,22 @@ func (a *GovernanceAPI) ProposeOnchainRootList() (common.Hash, error) {
 }
 
 func (a *GovernanceAPI) AcceptProposedRootList() error {
-	return a.gov.RootManager.acceptProposedRootList()
+	return a.gov.RootManager.acceptProposedRootList(true)
 }
 
-func (a *GovernanceAPI) DiffRootList(nameA, nameB string) ([]DiffEntry, error) {
+func (a *GovernancePublicAPI) DiffRootList(nameA, nameB string) ([]DiffEntry, error) {
 	return a.gov.RootManager.diffRootListByName(nameA, nameB, true)
 }
 
-func (a *GovernanceAPI) ActiveExclusionList() *ExclusionList {
+func (a *GovernancePublicAPI) ActiveExclusionList() *ExclusionList {
 	return newExclusionList(a.gov.RootManager.getActiveExclusionSet())
 }
 
-func (a *GovernanceAPI) DesiredExclusionList() *ExclusionList {
+func (a *GovernancePublicAPI) DesiredExclusionList() *ExclusionList {
 	return newExclusionList(a.gov.RootManager.getDesiredExclusionSet())
 }
 
-func (a *GovernanceAPI) ProposedExclusionList() *ExclusionList {
+func (a *GovernancePublicAPI) ProposedExclusionList() *ExclusionList {
 	return newExclusionList(a.gov.RootManager.getProposedExclusionSet())
 }
 
@@ -97,11 +107,20 @@ func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusio
 }
 
 func (a *GovernanceAPI) AcceptProposedExclusionList() error {
-	return a.gov.RootManager.acceptProposedExclusionList()
+	return a.gov.RootManager.acceptProposedExclusionList(true)
 }
 
-func (a *GovernanceAPI) DiffExclusionList(nameA, nameB string) ([]DiffEntry, error) {
+func (a *GovernancePublicAPI) DiffExclusionList(nameA, nameB string) ([]DiffEntry, error) {
 	return a.gov.RootManager.diffExclusionListByName(nameA, nameB)
+}
+
+func (a *GovernanceAPI) GetRootNodeApprovals(blockNumber *big.Int, hash *common.Hash) (*[]common.RootNodeApproval, error) {
+	list, err := a.gov.RootManager.getActiveApprovalList(blockNumber, hash)
+	res := []common.RootNodeApproval{}
+	if list != nil {
+		res = list.Approvals
+	}
+	return &res, err
 }
 
 type RootList struct {

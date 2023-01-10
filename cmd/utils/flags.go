@@ -99,7 +99,10 @@ func printHelp(out io.Writer, templ string, data interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	w.Flush()
+	err = w.Flush()
+	if err != nil {
+		panic(err)
+	}
 }
 
 // These are all the command line flags we support.
@@ -808,6 +811,8 @@ var (
 		Name:  "catalyst",
 		Usage: "Catalyst mode (eth2 integration testing)",
 	}
+
+	ArchiveValue = "archive"
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -825,6 +830,9 @@ func MakeDataDir(ctx *cli.Context) string {
 		}
 		if ctx.GlobalBool(GoerliFlag.Name) {
 			return filepath.Join(path, "goerli")
+		}
+		if ctx.GlobalBool(TestnetFlag.Name) || ctx.GlobalBool(FischerFlag.Name) {
+			return filepath.Join(path, "qtestnet")
 		}
 		return path
 	}
@@ -991,11 +999,11 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	}
 
 	if ctx.GlobalIsSet(LegacyRPCApiFlag.Name) {
-		cfg.HTTPModules = filterProtectedAPIs(SplitAndTrim(ctx.GlobalString(LegacyRPCApiFlag.Name)), "http")
+		cfg.HTTPModules = filterProtectedAPIs(SplitAndTrim(ctx.GlobalString(LegacyRPCApiFlag.Name)), "http", ctx.GlobalString(GCModeFlag.Name))
 		log.Warn("The flag --rpcapi is deprecated and will be removed June 2021, please use --http.api")
 	}
 	if ctx.GlobalIsSet(HTTPApiFlag.Name) {
-		cfg.HTTPModules = filterProtectedAPIs(SplitAndTrim(ctx.GlobalString(HTTPApiFlag.Name)), "http")
+		cfg.HTTPModules = filterProtectedAPIs(SplitAndTrim(ctx.GlobalString(HTTPApiFlag.Name)), "http", ctx.GlobalString(GCModeFlag.Name))
 	}
 
 	if ctx.GlobalIsSet(LegacyRPCVirtualHostsFlag.Name) {
@@ -1015,7 +1023,7 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 }
 
 //Prevents opening gov api as external endpoint
-func filterProtectedAPIs(ret []string, ns string) []string {
+func filterProtectedAPIs(ret []string, ns string, gcmodevalue string) []string {
 	res := []string{}
 	for _, api := range ret {
 		if strings.TrimSpace(api) == "gov" {
@@ -1023,6 +1031,14 @@ func filterProtectedAPIs(ret []string, ns string) []string {
 			log.Error(fmt.Sprintf("The %s api flag `gov` is forbidden!", ns))
 			log.Error("This api shouldn't be opened as an external!")
 			log.Error("-------------------------------------------------------------------\n")
+			continue
+		}
+		if strings.TrimSpace(api) == "clique" && gcmodevalue != ArchiveValue {
+			log.Warn(GCModeFlag.Name)
+			log.Warn("-------------------------------------------------------------------")
+			log.Warn(fmt.Sprintf("The %s api flag `clique` is not recommended without the archive mode!", ns))
+			log.Warn("This api shouldn't be opened as an external!")
+			log.Warn("-------------------------------------------------------------------\n")
 			continue
 		}
 		res = append(res, api)
@@ -1059,7 +1075,7 @@ func setWS(ctx *cli.Context, cfg *node.Config) {
 	}
 
 	if ctx.GlobalIsSet(WSApiFlag.Name) {
-		cfg.WSModules = filterProtectedAPIs(SplitAndTrim(ctx.GlobalString(WSApiFlag.Name)), "ws")
+		cfg.WSModules = filterProtectedAPIs(SplitAndTrim(ctx.GlobalString(WSApiFlag.Name)), "ws", ctx.GlobalString(GCModeFlag.Name))
 	}
 
 	if ctx.GlobalIsSet(WSPathPrefixFlag.Name) {
@@ -1343,6 +1359,8 @@ func setDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "rinkeby")
 	case ctx.GlobalBool(GoerliFlag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "goerli")
+	case (ctx.GlobalBool(TestnetFlag.Name) || ctx.GlobalBool(FischerFlag.Name)) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "qtestnet")
 	}
 }
 
@@ -1571,10 +1589,10 @@ func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
-	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, RopstenFlag, RinkebyFlag, GoerliFlag)
+	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, RopstenFlag, RinkebyFlag, GoerliFlag, TestnetFlag, FischerFlag)
 	CheckExclusive(ctx, LightServeFlag, SyncModeFlag, "light")
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
-	if ctx.GlobalString(GCModeFlag.Name) == "archive" && ctx.GlobalUint64(TxLookupLimitFlag.Name) != 0 {
+	if ctx.GlobalString(GCModeFlag.Name) == ArchiveValue && ctx.GlobalUint64(TxLookupLimitFlag.Name) != 0 {
 		ctx.GlobalSet(TxLookupLimitFlag.Name, "0")
 		log.Warn("Disable transaction unindexing for archive node")
 	}
@@ -1627,11 +1645,11 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		cfg.DatabaseFreezer = ctx.GlobalString(AncientFlag.Name)
 	}
 
-	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
+	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != ArchiveValue {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	if ctx.GlobalIsSet(GCModeFlag.Name) {
-		cfg.NoPruning = ctx.GlobalString(GCModeFlag.Name) == "archive"
+		cfg.NoPruning = ctx.GlobalString(GCModeFlag.Name) == ArchiveValue
 	}
 	if ctx.GlobalIsSet(CacheNoPrefetchFlag.Name) {
 		cfg.NoPrefetch = ctx.GlobalBool(CacheNoPrefetchFlag.Name)
@@ -2008,14 +2026,14 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 			}, nil, false)
 		}
 	}
-	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
+	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != ArchiveValue {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
 		TrieCleanLimit:      ethconfig.Defaults.TrieCleanCache,
 		TrieCleanNoPrefetch: ctx.GlobalBool(CacheNoPrefetchFlag.Name),
 		TrieDirtyLimit:      ethconfig.Defaults.TrieDirtyCache,
-		TrieDirtyDisabled:   ctx.GlobalString(GCModeFlag.Name) == "archive",
+		TrieDirtyDisabled:   ctx.GlobalString(GCModeFlag.Name) == ArchiveValue,
 		TrieTimeLimit:       ethconfig.Defaults.TrieTimeout,
 		SnapshotLimit:       ethconfig.Defaults.SnapshotCache,
 		Preimages:           ctx.GlobalBool(CachePreimagesFlag.Name),

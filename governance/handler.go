@@ -1,7 +1,10 @@
 package governance
 
 import (
+	"bytes"
 	"sync"
+
+	"gitlab.com/q-dev/q-client/crypto"
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
@@ -20,9 +23,13 @@ type handler struct {
 	desiredExCh  chan *exclusionSet
 	desiredExSub event.Subscription
 
-	rootEventCh chan *rootSetEvent
-	exEventCh   chan *exclusionSetEvent
-	done        chan struct{}
+	rootEventCh     chan *rootSetEvent
+	exEventCh       chan *exclusionSetEvent
+	approvalEventCh chan *approvalEvent
+	done            chan struct{}
+
+	approvalCh  chan *common.RootNodeApprovalList
+	approvalSub event.Subscription
 
 	peerWG sync.WaitGroup
 	peers  *peerSet
@@ -35,6 +42,9 @@ func newHandler(rootManager *RootManager) *handler {
 	desiredExCh := make(chan *exclusionSet)
 	desiredExSub := rootManager.desiredExFeed.Subscribe(desiredExCh)
 
+	approvalCh := make(chan *common.RootNodeApprovalList)
+	approvalSub := rootManager.approvalFeed.Subscribe(approvalCh)
+
 	return &handler{
 		rootManager: rootManager,
 
@@ -44,9 +54,13 @@ func newHandler(rootManager *RootManager) *handler {
 		desiredExCh:  desiredExCh,
 		desiredExSub: desiredExSub,
 
-		rootEventCh: make(chan *rootSetEvent),
-		exEventCh:   make(chan *exclusionSetEvent),
-		done:        make(chan struct{}),
+		rootEventCh:     make(chan *rootSetEvent),
+		exEventCh:       make(chan *exclusionSetEvent),
+		approvalEventCh: make(chan *approvalEvent),
+		done:            make(chan struct{}),
+
+		approvalCh:  approvalCh,
+		approvalSub: approvalSub,
 
 		peerWG: sync.WaitGroup{},
 		peers:  newPeerSet(),
@@ -59,6 +73,9 @@ func (h *handler) run() {
 
 	go h.listenForDesiredExclusionList()
 	go h.broadcastExclusionSets()
+
+	go h.listenForRNApprovals()
+	go h.broadcastApprovals()
 }
 
 type rootSetEvent struct {
@@ -69,6 +86,11 @@ type rootSetEvent struct {
 type exclusionSetEvent struct {
 	fromID string
 	set    *exclusionSet
+}
+
+type approvalEvent struct {
+	fromID   string
+	approval *common.RootNodeApprovalList
 }
 
 func (h *handler) listenForDesiredRootList() {
@@ -139,6 +161,46 @@ func (h *handler) broadcastExclusionSets() {
 	}
 }
 
+func (h *handler) listenForRNApprovals() {
+	for {
+		select {
+		case approval := <-h.approvalCh:
+			for _, p := range h.peers.all() {
+				if p.version < qgov3 {
+					continue
+				}
+				log.Debug("Sending approval list root node approvals", "to", p.id)
+				p.asyncSendApprovals(approval)
+			}
+		case err := <-h.approvalSub.Err():
+			log.Debug("no new approvals", "err", err)
+			return
+		case <-h.done:
+			return
+		}
+	}
+}
+
+func (h *handler) broadcastApprovals() {
+	for {
+		select {
+		case msg := <-h.approvalEventCh:
+			for _, p := range h.peers.all() {
+				if p.version < qgov3 {
+					continue
+				}
+				if msg.fromID == p.id {
+					continue
+				}
+
+				p.asyncSendApprovals(msg.approval)
+			}
+		case <-h.done:
+			return
+		}
+	}
+}
+
 func (h *handler) stop() {
 	h.peers.close()
 	h.peerWG.Wait()
@@ -171,11 +233,11 @@ func (h *handler) makeProtocol(version uint) p2p.Protocol {
 }
 
 func (h *handler) makeStatusBody(rm *RootManager) statusMsgBody {
-	rm.rootLock.Lock()
-	defer rm.rootLock.Unlock()
-
 	rm.exLock.Lock()
 	defer rm.exLock.Unlock()
+
+	rm.rootLock.Lock()
+	defer rm.rootLock.Unlock()
 
 	rm.active.aliases = rm.getAliasesOfRoots(rm.active.rootAddresses)
 	if rm.desired != nil {
@@ -219,6 +281,10 @@ func (h *handler) runPeer(p *peer) error {
 	h.propagateExclusionSet(status.desiredExSet)
 	h.propagateExclusionSet(status.proposedExSet)
 	h.propagateExclusionSet(status.currentExSet)
+
+	if p.version >= qgov3 {
+		h.propagateApprovals(rm.db.getLastApprovals())
+	}
 
 	h.peers.register(p)
 	defer h.peers.unregister(p)
@@ -268,6 +334,12 @@ func (h *handler) propagateExclusionSet(set *exclusionSet) {
 	}
 }
 
+func (h *handler) propagateApprovals(approvals *common.RootNodeApprovalList) {
+	if approvals != nil {
+		h.approvalEventCh <- &approvalEvent{approval: approvals}
+	}
+}
+
 func (h *handler) handleMsg(p *peer) error {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
@@ -287,6 +359,8 @@ func (h *handler) handleMsg(p *peer) error {
 		return h.handleRootListMsg(p, msg)
 	case ExclusionListMsg:
 		return h.handleExclusionList(p, msg)
+	case ApprovalMsg:
+		return h.handleApprovalMsg(p, msg)
 	default:
 		return errors.New("unknown msg code")
 	}
@@ -303,12 +377,18 @@ func (h *handler) handleRootListMsg(p *peer, msg p2p.Msg) error {
 		return err
 	}
 	received.updateAliases(h.rootManager.getAliasesOfRoots(received.rootAddresses))
-	errV := received.validateSignatures()
-	if errV != nil {
-		return errV
-	}
 
 	return h.handleRootSet(p, received)
+}
+
+func (h *handler) handleApprovalMsg(p *peer, msg p2p.Msg) error {
+	var approval common.RootNodeApprovalList
+	if err := msg.Decode(&approval); err != nil {
+		return err
+	}
+
+	received := approval
+	return h.handleIncomingApproval(p, &received)
 }
 
 func (h *handler) handleRootSet(p *peer, received *rootSet) error {
@@ -325,10 +405,15 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 		}
 
 		rm.upgradeRootSet(received)
+
 		h.rootEventCh <- &rootSetEvent{set: received}
 	case rm.active.hash == received.hash:
+		signatureAdded := false //In case when alias changed
+		if rm.isRootNode(false) {
+			signatureAdded = rm.signRootSet(rm.active)
+		}
 		newSignatures := rm.active.mergeSignatures(received.hash, received.signers)
-		if len(newSignatures) == 0 {
+		if len(newSignatures) == 0 && !signatureAdded {
 			return nil
 		}
 
@@ -426,15 +511,21 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			received.mergeSignatures(rm.desiredExSet.hash, rm.desiredExSet.signers)
 		}
 
-		if rm.isRootNode() {
+		if rm.isRootNode(false) {
 			rm.signExclusionSet(received)
 		}
 
 		rm.upgradeExclusionSet(received)
+
 		h.exEventCh <- &exclusionSetEvent{set: received}
 	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
+		//On very start of the node account can be not unlocked, so isRootNode can return false
+		signatureAdded := false //In case when alias changed
+		if rm.isRootNode(false) {
+			signatureAdded = rm.signExclusionSet(rm.activeExSet)
+		}
 		newSignatures := rm.activeExSet.mergeSignatures(received.hash, received.signers)
-		if len(newSignatures) == 0 {
+		if len(newSignatures) == 0 && !signatureAdded {
 			return nil
 		}
 
@@ -473,6 +564,75 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		rm.db.saveProposedExclusionSet(rm.proposedExSet)
 
 		log.Warn("Received a new proposed exclusion list", "hash", received.hash.Hex(), "timestamp", received.timestamp)
+	}
+
+	return nil
+}
+
+func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeApprovalList) error {
+	rm := h.rootManager
+	rm.approvalLock.Lock()
+	defer rm.approvalLock.Unlock()
+
+	if received == nil {
+		return errProposedApprovalListEmpty
+	}
+	if rm == nil || rm.bc == nil {
+		return nil
+	}
+
+	if received.BlockNumber.Uint64()%rm.bc.Config().Clique.Epoch != 0 {
+		log.Error("Received root node approval list contains invalid block number", "blockNumber", received.BlockNumber)
+		return errInvalidApprovalBlockNumber
+	}
+	if received.BlockNumber.Uint64() == 0 {
+		return nil
+	}
+
+	exApprovals, errEx := rm.db.getApprovalRecordsByBlockNumber(received.BlockNumber)
+	if errEx != nil {
+		return errEx
+	}
+
+	for _, approval := range received.Approvals {
+
+		pubkey, err := crypto.SigToPub(approval.Hash.Bytes(), approval.Signature)
+		if err != nil {
+			return errInvalidSignature
+		}
+
+		addr := crypto.PubkeyToAddress(*pubkey)
+
+		//TODO Refactor
+		ok := false
+		for address, alias := range rm.active.aliases {
+			if address == addr || alias == addr {
+				ok = true
+				break
+			}
+		}
+
+		if !ok {
+			continue
+		}
+
+		approvalExists := false
+		for _, exApproval := range exApprovals {
+			if bytes.Equal(approval.Signature, exApproval.Signature) {
+				log.Debug("Received root node approval already exists in the DB, skipping", "addr", approval.Signer.String())
+				approvalExists = true
+				break
+			}
+		}
+		if approvalExists {
+			continue
+		}
+
+		if errSave := rm.db.saveApprovalRecord(approval); errSave != nil {
+			return errSave
+		}
+
+		h.approvalEventCh <- &approvalEvent{fromID: p.id, approval: received}
 	}
 
 	return nil

@@ -31,6 +31,7 @@ var Modules = map[string]string{
 	"les":      LESJs,
 	"vflux":    VfluxJs,
 	"gov":      GovJs,
+	"govPub":   GovPublicJs,
 }
 
 const CliqueJs = `
@@ -675,6 +676,66 @@ web3._extend({
 	    new web3._extend.Method({
 			name: 'diffExclusionList',
 			call: 'gov_diffExclusionList',
+			params: 2
+		}),
+	    new web3._extend.Method({
+			name: 'getRootNodeApprovals',
+			call: 'gov_getRootNodeApprovals',
+			params: 2,
+			inputFormatter: [null, null]
+		}),
+    ],
+	properties: []
+});
+`
+
+const GovPublicJs = `
+web3._extend({
+	property: 'govPub',
+	methods: [
+        new web3._extend.Method({
+			name: 'activeRootList',
+			call: 'govPub_activeRootList',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'desiredRootList',
+			call: 'govPub_desiredRootList',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'proposedRootList',
+			call: 'govPub_proposedRootList',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'onchainRootList',
+			call: 'govPub_onchainRootList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'diffRootList',
+			call: 'govPub_diffRootList',
+			params: 2
+		}),
+	    new web3._extend.Method({
+			name: 'activeExclusionList',
+			call: 'govPub_activeExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'desiredExclusionList',
+			call: 'govPub_desiredExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'proposedExclusionList',
+			call: 'govPub_proposedExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'diffExclusionList',
+			call: 'govPub_diffExclusionList',
 			params: 2
 		}),
     ],

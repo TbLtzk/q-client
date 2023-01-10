@@ -19,7 +19,6 @@ package clique
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -28,8 +27,9 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
-
+	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/accounts"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus"
@@ -44,6 +44,7 @@ import (
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/trie"
+	"gitlab.com/q-dev/system-contracts/generated"
 	"golang.org/x/crypto/sha3"
 
 	_ "gitlab.com/q-dev/q-client/accounts/keystore"
@@ -181,10 +182,15 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 type ExclusionSetProvider interface {
 	ExclusionSetValidators() map[common.Address][]common.BlockRange
 	ExclusionSetTimestamp() uint64
+	HandleTransitionBlockSignature(header *types.Header)
 }
 
 // NoopExclusionSetProvider is needed for testing.
 type NoopExclusionSetProvider struct{}
+
+func (p *NoopExclusionSetProvider) HandleTransitionBlockSignature(header *types.Header) {
+
+}
 
 func (p *NoopExclusionSetProvider) ExclusionSetValidators() map[common.Address][]common.BlockRange {
 	return make(map[common.Address][]common.BlockRange)
@@ -424,7 +430,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		return err
 	}
 	// Retrieve the snapshot needed to verify this header and cache it
-	snap, err := c.snapshot(chain, number-1, header.ParentHash, parents)
+	snap, err := c.snapshot(chain, number-1, header.ParentHash, parents, false)
 	if err != nil {
 		return err
 	}
@@ -436,7 +442,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		exclusionTime = time.Unix(int64(c.exclusionSetProvider.ExclusionSetTimestamp()), 0)
 	}
 	if number%c.config.Epoch == 0 && headerTime.After(exclusionTime) {
-		err = c.updateProposals(number, snap, chain.Config())
+		err = c.updateProposals(number, snap, chain.Config(), false)
 		if err != nil {
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return err // todo wrap error
@@ -455,7 +461,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 	return c.verifySeal(chain, header, parents)
 }
 
-func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *params.ChainConfig) error {
+func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *params.ChainConfig, signerListFromPast bool) error {
 	if c.exclusionSetProvider == nil {
 		return nil
 	}
@@ -468,10 +474,12 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 		return nil
 	}
 
-	signers, err := provider.GetValidatorsList(nil)
+	signers, err := c.getValidatorList(nil, provider)
+	if signerListFromPast {
+		signers, err = c.getValidatorList(big.NewInt(int64(number)), provider)
+	}
 	if err != nil {
-		log.Error("failed to get validators list from smart contract", "error", err)
-		return err // todo: wrap error
+		return err
 	}
 
 	// this can happen when 'validators' contract is deployed but is empty
@@ -496,6 +504,20 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 	}
 
 	return nil
+}
+
+func (c *Clique) getValidatorList(number *big.Int, provider *generated.Validators) ([]common.Address, error) {
+	signers, err := provider.GetValidatorsList(&bind.CallOpts{
+		BlockNumber: number,
+	})
+	if errors.Is(err, bind.ErrNoCode) {
+		return []common.Address{}, nil
+	}
+	if err != nil {
+		log.Error("failed to get validators list from smart contract", "error", err)
+		return nil, err
+	}
+	return signers, nil
 }
 
 func (c *Clique) aliasAccounts(filtered []common.Address, isAthos bool) []common.Address {
@@ -553,12 +575,13 @@ func min(a, b int64) int64 {
 }
 
 // snapshot retrieves the authorization snapshot at a given point in time.
-func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash common.Hash, parents []*types.Header) (*Snapshot, error) {
+func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash common.Hash, parents []*types.Header, signerListFromPast bool) (*Snapshot, error) {
 	// Search for a snapshot in memory or on disk for checkpoints
 	var (
 		headers []*types.Header
 		snap    *Snapshot
 	)
+	initialNumber := number
 	for snap == nil {
 		// If an in-memory snapshot was found, use that
 		if s, ok := c.recents.Get(hash); ok {
@@ -617,6 +640,26 @@ func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 	for i := 0; i < len(headers)/2; i++ {
 		headers[i], headers[len(headers)-1-i] = headers[len(headers)-1-i], headers[i]
 	}
+
+	if signerListFromPast {
+		checkpoint := chain.GetHeaderByNumber(number)
+		if checkpoint != nil {
+			hash := checkpoint.Hash()
+
+			signers := make([]common.Address, (len(checkpoint.Extra)-extraVanity-extraSeal)/common.AddressLength)
+			for i := 0; i < len(signers); i++ {
+				copy(signers[i][:], checkpoint.Extra[extraVanity+i*common.AddressLength:])
+			}
+			snap = newSnapshot(c.config, c.signatures, number, hash, signers)
+		}
+		err := c.updateProposals(initialNumber, snap, chain.Config(), signerListFromPast)
+		if err != nil {
+			log.Error("failed to update proposals", "error", err, "step", "prepare")
+			return nil, err
+		}
+		headers = []*types.Header{}
+	}
+
 	snap, err := snap.apply(headers)
 	if err != nil {
 		return nil, err
@@ -653,12 +696,12 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 		return errUnknownBlock
 	}
 	// Retrieve the snapshot needed to verify this header and cache it
-	snap, err := c.snapshot(chain, number-1, header.ParentHash, parents)
+	snap, err := c.snapshot(chain, number-1, header.ParentHash, parents, false)
 	if err != nil {
 		return err
 	}
 
-	err = c.updateProposals(number, snap, chain.Config())
+	err = c.updateProposals(number, snap, chain.Config(), false)
 	if err != nil {
 		log.Error("failed to update proposals", "error", err, "step", "prepare")
 		return err // todo wrap error
@@ -691,6 +734,10 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 			return errWrongDifficulty
 		}
 	}
+
+	if number%c.config.Epoch == 0 {
+		c.exclusionSetProvider.HandleTransitionBlockSignature(header)
+	}
 	return nil
 }
 
@@ -703,12 +750,12 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	number := header.Number.Uint64()
 
 	// Assemble the voting snapshot to check which votes make sense
-	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil)
+	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil, false)
 	if err != nil {
 		return err
 	}
 
-	err = c.updateProposals(number, snap, chain.Config())
+	err = c.updateProposals(number, snap, chain.Config(), false)
 	if err != nil {
 		log.Error("failed to update proposals", "error", err, "step", "prepare")
 		return err // todo wrap error
@@ -769,7 +816,7 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given.
 func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) {
-	c.accumulateRewards(state, header)
+	c.accumulateRewards(state)
 
 	// No block rewards in PoA, so the state remains as is and uncles are dropped
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
@@ -817,12 +864,16 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 	c.lock.RUnlock()
 
 	// Bail out if we're unauthorized to sign a block
-	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil)
+	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil, false)
 	if err != nil {
 		return err
 	}
 
-	c.updateProposals(number, snap, chain.Config())
+	err = c.updateProposals(number, snap, chain.Config(), false)
+	if err != nil {
+		log.Error("failed to update proposals", "error", err, "step", "prepare")
+		return err
+	}
 	if _, authorized := snap.Signers[signer]; !authorized {
 		return errUnauthorizedSigner
 	}
@@ -867,6 +918,10 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 		}
 	}()
 
+	if number%c.config.Epoch == 0 {
+		c.exclusionSetProvider.HandleTransitionBlockSignature(header)
+	}
+
 	return nil
 }
 
@@ -875,7 +930,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 // * DIFF_NOTURN(2) if BLOCK_NUMBER % SIGNER_COUNT != SIGNER_INDEX
 // * DIFF_INTURN(1) if BLOCK_NUMBER % SIGNER_COUNT == SIGNER_INDEX
 func (c *Clique) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, parent *types.Header) *big.Int {
-	snap, err := c.snapshot(chain, parent.Number.Uint64(), parent.Hash(), nil)
+	snap, err := c.snapshot(chain, parent.Number.Uint64(), parent.Hash(), nil, false)
 	if err != nil {
 		return nil
 	}
@@ -961,7 +1016,7 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 }
 
 // AccumulateRewards credits the coinbase of the given block with the mining reward
-func (c *Clique) accumulateRewards(state *state.StateDB, header *types.Header) {
+func (c *Clique) accumulateRewards(state *state.StateDB) {
 	receiver := c.registry.RewardReceiver()
 	state.AddBalance(receiver, CliqueBlockReward)
 

@@ -5,10 +5,14 @@ import (
 	"math"
 	"math/big"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/eth/downloader"
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/accounts"
@@ -26,12 +30,17 @@ var (
 	errHashMismatch     = errors.New("hash mismatch")
 
 	errInvalidExclusionList          = errors.New("invalid exclusion list")
+	errInvalidExclusionListTimestamp = errors.New("invalid exclusion list timestamp")
 	errProposedExclusionListObsolete = errors.New("proposed exclusion list is obsolete")
 	errProposedExclusionListEmpty    = errors.New("proposed exclusion list is empty")
 
 	errProposedRootListObsolete = errors.New("proposed root list is obsolete")
 	errProposedRootListEmpty    = errors.New("proposed root list is empty")
 	errRootManagerCannotSign    = errors.New("RootManager cannot sign hash")
+
+	//errInvalidApprovalList        = errors.New("invalid approval list")
+	errProposedApprovalListEmpty  = errors.New("proposed approval list is empty")
+	errInvalidApprovalBlockNumber = errors.New("proposed approval list contains wrong block number")
 )
 
 // RootManager stores root and exclusion lists.
@@ -57,9 +66,13 @@ type RootManager struct {
 	desiredExSet  *exclusionSet
 	proposedExSet *exclusionSet
 
+	approvalLock sync.Mutex
+	approvalFeed *event.Feed
+
 	// initialized externally
 	bc  *core.BlockChain
 	reg *contracts.Registry
+	dl  *downloader.Downloader
 }
 
 // Config of root manager
@@ -120,9 +133,15 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 		activeExSet:   db.getActiveExclusionSet(),
 		desiredExSet:  db.getDesiredExclusionSet(),
 		proposedExSet: db.getProposedExclusionSet(),
+
+		approvalFeed: &event.Feed{},
 	}
 
 	return manager, nil
+}
+
+func (s *RootManager) InitDownloader(dl *downloader.Downloader) {
+	s.dl = dl
 }
 
 func (s *RootManager) InitBlockChain(bc *core.BlockChain) {
@@ -136,14 +155,11 @@ func (s *RootManager) InitRegistry(reg *contracts.Registry) {
 
 func (s *RootManager) updateAliasesOfRootSets() {
 	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
-	s.active.validateSignatures()
 	if s.desired != nil {
 		s.desired.updateAliases(s.getAliasesOfRoots(s.desired.rootAddresses))
-		s.desired.validateSignatures()
 	}
 	if s.proposed != nil {
 		s.proposed.updateAliases(s.getAliasesOfRoots(s.proposed.rootAddresses))
-		s.proposed.validateSignatures()
 	}
 }
 
@@ -175,9 +191,11 @@ func (s *RootManager) ExclusionSetTimestamp() uint64 {
 	return s.activeExSet.timestamp
 }
 
-func (s *RootManager) isRootNode() bool {
-	s.rootLock.Lock()
-	defer s.rootLock.Unlock()
+func (s *RootManager) isRootNode(lock bool) bool {
+	if lock {
+		s.rootLock.Lock()
+		defer s.rootLock.Unlock()
+	}
 
 	return s.isMember(s.active.rootAddresses)
 }
@@ -202,7 +220,7 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 			continue
 		}
 
-		log.Info("Attempting to sign root set")
+		//log.Info("Attempting to sign root set")
 
 		isMember = true
 		signature, err := s.SignHash(accounts.Account{Address: aliasedAddr}, set.hash.Bytes())
@@ -235,9 +253,10 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 			continue
 		}
 
-		set.addSignature(aliasedAddr, signature)
-		isSigned = true
-		log.Info("Signed exclusion list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex())
+		isSigned = set.addSignature(aliasedAddr, signature)
+		if isSigned {
+			log.Info("Signed exclusion list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex())
+		}
 	}
 
 	return isSigned
@@ -364,6 +383,8 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 				return fmt.Errorf("couldn't find any blocks in proposal for address %s", addr.String())
 			}
 
+			//TODO Passed range can be increased& its baad
+
 			for _, exBlockRange := range currentBanBlockRanges {
 				inNewSet := false
 
@@ -371,7 +392,7 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 					if exBlockRange.StartsWithTheSameBlock(newBlockRange) {
 
 						if !newBlockRange.IsValid() {
-							return fmt.Errorf("invalid block addresses in proposal: %d - %d for address %s", newBlockRange.StartAddress,
+							return fmt.Errorf("specified block range in proposal is invalid: %d - %d for address %s", newBlockRange.StartAddress,
 								newBlockRange.EndAddress,
 								addr.String())
 						}
@@ -381,8 +402,16 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 							continue
 						}
 
+						//Attempt to reopen closed ban
+						if !exBlockRange.EndsInFuture(currentBlock.Uint64()) && newBlockRange.EndsInFuture(currentBlock.Uint64()) {
+							return fmt.Errorf("cannot reopen closed ban: %d - %d for address %s",
+								exBlockRange.StartAddress,
+								exBlockRange.EndAddress,
+								addr.String())
+						}
+
 						//Attempt to close existing range in past
-						if !exBlockRange.IsClosed() && !newBlockRange.EndsInFuture(currentBlock.Uint64()) {
+						if !newBlockRange.EndsInFuture(currentBlock.Uint64()) {
 							return fmt.Errorf("cannot close ban in past: %d - %d for address %s",
 								newBlockRange.StartAddress,
 								newBlockRange.EndAddress,
@@ -399,7 +428,6 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 						addr.String())
 				}
 			}
-
 		}
 	}
 
@@ -428,15 +456,13 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 				}
 			}
 
-			if !newBlockRange.IsClosed() && !newBlockRange.StartsInFuture(currentBlock.Uint64()) {
+			if !newBlockRange.StartsInFuture(currentBlock.Uint64()) {
 				inValidRanges := false
 
-				for _, validRange := range s.activeExSet.blockRanges {
-					for _, exBlockRange := range validRange {
-						if newBlockRange.StartsWithTheSameBlock(exBlockRange) {
-							inValidRanges = true
-							break
-						}
+				for _, exBlockRange := range s.activeExSet.blockRanges[addr] {
+					if newBlockRange.StartsWithTheSameBlock(exBlockRange) {
+						inValidRanges = true
+						break
 					}
 
 				}
@@ -445,7 +471,6 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 						newBlockRange.StartAddress,
 						newBlockRange.EndAddress,
 						addr.String())
-
 				}
 			}
 		}
@@ -454,7 +479,7 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 }
 
 func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, error) {
-	if !s.isRootNode() {
+	if !s.isRootNode(true) {
 		return nil, errNotRootNode
 	}
 
@@ -465,6 +490,25 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 	olderThanDesired := s.desiredExSet != nil && set.timestamp <= s.desiredExSet.timestamp
 	if olderThanActive || olderThanDesired {
 		return nil, errProposedExclusionListObsolete
+	}
+
+	ts := []uint64{uint64(time.Now().Unix())}
+
+	if s.activeExSet != nil {
+		ts = append(ts, s.activeExSet.timestamp)
+	}
+	if s.desiredExSet != nil {
+		ts = append(ts, s.desiredExSet.timestamp)
+	}
+	if s.proposedExSet != nil {
+		ts = append(ts, s.proposedExSet.timestamp)
+	}
+	sort.Slice(ts, func(i int, j int) bool {
+		return ts[i] > ts[j]
+	})
+
+	if len(strconv.Itoa(int(set.timestamp))) != len(strconv.Itoa(int(ts[0]))) {
+		return nil, errInvalidExclusionListTimestamp
 	}
 
 	err := s.validateExclusionSet(set)
@@ -480,19 +524,23 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 
 	if s.getActiveRootSet(true).isEnoughExSetSignatures(set) {
 		s.upgradeExclusionSet(set)
-	} else {
-		s.desiredExSet = set
-		s.db.saveDesiredExclusionSet(set)
 	}
 
-	s.desiredExFeed.Send(set.copy())
+	s.proposedExSet = set
+	s.db.saveProposedExclusionSet(set)
+	err = s.acceptProposedExclusionList(false)
+	if err != nil {
+		return nil, err
+	}
 
 	return set, nil
 }
 
-func (s *RootManager) acceptProposedExclusionList() error {
-	s.exLock.Lock()
-	defer s.exLock.Unlock()
+func (s *RootManager) acceptProposedExclusionList(lock bool) error {
+	if lock {
+		s.exLock.Lock()
+		defer s.exLock.Unlock()
+	}
 
 	if s.proposedExSet == nil {
 		return errProposedExclusionListEmpty
@@ -537,6 +585,13 @@ func (s *RootManager) upgradeRootSet(set *rootSet) {
 
 	log.Info("Upgraded root list", "hash", set.hash.Hex(), "timestamp", set.timestamp)
 
+	if s.proposed != nil && s.proposed.timestamp <= set.timestamp {
+		log.Info("Dropping obsolete proposed root set", "timestamp", set.timestamp)
+
+		s.proposed = nil
+		s.db.deleteProposedRootSet()
+	}
+
 	if s.desired == nil || s.desired.timestamp > set.timestamp {
 		return
 	}
@@ -574,6 +629,25 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 		return nil, errProposedRootListObsolete
 	}
 
+	ts := []uint64{uint64(time.Now().Unix())}
+
+	if s.active != nil {
+		ts = append(ts, s.active.timestamp)
+	}
+	if s.desired != nil {
+		ts = append(ts, s.desired.timestamp)
+	}
+	if s.proposed != nil {
+		ts = append(ts, s.proposed.timestamp)
+	}
+	sort.Slice(ts, func(i int, j int) bool {
+		return ts[i] > ts[j]
+	})
+
+	if len(strconv.Itoa(int(set.timestamp))) != len(strconv.Itoa(int(ts[0]))) {
+		return nil, errInvalidExclusionListTimestamp
+	}
+
 	err := s.validateRootSet(set.getAddresses(), false)
 	if err != nil {
 		return nil, err
@@ -583,17 +657,21 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 		log.Info("Signed desired root list", "hash", set.hash.Hex())
 	}
 
-	s.desired = set
-	s.desiredRootFeed.Send(set.copy())
-
-	s.db.saveDesiredRootSet(set)
+	s.proposed = set
+	s.db.saveProposedRootSet(set)
+	err = s.acceptProposedRootList(false)
+	if err != nil {
+		return nil, err
+	}
 
 	return set, nil
 }
 
-func (s *RootManager) acceptProposedRootList() error {
-	s.rootLock.Lock()
-	defer s.rootLock.Unlock()
+func (s *RootManager) acceptProposedRootList(lock bool) error {
+	if lock {
+		s.rootLock.Lock()
+		defer s.rootLock.Unlock()
+	}
 
 	if s.proposed == nil {
 		return errProposedRootListEmpty
@@ -744,10 +822,6 @@ func (s *RootManager) getOnchainRootSet(lock bool) *rootSet {
 		return nil
 	}
 	set.updateAliases(s.getAliasesOfRoots(set.rootAddresses))
-	errD := set.validateSignatures()
-	if errD != nil {
-		return nil
-	}
 
 	return set
 }
@@ -795,6 +869,38 @@ func (s *RootManager) getActiveExclusionSet() *exclusionSet {
 	return s.activeExSet.copy()
 }
 
+func (s *RootManager) getActiveApprovalList(blockNumber *big.Int, hash *common.Hash) (*common.RootNodeApprovalList, error) {
+	s.approvalLock.Lock()
+	defer s.approvalLock.Unlock()
+
+	switch {
+	case blockNumber != nil && hash != nil:
+		return &common.RootNodeApprovalList{}, errors.New("Block number and hash cannot be specified at the same time")
+	case blockNumber != nil:
+		if s.bc.GetBlockByNumber(blockNumber.Uint64()) == nil {
+			return nil, errors.New("Specified block number doesn't exit")
+		}
+		return s.getActiveApprovalListByBlockNumber(blockNumber)
+	case hash != nil:
+		block := s.bc.GetBlockByHash(*hash)
+		if block == nil {
+			return nil, errors.New("Can't find block by specified hash")
+		}
+		return s.getActiveApprovalListByBlockNumber(block.Number())
+	default:
+		return s.db.getLastApprovals().Copy(), nil
+	}
+}
+
+func (s *RootManager) getActiveApprovalListByBlockNumber(blockNumber *big.Int) (*common.RootNodeApprovalList, error) {
+	approvals, err := s.db.getApprovalRecordsByBlockNumber(blockNumber)
+	if err != nil {
+		return nil, err
+	}
+	res := &common.RootNodeApprovalList{}
+	return res.FillFromArray(approvals), nil
+}
+
 func (s *RootManager) getDesiredExclusionSet() *exclusionSet {
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
@@ -809,7 +915,7 @@ func (s *RootManager) getProposedExclusionSet() *exclusionSet {
 	return s.proposedExSet.copy()
 }
 
-// isAcceptableExclusionSet returns true if there us enough signatures and
+// isAcceptableExclusionSet returns true if there are enough signatures and
 // exclusion set is not obsolete
 func (s *RootManager) isAcceptableExclusionSet(set *exclusionSet) bool {
 	if s.activeExSet != nil && set.timestamp <= s.activeExSet.timestamp {
@@ -939,6 +1045,70 @@ func (s *RootManager) SignHash(a accounts.Account, hash []byte) ([]byte, error) 
 
 func (s *RootManager) formatBlock(block uint64) string {
 	return strconv.FormatUint(block, 10)
+}
+
+func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
+	s.approvalLock.Lock()
+	defer s.approvalLock.Unlock()
+
+	roots := s.active.aliases
+	var unlockedRoots []common.Address
+	for _, addr := range roots {
+		if s.IsUnlocked(addr) {
+			unlockedRoots = append(unlockedRoots, addr)
+		}
+	}
+	if len(unlockedRoots) == 0 {
+		return
+	}
+	if s.bc == nil && s.dl == nil {
+		return
+	}
+
+	currentBlock := s.bc.CurrentBlock().Number().Uint64()
+	if s.dl != nil && s.dl.Progress().HighestBlock > currentBlock {
+		currentBlock = s.dl.Progress().HighestBlock
+	}
+
+	//No need to sign blocks that are not fresh enough
+	if (currentBlock-s.bc.Config().Clique.Epoch) < header.Number.Uint64() && (currentBlock+s.bc.Config().Clique.Epoch) > header.Number.Uint64() {
+		log.Info("Handling new transition block", "block number", header.Number.Uint64())
+
+		prevBlockAddress := new(big.Int).SetUint64(header.Number.Uint64() - s.bc.Config().Clique.Epoch)
+		if recs, errRecs := s.db.getApprovalRecordsByBlockNumber(prevBlockAddress); errRecs == nil {
+			percentage := 100 * len(recs) / len(roots)
+			if percentage < approvalsThresholdPercentage {
+				log.Warn("Root node approval list contains less than 75% records!")
+			}
+		}
+
+		for _, addr := range unlockedRoots {
+			signature, err := s.SignHash(accounts.Account{Address: addr}, header.Hash().Bytes())
+			if err != nil {
+				log.Error("Failed to co-sign transition block by root node", "err", err)
+				continue
+			}
+
+			approval := common.RootNodeApproval{
+				BlockNumber: header.Number,
+				Hash:        header.Hash(),
+				Signature:   signature,
+				Signer:      addr,
+			}
+
+			if err := s.db.saveApprovalRecord(approval); err != nil {
+				log.Error("Failed to save approval of the transition block", "err", err)
+			} else {
+				resList := common.RootNodeApprovalList{
+					BlockNumber: approval.BlockNumber,
+					Approvals:   []common.RootNodeApproval{approval},
+				}
+				s.approvalFeed.Send(&resList)
+			}
+
+		}
+	}
+
 }
 
 func (s *RootManager) isAthosReached() bool {

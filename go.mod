@@ -71,3 +71,5 @@ require (
 	gopkg.in/urfave/cli.v1 v1.20.0
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+exclude gitlab.com/q-dev/q-client v1.9.22-0.20211124080536-fe063185527d

@@ -37,11 +37,18 @@ func (g *Governance) Protocols() []p2p.Protocol {
 
 // APIs provided by governance.
 func (g *Governance) APIs() []rpc.API {
+	pubApi := NewGovernancePublicAPI(g)
+	govApi := NewGovernanceAPI(g, pubApi)
 	return []rpc.API{
 		{
+			Namespace: "govPub",
+			Version:   "1.1",
+			Service:   pubApi,
+			Public:    true,
+		}, {
 			Namespace: "gov",
 			Version:   "1.1",
-			Service:   NewGovernanceAPI(g),
+			Service:   govApi,
 			Public:    false,
 		},
 	}
@@ -49,7 +56,7 @@ func (g *Governance) APIs() []rpc.API {
 
 // Start Governance service.
 func (g *Governance) Start() error {
-	if g.RootManager.isRootNode() {
+	if g.RootManager.isRootNode(true) {
 		log.Info("Node belongs to the current root node set")
 	}
 
