@@ -684,6 +684,12 @@ web3._extend({
 			params: 2,
 			inputFormatter: [null, null]
 		}),
+		new web3._extend.Method({
+			name: 'getLatestTransitionBlocks',
+			call: 'gov_getLatestTransitionBlocks',
+			params: 1,
+			inputFormatter: [null]
+		}),
     ],
 	properties: []
 });
@@ -737,6 +743,12 @@ web3._extend({
 			name: 'diffExclusionList',
 			call: 'govPub_diffExclusionList',
 			params: 2
+		}),
+		new web3._extend.Method({
+			name: 'getLatestTransitionBlocks',
+			call: 'gov_getLatestTransitionBlocks',
+			params: 1,
+			inputFormatter: [null]
 		}),
     ],
 	properties: []
