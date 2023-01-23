@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"gitlab.com/q-dev/q-client/consensus/clique"
 	"os"
 	"sort"
 	"strconv"
@@ -418,6 +419,11 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend) {
 				}
 			}
 		}()
+	}
+
+	//We need to wait until accounts are unlocked and only then check last transition block signatures
+	if clique, ok := backend.Engine().(*clique.Clique); ok {
+		clique.VerifyLastTransitionBlock()
 	}
 
 	// Start auxiliary services if enabled
