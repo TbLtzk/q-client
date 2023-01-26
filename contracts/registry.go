@@ -297,6 +297,32 @@ func (r *Registry) EpdrParametersVoting() *generated.EPDRParametersVoting {
 	return epdrParametersVoting
 }
 
+// EprsMembershipVoting returns EprsMembershipVoting contract backend if available.
+func (r *Registry) EprsMembershipVoting() *generated.EPRSMembershipVoting {
+	addr := r.getAddr("governance.experts.EPRS.membershipVoting")
+	if (addr == common.Address{}) {
+		log.Debug("governance.experts.EPRS.membershipVoting is not deployed")
+		return nil
+	}
+
+	// err is never returned here
+	epdrMembershipVoting, _ := generated.NewEPRSMembershipVoting(addr, r.Backend)
+	return epdrMembershipVoting
+}
+
+// EprsParametersVoting returns EprsParametersVoting contract backend if available.
+func (r *Registry) EprsParametersVoting() *generated.EPRSParametersVoting {
+	addr := r.getAddr("governance.experts.EPRS.parametersVoting")
+	if (addr == common.Address{}) {
+		log.Debug("governance.experts.EPRS.parametersVoting is not deployed")
+		return nil
+	}
+
+	// err is never returned here
+	epdrParametersVoting, _ := generated.NewEPRSParametersVoting(addr, r.Backend)
+	return epdrParametersVoting
+}
+
 // ContractRegistryAddressVoting returns ContractRegistryAddressVoting contract backend if available.
 func (r *Registry) ContractRegistryAddressVoting() *generated.ContractRegistryAddressVoting {
 	addr := r.getAddr("governance.address.contractRegistryVoting")

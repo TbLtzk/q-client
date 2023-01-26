@@ -21,7 +21,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus"
@@ -395,4 +397,651 @@ func (api *API) getInTurnSigner(snapshot *Snapshot) common.Address {
 	index := snapshot.Number % uint64(len(signers))
 	inTurnSigner := signers[index]
 	return inTurnSigner
+}
+
+func (api *API) GetConstitutionVotings(proposalCounter int64) ([]ConstitutionVoting, error) {
+	var votings []ConstitutionVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	provider := api.clique.registry.ConstitutionVoting()
+	currentProposalCounter, err := provider.ProposalCounter(votingOpts)
+	if err != nil {
+		return []ConstitutionVoting{}, err
+	}
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []ConstitutionVoting{}, err
+		}
+		proposal, err := provider.Proposals(votingOpts, cycleId)
+		if err != nil {
+			return []ConstitutionVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []ConstitutionVoting{}, err
+		}
+		voting := ConstitutionVoting{
+			ProposalId:      cycleId,
+			VotingType:      reflect.TypeOf(provider).Elem().Name(),
+			VotingSubType:   proposal.Classification,
+			VotingStatus:    proposalStatus,
+			CurrentQuorum:   proposalStats.CurrentQuorum,
+			RequiredQuorum:  proposalStats.RequiredQuorum,
+			VotingStartTime: proposal.Base.Params.VotingStartTime,
+			VotingEndTime:   proposal.Base.Params.VotingEndTime,
+			VetoEndTime:     proposal.Base.Params.VetoEndTime,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+func (api *API) GetGeneralUpdateVotings(proposalCounter int64) ([]GeneralVoting, error) {
+	var votings []GeneralVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	provider := api.clique.registry.GeneralUpdateVoting()
+	currentProposalCounter, err := provider.ProposalCount(votingOpts)
+	if err != nil {
+		return []GeneralVoting{}, err
+	}
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposal, err := provider.Proposals(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		voting := GeneralVoting{
+			ProposalId:      cycleId,
+			VotingType:      reflect.TypeOf(provider).Elem().Name(),
+			VotingStatus:    proposalStatus,
+			CurrentQuorum:   proposalStats.CurrentQuorum,
+			RequiredQuorum:  proposalStats.RequiredQuorum,
+			VotingStartTime: proposal.Params.VotingStartTime,
+			VotingEndTime:   proposal.Params.VotingEndTime,
+			VetoEndTime:     proposal.Params.VetoEndTime,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+func (api *API) GetEmergencyUpdateVotings(proposalCounter int64) ([]GeneralVoting, error) {
+	var votings []GeneralVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	provider := api.clique.registry.EmergencyUpdateVoting()
+	currentProposalCounter, err := provider.ProposalCount(votingOpts)
+	if err != nil {
+		return []GeneralVoting{}, err
+	}
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposal, err := provider.Proposals(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		voting := GeneralVoting{
+			ProposalId:      cycleId,
+			VotingType:      reflect.TypeOf(provider).Elem().Name(),
+			VotingStatus:    proposalStatus,
+			CurrentQuorum:   proposalStats.CurrentQuorum,
+			RequiredQuorum:  proposalStats.RequiredQuorum,
+			VotingStartTime: proposal.Params.VotingStartTime,
+			VotingEndTime:   proposal.Params.VotingEndTime,
+			VetoEndTime:     proposal.Params.VetoEndTime,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+func (api *API) GetRootsVotings(proposalCounter int64) ([]RootsVoting, error) {
+	var votings []RootsVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	votingFilterOpts := &bind.FilterOpts{
+		Start:   0,
+		End:     nil,
+		Context: nil,
+	}
+	provider := api.clique.registry.RootsVoting()
+	filterIter, err := provider.FilterProposalCreated(votingFilterOpts)
+	if err != nil {
+		return []RootsVoting{}, err
+	}
+
+	maxId := int64(0)
+	for filterIter.Next() {
+		maxId = filterIter.Event.Id.Int64()
+	}
+	currentProposalCounter := big.NewInt(maxId)
+
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []RootsVoting{}, err
+		}
+		proposal, err := provider.Proposals(votingOpts, cycleId)
+		if err != nil {
+			return []RootsVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []RootsVoting{}, err
+		}
+		voting := RootsVoting{
+			ProposalId:      cycleId,
+			VotingType:      reflect.TypeOf(provider).Elem().Name(),
+			VotingStatus:    proposalStatus,
+			CurrentQuorum:   proposalStats.CurrentQuorum,
+			RequiredQuorum:  proposalStats.RequiredQuorum,
+			VotingStartTime: proposal.Base.Params.VotingStartTime,
+			VotingEndTime:   proposal.Base.Params.VotingEndTime,
+			VetoEndTime:     proposal.Base.Params.VetoEndTime,
+			Candidate:       proposal.Candidate,
+			ReplaceDest:     proposal.ReplaceDest,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+func (api *API) GetRootNodesSlashingVotings(proposalCounter int64) ([]GeneralVoting, error) {
+	var votings []GeneralVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	provider := api.clique.registry.RootNodesSlashingVoting()
+	currentProposalCounter, err := provider.ProposalCount(votingOpts)
+	if err != nil {
+		return []GeneralVoting{}, err
+	}
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposal, err := provider.Proposals(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		voting := GeneralVoting{
+			ProposalId:      cycleId,
+			VotingType:      reflect.TypeOf(provider).Elem().Name(),
+			VotingStatus:    proposalStatus,
+			CurrentQuorum:   proposalStats.CurrentQuorum,
+			RequiredQuorum:  proposalStats.RequiredQuorum,
+			VotingStartTime: proposal.Base.Params.VotingStartTime,
+			VotingEndTime:   proposal.Base.Params.VotingEndTime,
+			VetoEndTime:     proposal.Base.Params.VetoEndTime,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+func (api *API) GetValidatorsSlashingVotings(proposalCounter int64) ([]GeneralVoting, error) {
+	var votings []GeneralVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	provider := api.clique.registry.ValidatorsSlashingVoting()
+	currentProposalCounter, err := provider.ProposalCount(votingOpts)
+	if err != nil {
+		return []GeneralVoting{}, err
+	}
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposal, err := provider.Proposals(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		voting := GeneralVoting{
+			ProposalId:      cycleId,
+			VotingType:      reflect.TypeOf(provider).Elem().Name(),
+			VotingStatus:    proposalStatus,
+			CurrentQuorum:   proposalStats.CurrentQuorum,
+			RequiredQuorum:  proposalStats.RequiredQuorum,
+			VotingStartTime: proposal.Base.Params.VotingStartTime,
+			VotingEndTime:   proposal.Base.Params.VotingEndTime,
+			VetoEndTime:     proposal.Base.Params.VetoEndTime,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+func (api *API) GetEpqfiMembershipVotings(proposalCounter int64) ([]GeneralVoting, error) {
+	var votings []GeneralVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	provider := api.clique.registry.EpqfiMembershipVoting()
+	currentProposalCounter, err := provider.ProposalCount(votingOpts)
+	if err != nil {
+		return []GeneralVoting{}, err
+	}
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposal, err := provider.Proposals(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		voting := GeneralVoting{
+			ProposalId:      cycleId,
+			VotingType:      reflect.TypeOf(provider).Elem().Name(),
+			VotingStatus:    proposalStatus,
+			CurrentQuorum:   proposalStats.CurrentQuorum,
+			RequiredQuorum:  proposalStats.RequiredQuorum,
+			VotingStartTime: proposal.Base.Params.VotingStartTime,
+			VotingEndTime:   proposal.Base.Params.VotingEndTime,
+			VetoEndTime:     proposal.Base.Params.VetoEndTime,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+func (api *API) GetEpqfiParametersVotings(proposalCounter int64) ([]GeneralVoting, error) {
+	var votings []GeneralVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	provider := api.clique.registry.EpqfiParametersVoting()
+	currentProposalCounter, err := provider.ProposalCount(votingOpts)
+	if err != nil {
+		return []GeneralVoting{}, err
+	}
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposal, err := provider.Proposals(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		voting := GeneralVoting{
+			ProposalId:      cycleId,
+			VotingType:      reflect.TypeOf(provider).Elem().Name(),
+			VotingStatus:    proposalStatus,
+			CurrentQuorum:   proposalStats.CurrentQuorum,
+			RequiredQuorum:  proposalStats.RequiredQuorum,
+			VotingStartTime: proposal.Base.Params.VotingStartTime,
+			VotingEndTime:   proposal.Base.Params.VotingEndTime,
+			VetoEndTime:     proposal.Base.Params.VetoEndTime,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+func (api *API) GetEpdrMembershipVotings(proposalCounter int64) ([]GeneralVoting, error) {
+	var votings []GeneralVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	provider := api.clique.registry.EpdrMembershipVoting()
+	currentProposalCounter, err := provider.ProposalCount(votingOpts)
+	if err != nil {
+		return []GeneralVoting{}, err
+	}
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposal, err := provider.Proposals(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		voting := GeneralVoting{
+			ProposalId:      cycleId,
+			VotingType:      reflect.TypeOf(provider).Elem().Name(),
+			VotingStatus:    proposalStatus,
+			CurrentQuorum:   proposalStats.CurrentQuorum,
+			RequiredQuorum:  proposalStats.RequiredQuorum,
+			VotingStartTime: proposal.Base.Params.VotingStartTime,
+			VotingEndTime:   proposal.Base.Params.VotingEndTime,
+			VetoEndTime:     proposal.Base.Params.VetoEndTime,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+func (api *API) GetEpdrParametersVotings(proposalCounter int64) ([]GeneralVoting, error) {
+	var votings []GeneralVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	provider := api.clique.registry.EpdrParametersVoting()
+	currentProposalCounter, err := provider.ProposalCount(votingOpts)
+	if err != nil {
+		return []GeneralVoting{}, err
+	}
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposal, err := provider.Proposals(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		voting := GeneralVoting{
+			ProposalId:      cycleId,
+			VotingType:      reflect.TypeOf(provider).Elem().Name(),
+			VotingStatus:    proposalStatus,
+			CurrentQuorum:   proposalStats.CurrentQuorum,
+			RequiredQuorum:  proposalStats.RequiredQuorum,
+			VotingStartTime: proposal.Base.Params.VotingStartTime,
+			VotingEndTime:   proposal.Base.Params.VotingEndTime,
+			VetoEndTime:     proposal.Base.Params.VetoEndTime,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+func (api *API) GetEprsMembershipVotings(proposalCounter int64) ([]GeneralVoting, error) {
+	var votings []GeneralVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	provider := api.clique.registry.EprsMembershipVoting()
+	currentProposalCounter, err := provider.ProposalCount(votingOpts)
+	if err != nil {
+		return []GeneralVoting{}, err
+	}
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposal, err := provider.Proposals(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		voting := GeneralVoting{
+			ProposalId:      cycleId,
+			VotingType:      reflect.TypeOf(provider).Elem().Name(),
+			VotingStatus:    proposalStatus,
+			CurrentQuorum:   proposalStats.CurrentQuorum,
+			RequiredQuorum:  proposalStats.RequiredQuorum,
+			VotingStartTime: proposal.Base.Params.VotingStartTime,
+			VotingEndTime:   proposal.Base.Params.VotingEndTime,
+			VetoEndTime:     proposal.Base.Params.VetoEndTime,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+func (api *API) GetEprsParametersVotings(proposalCounter int64) ([]GeneralVoting, error) {
+	var votings []GeneralVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	provider := api.clique.registry.EprsParametersVoting()
+	currentProposalCounter, err := provider.ProposalCount(votingOpts)
+	if err != nil {
+		return []GeneralVoting{}, err
+	}
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposal, err := provider.Proposals(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []GeneralVoting{}, err
+		}
+		voting := GeneralVoting{
+			ProposalId:      cycleId,
+			VotingType:      reflect.TypeOf(provider).Elem().Name(),
+			VotingStatus:    proposalStatus,
+			CurrentQuorum:   proposalStats.CurrentQuorum,
+			RequiredQuorum:  proposalStats.RequiredQuorum,
+			VotingStartTime: proposal.Base.Params.VotingStartTime,
+			VotingEndTime:   proposal.Base.Params.VotingEndTime,
+			VetoEndTime:     proposal.Base.Params.VetoEndTime,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+func (api *API) GetContractRegistryAddressVotings(proposalCounter int64) ([]ContractRegistryVoting, error) {
+	var votings []ContractRegistryVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	provider := api.clique.registry.ContractRegistryAddressVoting()
+	currentProposalCounter, err := provider.ProposalsCount(votingOpts)
+	if err != nil {
+		return []ContractRegistryVoting{}, err
+	}
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []ContractRegistryVoting{}, err
+		}
+		proposal, err := provider.GetProposal(votingOpts, cycleId)
+		if err != nil {
+			return []ContractRegistryVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []ContractRegistryVoting{}, err
+		}
+		voting := ContractRegistryVoting{
+			ProposalId:        cycleId,
+			VotingType:        reflect.TypeOf(provider).Elem().Name(),
+			VotingStatus:      proposalStatus,
+			CurrentMajority:   proposalStats.CurrentMajority,
+			RequiredMajority:  proposalStats.RequiredMajority,
+			VotingStartTime:   proposal.VotingStartTime,
+			VotingExpiredTime: proposal.VotingExpiredTime,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+func (api *API) GetContractRegistryUpgradeVotings(proposalCounter int64) ([]ContractRegistryVoting, error) {
+	var votings []ContractRegistryVoting
+	votingOpts := &bind.CallOpts{
+		Pending:     false,
+		From:        common.Address{},
+		BlockNumber: nil,
+		Context:     nil,
+	}
+	provider := api.clique.registry.ContractRegistryUpgradeVoting()
+	currentProposalCounter, err := provider.ProposalsCount(votingOpts)
+	if err != nil {
+		return []ContractRegistryVoting{}, err
+	}
+	for id := proposalCounter + 1; id < currentProposalCounter.Int64(); id++ {
+		cycleId := big.NewInt(id)
+		proposalStatus, err := provider.GetStatus(votingOpts, cycleId)
+		if err != nil {
+			return []ContractRegistryVoting{}, err
+		}
+		proposal, err := provider.GetProposal(votingOpts, cycleId)
+		if err != nil {
+			return []ContractRegistryVoting{}, err
+		}
+		proposalStats, err := provider.GetProposalStats(votingOpts, cycleId)
+		if err != nil {
+			return []ContractRegistryVoting{}, err
+		}
+		voting := ContractRegistryVoting{
+			ProposalId:        cycleId,
+			VotingType:        reflect.TypeOf(provider).Elem().Name(),
+			VotingStatus:      proposalStatus,
+			CurrentMajority:   proposalStats.CurrentMajority,
+			RequiredMajority:  proposalStats.RequiredMajority,
+			VotingStartTime:   proposal.VotingStartTime,
+			VotingExpiredTime: proposal.VotingExpiredTime,
+		}
+		votings = append(votings, voting)
+	}
+	return votings, nil
+}
+
+type ConstitutionVoting struct {
+	ProposalId      *big.Int `json:"proposalId"`
+	VotingType      string   `json:"votingType"`
+	VotingSubType   uint8    `json:"votingSubType"`
+	VotingStatus    uint8    `json:"votingStatus"`
+	VotingStartTime *big.Int `json:"votingStartTime"`
+	CurrentQuorum   *big.Int `json:"currentQuorum"`
+	RequiredQuorum  *big.Int `json:"requiredQuorum"`
+	VotingEndTime   *big.Int `json:"votingEndTime"`
+	VetoEndTime     *big.Int `json:"vetoEndTime"`
+}
+
+type GeneralVoting struct {
+	ProposalId      *big.Int `json:"proposalId"`
+	VotingType      string   `json:"votingType"`
+	VotingStatus    uint8    `json:"votingStatus"`
+	VotingStartTime *big.Int `json:"votingStartTime"`
+	CurrentQuorum   *big.Int `json:"currentQuorum"`
+	RequiredQuorum  *big.Int `json:"requiredQuorum"`
+	VotingEndTime   *big.Int `json:"votingEndTime"`
+	VetoEndTime     *big.Int `json:"vetoEndTime"`
+}
+
+type RootsVoting struct {
+	ProposalId      *big.Int       `json:"proposalId"`
+	VotingType      string         `json:"votingType"`
+	VotingStatus    uint8          `json:"votingStatus"`
+	VotingStartTime *big.Int       `json:"votingStartTime"`
+	CurrentQuorum   *big.Int       `json:"currentQuorum"`
+	RequiredQuorum  *big.Int       `json:"requiredQuorum"`
+	VotingEndTime   *big.Int       `json:"votingEndTime"`
+	VetoEndTime     *big.Int       `json:"vetoEndTime"`
+	Candidate       common.Address `json:"candidate"`
+	ReplaceDest     common.Address `json:"replaceDest"`
+}
+
+type ContractRegistryVoting struct {
+	ProposalId        *big.Int `json:"proposalId"`
+	VotingType        string   `json:"votingType"`
+	VotingStatus      uint8    `json:"votingStatus"`
+	VotingStartTime   *big.Int `json:"votingStartTime"`
+	CurrentMajority   *big.Int `json:"currentQuorum"`
+	RequiredMajority  *big.Int `json:"requiredQuorum"`
+	VotingExpiredTime *big.Int `json:"votingExpiredTime"`
 }
