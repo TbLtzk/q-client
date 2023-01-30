@@ -206,7 +206,7 @@ func discv4Crawl(ctx *cli.Context) error {
 
 	disc := startV4(ctx)
 	defer disc.Close()
-	c := newCrawler(inputSet, disc, disc.RandomNodes())
+	c := newCrawler(inputSet, disc, disc.RandomNodes(time.Second))
 	c.revalidateInterval = 10 * time.Minute
 	output := c.run(ctx.Duration(crawlTimeoutFlag.Name))
 	writeNodesJSON(nodesFile, output)

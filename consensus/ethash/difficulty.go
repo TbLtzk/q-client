@@ -19,8 +19,8 @@ package ethash
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/core/types"
 	"github.com/holiman/uint256"
+	"gitlab.com/q-dev/q-client/core/types"
 )
 
 const (

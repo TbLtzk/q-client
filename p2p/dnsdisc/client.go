@@ -27,12 +27,12 @@ import (
 	"sync"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/q-client/common/mclock"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/enr"
-	lru "github.com/hashicorp/golang-lru"
 	"golang.org/x/sync/singleflight"
 	"golang.org/x/time/rate"
 )

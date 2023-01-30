@@ -21,10 +21,10 @@ import (
 	"errors"
 	"os"
 
+	bloomfilter "github.com/holiman/bloomfilter/v2"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/log"
-	bloomfilter "github.com/holiman/bloomfilter/v2"
 )
 
 // stateBloomHasher is a wrapper around a byte blob to satisfy the interface API

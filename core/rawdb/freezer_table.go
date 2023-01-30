@@ -27,10 +27,10 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/golang/snappy"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
-	"github.com/golang/snappy"
 )
 
 var (

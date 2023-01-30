@@ -267,8 +267,15 @@ func (t *UDPv4) LookupPubkey(key *ecdsa.PublicKey) []*enode.Node {
 }
 
 // RandomNodes is an iterator yielding nodes from a random walk of the DHT.
-func (t *UDPv4) RandomNodes() enode.Iterator {
-	return newLookupIterator(t.closeCtx, t.newRandomLookup)
+// delay prevents resources overuse in small networks.
+func (t *UDPv4) RandomNodes(delay time.Duration) enode.Iterator {
+	return newLookupIterator(t.closeCtx, func(ctx context.Context) *lookup {
+		if delay > 0 {
+			time.Sleep(delay)
+		}
+
+		return t.newRandomLookup(ctx)
+	})
 }
 
 // lookupRandom implements transport.

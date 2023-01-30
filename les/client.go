@@ -27,12 +27,14 @@ import (
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/common/mclock"
 	"gitlab.com/q-dev/q-client/consensus"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/bloombits"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth/ethconfig"
 	"gitlab.com/q-dev/q-client/eth/gasprice"
+	"gitlab.com/q-dev/q-client/ethclient"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/internal/shutdowncheck"
@@ -104,6 +106,14 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	log.Info(strings.Repeat("-", 153))
 	log.Info("")
 
+	reg := contracts.NewTestModeRegistry()
+	if cfg := chainConfig.Clique; cfg != nil {
+		rpcConn, err := stack.Attach()
+		if err != nil {
+			panic(fmt.Errorf("failed to attach to the local node %s", err.Error())) // never happens
+		}
+		reg = contracts.NewRegistry(cfg.Registry, cfg.RewardReceiver, ethclient.NewClient(rpcConn))
+	}
 	peers := newServerPeerSet()
 	merger := consensus.NewMerger(chainDb)
 	leth := &LightEthereum{
@@ -121,7 +131,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 		reqDist:         newRequestDistributor(peers, &mclock.System{}),
 		accountManager:  stack.AccountManager(),
 		merger:          merger,
-		engine:          ethconfig.CreateConsensusEngine(stack, chainConfig, &config.Ethash, nil, false, chainDb),
+		engine:          ethconfig.CreateConsensusEngine(stack, chainConfig, &config.Ethash, nil, false, chainDb, nil, reg),
 		bloomRequests:   make(chan chan *bloombits.Retrieval),
 		bloomIndexer:    core.NewBloomIndexer(chainDb, params.BloomBitsBlocksClient, params.HelperTrieConfirmations),
 		p2pServer:       stack.Server(),
@@ -201,7 +211,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*LightEthereum, error) {
 	return leth, nil
 }
 
-// VfluxRequest sends a batch of requests to the given node through discv5 UDP TalkRequest and returns the responses
 func (s *LightEthereum) VfluxRequest(n *enode.Node, reqs vflux.Requests) vflux.Replies {
 	if !s.udpEnabled {
 		return nil

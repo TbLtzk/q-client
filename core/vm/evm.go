@@ -21,10 +21,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/holiman/uint256"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/params"
-	"github.com/holiman/uint256"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -453,7 +453,12 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	ret, err := evm.interpreter.Run(contract, nil, false)
 
 	// Check whether the max code size has been exceeded, assign err if the case.
-	if err == nil && evm.chainRules.IsEIP158 && len(ret) > params.MaxCodeSize {
+
+	maxCodeSize := params.MaxCodeSize
+	if evm.chainRules.IsAthos {
+		maxCodeSize = 49152
+	}
+	if err == nil && evm.chainRules.IsEIP158 && len(ret) > maxCodeSize {
 		err = ErrMaxCodeSizeExceeded
 	}
 

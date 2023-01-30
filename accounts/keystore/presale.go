@@ -25,9 +25,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/crypto"
-	"github.com/google/uuid"
 	"golang.org/x/crypto/pbkdf2"
 )
 

@@ -194,6 +194,11 @@ func (n ID) Bytes() []byte {
 	return n[:]
 }
 
+// ShortString representation.
+func (n ID) ShortString() string {
+	return fmt.Sprintf("%x", n[:8])
+}
+
 // ID prints as a long hexadecimal number.
 func (n ID) String() string {
 	return fmt.Sprintf("%x", n[:])

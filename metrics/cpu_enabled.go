@@ -20,8 +20,8 @@
 package metrics
 
 import (
-	"gitlab.com/q-dev/q-client/log"
 	"github.com/shirou/gopsutil/cpu"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // ReadCPUStats retrieves the current CPU stats.

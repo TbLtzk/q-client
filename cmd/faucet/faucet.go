@@ -39,6 +39,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/utils"
@@ -56,7 +57,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/nat"
 	"gitlab.com/q-dev/q-client/params"
-	"github.com/gorilla/websocket"
 )
 
 var (
@@ -466,7 +466,7 @@ func (f *faucet) apiHandler(w http.ResponseWriter, r *http.Request) {
 			id = username
 		default:
 			//lint:ignore ST1005 This error is to be displayed in the browser
-			err = errors.New("Something funky happened, please open an issue at https://github.com/ethereum/go-ethereum/issues")
+			err = errors.New("Something funky happened, please open an issue at https://gitlab.com/q-dev/q-client/issues")
 		}
 		if err != nil {
 			if err = sendError(wsconn, err); err != nil {

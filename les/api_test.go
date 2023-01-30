@@ -27,6 +27,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mattn/go-colorable"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
@@ -41,7 +42,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/simulations"
 	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/mattn/go-colorable"
 )
 
 // Additional command line flags for the test binary.
@@ -503,7 +503,7 @@ func newLesServerService(ctx *adapters.ServiceContext, stack *node.Node) (node.L
 	config.SyncMode = (ethdownloader.SyncMode)(downloader.FullSync)
 	config.LightServ = testServerCapacity
 	config.LightPeers = testMaxClients
-	ethereum, err := eth.New(stack, &config)
+	ethereum, err := eth.New(stack, &config, nil, nil)
 	if err != nil {
 		return nil, err
 	}

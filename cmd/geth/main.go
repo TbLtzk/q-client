@@ -143,6 +143,11 @@ var (
 		utils.DeveloperFlag,
 		utils.DeveloperPeriodFlag,
 		utils.DeveloperGasLimitFlag,
+
+		// Q networks
+		utils.DevnetFlag,
+		utils.TestnetFlag,
+		utils.FischerFlag,
 		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
 		utils.EthStatsURLFlag,
@@ -152,6 +157,7 @@ var (
 		utils.GpoPercentileFlag,
 		utils.GpoMaxGasPriceFlag,
 		utils.GpoIgnoreGasPriceFlag,
+		utils.GpoGasPriceFactor,
 		utils.MinerNotifyFullFlag,
 		utils.IgnoreLegacyReceiptsFlag,
 		configFileFlag,
@@ -203,6 +209,11 @@ var (
 		utils.MetricsInfluxDBBucketFlag,
 		utils.MetricsInfluxDBOrganizationFlag,
 	}
+
+	governanceFlags = []cli.Flag{
+		utils.RootTimestampFlag,
+		utils.RootAddressesFlag,
+	}
 )
 
 func init() {
@@ -220,6 +231,7 @@ func init() {
 		removedbCommand,
 		dumpCommand,
 		dumpGenesisCommand,
+		writeAddrCommand,
 		// See accountcmd.go:
 		accountCommand,
 		walletCommand,
@@ -250,7 +262,9 @@ func init() {
 		consoleFlags,
 		debug.Flags,
 		metricsFlags,
+		governanceFlags,
 	)
+	app.Flags = append(app.Flags, governanceFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		flags.MigrateGlobalFlags(ctx)
@@ -310,7 +324,16 @@ func prepare(ctx *cli.Context) {
 
 	case !ctx.IsSet(utils.NetworkIdFlag.Name):
 		log.Info("Starting Geth on Ethereum mainnet...")
+	case ctx.IsSet(utils.DevnetFlag.Name):
+		log.Info("Starting q-client on devnet...")
+	case ctx.IsSet(utils.TestnetFlag.Name):
+		log.Info("Starting q-client on Q testnet...")
+	case ctx.IsSet(utils.FischerFlag.Name):
+		log.Info("Starting q-client on Q testnet...")
+	case !ctx.IsSet(utils.NetworkIdFlag.Name):
+		log.Info("Starting q-client on Q mainnet...")
 	}
+
 	// If we're a full node on mainnet without --cache specified, bump default cache allowance
 	if ctx.String(utils.SyncModeFlag.Name) != "light" && !ctx.IsSet(utils.CacheFlag.Name) && !ctx.IsSet(utils.NetworkIdFlag.Name) {
 		// Make sure we're not on any supported preconfigured testnet either
@@ -445,6 +468,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 		if !ok {
 			utils.Fatalf("Ethereum service not running")
 		}
+
 		// Set the gas price to the limits from the CLI and start mining
 		gasprice := flags.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
 		ethBackend.TxPool().SetGasPrice(gasprice)

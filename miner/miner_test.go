@@ -24,6 +24,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus/clique"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/state"
@@ -254,7 +255,7 @@ func createMiner(t *testing.T) (*Miner, *event.TypeMux, func(skipMiner bool)) {
 		t.Fatalf("can't create new chain config: %v", err)
 	}
 	// Create consensus engine
-	engine := clique.New(chainConfig.Clique, chainDB)
+	engine := clique.New(chainConfig.Clique, chainDB, &clique.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry())
 	// Create Ethereum backend
 	bc, err := core.NewBlockChain(chainDB, nil, chainConfig, engine, vm.Config{}, nil, nil)
 	if err != nil {
@@ -263,12 +264,12 @@ func createMiner(t *testing.T) (*Miner, *event.TypeMux, func(skipMiner bool)) {
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(chainDB), nil)
 	blockchain := &testBlockChain{statedb, 10000000, new(event.Feed)}
 
-	pool := core.NewTxPool(testTxPoolConfig, chainConfig, blockchain)
+	pool := core.NewTxPool(testTxPoolConfig, chainConfig, blockchain, &core.NoopGasPriceProvider{})
 	backend := NewMockBackend(bc, pool)
 	// Create event Mux
 	mux := new(event.TypeMux)
 	// Create Miner
-	miner := New(backend, &config, chainConfig, mux, engine, nil)
+	miner := New(backend, &config, chainConfig, mux, engine, nil, nil)
 	cleanup := func(skipMiner bool) {
 		bc.Stop()
 		engine.Close()

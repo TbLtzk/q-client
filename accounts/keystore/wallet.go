@@ -19,7 +19,7 @@ package keystore
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum"
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"

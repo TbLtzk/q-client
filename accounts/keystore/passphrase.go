@@ -37,11 +37,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/google/uuid"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/crypto"
-	"github.com/google/uuid"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
 )

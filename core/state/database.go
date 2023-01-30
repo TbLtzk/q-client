@@ -21,12 +21,12 @@ import (
 	"fmt"
 
 	"github.com/VictoriaMetrics/fastcache"
+	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/trie"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 const (

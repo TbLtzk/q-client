@@ -19,8 +19,8 @@ package snap
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/common"
 	"github.com/holiman/uint256"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 // hashRange is a utility to handle ranges of hashes, Split up the

@@ -24,6 +24,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/gorilla/websocket"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
@@ -31,7 +32,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/simulations/pipes"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/gorilla/websocket"
 )
 
 // SimAdapter is a NodeAdapter which creates in-memory simulation nodes and

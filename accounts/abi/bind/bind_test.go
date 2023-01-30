@@ -2066,7 +2066,7 @@ func TestGolangBindings(t *testing.T) {
 				types = []string{tt.name}
 			}
 			// Generate the binding and create a Go source file in the workspace
-			bind, err := Bind(types, tt.abi, tt.bytecode, tt.fsigs, "bindtest", LangGo, tt.libs, tt.aliases)
+		bind, err := Bind(types, tt.abi, tt.bytecode, tt.fsigs, "bindtest", LangGo, tt.libs, tt.aliases, nil)
 			if err != nil {
 				t.Fatalf("test %d: failed to generate binding: %v", i, err)
 			}
@@ -2091,6 +2091,12 @@ func TestGolangBindings(t *testing.T) {
 			}
 		})
 	}
+	// Disable sum db
+	sum := exec.Command(gocmd, "env", "-w", "GOSUMDB=off")
+	sum.Dir = pkg
+	if out, err := sum.CombinedOutput(); err != nil {
+		t.Fatalf("failed to disable sum db: %v\n%s", err, out)
+	}
 	// Convert the package to go modules and use the current source for go-ethereum
 	moder := exec.Command(gocmd, "mod", "init", "bindtest")
 	moder.Dir = pkg
@@ -2098,7 +2104,7 @@ func TestGolangBindings(t *testing.T) {
 		t.Fatalf("failed to convert binding test to modules: %v\n%s", err, out)
 	}
 	pwd, _ := os.Getwd()
-	replacer := exec.Command(gocmd, "mod", "edit", "-x", "-require", "github.com/ethereum/go-ethereum@v0.0.0", "-replace", "github.com/ethereum/go-ethereum="+filepath.Join(pwd, "..", "..", "..")) // Repo root
+	replacer := exec.Command(gocmd, "mod", "edit", "-x", "-require", "gitlab.com/q-dev/q-client@v0.0.0", "-replace", "gitlab.com/q-dev/q-client="+filepath.Join(pwd, "..", "..", "..")) // Repo root
 	replacer.Dir = pkg
 	if out, err := replacer.CombinedOutput(); err != nil {
 		t.Fatalf("failed to replace binding test dependency to current source tree: %v\n%s", err, out)
@@ -2496,7 +2502,7 @@ public class Test {
 		},
 	}
 	for i, c := range cases {
-		binding, err := Bind([]string{c.name}, []string{c.abi}, []string{c.bytecode}, nil, "bindtest", LangJava, nil, nil)
+		binding, err := Bind([]string{c.name}, []string{c.abi}, []string{c.bytecode}, nil, "bindtest", LangJava, nil, nil, nil)
 		if err != nil {
 			t.Fatalf("test %d: failed to generate binding: %v", i, err)
 		}

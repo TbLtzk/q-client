@@ -29,11 +29,11 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/stretchr/testify/assert"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/crypto/ecies"
 	"gitlab.com/q-dev/q-client/p2p/simulations/pipes"
 	"gitlab.com/q-dev/q-client/rlp"
-	"github.com/stretchr/testify/assert"
 )
 
 type message struct {

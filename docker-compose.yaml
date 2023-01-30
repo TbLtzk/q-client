@@ -1,0 +1,57 @@
+version: "3"
+
+services:
+  bootnode:
+    image: $QCLIENT_IMAGE
+    container_name: bootnode
+    entrypoint: [
+      "geth",
+      "--testnet",
+      "--datadir=/data",
+      "--syncmode=full",
+      "--rpc.allow-unprotected-txs",
+      "--networkid=35443",
+      "--verbosity=3",
+      "--http",
+      "--http.addr=0.0.0.0",
+      "--http.vhosts=*",
+      "--http.corsdomain=*",
+      "--http.api=net,web3,eth,txpool,debug",
+      "--ws",
+      "--ws.addr=0.0.0.0",
+      "--ws.api=net,web3,eth,txpool,debug",
+      "--port=30301"
+    ]
+    volumes:
+      - bootnode_data:/data
+    ports:
+      - 30301:30301
+      - 8545:8545
+      - 8546:8546
+    restart: unless-stopped
+
+  miner-1:
+    image: $QCLIENT_IMAGE
+    container_name: miner-1
+    entrypoint: [
+      "geth",
+      "--testnet",
+      "--datadir=/data",
+      "--unlock=$ADDRESS",
+      "--password=/data/keystore/pwd.txt",
+      "--mine",
+      "--miner.threads=1",
+      "--miner.gasprice=1",
+      "--syncmode=full",
+      "--rpc.allow-unprotected-txs",
+      "--networkid=35443",
+      "--verbosity=3",
+      "--bootnodes=$BOOTNODE_URI",
+    ]
+    volumes:
+      - ./configs/miner1/keystore:/data/keystore
+      - miner1-data:/data
+
+volumes:
+  bootnode_data:
+  miner1-data:

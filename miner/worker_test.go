@@ -24,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.com/q-dev/q-client/contracts"
+
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus"
@@ -137,7 +139,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 	genesis := gspec.MustCommit(db)
 
 	chain, _ := core.NewBlockChain(db, &core.CacheConfig{TrieDirtyDisabled: true}, gspec.Config, engine, vm.Config{}, nil, nil)
-	txpool := core.NewTxPool(testTxPoolConfig, chainConfig, chain)
+	txpool := core.NewTxPool(testTxPoolConfig, chainConfig, chain, &core.NoopGasPriceProvider{})
 
 	// Generate a small n-block chain and an uncle block for it
 	if n > 0 {
@@ -201,7 +203,7 @@ func (b *testWorkerBackend) newRandomTx(creation bool) *types.Transaction {
 func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine, db ethdb.Database, blocks int) (*worker, *testWorkerBackend) {
 	backend := newTestWorkerBackend(t, chainConfig, engine, db, blocks)
 	backend.txPool.AddLocals(pendingTxs)
-	w := newWorker(testConfig, chainConfig, engine, backend, new(event.TypeMux), nil, false)
+	w := newWorker(testConfig, chainConfig, engine, backend, new(event.TypeMux), nil, false, nil)
 	w.setEtherbase(testBankAddress)
 	return w, backend
 }
@@ -222,8 +224,9 @@ func testGenerateBlockAndImport(t *testing.T, isClique bool) {
 	)
 	if isClique {
 		chainConfig = params.AllCliqueProtocolChanges
-		chainConfig.Clique = &params.CliqueConfig{Period: 1, Epoch: 30000}
-		engine = clique.New(chainConfig.Clique, db)
+		chainConfig.Clique = &params.CliqueConfig{Period: 1, Epoch: 101}
+		chainConfig.Clique.RewardReceiver = common.HexToAddress("92C35a964624D9cbF90c2A0525e116093FAF867E")
+		engine = clique.New(chainConfig.Clique, db, nil, contracts.NewTestModeRegistry())
 	} else {
 		chainConfig = params.AllEthashProtocolChanges
 		engine = ethash.NewFaker()
@@ -273,7 +276,7 @@ func TestEmptyWorkEthash(t *testing.T) {
 	testEmptyWork(t, ethashChainConfig, ethash.NewFaker())
 }
 func TestEmptyWorkClique(t *testing.T) {
-	testEmptyWork(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase()))
+	testEmptyWork(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase(), nil, contracts.NewTestModeRegistry()))
 }
 
 func testEmptyWork(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {
@@ -377,7 +380,8 @@ func TestRegenerateMiningBlockEthash(t *testing.T) {
 }
 
 func TestRegenerateMiningBlockClique(t *testing.T) {
-	testRegenerateMiningBlock(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase()))
+	cliqueChainConfig.Clique.RewardReceiver = common.HexToAddress("92C35a964624D9cbF90c2A0525e116093FAF867E")
+	testRegenerateMiningBlock(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase(), nil, contracts.NewTestModeRegistry()))
 }
 
 func testRegenerateMiningBlock(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {
@@ -437,7 +441,7 @@ func TestAdjustIntervalEthash(t *testing.T) {
 }
 
 func TestAdjustIntervalClique(t *testing.T) {
-	testAdjustInterval(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase()))
+	testAdjustInterval(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase(), nil, contracts.NewTestModeRegistry()))
 }
 
 func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine) {

@@ -5,6 +5,7 @@ package logger
 import (
 	"encoding/json"
 
+	"github.com/holiman/uint256"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/common/math"

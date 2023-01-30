@@ -24,6 +24,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitlab.com/q-dev/q-client/accounts"
+	"gitlab.com/q-dev/q-client/internal/utils"
+
 	mapset "github.com/deckarep/golang-set"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus"
@@ -183,11 +186,12 @@ type intervalAdjust struct {
 // worker is the main object which takes care of submitting new work to consensus engine
 // and gathering the sealing result.
 type worker struct {
-	config      *Config
-	chainConfig *params.ChainConfig
-	engine      consensus.Engine
-	eth         Backend
-	chain       *core.BlockChain
+	config         *Config
+	chainConfig    *params.ChainConfig
+	engine         consensus.Engine
+	eth            Backend
+	chain          *core.BlockChain
+	accountManager *accounts.Manager
 
 	// Feeds
 	pendingLogsFeed event.Feed
@@ -251,7 +255,7 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 }
 
-func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, isLocalBlock func(header *types.Header) bool, init bool) *worker {
+func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, isLocalBlock func(header *types.Header) bool, init bool, accountManager *accounts.Manager) *worker {
 	worker := &worker{
 		config:             config,
 		chainConfig:        chainConfig,
@@ -259,6 +263,7 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 		eth:                eth,
 		mux:                mux,
 		chain:              eth.BlockChain(),
+		accountManager:     accountManager,
 		isLocalBlock:       isLocalBlock,
 		localUncles:        make(map[common.Hash]*types.Block),
 		remoteUncles:       make(map[common.Hash]*types.Block),
@@ -1010,7 +1015,20 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 			header.GasLimit = core.CalcGasLimit(parentGasLimit, w.config.GasCeil)
 		}
 	}
-	// Run the consensus preparation with the default or customized consensus engine.
+	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
+	if w.isRunning() {
+		if w.coinbase == (common.Address{}) {
+			log.Error("Refusing to mine without etherbase")
+			return
+		}
+		header.Coinbase = w.coinbase
+		var err error
+		w.coinbase, err = w.engine.Author(header)
+		if err != nil {
+			log.Error("failed to get author of future block", "error", err)
+		}
+		log.Debug("updated coinbase", "address", w.coinbase.String())
+	}
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for sealing", "err", err)
 		return nil, err
@@ -1051,6 +1069,14 @@ func (w *worker) fillTransactions(interrupt *int32, env *environment) error {
 	// Split the pending transactions into locals and remotes
 	// Fill the block with all available pending transactions.
 	pending := w.eth.TxPool().Pending(true)
+	systemTxs := w.prepareSystemTx(w.accountManager)
+	// Short circuit if there is no available pending transactions.
+	// But if we disable empty precommit already, ignore it. Since
+	// empty block is necessary to keep the liveness of the network.
+	if len(pending) == 0 && len(systemTxs) == 0 && atomic.LoadUint32(&w.noempty) == 0 {
+		w.updateSnapshot()
+		return
+	}
 	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
 	for _, account := range w.eth.TxPool().Locals() {
 		if txs := remoteTxs[account]; len(txs) > 0 {
@@ -1126,6 +1152,18 @@ func (w *worker) commitWork(interrupt *int32, noempty bool, timestamp int64) {
 	// prefetcher processes in the mean time and starting a new one.
 	if w.current != nil {
 		w.current.discard()
+	}
+	// add system transactions in last block of epoch
+	if len(systemTxs) > 0 {
+		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, systemTxs, header.BaseFee)
+		if w.commitTransactions(txs, w.coinbase, interrupt) {
+			log.Warn("fail to apply system txs")
+			return
+		} else {
+			log.Info("committed system txs")
+		}
+	} else {
+		log.Info("no system txs")
 	}
 	w.current = work
 }
@@ -1230,4 +1268,9 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 		feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), minerFee))
 	}
 	return new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Ether)))
+}
+
+func (w *worker) prepareSystemTx(accountManager *accounts.Manager) map[common.Address]types.Transactions {
+	systemTxPreparer := utils.New(w.chainConfig, w.engine, w.current.state, w.current.header, w.current.signer)
+	return systemTxPreparer.PrepareSystemTx(accountManager)
 }

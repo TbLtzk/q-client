@@ -22,8 +22,8 @@ package keystore
 import (
 	"time"
 
-	"gitlab.com/q-dev/q-client/log"
 	"github.com/rjeczalik/notify"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 type watcher struct {

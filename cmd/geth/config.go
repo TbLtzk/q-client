@@ -33,13 +33,13 @@ import (
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/eth/ethconfig"
+	"gitlab.com/q-dev/q-client/governance"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/params"
-	"github.com/naoina/toml"
 )
 
 var (
@@ -86,10 +86,11 @@ type ethstatsConfig struct {
 }
 
 type gethConfig struct {
-	Eth      ethconfig.Config
-	Node     node.Config
-	Ethstats ethstatsConfig
-	Metrics  metrics.Config
+	Eth        ethconfig.Config
+	Node       node.Config
+	Governance governance.Config
+	Ethstats   ethstatsConfig
+	Metrics    metrics.Config
 }
 
 func loadConfig(file string, cfg *gethConfig) error {
@@ -110,6 +111,7 @@ func loadConfig(file string, cfg *gethConfig) error {
 func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = clientIdentifier
+	cfg.QVersion = params.QVersionWithMeta
 	cfg.Version = params.VersionWithCommit(gitCommit, gitDate)
 	cfg.HTTPModules = append(cfg.HTTPModules, "eth")
 	cfg.WSModules = append(cfg.WSModules, "eth")
@@ -150,12 +152,20 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	}
 	applyMetricConfig(ctx, &cfg)
 
+	utils.SetGovConfig(ctx, stack, &cfg.Governance)
+
 	return stack, cfg
 }
 
 // makeFullNode loads geth configuration and creates the Ethereum backend.
 func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 	stack, cfg := makeConfigNode(ctx)
+
+	rm := utils.MakeRootManager(stack, cfg.Eth.NetworkId, &cfg.Governance)
+
+	backend, eth := utils.RegisterEthService(stack, &cfg.Eth, rm)
+	utils.RegisterGovernanceService(stack, rm)
+
 	if ctx.IsSet(utils.OverrideTerminalTotalDifficulty.Name) {
 		cfg.Eth.OverrideTerminalTotalDifficulty = flags.GlobalBig(ctx, utils.OverrideTerminalTotalDifficulty.Name)
 	}

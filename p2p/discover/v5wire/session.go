@@ -22,10 +22,10 @@ import (
 	"encoding/binary"
 	"time"
 
+	"github.com/hashicorp/golang-lru/simplelru"
 	"gitlab.com/q-dev/q-client/common/mclock"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/p2p/enode"
-	"github.com/hashicorp/golang-lru/simplelru"
 )
 
 const handshakeTimeout = time.Second

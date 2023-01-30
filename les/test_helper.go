@@ -270,8 +270,10 @@ func newTestServerHandler(blocks int, indexers []*core.ChainIndexer, db ethdb.Da
 	prepare(blocks, simulation)
 
 	txpoolConfig := core.DefaultTxPoolConfig
+	txpoolConfig.PriceLimit = 1
+
 	txpoolConfig.Journal = ""
-	txpool := core.NewTxPool(txpoolConfig, gspec.Config, simulation.Blockchain())
+	txpool := core.NewTxPool(txpoolConfig, gspec.Config, simulation.Blockchain(), &core.NoopGasPriceProvider{})
 	if indexers != nil {
 		checkpointConfig := &params.CheckpointOracleConfig{
 			Address:   crypto.CreateAddress(bankAddr, 0),

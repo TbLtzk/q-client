@@ -25,12 +25,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/olekukonko/tablewriter"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethdb/leveldb"
 	"gitlab.com/q-dev/q-client/ethdb/memorydb"
 	"gitlab.com/q-dev/q-client/log"
-	"github.com/olekukonko/tablewriter"
 )
 
 // freezerdb is a database wrapper that enabled freezer data retrievals.

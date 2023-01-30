@@ -33,6 +33,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mattn/go-colorable"
+	"github.com/mattn/go-isatty"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/utils"
@@ -247,6 +249,7 @@ func init() {
 		testFlag,
 		advancedMode,
 		acceptFlag,
+		legacyRPCPortFlag,
 	}
 	app.Action = signer
 	app.Commands = []*cli.Command{initCommand,
@@ -736,7 +739,7 @@ func checkFile(filename string) error {
 	}
 	// Check the unix permission bits
 	// However, on windows, we cannot use the unix perm-bits, see
-	// https://github.com/ethereum/go-ethereum/issues/20123
+	// https://gitlab.com/q-dev/q-client/issues/20123
 	if runtime.GOOS != "windows" && info.Mode().Perm()&0377 != 0 {
 		return fmt.Errorf("file (%v) has insecure file permissions (%v)", filename, info.Mode().String())
 	}

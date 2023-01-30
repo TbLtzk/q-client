@@ -26,6 +26,7 @@ import (
 	"strconv"
 
 	"github.com/docker/docker/pkg/reexec"
+	"github.com/gorilla/websocket"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
@@ -33,7 +34,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/enr"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/gorilla/websocket"
 )
 
 // Node represents a node in a simulation network which is created by a

@@ -41,11 +41,11 @@ import (
 	"sync"
 	"time"
 
+	pcsc "github.com/gballet/go-libpcsclite"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
-	pcsc "github.com/gballet/go-libpcsclite"
 )
 
 // Scheme is the URI prefix for smartcard wallets.

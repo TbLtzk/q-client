@@ -19,7 +19,6 @@ package clique
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -28,10 +27,12 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/accounts"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/misc"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -42,7 +43,9 @@ import (
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/trie"
 	lru "github.com/hashicorp/golang-lru"
+	"gitlab.com/q-dev/system-contracts/generated"
 	"golang.org/x/crypto/sha3"
+	_ "gitlab.com/q-dev/q-client/accounts/keystore"
 )
 
 const (
@@ -55,6 +58,8 @@ const (
 
 // Clique proof-of-authority protocol constants.
 var (
+	CliqueBlockReward = new(big.Int).Div(new(big.Int).Mul(big.NewInt(params.Ether), big.NewInt(15)), big.NewInt(10)) // Block reward in wei for successfully mining a block
+
 	epochLength = uint64(30000) // Default number of blocks after which to checkpoint and reset the pending votes
 
 	extraVanity = 32                     // Fixed number of extra-data prefix bytes reserved for signer vanity
@@ -80,7 +85,11 @@ var (
 
 	// errInvalidCheckpointBeneficiary is returned if a checkpoint/epoch transition
 	// block has a beneficiary set to non-zeroes.
-	errInvalidCheckpointBeneficiary = errors.New("beneficiary in checkpoint block non-zero")
+	// errInvalidCheckpointBeneficiary = errors.New("beneficiary in checkpoint block non-zero")
+
+	// errInvalidRewardReceiver is returned if block has a reward receiver set to
+	// invalid value.
+	errInvalidRewardReceiver = errors.New("invalid reward receiver")
 
 	// errInvalidVote is returned if a nonce value is something else that the two
 	// allowed constants of 0x00..0 or 0xff..f.
@@ -167,6 +176,44 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	return signer, nil
 }
 
+// ExclusionSetProvider should provide validators exclusion set.
+type ExclusionSetProvider interface {
+	ExclusionSetValidators() map[common.Address][]common.BlockRange
+	ExclusionSetTimestamp() uint64
+	HandleTransitionBlockSignature(header *types.Header)
+}
+
+// NoopExclusionSetProvider is needed for testing.
+type NoopExclusionSetProvider struct{}
+
+func (p *NoopExclusionSetProvider) HandleTransitionBlockSignature(header *types.Header) {
+
+}
+
+func (p *NoopExclusionSetProvider) ExclusionSetValidators() map[common.Address][]common.BlockRange {
+	return make(map[common.Address][]common.BlockRange)
+}
+
+func (p *NoopExclusionSetProvider) ExclusionSetTimestamp() uint64 {
+	return 0
+}
+
+type ValidatorsProvider interface {
+	GetValidatorsList() ([]common.Address, error)
+}
+
+type ParametersProvider interface {
+	GetCoinbaseAddress() (common.Address, error)
+}
+
+type MockedParametersProvider struct {
+	coinbase common.Address
+}
+
+func (p *MockedParametersProvider) GetCoinbaseAddress() (common.Address, error) {
+	return p.coinbase, nil
+}
+
 // Clique is the proof-of-authority consensus engine proposed to support the
 // Ethereum testnet following the Ropsten attacks.
 type Clique struct {
@@ -184,11 +231,22 @@ type Clique struct {
 
 	// The fields below are for testing only
 	fakeDiff bool // Skip difficulty verifications
+
+	authorLock           sync.RWMutex
+	latestRewardReceiver common.Address
+	registry             *contracts.Registry
+
+	exclusionSetProvider ExclusionSetProvider
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
 // signers set to the ones provided by the user.
-func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
+func New(
+	config *params.CliqueConfig,
+	db ethdb.Database,
+	exSetProvider ExclusionSetProvider,
+	registry *contracts.Registry,
+) *Clique {
 	// Set any missing consensus parameters to their defaults
 	conf := *config
 	if conf.Epoch == 0 {
@@ -199,18 +257,35 @@ func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
 	signatures, _ := lru.NewARC(inmemorySignatures)
 
 	return &Clique{
-		config:     &conf,
-		db:         db,
-		recents:    recents,
-		signatures: signatures,
-		proposals:  make(map[common.Address]bool),
+		config:               &conf,
+		db:                   db,
+		recents:              recents,
+		signatures:           signatures,
+		proposals:            make(map[common.Address]bool),
+		registry:             registry,
+		latestRewardReceiver: registry.RewardReceiver(),
+		exclusionSetProvider: exSetProvider,
 	}
 }
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (c *Clique) Author(header *types.Header) (common.Address, error) {
-	return ecrecover(header, c.signatures)
+	// TODO: find a better way to fix this
+	// this decoupling prevents evm from going into endless recursion
+	// since any evm call in turn calls this method.
+	c.authorLock.RLock()
+	defer c.authorLock.RUnlock()
+
+	return c.latestRewardReceiver, nil
+	//return ecrecover(header, c.signatures)
+}
+
+func (c *Clique) Signer() common.Address {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	return c.signer
 }
 
 // VerifyHeader checks whether a header conforms to the consensus rules.
@@ -218,7 +293,7 @@ func (c *Clique) VerifyHeader(chain consensus.ChainHeaderReader, header *types.H
 	return c.verifyHeader(chain, header, nil)
 }
 
-// VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers. The
+// VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers. Thechecks for blacklisted signers and
 // method returns a quit channel to abort the operations and a results channel to
 // retrieve the async verifications (the order is that of the input slice).
 func (c *Clique) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
@@ -255,9 +330,15 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 	}
 	// Checkpoint blocks need to enforce zero beneficiary
 	checkpoint := (number % c.config.Epoch) == 0
-	if checkpoint && header.Coinbase != (common.Address{}) {
-		return errInvalidCheckpointBeneficiary
+	// if checkpoint && header.Coinbase != (common.Address{}) {
+	// 	return errInvalidCheckpointBeneficiary
+	// }
+
+	// Rewards should be accumulated only by reward receiver
+	if header.Coinbase != c.registry.RewardReceiver() {
+		return errInvalidRewardReceiver
 	}
+
 	// Nonces must be 0x00..0 or 0xff..f, zeroes enforced on checkpoints
 	if !bytes.Equal(header.Nonce[:], nonceAuthVote) && !bytes.Equal(header.Nonce[:], nonceDropVote) {
 		return errInvalidVote
@@ -331,7 +412,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 	}
 	// Verify that the gasUsed is <= gasLimit
 	if header.GasUsed > header.GasLimit {
-		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
+		return fmt.Errorf("invalid gasUxsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
 	}
 	if !chain.Config().IsLondon(header.Number) {
 		// Verify BaseFee not present before EIP-1559 fork.
@@ -346,12 +427,24 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		return err
 	}
 	// Retrieve the snapshot needed to verify this header and cache it
-	snap, err := c.snapshot(chain, number-1, header.ParentHash, parents)
+	snap, err := c.snapshot(chain, number-1, header.ParentHash, parents, false)
 	if err != nil {
 		return err
 	}
+
 	// If the block is a checkpoint block, verify the signer list
-	if number%c.config.Epoch == 0 {
+	headerTime := time.Unix(int64(header.Time), 0)
+	exclusionTime := time.Time{}
+	if c.exclusionSetProvider != nil {
+		exclusionTime = time.Unix(int64(c.exclusionSetProvider.ExclusionSetTimestamp()), 0)
+	}
+	if number%c.config.Epoch == 0 && headerTime.After(exclusionTime) {
+		err = c.updateProposals(number, snap, chain.Config(), false)
+		if err != nil {
+			log.Error("failed to update proposals", "error", err, "step", "prepare")
+			return err // todo wrap error
+		}
+
 		signers := make([]byte, len(snap.Signers)*common.AddressLength)
 		for i, signer := range snap.signers() {
 			copy(signers[i*common.AddressLength:], signer[:])
@@ -365,13 +458,127 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 	return c.verifySeal(snap, header, parents)
 }
 
+func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *params.ChainConfig, signerListFromPast bool) error {
+	if c.exclusionSetProvider == nil {
+		return nil
+	}
+
+	excludedSigners := c.exclusionSetProvider.ExclusionSetValidators()
+
+	provider := c.registry.Validators()
+	if provider == nil {
+		snap.Signers = toSet(filterSigners(number, snap.signers(), excludedSigners))
+		return nil
+	}
+
+	signers, err := c.getValidatorList(nil, provider)
+	if signerListFromPast {
+		signers, err = c.getValidatorList(big.NewInt(int64(number)), provider)
+	}
+	if err != nil {
+		return err
+	}
+
+	// this can happen when 'validators' contract is deployed but is empty
+	if len(signers) == 0 {
+		snap.Signers = toSet(filterSigners(number, snap.signers(), excludedSigners))
+		return nil
+	}
+
+	// todo: handle situation when all signers are banned
+	filtered := filterSigners(number, signers, excludedSigners)
+	if maxNValidators := c.registry.ActiveValidatorsNumber(); maxNValidators != nil {
+		filtered = filtered[:min(*maxNValidators, int64(len(filtered)))]
+	}
+
+	snap.Signers = toSet(filtered)
+
+	if chainConfig.IsAthos(new(big.Int).SetUint64(number)) {
+		filteredWithAliases := c.aliasAccounts(filtered, true)
+
+		//we need to filter one more time because exclusion list can contain the alias but not the validator itself for some reasons.
+		snap.Signers = toSet(filterSigners(number, filteredWithAliases, excludedSigners))
+	}
+
+	return nil
+}
+
+func (c *Clique) getValidatorList(number *big.Int, provider *generated.Validators) ([]common.Address, error) {
+	signers, err := provider.GetValidatorsList(&bind.CallOpts{
+		BlockNumber: number,
+	})
+	if errors.Is(err, bind.ErrNoCode) {
+		return []common.Address{}, nil
+	}
+	if err != nil {
+		log.Error("failed to get validators list from smart contract", "error", err)
+		return nil, err
+	}
+	return signers, nil
+}
+
+func (c *Clique) aliasAccounts(filtered []common.Address, isAthos bool) []common.Address {
+	if !isAthos {
+		return filtered
+	}
+	providerAliases := c.registry.AccountAliases()
+	if providerAliases == nil { //signers are set already
+		log.Error("failed to get account aliases list from smart contract")
+		return filtered
+	}
+
+	blockSealingPurpose, _ := new(big.Int).SetString("ac1c67647cbdc0261ee21863e0dcd233307d62845e0ab39b5e890ce32de5a917", 16) //crypto.Keccak256([]byte("BLOCK_SEALING")
+	var purposes []*big.Int
+	for range filtered {
+		purposes = append(purposes, blockSealingPurpose)
+	}
+	filteredWithAliases, errAlias := providerAliases.ResolveBatch(nil, filtered, purposes)
+	if errAlias != nil {
+		log.Error("failed to get account aliases from smart contract", "error", errAlias)
+		filteredWithAliases = filtered
+	}
+	return filteredWithAliases
+}
+
+//TODO remove in production
+func (c *Clique) unAliasAccounts(filtered []common.Address, isAthos bool) []common.Address {
+	if !isAthos {
+		return filtered
+	}
+	providerAliases := c.registry.AccountAliases()
+	if providerAliases == nil { //signers are set already
+		log.Error("failed to get account aliases list from smart contract")
+		return filtered
+	}
+
+	blockSealingPurpose, _ := new(big.Int).SetString("ac1c67647cbdc0261ee21863e0dcd233307d62845e0ab39b5e890ce32de5a917", 16) //crypto.Keccak256([]byte("BLOCK_SEALING")
+	var purposes []*big.Int
+	for range filtered {
+		purposes = append(purposes, blockSealingPurpose)
+	}
+	filteredWithAliases, errAlias := providerAliases.ResolveBatchReverse(nil, filtered, purposes)
+	if errAlias != nil {
+		log.Error("failed to get account aliases from smart contract", "error", errAlias)
+		filteredWithAliases = filtered
+	}
+	return filteredWithAliases
+}
+
+func min(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 // snapshot retrieves the authorization snapshot at a given point in time.
-func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash common.Hash, parents []*types.Header) (*Snapshot, error) {
+func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash common.Hash, parents []*types.Header, signerListFromPast bool) (*Snapshot, error) {
 	// Search for a snapshot in memory or on disk for checkpoints
 	var (
 		headers []*types.Header
 		snap    *Snapshot
 	)
+	initialNumber := number
 	for snap == nil {
 		// If an in-memory snapshot was found, use that
 		if s, ok := c.recents.Get(hash); ok {
@@ -430,6 +637,26 @@ func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 	for i := 0; i < len(headers)/2; i++ {
 		headers[i], headers[len(headers)-1-i] = headers[len(headers)-1-i], headers[i]
 	}
+
+	if signerListFromPast {
+		checkpoint := chain.GetHeaderByNumber(number)
+		if checkpoint != nil {
+			hash := checkpoint.Hash()
+
+			signers := make([]common.Address, (len(checkpoint.Extra)-extraVanity-extraSeal)/common.AddressLength)
+			for i := 0; i < len(signers); i++ {
+				copy(signers[i][:], checkpoint.Extra[extraVanity+i*common.AddressLength:])
+			}
+			snap = newSnapshot(c.config, c.signatures, number, hash, signers)
+		}
+		err := c.updateProposals(initialNumber, snap, chain.Config(), signerListFromPast)
+		if err != nil {
+			log.Error("failed to update proposals", "error", err, "step", "prepare")
+			return nil, err
+		}
+		headers = []*types.Header{}
+	}
+
 	snap, err := snap.apply(headers)
 	if err != nil {
 		return nil, err
@@ -465,6 +692,18 @@ func (c *Clique) verifySeal(snap *Snapshot, header *types.Header, parents []*typ
 	if number == 0 {
 		return errUnknownBlock
 	}
+	// Retrieve the snapshot needed to verify this header and cache it
+	snap, err := c.snapshot(chain, number-1, header.ParentHash, parents, false)
+	if err != nil {
+		return err
+	}
+
+	err = c.updateProposals(number, snap, chain.Config(), false)
+	if err != nil {
+		log.Error("failed to update proposals", "error", err, "step", "prepare")
+		return err // todo wrap error
+	}
+
 	// Resolve the authorization key and check against signers
 	signer, err := ecrecover(header, c.signatures)
 	if err != nil {
@@ -473,6 +712,7 @@ func (c *Clique) verifySeal(snap *Snapshot, header *types.Header, parents []*typ
 	if _, ok := snap.Signers[signer]; !ok {
 		return errUnauthorizedSigner
 	}
+
 	for seen, recent := range snap.Recents {
 		if recent == signer {
 			// Signer is among recents, only fail if the current block doesn't shift it out
@@ -491,22 +731,34 @@ func (c *Clique) verifySeal(snap *Snapshot, header *types.Header, parents []*typ
 			return errWrongDifficulty
 		}
 	}
+
+	if number%c.config.Epoch == 0 {
+		c.exclusionSetProvider.HandleTransitionBlockSignature(header)
+	}
 	return nil
 }
 
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
 func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header) error {
-	// If the block isn't a checkpoint, cast a random vote (good enough for now)
-	header.Coinbase = common.Address{}
+	header.Coinbase = c.registry.RewardReceiver()
 	header.Nonce = types.BlockNonce{}
 
 	number := header.Number.Uint64()
+
 	// Assemble the voting snapshot to check which votes make sense
-	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil)
+	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil, false)
 	if err != nil {
 		return err
 	}
+
+	err = c.updateProposals(number, snap, chain.Config(), false)
+	if err != nil {
+		log.Error("failed to update proposals", "error", err, "step", "prepare")
+		return err // todo wrap error
+	}
+
+	/*if number%c.config.Epoch != 0 {
 	c.lock.RLock()
 	if number%c.config.Epoch != 0 {
 		// Gather all the proposals that make sense voting on
@@ -530,7 +782,7 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	// Copy signer protected by mutex to avoid race condition
 	signer := c.signer
 	c.lock.RUnlock()
-
+	}*/
 	// Set the correct difficulty
 	header.Difficulty = calcDifficulty(snap, signer)
 
@@ -565,6 +817,8 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given.
 func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) {
+	c.accumulateRewards(state)
+
 	// No block rewards in PoA, so the state remains as is and uncles are dropped
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
@@ -610,8 +864,14 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 	c.lock.RUnlock()
 
 	// Bail out if we're unauthorized to sign a block
-	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil)
+	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil, false)
 	if err != nil {
+		return err
+	}
+
+	err = c.updateProposals(number, snap, chain.Config(), false)
+	if err != nil {
+		log.Error("failed to update proposals", "error", err, "step", "prepare")
 		return err
 	}
 	if _, authorized := snap.Signers[signer]; !authorized {
@@ -631,7 +891,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 	if header.Difficulty.Cmp(diffNoTurn) == 0 {
 		// It's not our turn explicitly to sign, delay it a bit
 		wiggle := time.Duration(len(snap.Signers)/2+1) * wiggleTime
-		delay += time.Duration(rand.Int63n(int64(wiggle)))
+		delay += time.Duration(rand.Int63n(int64(wiggle))) + wiggleTime
 
 		log.Trace("Out-of-turn signing requested", "wiggle", common.PrettyDuration(wiggle))
 	}
@@ -657,6 +917,10 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 		}
 	}()
 
+	if number%c.config.Epoch == 0 {
+		c.exclusionSetProvider.HandleTransitionBlockSignature(header)
+	}
+
 	return nil
 }
 
@@ -665,7 +929,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 // * DIFF_NOTURN(2) if BLOCK_NUMBER % SIGNER_COUNT != SIGNER_INDEX
 // * DIFF_INTURN(1) if BLOCK_NUMBER % SIGNER_COUNT == SIGNER_INDEX
 func (c *Clique) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, parent *types.Header) *big.Int {
-	snap, err := c.snapshot(chain, parent.Number.Uint64(), parent.Hash(), nil)
+	snap, err := c.snapshot(chain, parent.Number.Uint64(), parent.Hash(), nil, false)
 	if err != nil {
 		return nil
 	}
@@ -746,4 +1010,56 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 	if err := rlp.Encode(w, enc); err != nil {
 		panic("can't encode: " + err.Error())
 	}
+}
+
+// AccumulateRewards credits the coinbase of the given block with the mining reward
+func (c *Clique) accumulateRewards(state *state.StateDB) {
+	receiver := c.registry.RewardReceiver()
+	state.AddBalance(receiver, CliqueBlockReward)
+
+	c.authorLock.Lock()
+	defer c.authorLock.Unlock()
+
+	c.latestRewardReceiver = receiver
+}
+
+func (c *Clique) Validators() *common.Address {
+	address := c.registry.ValidatorsAddress()
+	if address == nil {
+		log.Info("wait two seconds for registry initialization")
+		time.Sleep(2 * time.Second)
+	}
+
+	return c.registry.ValidatorsAddress()
+}
+
+func filterSigners(number uint64, signers []common.Address, excludedSigners map[common.Address][]common.BlockRange) []common.Address {
+	var filtered []common.Address
+	for _, addr := range signers {
+		blockRanges, ok := excludedSigners[addr]
+
+		banned := false
+		for _, blockRange := range blockRanges {
+			if blockRange.ContainsAddress(number) {
+				banned = true
+				break
+			}
+		}
+		if ok && banned {
+			continue
+		}
+
+		filtered = append(filtered, addr)
+	}
+
+	return filtered
+}
+
+func toSet(signers []common.Address) map[common.Address]struct{} {
+	set := make(map[common.Address]struct{})
+	for _, addr := range signers {
+		set[addr] = struct{}{}
+	}
+
+	return set
 }

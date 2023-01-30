@@ -33,14 +33,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum"
+	pcsc "github.com/gballet/go-libpcsclite"
+	"github.com/status-im/keycard-go/derivationpath"
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
-	pcsc "github.com/gballet/go-libpcsclite"
-	"github.com/status-im/keycard-go/derivationpath"
 )
 
 // ErrPairingPasswordNeeded is returned if opening the smart card requires pairing with a pairing

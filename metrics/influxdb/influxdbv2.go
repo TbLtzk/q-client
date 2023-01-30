@@ -13,10 +13,10 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/metrics"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/metrics"
 )
 
 type v2Reporter struct {

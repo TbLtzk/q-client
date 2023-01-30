@@ -20,6 +20,8 @@ import (
 	"math/big"
 	"testing"
 
+	"gitlab.com/q-dev/q-client/contracts"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"
@@ -41,7 +43,8 @@ func TestReimportMirroredState(t *testing.T) {
 		db     = rawdb.NewMemoryDatabase()
 		key, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		addr   = crypto.PubkeyToAddress(key.PublicKey)
-		engine = New(params.AllCliqueProtocolChanges.Clique, db)
+		reg    = contracts.NewTestModeRegistry()
+		engine = New(params.AllCliqueProtocolChanges.Clique, db, nil, reg)
 		signer = new(types.HomesteadSigner)
 	)
 	genspec := &core.Genesis{
@@ -80,6 +83,7 @@ func TestReimportMirroredState(t *testing.T) {
 		}
 		header.Extra = make([]byte, extraVanity+extraSeal)
 		header.Difficulty = diffInTurn
+		header.Coinbase = reg.RewardReceiver()
 
 		sig, _ := crypto.Sign(SealHash(header).Bytes(), key)
 		copy(header.Extra[len(header.Extra)-extraSeal:], sig)

@@ -25,7 +25,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/ethereum/go-ethereum"
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/common/math"

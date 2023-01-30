@@ -26,8 +26,8 @@ import (
 	"crypto/sha512"
 	"fmt"
 
-	"gitlab.com/q-dev/q-client/crypto"
 	pcsc "github.com/gballet/go-libpcsclite"
+	"gitlab.com/q-dev/q-client/crypto"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/text/unicode/norm"
 )

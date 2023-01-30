@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/tyler-smith/go-bip39"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/abi"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
@@ -45,7 +46,6 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/tyler-smith/go-bip39"
 )
 
 // EthereumAPI provides an API to access Ethereum related information.

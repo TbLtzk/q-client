@@ -20,10 +20,11 @@ import "gitlab.com/q-dev/q-client/accounts/abi"
 
 // tmplData is the data structure required to fill the binding template.
 type tmplData struct {
-	Package   string                   // Name of the package to place the generated file in
-	Contracts map[string]*tmplContract // List of contracts to generate into this file
-	Libraries map[string]string        // Map the bytecode's link pattern to the library name
-	Structs   map[string]*tmplStruct   // Contract struct type definitions
+	Package            string                   // Name of the package to place the generated file in
+	Contracts          map[string]*tmplContract // List of contracts to generate into this file
+	Libraries          map[string]string        // Map the bytecode's link pattern to the library name
+	Structs            map[string]*tmplStruct   // Contract struct type definitions
+	NotExcludedStructs map[string]*tmplStruct   // Contract struct type definitions
 }
 
 // tmplContract contains the data needed to generate an individual contract binding.
@@ -92,7 +93,7 @@ import (
 	"strings"
 	"errors"
 
-	ethereum "github.com/ethereum/go-ethereum"
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/accounts/abi"
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
@@ -113,7 +114,7 @@ var (
 )
 
 {{$structs := .Structs}}
-{{range $structs}}
+{{range .NotExcludedStructs}}
 	// {{.Name}} is an auto generated low-level Go binding around an user-defined struct.
 	type {{.Name}} struct {
 	{{range $field := .Fields}}

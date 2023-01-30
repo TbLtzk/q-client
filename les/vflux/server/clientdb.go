@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/mclock"
 	"gitlab.com/q-dev/q-client/ethdb"
@@ -28,7 +29,6 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/rlp"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 const (

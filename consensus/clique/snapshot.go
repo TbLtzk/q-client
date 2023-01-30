@@ -19,15 +19,16 @@ package clique
 import (
 	"bytes"
 	"encoding/json"
+	"math"
 	"sort"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 // Vote represents a single vote that an authorized signer made to modify the
@@ -203,16 +204,26 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 		start  = time.Now()
 		logged = time.Now()
 	)
+
 	for i, header := range headers {
 		// Remove any votes on checkpoint blocks
 		number := header.Number.Uint64()
 		if number%s.config.Epoch == 0 {
 			snap.Votes = nil
 			snap.Tally = make(map[common.Address]Tally)
+			signers := make([]common.Address, (len(header.Extra)-extraVanity-extraSeal)/common.AddressLength)
+			for i := 0; i < len(signers); i++ {
+				copy(signers[i][:], header.Extra[extraVanity+i*common.AddressLength:])
+			}
+			snap.setSigners(signers)
 		}
 		// Delete the oldest signer from the recent list to allow it signing again
-		if limit := uint64(len(snap.Signers)/2 + 1); number >= limit {
-			delete(snap.Recents, number-limit)
+		if limit := uint64(math.Ceil(float64(len(snap.Signers)/2 + 1))); number >= limit {
+			for block := range snap.Recents {
+				if block < number-limit {
+					delete(snap.Recents, block)
+				}
+			}
 		}
 		// Resolve the authorization key and check against signers
 		signer, err := ecrecover(header, s.sigcache)
@@ -222,15 +233,15 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 		if _, ok := snap.Signers[signer]; !ok {
 			return nil, errUnauthorizedSigner
 		}
-		for _, recent := range snap.Recents {
+		/*for _, recent := range snap.Recents {
 			if recent == signer {
 				return nil, errRecentlySigned
 			}
-		}
+		}*/
 		snap.Recents[number] = signer
 
 		// Header authorized, discard any previous votes from the signer
-		for i, vote := range snap.Votes {
+		/*for i, vote := range snap.Votes {
 			if vote.Signer == signer && vote.Address == header.Coinbase {
 				// Uncast the vote from the cached tally
 				snap.uncast(vote.Address, vote.Authorize)
@@ -290,7 +301,7 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 				}
 			}
 			delete(snap.Tally, header.Coinbase)
-		}
+		}*/
 		// If we're taking too much time (ecrecover), notify the user once a while
 		if time.Since(logged) > 8*time.Second {
 			log.Info("Reconstructing voting history", "processed", i, "total", len(headers), "elapsed", common.PrettyDuration(time.Since(start)))
@@ -304,6 +315,13 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 	snap.Hash = headers[len(headers)-1].Hash()
 
 	return snap, nil
+}
+
+func (s *Snapshot) setSigners(newSigners []common.Address) {
+	s.Signers = make(map[common.Address]struct{}, len(newSigners))
+	for _, signer := range newSigners {
+		s.Signers[signer] = struct{}{}
+	}
 }
 
 // signers retrieves the list of authorized signers in ascending order.

@@ -100,6 +100,34 @@ var V5Bootnodes = []string{
 	"enr:-Ku4QEWzdnVtXc2Q0ZVigfCGggOVB2Vc1ZCPEc6j21NIFLODSJbvNaef1g4PxhPwl_3kax86YPheFUSLXPRs98vvYsoBh2F0dG5ldHOIAAAAAAAAAACEZXRoMpC1MD8qAAAAAP__________gmlkgnY0gmlwhDZBrP2Jc2VjcDI1NmsxoQM6jr8Rb1ktLEsVcKAPa08wCsKUmvoQ8khiOl_SLozf9IN1ZHCCIyg",
 }
 
+// YoloV1Bootnodes are the enode URLs of the P2P bootstrap nodes running on the
+// YOLOv1 ephemeral test network.
+var YoloV1Bootnodes = []string{
+	"enode://9e1096aa59862a6f164994cb5cb16f5124d6c992cdbf4535ff7dea43ea1512afe5448dca9df1b7ab0726129603f1a3336b631e4d7a1a44c94daddd03241587f9@35.178.210.161:30303",
+}
+
+// -----------------------------------------
+// Q Networks
+// -----------------------------------------
+
+// MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
+// Q network.
+var MainnetBootnodes = []string{
+	"enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@bootnode.q.org:30301",
+}
+
+// DevnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
+// Q devnet network.
+var DevnetBootnodes = []string{
+	"enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@35.161.73.158:30301",
+}
+
+// TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
+// Q testnet network.
+var TestnetBootnodes = []string{
+	"enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@bootnode.qtestnet.org:30301",
+}
+
 const dnsPrefix = "enrtree://AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE@"
 
 // KnownDNSNetwork returns the address of a public DNS-based node list for the given

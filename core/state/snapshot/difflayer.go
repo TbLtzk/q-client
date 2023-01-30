@@ -26,9 +26,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	bloomfilter "github.com/holiman/bloomfilter/v2"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/rlp"
-	bloomfilter "github.com/holiman/bloomfilter/v2"
 )
 
 var (

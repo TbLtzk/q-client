@@ -29,9 +29,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/rs/cors"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/rs/cors"
 )
 
 // httpConfig is the JSON-RPC/HTTP configuration.

@@ -229,6 +229,15 @@ func (ks *KeyStore) HasAddress(addr common.Address) bool {
 	return ks.cache.hasAddress(addr)
 }
 
+// IsUnlocked.
+func (ks *KeyStore) IsUnlocked(addr common.Address) bool {
+	ks.mu.RLock()
+	defer ks.mu.RUnlock()
+
+	_, ok := ks.unlocked[addr]
+	return ok
+}
+
 // Accounts returns all key files present in the directory.
 func (ks *KeyStore) Accounts() []accounts.Account {
 	return ks.cache.accounts()

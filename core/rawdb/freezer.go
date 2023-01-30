@@ -26,11 +26,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/prometheus/tsdb/fileutil"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
 	"github.com/prometheus/tsdb/fileutil"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 var (

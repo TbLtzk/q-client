@@ -19,8 +19,8 @@ package vm
 import (
 	"math/big"
 
-	"gitlab.com/q-dev/q-client/common"
 	"github.com/holiman/uint256"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 // ContractRef is a reference to the contract's backing object

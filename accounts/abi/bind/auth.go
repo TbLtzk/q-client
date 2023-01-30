@@ -24,7 +24,6 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/accounts/external"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
@@ -165,7 +164,7 @@ func NewKeyedTransactorWithChainID(key *ecdsa.PrivateKey, chainID *big.Int) (*Tr
 
 // NewClefTransactor is a utility method to easily create a transaction signer
 // with a clef backend.
-func NewClefTransactor(clef *external.ExternalSigner, account accounts.Account) *TransactOpts {
+/*func NewClefTransactor(clef *external.ExternalSigner, account accounts.Account) *TransactOpts {
 	return &TransactOpts{
 		From: account.Address,
 		Signer: func(address common.Address, transaction *types.Transaction) (*types.Transaction, error) {
@@ -176,4 +175,4 @@ func NewClefTransactor(clef *external.ExternalSigner, account accounts.Account) 
 		},
 		Context: context.Background(),
 	}
-}
+}*/

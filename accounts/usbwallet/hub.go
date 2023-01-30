@@ -23,10 +23,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/karalabe/usb"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
-	"github.com/karalabe/usb"
 )
 
 // LedgerScheme is the protocol scheme prefixing account and wallet URLs.

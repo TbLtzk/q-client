@@ -26,7 +26,6 @@ import (
 	"regexp"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/log"
 	"github.com/jedisct1/go-minisign"
 	"github.com/urfave/cli/v2"
 )

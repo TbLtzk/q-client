@@ -34,10 +34,10 @@ import (
 	"net"
 	"time"
 
+	"github.com/golang/snappy"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/crypto/ecies"
 	"gitlab.com/q-dev/q-client/rlp"
-	"github.com/golang/snappy"
 	"golang.org/x/crypto/sha3"
 )
 

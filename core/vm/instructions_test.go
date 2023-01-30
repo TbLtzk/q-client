@@ -24,10 +24,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/holiman/uint256"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/params"
-	"github.com/holiman/uint256"
 )
 
 type TwoOperandTestcase struct {

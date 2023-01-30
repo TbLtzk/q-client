@@ -23,7 +23,6 @@ import (
 	"gitlab.com/q-dev/q-client/eth/filters"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/node"
-	"github.com/graph-gophers/graphql-go"
 )
 
 type handler struct {

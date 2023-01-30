@@ -23,9 +23,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/olekukonko/tablewriter"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/log"
-	"github.com/olekukonko/tablewriter"
 )
 
 // networkStats verifies the status of network components and generates a protip

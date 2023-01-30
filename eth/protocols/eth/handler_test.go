@@ -80,7 +80,7 @@ func newTestBackendWithGenerator(blocks int, generator func(int, *core.BlockGen)
 	return &testBackend{
 		db:     db,
 		chain:  chain,
-		txpool: core.NewTxPool(txconfig, params.TestChainConfig, chain),
+		txpool: core.NewTxPool(txconfig, params.TestChainConfig, chain, &core.NoopGasPriceProvider{}),
 	}
 }
 

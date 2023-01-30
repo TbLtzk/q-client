@@ -17,9 +17,9 @@
 package vm
 
 import (
+	"github.com/holiman/uint256"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/math"
-	"github.com/holiman/uint256"
 )
 
 // calcMemSize64 calculates the required memory size, and returns

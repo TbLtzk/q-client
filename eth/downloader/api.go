@@ -20,7 +20,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/ethereum/go-ethereum"
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/rpc"
 )

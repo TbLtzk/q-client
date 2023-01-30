@@ -236,6 +236,17 @@ func (w *wizard) readPassword() string {
 	return string(text)
 }
 
+func (w *wizard) readNonEmptyAddress() common.Address {
+	for {
+		addr := w.readAddress()
+		if addr != nil {
+			return *addr
+		}
+
+		fmt.Println("please, print non-empty address")
+	}
+}
+
 // readAddress reads a single line from stdin, trimming if from spaces and converts
 // it to an Ethereum address.
 func (w *wizard) readAddress() *common.Address {

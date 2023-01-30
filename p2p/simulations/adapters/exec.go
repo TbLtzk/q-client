@@ -35,12 +35,12 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/reexec"
+	"github.com/gorilla/websocket"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/gorilla/websocket"
 )
 
 func init() {

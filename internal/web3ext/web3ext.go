@@ -30,6 +30,8 @@ var Modules = map[string]string{
 	"txpool":   TxpoolJs,
 	"les":      LESJs,
 	"vflux":    VfluxJs,
+	"gov":      GovJs,
+	"govPub":   GovPublicJs,
 }
 
 const CliqueJs = `
@@ -78,6 +80,27 @@ web3._extend({
 			call: 'clique_getSigner',
 			params: 1,
 			inputFormatter: [null]
+		}),
+		new web3._extend.Method({
+			name: 'getOutOfTurnStatsByHash',
+			call: 'clique_getOutOfTurnStatsByHash',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'getOutOfTurnStatsByNumber',
+			call: 'clique_getOutOfTurnStatsByNumber',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'getValidatorsMetricsForCycle',
+			call: 'clique_getValidatorsMetricsForCycle',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEpochLength',
+			call: 'clique_getEpochLength',
+			params: 0,
 		}),
 	],
 	properties: [
@@ -615,6 +638,145 @@ web3._extend({
 			outputFormatter: web3._extend.utils.toBigNumber
 		}),
 	]
+});
+`
+
+const GovJs = `
+web3._extend({
+	property: 'gov',
+	methods: [
+        new web3._extend.Method({
+			name: 'activeRootList',
+			call: 'gov_activeRootList',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'desiredRootList',
+			call: 'gov_desiredRootList',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'proposedRootList',
+			call: 'gov_proposedRootList',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'onchainRootList',
+			call: 'gov_onchainRootList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'proposeRootListUpdate',
+			call: 'gov_proposeRootListUpdate',
+			params: 1
+		}),
+	    new web3._extend.Method({
+			name: 'proposeOnchainRootList',
+			call: 'gov_proposeOnchainRootList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'acceptProposedRootList',
+			call: 'gov_acceptProposedRootList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'diffRootList',
+			call: 'gov_diffRootList',
+			params: 2
+		}),
+	    new web3._extend.Method({
+			name: 'activeExclusionList',
+			call: 'gov_activeExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'desiredExclusionList',
+			call: 'gov_desiredExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'proposedExclusionList',
+			call: 'gov_proposedExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'proposeExclusionListUpdate',
+			call: 'gov_proposeExclusionListUpdate',
+			params: 1
+		}),
+	    new web3._extend.Method({
+			name: 'acceptProposedExclusionList',
+			call: 'gov_acceptProposedExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'diffExclusionList',
+			call: 'gov_diffExclusionList',
+			params: 2
+		}),
+	    new web3._extend.Method({
+			name: 'getRootNodeApprovals',
+			call: 'gov_getRootNodeApprovals',
+			params: 2,
+			inputFormatter: [null, null]
+		}),
+    ],
+	properties: []
+});
+`
+
+const GovPublicJs = `
+web3._extend({
+	property: 'govPub',
+	methods: [
+        new web3._extend.Method({
+			name: 'activeRootList',
+			call: 'govPub_activeRootList',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'desiredRootList',
+			call: 'govPub_desiredRootList',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'proposedRootList',
+			call: 'govPub_proposedRootList',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'onchainRootList',
+			call: 'govPub_onchainRootList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'diffRootList',
+			call: 'govPub_diffRootList',
+			params: 2
+		}),
+	    new web3._extend.Method({
+			name: 'activeExclusionList',
+			call: 'govPub_activeExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'desiredExclusionList',
+			call: 'govPub_desiredExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'proposedExclusionList',
+			call: 'govPub_proposedExclusionList',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'diffExclusionList',
+			call: 'govPub_diffExclusionList',
+			params: 2
+		}),
+    ],
+	properties: []
 });
 `
 

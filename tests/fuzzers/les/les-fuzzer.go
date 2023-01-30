@@ -139,7 +139,7 @@ func newFuzzer(input []byte) *fuzzer {
 		chtKeys:   chtKeys,
 		bloomKeys: bloomKeys,
 		nonce:     uint64(len(txHashes)),
-		pool:      core.NewTxPool(core.DefaultTxPoolConfig, params.TestChainConfig, chain),
+		pool:      core.NewTxPool(core.DefaultTxPoolConfig, params.TestChainConfig, chain, &core.NoopGasPriceProvider{}),
 		input:     bytes.NewReader(input),
 	}
 }

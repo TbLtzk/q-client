@@ -518,7 +518,7 @@ func TestUDPv4_smallNetConvergence(t *testing.T) {
 		node := nodes[i]
 		go func() {
 			found := make(map[enode.ID]bool, len(nodes))
-			it := node.RandomNodes()
+			it := node.RandomNodes(-1)
 			for it.Next() {
 				found[it.Node().ID()] = true
 				if len(found) == len(nodes) {

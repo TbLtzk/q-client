@@ -30,13 +30,13 @@ import (
 	"syscall"
 
 	"github.com/dop251/goja"
+	"github.com/mattn/go-colorable"
+	"github.com/peterh/liner"
 	"gitlab.com/q-dev/q-client/console/prompt"
 	"gitlab.com/q-dev/q-client/internal/jsre"
 	"gitlab.com/q-dev/q-client/internal/jsre/deps"
 	"gitlab.com/q-dev/q-client/internal/web3ext"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/mattn/go-colorable"
-	"github.com/peterh/liner"
 )
 
 var (

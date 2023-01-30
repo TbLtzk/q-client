@@ -20,8 +20,8 @@ import (
 	"bytes"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/common/hexutil"
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/q-dev/q-client/common/hexutil"
 )
 
 func TestReadBufferReset(t *testing.T) {

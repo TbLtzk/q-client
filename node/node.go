@@ -28,6 +28,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/prometheus/tsdb/fileutil"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
@@ -37,7 +38,6 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/prometheus/tsdb/fileutil"
 )
 
 // Node is a container on which services can be registered.
@@ -592,7 +592,6 @@ func (n *Node) RegisterHandler(name, path string, handler http.Handler) {
 	if n.state != initializingState {
 		panic("can't register HTTP handler on running/stopped node")
 	}
-
 	n.http.mux.Handle(path, handler)
 	n.http.handlerNames[path] = name
 }

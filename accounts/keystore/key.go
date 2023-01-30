@@ -28,10 +28,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
-	"github.com/google/uuid"
 )
 
 const (
