@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/mclock"
+	"gitlab.com/q-dev/q-client/common/mclock"
 )
 
 type testNode struct {

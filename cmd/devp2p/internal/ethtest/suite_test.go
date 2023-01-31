@@ -21,11 +21,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/ethereum/go-ethereum/eth/ethconfig"
-	"github.com/ethereum/go-ethereum/internal/utesting"
-	"github.com/ethereum/go-ethereum/node"
-	"github.com/ethereum/go-ethereum/p2p"
+	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/eth/ethconfig"
+	"gitlab.com/q-dev/q-client/internal/utesting"
+	"gitlab.com/q-dev/q-client/node"
+	"gitlab.com/q-dev/q-client/p2p"
 )
 
 var (
@@ -118,7 +118,7 @@ func setupGeth(stack *node.Node) error {
 		TrieDirtyCache:          16,
 		TrieTimeout:             60 * time.Minute,
 		SnapshotCache:           10,
-	})
+	}, nil, nil)
 	if err != nil {
 		return err
 	}

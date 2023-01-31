@@ -21,8 +21,8 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/metrics"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/metrics"
 )
 
 // The fields below define the low level database schema prefixing.

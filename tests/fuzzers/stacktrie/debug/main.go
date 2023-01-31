@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum/go-ethereum/tests/fuzzers/stacktrie"
+	"gitlab.com/q-dev/q-client/tests/fuzzers/stacktrie"
 )
 
 func main() {

@@ -20,6 +20,20 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"gitlab.com/q-dev/q-client/consensus/clique"
+	lescatalyst "gitlab.com/q-dev/q-client/les/catalyst"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/metrics"
+	"gitlab.com/q-dev/q-client/metrics/exp"
+	"gitlab.com/q-dev/q-client/metrics/influxdb"
+	"gitlab.com/q-dev/q-client/miner"
+	"gitlab.com/q-dev/q-client/node"
+	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/nat"
+	"gitlab.com/q-dev/q-client/p2p/netutil"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/rpc"
 	"math"
 	"math/big"
 	"os"
@@ -29,46 +43,36 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/fdlimit"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/eth"
-	ethcatalyst "github.com/ethereum/go-ethereum/eth/catalyst"
-	"github.com/ethereum/go-ethereum/eth/downloader"
-	"github.com/ethereum/go-ethereum/eth/ethconfig"
-	"github.com/ethereum/go-ethereum/eth/filters"
-	"github.com/ethereum/go-ethereum/eth/gasprice"
-	"github.com/ethereum/go-ethereum/eth/tracers"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/ethdb/remotedb"
-	"github.com/ethereum/go-ethereum/ethstats"
-	"github.com/ethereum/go-ethereum/graphql"
-	"github.com/ethereum/go-ethereum/internal/ethapi"
-	"github.com/ethereum/go-ethereum/internal/flags"
-	"github.com/ethereum/go-ethereum/les"
-	lescatalyst "github.com/ethereum/go-ethereum/les/catalyst"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/metrics/exp"
-	"github.com/ethereum/go-ethereum/metrics/influxdb"
-	"github.com/ethereum/go-ethereum/miner"
-	"github.com/ethereum/go-ethereum/node"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/p2p/nat"
-	"github.com/ethereum/go-ethereum/p2p/netutil"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rpc"
 	pcsclite "github.com/gballet/go-libpcsclite"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	"github.com/urfave/cli/v2"
+	"gitlab.com/q-dev/q-client/accounts"
+	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/fdlimit"
+	"gitlab.com/q-dev/q-client/consensus"
+	"gitlab.com/q-dev/q-client/consensus/ethash"
+	"gitlab.com/q-dev/q-client/contracts"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/rawdb"
+	"gitlab.com/q-dev/q-client/core/vm"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/eth"
+	ethcatalyst "gitlab.com/q-dev/q-client/eth/catalyst"
+	"gitlab.com/q-dev/q-client/eth/downloader"
+	"gitlab.com/q-dev/q-client/eth/ethconfig"
+	"gitlab.com/q-dev/q-client/eth/filters"
+	"gitlab.com/q-dev/q-client/eth/gasprice"
+	"gitlab.com/q-dev/q-client/eth/tracers"
+	"gitlab.com/q-dev/q-client/ethclient"
+	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/ethdb/remotedb"
+	"gitlab.com/q-dev/q-client/ethstats"
+	"gitlab.com/q-dev/q-client/governance"
+	"gitlab.com/q-dev/q-client/graphql"
+	"gitlab.com/q-dev/q-client/internal/ethapi"
+	"gitlab.com/q-dev/q-client/internal/flags"
+	"gitlab.com/q-dev/q-client/les"
 )
 
 // These are all the command line flags we support.
@@ -154,12 +158,30 @@ var (
 		Category: flags.EthCategory,
 	}
 
+	// Q networks
+	DevnetFlag = &cli.BoolFlag{
+		Name:     "devnet",
+		Usage:    "Devnet network: pre-configured poa short-lived test network",
+		Category: flags.EthCategory,
+	}
+	TestnetFlag = &cli.BoolFlag{
+		Name:     "testnet",
+		Usage:    "Testnet network: pre-configured poa test network",
+		Category: flags.EthCategory,
+	}
+	FischerFlag = &cli.BoolFlag{
+		Name:     "fischer",
+		Usage:    "Testnet network: pre-configured poa test network",
+		Category: flags.EthCategory,
+	}
+
 	// Dev mode
 	DeveloperFlag = &cli.BoolFlag{
 		Name:     "dev",
 		Usage:    "Ephemeral proof-of-authority network with a pre-funded developer account, mining enabled",
 		Category: flags.DevCategory,
 	}
+
 	DeveloperPeriodFlag = &cli.IntFlag{
 		Name:     "dev.period",
 		Usage:    "Block period to use in developer mode (0 = mine only if transaction pending)",
@@ -399,7 +421,7 @@ var (
 	}
 	TxPoolPriceLimitFlag = &cli.Uint64Flag{
 		Name:     "txpool.pricelimit",
-		Usage:    "Minimum gas price limit to enforce for acceptance into the pool",
+		Usage:    "Minimum gas price limit to enforce for acceptance into the pool. EPQFI param will be used by default",
 		Value:    ethconfig.Defaults.TxPool.PriceLimit,
 		Category: flags.TxPoolCategory,
 	}
@@ -781,6 +803,16 @@ var (
 		Category: flags.APICategory,
 	}
 
+	// Governance flags
+	RootTimestampFlag = &cli.Uint64Flag{
+		Name:  "root.timestamp",
+		Usage: "timestamp of root nodes list",
+	}
+	RootAddressesFlag = &cli.StringFlag{
+		Name:  "root.addresses",
+		Usage: "comma separated address of root nodes list",
+	}
+
 	// Network Settings
 	MaxPeersFlag = &cli.IntFlag{
 		Name:     "maxpeers",
@@ -880,6 +912,12 @@ var (
 		Name:     "gpo.ignoreprice",
 		Usage:    "Gas price below which gpo will ignore transactions",
 		Value:    ethconfig.Defaults.GPO.IgnorePrice.Int64(),
+		Category: flags.GasPriceCategory,
+	}
+	GpoGasPriceFactor = &cli.Float64Flag{
+		Name:     "gpo.gaspricefactor",
+		Usage:    "Factor that is applied on top of the calculated minimum transaction price to be recommended for transactions",
+		Value:    ethconfig.Defaults.GPO.Factor,
 		Category: flags.GasPriceCategory,
 	}
 
@@ -999,6 +1037,8 @@ var (
 		AncientFlag,
 		RemoteDBFlag,
 	}
+
+	ArchiveValue = "archive"
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1022,6 +1062,9 @@ func MakeDataDir(ctx *cli.Context) string {
 		}
 		if ctx.Bool(KilnFlag.Name) {
 			return filepath.Join(path, "kiln")
+		}
+		if ctx.Bool(TestnetFlag.Name) || ctx.Bool(FischerFlag.Name) {
+			return filepath.Join(path, "qtestnet")
 		}
 		return path
 	}
@@ -1069,6 +1112,12 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	switch {
 	case ctx.IsSet(BootnodesFlag.Name):
 		urls = SplitAndTrim(ctx.String(BootnodesFlag.Name))
+	case ctx.IsSet(DevnetFlag.Name):
+		urls = params.DevnetBootnodes
+	case ctx.IsSet(TestnetFlag.Name):
+		urls = params.TestnetBootnodes
+	case ctx.IsSet(FischerFlag.Name):
+		urls = params.TestnetBootnodes
 	case ctx.Bool(RopstenFlag.Name):
 		urls = params.RopstenBootnodes
 	case ctx.Bool(SepoliaFlag.Name):
@@ -1203,6 +1252,30 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	}
 }
 
+//Prevents opening gov api as external endpoint
+func filterProtectedAPIs(ret []string, ns string, gcmodevalue string) []string {
+	res := []string{}
+	for _, api := range ret {
+		if strings.TrimSpace(api) == "gov" {
+			log.Error("-------------------------------------------------------------------")
+			log.Error(fmt.Sprintf("The %s api flag `gov` is forbidden!", ns))
+			log.Error("This api shouldn't be opened as an external!")
+			log.Error("-------------------------------------------------------------------\n")
+			continue
+		}
+		if strings.TrimSpace(api) == "clique" && gcmodevalue != ArchiveValue {
+			log.Warn(GCModeFlag.Name)
+			log.Warn("-------------------------------------------------------------------")
+			log.Warn(fmt.Sprintf("The %s api flag `clique` is not recommended without the archive mode!", ns))
+			log.Warn("This api shouldn't be opened as an external!")
+			log.Warn("-------------------------------------------------------------------\n")
+			continue
+		}
+		res = append(res, api)
+	}
+	return res
+}
+
 // setGraphQL creates the GraphQL listener interface string from the set
 // command line flags, returning empty if the GraphQL endpoint is disabled.
 func setGraphQL(ctx *cli.Context, cfg *node.Config) {
@@ -1232,7 +1305,7 @@ func setWS(ctx *cli.Context, cfg *node.Config) {
 	}
 
 	if ctx.IsSet(WSApiFlag.Name) {
-		cfg.WSModules = SplitAndTrim(ctx.String(WSApiFlag.Name))
+		cfg.WSModules = filterProtectedAPIs(SplitAndTrim(ctx.String(WSApiFlag.Name)), "ws", ctx.String(GCModeFlag.Name))
 	}
 
 	if ctx.IsSet(WSPathPrefixFlag.Name) {
@@ -1537,6 +1610,8 @@ func SetDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "sepolia")
 	case ctx.Bool(KilnFlag.Name) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "kiln")
+	case (ctx.Bool(TestnetFlag.Name) || ctx.Bool(FischerFlag.Name)) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "qtestnet")
 	}
 }
 
@@ -1557,6 +1632,9 @@ func setGPO(ctx *cli.Context, cfg *gasprice.Config, light bool) {
 	}
 	if ctx.IsSet(GpoIgnoreGasPriceFlag.Name) {
 		cfg.IgnorePrice = big.NewInt(ctx.Int64(GpoIgnoreGasPriceFlag.Name))
+	}
+	if ctx.IsSet(GpoGasPriceFactor.Name) {
+		cfg.Factor = ctx.Float64(GpoGasPriceFactor.Name)
 	}
 }
 
@@ -1724,10 +1802,50 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 	}
 }
 
+func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
+	if !(ctx.IsSet(RootTimestampFlag.Name) || ctx.IsSet(RootAddressesFlag.Name)) {
+		switch true {
+		case ctx.Bool(DevnetFlag.Name):
+			cfg.RootList = params.DevnetRootNodes
+		case ctx.Bool(TestnetFlag.Name):
+			cfg.RootList = params.TestnetRootNodes
+		case ctx.Bool(FischerFlag.Name):
+			cfg.RootList = params.TestnetRootNodes
+		case !ctx.IsSet(NetworkIdFlag.Name):
+			cfg.RootList = params.MainnetRootNodes
+		default:
+			cfg.RootList = params.TestnetRootNodes
+		}
+		return
+	}
+
+	// validate flags
+	if !ctx.IsSet(RootTimestampFlag.Name) {
+		Fatalf("flag %s is required when %s is set", RootTimestampFlag.Name, RootAddressesFlag.Name)
+	}
+	if !ctx.IsSet(RootAddressesFlag.Name) {
+		Fatalf("flag %s is required when %s is set", RootAddressesFlag.Name, RootTimestampFlag.Name)
+	}
+
+	var addrs []common.Address
+	for _, str := range strings.Split(ctx.String(RootAddressesFlag.Name), ",") {
+		if !common.IsHexAddress(str) {
+			Fatalf("invalid %s: %s is not a hex encoded address", RootAddressesFlag.Name, str)
+		}
+
+		addrs = append(addrs, common.HexToAddress(str))
+	}
+
+	cfg.RootList = common.RootList{
+		Timestamp: ctx.Uint64(RootTimestampFlag.Name),
+		Nodes:     addrs,
+	}
+}
+
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
-	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, RopstenFlag, RinkebyFlag, GoerliFlag, SepoliaFlag, KilnFlag)
+	CheckExclusive(ctx, MainnetFlag, DeveloperFlag, RopstenFlag, RinkebyFlag, GoerliFlag, SepoliaFlag, KilnFlag, TestnetFlag, FischerFlag)
 	CheckExclusive(ctx, LightServeFlag, SyncModeFlag, "light")
 	CheckExclusive(ctx, DeveloperFlag, ExternalSignerFlag) // Can't use both ephemeral unlocked and external signer
 	if ctx.String(GCModeFlag.Name) == "archive" && ctx.Uint64(TxLookupLimitFlag.Name) != 0 {
@@ -1864,9 +1982,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	switch {
 	case ctx.Bool(MainnetFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 1
+			cfg.NetworkId = 35441
 		}
-		cfg.Genesis = core.DefaultGenesisBlock()
+		cfg.Genesis = core.DefaultMainnetGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 	case ctx.Bool(RopstenFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
@@ -1902,6 +2020,18 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		}
 		cfg.Genesis = core.DefaultGoerliGenesisBlock()
 		SetDNSDiscoveryDefaults(cfg, params.GoerliGenesisHash)
+	case ctx.IsSet(TestnetFlag.Name):
+		if !ctx.IsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 35443
+		}
+		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+		SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
+	case ctx.IsSet(FischerFlag.Name):
+		if !ctx.IsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 35443
+		}
+		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+		SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 	case ctx.Bool(KilnFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337802
@@ -1962,7 +2092,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 			cfg.Miner.GasPrice = big.NewInt(1)
 		}
 	default:
-		if cfg.NetworkId == 1 {
+		if cfg.NetworkId == 35441 {
+			cfg.Genesis = core.DefaultMainnetGenesisBlock()
 			SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 		}
 	}
@@ -1987,7 +2118,7 @@ func SetDNSDiscoveryDefaults(cfg *ethconfig.Config, genesis common.Hash) {
 // RegisterEthService adds an Ethereum client to the stack.
 // The second return value is the full node instance, which may be nil if the
 // node is running as a light client.
-func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend, *eth.Ethereum) {
+func RegisterEthService(stack *node.Node, cfg *ethconfig.Config, gov *governance.RootManager) (ethapi.Backend, *eth.Ethereum) {
 	if cfg.SyncMode == downloader.LightSync {
 		backend, err := les.New(stack, cfg)
 		if err != nil {
@@ -1999,7 +2130,9 @@ func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend
 		}
 		return backend.ApiBackend, nil
 	}
-	backend, err := eth.New(stack, cfg)
+	conn, _ := stack.Attach()
+	client := ethclient.NewClient(conn)
+	backend, err := eth.New(stack, cfg, client, gov)
 	if err != nil {
 		Fatalf("Failed to register the Ethereum service: %v", err)
 	}
@@ -2042,6 +2175,19 @@ func RegisterFilterAPI(stack *node.Node, backend ethapi.Backend, ethcfg *ethconf
 		Service:   filters.NewFilterAPI(filterSystem, isLightClient),
 	}})
 	return filterSystem
+}
+
+func RegisterGovernanceService(stack *node.Node, rm *governance.RootManager) *governance.Governance {
+	gov, err := governance.New(stack, rm)
+	if err != nil {
+		Fatalf("failed to register governance service %v", err)
+	}
+
+	stack.RegisterAPIs(gov.APIs())
+	stack.RegisterProtocols(gov.Protocols())
+	stack.RegisterLifecycle(gov)
+
+	return gov
 }
 
 func SetupMetrics(ctx *cli.Context) {
@@ -2148,7 +2294,7 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	var genesis *core.Genesis
 	switch {
 	case ctx.Bool(MainnetFlag.Name):
-		genesis = core.DefaultGenesisBlock()
+		genesis = core.DefaultMainnetGenesisBlock()
 	case ctx.Bool(RopstenFlag.Name):
 		genesis = core.DefaultRopstenGenesisBlock()
 	case ctx.Bool(SepoliaFlag.Name):
@@ -2157,6 +2303,10 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultRinkebyGenesisBlock()
 	case ctx.Bool(GoerliFlag.Name):
 		genesis = core.DefaultGoerliGenesisBlock()
+	case ctx.Bool(TestnetFlag.Name):
+		genesis = core.DefaultTestnetGenesisBlock()
+	case ctx.Bool(FischerFlag.Name):
+		genesis = core.DefaultTestnetGenesisBlock()
 	case ctx.Bool(KilnFlag.Name):
 		genesis = core.DefaultKilnGenesisBlock()
 	case ctx.Bool(DeveloperFlag.Name):
@@ -2175,12 +2325,16 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	}
 
 	var engine consensus.Engine
-	ethashConf := ethconfig.Defaults.Ethash
-	if ctx.Bool(FakePoWFlag.Name) {
-		ethashConf.PowMode = ethash.ModeFake
+	if config.Clique != nil {
+		engine = clique.New(config.Clique, chainDb, &clique.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry())
+	} else {
+		ethashConf := ethconfig.Defaults.Ethash
+		if ctx.Bool(FakePoWFlag.Name) {
+			ethashConf.PowMode = ethash.ModeFake
+		}
+		engine = ethconfig.CreateConsensusEngine(stack, config, &ethashConf, nil, false, chainDb, nil, nil)
 	}
-	engine = ethconfig.CreateConsensusEngine(stack, config, &ethashConf, nil, false, chainDb)
-	if gcmode := ctx.String(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
+	if gcmode := ctx.String(GCModeFlag.Name); gcmode != "full" && gcmode != ArchiveValue {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
@@ -2214,6 +2368,16 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("Can't create BlockChain: %v", err)
 	}
 	return chain, chainDb
+}
+
+func MakeRootManager(stack *node.Node, networkId uint64, govCfg *governance.Config) *governance.RootManager {
+
+	rm, err := governance.NewRootManager(stack.AccountManager(), networkId, stack.InstanceDir(), govCfg)
+	if err != nil {
+		Fatalf("Can't create RootManager: %v", err)
+	}
+
+	return rm
 }
 
 // MakeConsolePreloads retrieves the absolute paths for the console JavaScript

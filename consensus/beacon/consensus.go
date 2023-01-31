@@ -21,14 +21,14 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/consensus/misc"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ethereum/go-ethereum/trie"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus"
+	"gitlab.com/q-dev/q-client/consensus/misc"
+	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 // Proof-of-stake protocol constants.
@@ -74,6 +74,10 @@ func (beacon *Beacon) Author(header *types.Header) (common.Address, error) {
 		return beacon.ethone.Author(header)
 	}
 	return header.Coinbase, nil
+}
+
+func (beacon *Beacon) Signer() common.Address {
+	return common.Address{}
 }
 
 // VerifyHeader checks whether a header conforms to the consensus rules of the

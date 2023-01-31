@@ -17,8 +17,8 @@
 package beacon
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // EngineAPIError is a standardized error message between consensus and execution

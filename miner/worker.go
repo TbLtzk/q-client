@@ -24,17 +24,20 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitlab.com/q-dev/q-client/accounts"
+	"gitlab.com/q-dev/q-client/internal/utils"
+
 	mapset "github.com/deckarep/golang-set"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/consensus/misc"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/trie"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus"
+	"gitlab.com/q-dev/q-client/consensus/misc"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 const (
@@ -183,11 +186,12 @@ type intervalAdjust struct {
 // worker is the main object which takes care of submitting new work to consensus engine
 // and gathering the sealing result.
 type worker struct {
-	config      *Config
-	chainConfig *params.ChainConfig
-	engine      consensus.Engine
-	eth         Backend
-	chain       *core.BlockChain
+	config         *Config
+	chainConfig    *params.ChainConfig
+	engine         consensus.Engine
+	eth            Backend
+	chain          *core.BlockChain
+	accountManager *accounts.Manager
 
 	// Feeds
 	pendingLogsFeed event.Feed
@@ -251,7 +255,7 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 }
 
-func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, isLocalBlock func(header *types.Header) bool, init bool) *worker {
+func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, isLocalBlock func(header *types.Header) bool, init bool, accountManager *accounts.Manager) *worker {
 	worker := &worker{
 		config:             config,
 		chainConfig:        chainConfig,
@@ -259,6 +263,7 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 		eth:                eth,
 		mux:                mux,
 		chain:              eth.BlockChain(),
+		accountManager:     accountManager,
 		isLocalBlock:       isLocalBlock,
 		localUncles:        make(map[common.Hash]*types.Block),
 		remoteUncles:       make(map[common.Hash]*types.Block),
@@ -1010,7 +1015,20 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 			header.GasLimit = core.CalcGasLimit(parentGasLimit, w.config.GasCeil)
 		}
 	}
-	// Run the consensus preparation with the default or customized consensus engine.
+	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
+	if w.isRunning() {
+		if w.coinbase == (common.Address{}) {
+			log.Error("Refusing to mine without etherbase")
+			return nil, errors.New("Refusing to mine without etherbase")
+		}
+		header.Coinbase = w.coinbase
+		var err error
+		w.coinbase, err = w.engine.Author(header)
+		if err != nil {
+			log.Error("failed to get author of future block", "error", err)
+		}
+		log.Debug("updated coinbase", "address", w.coinbase.String())
+	}
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for sealing", "err", err)
 		return nil, err
@@ -1051,6 +1069,15 @@ func (w *worker) fillTransactions(interrupt *int32, env *environment) error {
 	// Split the pending transactions into locals and remotes
 	// Fill the block with all available pending transactions.
 	pending := w.eth.TxPool().Pending(true)
+
+	systemTxs := w.prepareSystemTx(w.accountManager, env)
+	// Short circuit if there is no available pending transactions.
+	// But if we disable empty precommit already, ignore it. Since
+	// empty block is necessary to keep the liveness of the network.
+	if len(pending) == 0 && len(systemTxs) == 0 && atomic.LoadUint32(&w.noempty) == 0 {
+		w.updateSnapshot(env)
+		return nil
+	}
 	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
 	for _, account := range w.eth.TxPool().Locals() {
 		if txs := remoteTxs[account]; len(txs) > 0 {
@@ -1069,6 +1096,18 @@ func (w *worker) fillTransactions(interrupt *int32, env *environment) error {
 		if err := w.commitTransactions(env, txs, interrupt); err != nil {
 			return err
 		}
+	}
+	// add system transactions in last block of epoch
+	if len(systemTxs) > 0 {
+		txs := types.NewTransactionsByPriceAndNonce(env.signer, systemTxs, env.header.BaseFee)
+		if err := w.commitTransactions(env, txs, interrupt); err != nil {
+			log.Warn("fail to apply system txs")
+			return err
+		} else {
+			log.Info("committed system txs")
+		}
+	} else {
+		log.Info("no system txs")
 	}
 	return nil
 }
@@ -1230,4 +1269,9 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 		feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), minerFee))
 	}
 	return new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Ether)))
+}
+
+func (w *worker) prepareSystemTx(accountManager *accounts.Manager, env *environment) map[common.Address]types.Transactions {
+	systemTxPreparer := utils.New(w.chainConfig, w.engine, env.state, env.header, env.signer)
+	return systemTxPreparer.PrepareSystemTx(accountManager)
 }

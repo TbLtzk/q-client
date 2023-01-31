@@ -25,12 +25,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 const (
@@ -53,6 +53,9 @@ type Config struct {
 
 	// UserIdent, if set, is used as an additional component in the devp2p node identifier.
 	UserIdent string `toml:",omitempty"`
+
+	// Q-Client version number
+	QVersion string `toml:"-"`
 
 	// Version should be set to the version number of the program. It is used
 	// in the devp2p node identifier.
@@ -288,11 +291,16 @@ func (c *Config) ExtRPCEnabled() bool {
 
 // NodeName returns the devp2p node identifier.
 func (c *Config) NodeName() string {
-	name := c.name()
+	var name string
+	configName := c.name()
 	// Backwards compatibility: previous versions used title-cased "Geth", keep that.
-	if name == "geth" || name == "geth-testnet" {
-		name = "Geth"
+	if configName == "geth" || configName == "geth-testnet" {
+		configName = "Geth"
 	}
+	if c.QVersion != "" {
+		name += "Q-Client/v" + c.QVersion + "/"
+	}
+	name += configName
 	if c.UserIdent != "" {
 		name += "/" + c.UserIdent
 	}

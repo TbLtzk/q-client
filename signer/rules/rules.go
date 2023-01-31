@@ -23,11 +23,11 @@ import (
 	"strings"
 
 	"github.com/dop251/goja"
-	"github.com/ethereum/go-ethereum/internal/ethapi"
-	"github.com/ethereum/go-ethereum/internal/jsre/deps"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/signer/core"
-	"github.com/ethereum/go-ethereum/signer/storage"
+	"gitlab.com/q-dev/q-client/internal/ethapi"
+	"gitlab.com/q-dev/q-client/internal/jsre/deps"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/signer/core"
+	"gitlab.com/q-dev/q-client/signer/storage"
 )
 
 // consoleOutput is an override for the console.log and console.error methods to

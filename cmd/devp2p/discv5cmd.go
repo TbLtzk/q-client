@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ethereum/go-ethereum/cmd/devp2p/internal/v5test"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/p2p/discover"
+	"gitlab.com/q-dev/q-client/cmd/devp2p/internal/v5test"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/p2p/discover"
 	"github.com/urfave/cli/v2"
 )
 

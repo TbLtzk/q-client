@@ -26,9 +26,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 var (
@@ -371,6 +371,21 @@ func (b *Block) WithBody(transactions []*Transaction, uncles []*Header) *Block {
 	for i := range uncles {
 		block.uncles[i] = CopyHeader(uncles[i])
 	}
+	return block
+}
+
+// WithHash returns a new block with the given hash.
+func (b *Block) WithHash(hash common.Hash) *Block {
+	block := &Block{
+		header:       CopyHeader(b.header),
+		transactions: make([]*Transaction, len(b.transactions)),
+		uncles:       make([]*Header, len(b.uncles)),
+	}
+	copy(block.transactions, b.transactions)
+	for i := range b.uncles {
+		block.uncles[i] = CopyHeader(b.uncles[i])
+	}
+	block.hash.Store(hash)
 	return block
 }
 

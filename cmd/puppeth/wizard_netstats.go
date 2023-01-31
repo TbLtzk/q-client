@@ -23,9 +23,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/olekukonko/tablewriter"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // networkStats verifies the status of network components and generates a protip

@@ -31,11 +31,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/internal/testlog"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/p2p/discover/v4wire"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/p2p/enr"
+	"gitlab.com/q-dev/q-client/internal/testlog"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/p2p/discover/v4wire"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/enr"
 )
 
 // shared test variables
@@ -518,7 +518,7 @@ func TestUDPv4_smallNetConvergence(t *testing.T) {
 		node := nodes[i]
 		go func() {
 			found := make(map[enode.ID]bool, len(nodes))
-			it := node.RandomNodes()
+			it := node.RandomNodes(-1)
 			for it.Next() {
 				found[it.Node().ID()] = true
 				if len(found) == len(nodes) {

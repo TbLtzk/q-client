@@ -20,7 +20,7 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/ethereum/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 type (

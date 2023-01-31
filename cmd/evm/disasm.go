@@ -22,7 +22,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/core/asm"
+	"gitlab.com/q-dev/q-client/core/asm"
 	"github.com/urfave/cli/v2"
 )
 

@@ -5,7 +5,7 @@
 
 package types
 
-import "github.com/ethereum/go-ethereum/rlp"
+import "gitlab.com/q-dev/q-client/rlp"
 import "io"
 
 func (obj *Header) EncodeRLP(_w io.Writer) error {

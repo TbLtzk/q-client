@@ -19,7 +19,7 @@ package vm
 import (
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 type (

@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/tests/fuzzers/vflux"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/tests/fuzzers/vflux"
 )
 
 func main() {

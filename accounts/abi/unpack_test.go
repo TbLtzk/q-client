@@ -26,8 +26,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 // TestUnpack tests the general pack/unpack tests in packing_test.go

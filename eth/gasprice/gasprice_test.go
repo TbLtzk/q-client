@@ -22,16 +22,16 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus/ethash"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/rawdb"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 const testHead = 32
@@ -207,6 +207,25 @@ func TestSuggestTipCap(t *testing.T) {
 		}
 		if got.Cmp(c.expect) != 0 {
 			t.Fatalf("Gas price mismatch, want %d, got %d", c.expect, got)
+		}
+	}
+}
+
+func TestCalcGasPice(t *testing.T) {
+
+	var cases = []struct {
+		txFee, qQusdExchangeRate, txSize *big.Int
+		expect                           *big.Int
+	}{
+		{big.NewInt(1), big.NewInt(1_000_000_000), big.NewInt(1), big.NewInt(1_000_000_000)},
+		{big.NewInt(1), big.NewInt(1_000_000_000), big.NewInt(1_000_000_000), big.NewInt(1)},
+		{big.NewInt(47_619_047_619), big.NewInt(1_000_000_000_000_000_000), big.NewInt(21_000), big.NewInt(2_267_573)},
+		{big.NewInt(47_619_047_619), big.NewInt(1_000_000_000_000_000_000), big.NewInt(42_000), big.NewInt(1_133_786)},
+	}
+	for _, c := range cases {
+		actual := calcGasPrice(c.txFee, c.qQusdExchangeRate, c.txSize)
+		if actual.Cmp(c.expect) != 0 {
+			t.Fatalf("Gas price mismatch, want %d, got %d", c.expect, actual)
 		}
 	}
 }

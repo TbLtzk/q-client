@@ -21,8 +21,8 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // DownloaderAPI provides an API which gives information about the current synchronisation status.

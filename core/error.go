@@ -19,7 +19,7 @@ package core
 import (
 	"errors"
 
-	"github.com/ethereum/go-ethereum/core/types"
+	"gitlab.com/q-dev/q-client/core/types"
 )
 
 var (

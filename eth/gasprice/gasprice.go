@@ -22,14 +22,14 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 const sampleNumber = 3 // Number of transactions sampled in a block
@@ -47,6 +47,7 @@ type Config struct {
 	Default          *big.Int `toml:",omitempty"`
 	MaxPrice         *big.Int `toml:",omitempty"`
 	IgnorePrice      *big.Int `toml:",omitempty"`
+	Factor           float64  `toml:",omitempty"`
 }
 
 // OracleBackend includes all necessary background APIs for oracle.
@@ -73,6 +74,8 @@ type Oracle struct {
 	checkBlocks, percentile           int
 	maxHeaderHistory, maxBlockHistory int
 	historyCache                      *lru.Cache
+
+	factor float64
 }
 
 // NewOracle returns a new gasprice oracle which can recommend suitable
@@ -127,6 +130,11 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 		}
 	}()
 
+	factor := params.Factor
+	if factor == 0 {
+		factor = 1
+	}
+
 	return &Oracle{
 		backend:          backend,
 		lastPrice:        params.Default,
@@ -137,7 +145,26 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 		maxHeaderHistory: maxHeaderHistory,
 		maxBlockHistory:  maxBlockHistory,
 		historyCache:     cache,
+		factor:           factor,
 	}
+}
+
+//SuggestTipCapExt returns price from GasPriceProvider if it's possible. Otherwise, it returns standard price
+//from SuggestTipCap
+//Price can be multiplied by cli gpo.gaspricefactor parameter, which can increase/decrease it
+func (oracle *Oracle) SuggestTipCapExt(ctx context.Context, gpp core.GasPriceProvider) (*big.Int, error) {
+	var price *big.Int
+	var err error
+	if gpp != nil {
+		price, err = gpp.GetGasPrice()
+	}
+	if price == nil || price.Uint64() == 0 || err != nil {
+		price, err = oracle.SuggestTipCap(ctx)
+	}
+	if err == nil && price != nil && oracle.factor != 0 {
+		price = new(big.Int).SetUint64(uint64(float64(price.Uint64()) * oracle.factor))
+	}
+	return price, err
 }
 
 // SuggestTipCap returns a tip cap so that newly created transaction can have a
@@ -155,6 +182,7 @@ func (oracle *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 	lastHead, lastPrice := oracle.lastHead, oracle.lastPrice
 	oracle.cacheLock.RUnlock()
 	if headHash == lastHead {
+
 		return new(big.Int).Set(lastPrice), nil
 	}
 	oracle.fetchLock.Lock()

@@ -21,7 +21,7 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/ethereum/go-ethereum/params"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 // Forks table defines supported forks and their chain config.

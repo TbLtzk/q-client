@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum/go-ethereum/tests/fuzzers/snap"
+	"gitlab.com/q-dev/q-client/tests/fuzzers/snap"
 )
 
 func main() {

@@ -19,7 +19,7 @@ package event_test
 import (
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/event"
+	"gitlab.com/q-dev/q-client/event"
 )
 
 func ExampleFeed_acknowledgedEvents() {

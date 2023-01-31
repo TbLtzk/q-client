@@ -20,7 +20,7 @@ import (
 	"container/heap"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common/mclock"
+	"gitlab.com/q-dev/q-client/common/mclock"
 )
 
 // LazyQueue is a priority queue data structure where priorities can change over

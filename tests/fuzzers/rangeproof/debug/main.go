@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ethereum/go-ethereum/tests/fuzzers/rangeproof"
+	"gitlab.com/q-dev/q-client/tests/fuzzers/rangeproof"
 )
 
 func main() {

@@ -20,13 +20,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gitlab.com/q-dev/q-client/log"
 	"io"
 	"net/http"
 	"os"
 	"regexp"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/jedisct1/go-minisign"
 	"github.com/urfave/cli/v2"
 )

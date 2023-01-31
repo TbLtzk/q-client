@@ -29,11 +29,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/p2p/discover/v4wire"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/p2p/netutil"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/p2p/discover/v4wire"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/netutil"
 )
 
 // Errors
@@ -267,8 +267,15 @@ func (t *UDPv4) LookupPubkey(key *ecdsa.PublicKey) []*enode.Node {
 }
 
 // RandomNodes is an iterator yielding nodes from a random walk of the DHT.
-func (t *UDPv4) RandomNodes() enode.Iterator {
-	return newLookupIterator(t.closeCtx, t.newRandomLookup)
+// delay prevents resources overuse in small networks.
+func (t *UDPv4) RandomNodes(delay time.Duration) enode.Iterator {
+	return newLookupIterator(t.closeCtx, func(ctx context.Context) *lookup {
+		if delay > 0 {
+			time.Sleep(delay)
+		}
+
+		return t.newRandomLookup(ctx)
+	})
 }
 
 // lookupRandom implements transport.

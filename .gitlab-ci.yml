@@ -1,0 +1,110 @@
+---
+
+include:
+  - project: "q-dev/infrastructure/common-ci"
+    ref: "main"
+    file: "semantic-release-basic.yml"
+
+variables:
+  IMAGE_NAME: "qdevelopment/q-client"
+  RELEASE_IMAGE_NAME: "qblockchain/q-client"
+
+workflow:
+  rules:
+    - if: "$CI_COMMIT_TAG"
+      when: "never"
+    - when: "always"
+
+.before_script_template:
+  before_script:
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/".insteadOf https://gitlab.com/
+    - go env -w GOPRIVATE=gitlab.com/${CI_PROJECT_NAMESPACE}
+
+stages:
+  - ".pre"
+  - "build"
+  - "test"
+  - "release"
+  - "deploy"
+  - ".post"
+
+test:
+  image: golang:1.17.13
+  stage: test
+  extends: .before_script_template
+  tags:
+    - gitlab-org-docker
+  only:
+    - merge_requests
+    - master
+  script:
+    - GO111MODULE=off go get gotest.tools/gotestsum
+    - gotestsum --junitfile report.xml --format testname
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+
+lint:
+  image: golang:1.16.7
+  stage: test
+  extends: .before_script_template
+  tags:
+    - gitlab-org-docker
+  only:
+    - merge_requests
+    - master
+  script:
+    - go run build/ci.go lint
+
+build:
+  image:
+    name: "gcr.io/kaniko-project/executor:v1.8.1-debug"
+    entrypoint: [""]
+  stage: "build"
+  tags:
+    - "gitlab-org-docker"
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+  script:
+    - >-
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}"
+      --dockerfile "${CI_PROJECT_DIR}/Dockerfile.alltools"
+      --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}"
+      --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+      --build-arg COMMIT="${CI_COMMIT_SHORT_SHA}"
+      --build-arg VERSION="${RELEASE_VERSION}"
+      --build-arg BUILDNUM="${CI_JOB_ID}"
+      --build-arg BUILD_TOKEN="${CI_JOB_TOKEN}"
+      --build-arg USERNAME="gitlab-ci-token"
+
+publish:
+  image:
+    name: "gcr.io/go-containerregistry/crane/debug:v0.11.0"
+    entrypoint: [""]
+  stage: "release"
+  tags:
+    - "gitlab-org-docker"
+  only:
+    - "master"
+  dependencies:
+    - "prepare"
+  needs:
+    - "build"
+    - "prepare"
+  before_script:
+    - "crane auth login index.docker.io -u ${REGISTRY_USER} -p ${REGISTRY_PASS}"
+    - "crane auth login ${CI_REGISTRY} -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD}"
+  script:
+    - >-
+      crane copy "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${RELEASE_IMAGE_NAME}:${RELEASE_VERSION}"
+    - >-
+      crane copy "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${CI_REGISTRY_IMAGE}:${RELEASE_VERSION}"
+    - >-
+      crane copy "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${CI_REGISTRY_IMAGE}:latest"
+
+release:
+  needs:
+    - "publish"

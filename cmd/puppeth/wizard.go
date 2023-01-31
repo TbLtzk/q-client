@@ -29,10 +29,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/console/prompt"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/console/prompt"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/log"
 	"github.com/peterh/liner"
 	"golang.org/x/term"
 )
@@ -234,6 +234,17 @@ func (w *wizard) readPassword() string {
 	}
 	fmt.Println()
 	return string(text)
+}
+
+func (w *wizard) readNonEmptyAddress() common.Address {
+	for {
+		addr := w.readAddress()
+		if addr != nil {
+			return *addr
+		}
+
+		fmt.Println("please, print non-empty address")
+	}
 }
 
 // readAddress reads a single line from stdin, trimming if from spaces and converts

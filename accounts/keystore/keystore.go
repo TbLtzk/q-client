@@ -32,11 +32,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/event"
+	"gitlab.com/q-dev/q-client/accounts"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/event"
 )
 
 var (
@@ -227,6 +227,15 @@ func (ks *KeyStore) updater() {
 // HasAddress reports whether a key with the given address is present.
 func (ks *KeyStore) HasAddress(addr common.Address) bool {
 	return ks.cache.hasAddress(addr)
+}
+
+// IsUnlocked.
+func (ks *KeyStore) IsUnlocked(addr common.Address) bool {
+	ks.mu.RLock()
+	defer ks.mu.RUnlock()
+
+	_, ok := ks.unlocked[addr]
+	return ok
 }
 
 // Accounts returns all key files present in the directory.

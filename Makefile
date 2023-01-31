@@ -13,6 +13,9 @@ geth:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
 
+install:
+	cp build/bin/geth /usr/local/bin
+
 all:
 	$(GORUN) build/ci.go install
 
@@ -33,6 +36,9 @@ test: all
 
 lint: ## Run linters.
 	$(GORUN) build/ci.go lint
+
+update-version:
+	@./update-version.sh $(VERSION)
 
 clean:
 	env GO111MODULE=on go clean -cache

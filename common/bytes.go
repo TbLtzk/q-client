@@ -21,7 +21,7 @@ import (
 	"encoding/hex"
 	"errors"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	"gitlab.com/q-dev/q-client/common/hexutil"
 )
 
 // FromHex returns the bytes represented by the hexadecimal string s.

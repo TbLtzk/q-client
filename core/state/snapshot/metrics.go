@@ -16,7 +16,7 @@
 
 package snapshot
 
-import "github.com/ethereum/go-ethereum/metrics"
+import "gitlab.com/q-dev/q-client/metrics"
 
 // Metrics in generation
 var (

@@ -21,8 +21,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	fuzz "github.com/google/gofuzz"
+	"gitlab.com/q-dev/q-client/accounts/abi"
 )
 
 var (

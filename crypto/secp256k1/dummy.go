@@ -15,7 +15,7 @@
 package secp256k1
 
 import (
-	_ "github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1/include"
-	_ "github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1/src"
-	_ "github.com/ethereum/go-ethereum/crypto/secp256k1/libsecp256k1/src/modules/recovery"
+	_ "gitlab.com/q-dev/q-client/crypto/secp256k1/libsecp256k1/include"
+	_ "gitlab.com/q-dev/q-client/crypto/secp256k1/libsecp256k1/src"
+	_ "gitlab.com/q-dev/q-client/crypto/secp256k1/libsecp256k1/src/modules/recovery"
 )

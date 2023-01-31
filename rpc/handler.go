@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // handler handles JSON-RPC messages. There is one handler per connection. Note that

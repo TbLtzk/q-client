@@ -22,11 +22,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/rlp"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -140,7 +140,7 @@ func TestDeleteBloomBits(t *testing.T) {
 	db := NewMemoryDatabase()
 	for i := uint(0); i < 2; i++ {
 		for s := uint64(0); s < 2; s++ {
-			WriteBloomBits(db, i, s, params.MainnetGenesisHash, []byte{0x01, 0x02})
+			WriteBloomBits(db, i, s, params.QMainnetGenesisHash, []byte{0x01, 0x02})
 			WriteBloomBits(db, i, s, params.RinkebyGenesisHash, []byte{0x01, 0x02})
 		}
 	}
@@ -154,26 +154,26 @@ func TestDeleteBloomBits(t *testing.T) {
 		}
 	}
 	// Check the existence of written data.
-	check(0, 0, params.MainnetGenesisHash, true)
+	check(0, 0, params.QMainnetGenesisHash, true)
 	check(0, 0, params.RinkebyGenesisHash, true)
 
 	// Check the existence of deleted data.
 	DeleteBloombits(db, 0, 0, 1)
-	check(0, 0, params.MainnetGenesisHash, false)
+	check(0, 0, params.QMainnetGenesisHash, false)
 	check(0, 0, params.RinkebyGenesisHash, false)
-	check(0, 1, params.MainnetGenesisHash, true)
+	check(0, 1, params.QMainnetGenesisHash, true)
 	check(0, 1, params.RinkebyGenesisHash, true)
 
 	// Check the existence of deleted data.
 	DeleteBloombits(db, 0, 0, 2)
-	check(0, 0, params.MainnetGenesisHash, false)
+	check(0, 0, params.QMainnetGenesisHash, false)
 	check(0, 0, params.RinkebyGenesisHash, false)
-	check(0, 1, params.MainnetGenesisHash, false)
+	check(0, 1, params.QMainnetGenesisHash, false)
 	check(0, 1, params.RinkebyGenesisHash, false)
 
 	// Bit1 shouldn't be affect.
-	check(1, 0, params.MainnetGenesisHash, true)
+	check(1, 0, params.QMainnetGenesisHash, true)
 	check(1, 0, params.RinkebyGenesisHash, true)
-	check(1, 1, params.MainnetGenesisHash, true)
+	check(1, 1, params.QMainnetGenesisHash, true)
 	check(1, 1, params.RinkebyGenesisHash, true)
 }

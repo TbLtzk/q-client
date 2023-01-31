@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // measurementImpact is the impact a single measurement has on a peer's final

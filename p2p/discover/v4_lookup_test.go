@@ -23,10 +23,10 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/p2p/discover/v4wire"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/p2p/enr"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/p2p/discover/v4wire"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/enr"
 )
 
 func TestUDPv4_Lookup(t *testing.T) {
@@ -78,7 +78,7 @@ func TestUDPv4_LookupIterator(t *testing.T) {
 	go serveTestnet(test, lookupTestnet)
 
 	// Create the iterator and collect the nodes it yields.
-	iter := test.udp.RandomNodes()
+	iter := test.udp.RandomNodes(-1)
 	seen := make(map[enode.ID]*enode.Node)
 	for limit := lookupTestnet.len(); iter.Next() && len(seen) < limit; {
 		seen[iter.Node().ID()] = iter.Node()
@@ -112,7 +112,7 @@ func TestUDPv4_LookupIteratorClose(t *testing.T) {
 	fillTable(test.table, bootnodes)
 	go serveTestnet(test, lookupTestnet)
 
-	it := test.udp.RandomNodes()
+	it := test.udp.RandomNodes(-1)
 	if ok := it.Next(); !ok || it.Node() == nil {
 		t.Fatalf("iterator didn't return any node")
 	}

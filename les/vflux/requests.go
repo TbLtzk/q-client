@@ -21,7 +21,7 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 var ErrNoReply = errors.New("no reply for given request")

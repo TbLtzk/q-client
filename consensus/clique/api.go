@@ -18,14 +18,16 @@ package clique
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/rpc"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/q-client/consensus"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // API is a user facing RPC API to allow controlling the signer and voting
@@ -48,7 +50,7 @@ func (api *API) GetSnapshot(number *rpc.BlockNumber) (*Snapshot, error) {
 	if header == nil {
 		return nil, errUnknownBlock
 	}
-	return api.clique.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil)
+	return api.clique.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, true)
 }
 
 // GetSnapshotAtHash retrieves the state snapshot at a given block.
@@ -57,7 +59,7 @@ func (api *API) GetSnapshotAtHash(hash common.Hash) (*Snapshot, error) {
 	if header == nil {
 		return nil, errUnknownBlock
 	}
-	return api.clique.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil)
+	return api.clique.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, true)
 }
 
 // GetSigners retrieves the list of authorized signers at the specified block.
@@ -73,7 +75,7 @@ func (api *API) GetSigners(number *rpc.BlockNumber) ([]common.Address, error) {
 	if header == nil {
 		return nil, errUnknownBlock
 	}
-	snap, err := api.clique.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil)
+	snap, err := api.clique.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, true)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +88,7 @@ func (api *API) GetSignersAtHash(hash common.Hash) ([]common.Address, error) {
 	if header == nil {
 		return nil, errUnknownBlock
 	}
-	snap, err := api.clique.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil)
+	snap, err := api.clique.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, true)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +142,7 @@ func (api *API) Status() (*status, error) {
 		diff      = uint64(0)
 		optimals  = 0
 	)
-	snap, err := api.clique.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil)
+	snap, err := api.clique.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, true)
 	if err != nil {
 		return nil, err
 	}
@@ -232,4 +234,172 @@ func (api *API) GetSigner(rlpOrBlockNr *blockNumberOrHashOrRLP) (common.Address,
 		return common.Address{}, err
 	}
 	return api.clique.Author(header)
+}
+
+type OutOfTurnStats struct {
+	BlockNumber  uint64         `json:"blockNumber"`
+	BlockHash    common.Hash    `json:"blockHash"`
+	Difficulty   *big.Int       `json:"difficulty"`
+	ActualSigner common.Address `json:"actualSigner"`
+	MainAccount  common.Address `json:"mainAccount"`
+	InTurnSigner common.Address `json:"inTurnSigner"`
+}
+
+type ValidatorBlocks struct {
+	DueBlocks       uint64 `json:"dueBlocks"`
+	InTurnBlocks    uint64 `json:"inTurnBlocks"`
+	OutOfTurnBlocks uint64 `json:"outOfTurnBlocks"`
+}
+
+type ValidatorMetrics struct {
+	CycleNumber  uint64          `json:"cycleNumber"`
+	StartBlock   uint64          `json:"startBlock"`
+	EndBlock     uint64          `json:"endBlock"`
+	MinerAccount common.Address  `json:"minerAccount"`
+	MainAccount  common.Address  `json:"mainAccount"`
+	BlockMetrics ValidatorBlocks `json:"blockMetrics"`
+	Status       string          `json:"status"`
+}
+
+func (api *API) GetValidatorsMetricsForCycle(cycleSeqNumber uint64) ([]ValidatorMetrics, error) {
+	epoch := api.clique.config.Epoch
+	highestBlock := api.chain.CurrentHeader().Number.Uint64()
+	if cycleSeqNumber == 0 ||
+		(cycleSeqNumber-1)*epoch > api.chain.CurrentHeader().Number.Uint64() {
+		return []ValidatorMetrics{}, errors.New("number of cycle cannot be null or haven't been mined yet")
+	}
+	endOfCycleBlock := cycleSeqNumber * epoch
+	startOfCycleBlock := endOfCycleBlock - epoch + 1
+	status := "Final"
+	latestFullCycleBlock := highestBlock - (highestBlock % epoch)
+	if endOfCycleBlock > latestFullCycleBlock {
+		status = "Pending"
+		endOfCycleBlock = highestBlock
+	}
+	transitionBlock := rpc.BlockNumber(endOfCycleBlock - epoch)
+	snapshot, err := api.GetSnapshot(&transitionBlock)
+	if err != nil {
+		return []ValidatorMetrics{}, err
+	}
+	signers := snapshot.signers()
+	validatorMetrics := make([]ValidatorMetrics, len(signers))
+	blockMetrics, err := api.calcMetrics(startOfCycleBlock, endOfCycleBlock, *snapshot)
+	if err != nil {
+		return []ValidatorMetrics{}, err
+	}
+	mainAccounts := api.clique.unAliasAccounts(signers, api.chain.Config().IsAthos(api.chain.CurrentHeader().Number))
+	for idx, signer := range signers {
+		if entry, ok := blockMetrics[signer]; ok {
+			entry.DueBlocks = epoch / uint64(len(signers))
+			if uint64(api.getIndexInAddressSlice(signers, signer)) < epoch%uint64(len(signers)) {
+				entry.DueBlocks++
+			}
+			blockMetrics[signer] = entry
+		}
+		validatorMetrics[idx] = ValidatorMetrics{
+			CycleNumber:  cycleSeqNumber,
+			StartBlock:   endOfCycleBlock - epoch + 1,
+			EndBlock:     endOfCycleBlock,
+			MinerAccount: signers[idx],
+			MainAccount:  mainAccounts[idx],
+			BlockMetrics: blockMetrics[signer],
+			Status:       status,
+		}
+	}
+	return validatorMetrics, nil
+}
+
+func (api *API) calcMetrics(startOfCycleBlock uint64, endOfCycleBlock uint64, snapshot Snapshot) (map[common.Address]ValidatorBlocks, error) {
+	blockMetrics := make(map[common.Address]ValidatorBlocks)
+	for _, signer := range snapshot.signers() {
+		blockMetrics[signer] = ValidatorBlocks{}
+	}
+	for startOfCycleBlock <= endOfCycleBlock {
+		blockOfCycle := rpc.BlockNumber(startOfCycleBlock)
+		header := api.chain.GetHeaderByNumber(startOfCycleBlock)
+		snapshotOfBlock, err := api.GetSnapshot(&blockOfCycle)
+		if err != nil {
+			return blockMetrics, err
+		}
+		actualSigner, err := ecrecover(header, snapshotOfBlock.sigcache)
+		if err != nil {
+			return blockMetrics, err
+		}
+		if entry, ok := blockMetrics[actualSigner]; ok {
+			if snapshot.inturn(startOfCycleBlock, actualSigner) {
+				entry.InTurnBlocks++
+			} else {
+				entry.OutOfTurnBlocks++
+			}
+			blockMetrics[actualSigner] = entry
+		}
+		startOfCycleBlock++
+	}
+	return blockMetrics, nil
+}
+
+func (api *API) GetEpochLength() uint64 {
+	return api.clique.config.Epoch
+}
+
+// GetOutOfTurnStatsByNumber returns the stats by block:
+// - the block number
+// - the block hash
+// - the difficulty
+// - the actual signer
+// - the inturn signer
+func (api *API) GetOutOfTurnStatsByNumber(block *rpc.BlockNumber) (*OutOfTurnStats, error) {
+	header := api.chain.GetHeaderByNumber(uint64(block.Int64()))
+	snapshot, err := api.GetSnapshot(block)
+	if err != nil {
+		return nil, err
+	}
+	return api.getOutOfTurnStatsFromSnapshot(header, snapshot)
+}
+
+// GetOutOfTurnStatsByHash returns the stats by hash.
+// See function GetOutOfTurnStatsByNumber for return data.
+func (api *API) GetOutOfTurnStatsByHash(hash common.Hash) (*OutOfTurnStats, error) {
+	header := api.chain.GetHeaderByHash(hash)
+	snapshot, err := api.GetSnapshotAtHash(hash)
+	if err != nil {
+		return nil, err
+	}
+	return api.getOutOfTurnStatsFromSnapshot(header, snapshot)
+}
+
+func (api *API) getOutOfTurnStatsFromSnapshot(header *types.Header, snapshot *Snapshot) (*OutOfTurnStats, error) {
+	actualSigner, err := ecrecover(header, api.clique.signatures)
+	if err != nil {
+		return nil, err
+	}
+	origAccount := actualSigner
+	if api.chain.Config().IsAthos(header.Number) {
+		origAccount = api.clique.unAliasAccounts([]common.Address{actualSigner}, api.chain.Config().IsAthos(api.chain.CurrentHeader().Number))[0]
+	}
+	inTurnSigner := api.getInTurnSigner(snapshot)
+	return &OutOfTurnStats{
+		BlockNumber:  header.Number.Uint64(),
+		BlockHash:    header.Hash(),
+		Difficulty:   header.Difficulty,
+		ActualSigner: actualSigner,
+		MainAccount:  origAccount,
+		InTurnSigner: inTurnSigner,
+	}, nil
+}
+
+func (api *API) getIndexInAddressSlice(a []common.Address, x common.Address) int {
+	for i, n := range a {
+		if x == n {
+			return i
+		}
+	}
+	return -1
+}
+
+func (api *API) getInTurnSigner(snapshot *Snapshot) common.Address {
+	signers := snapshot.signers()
+	index := snapshot.Number % uint64(len(signers))
+	inTurnSigner := signers[index]
+	return inTurnSigner
 }

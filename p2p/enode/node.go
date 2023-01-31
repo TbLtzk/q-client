@@ -26,8 +26,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/p2p/enr"
-	"github.com/ethereum/go-ethereum/rlp"
+	"gitlab.com/q-dev/q-client/p2p/enr"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 var errMissingPrefix = errors.New("missing 'enr:' prefix for base64-encoded record")
@@ -192,6 +192,11 @@ type ID [32]byte
 // Bytes returns a byte slice representation of the ID
 func (n ID) Bytes() []byte {
 	return n[:]
+}
+
+// ShortString representation.
+func (n ID) ShortString() string {
+	return fmt.Sprintf("%x", n[:8])
 }
 
 // ID prints as a long hexadecimal number.

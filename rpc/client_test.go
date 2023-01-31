@@ -34,7 +34,7 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/ethereum/go-ethereum/log"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 func TestClientRequest(t *testing.T) {
