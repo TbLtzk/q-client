@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gitlab.com/q-dev/q-client/log"
 	"io"
 	"net/http"
 	"os"

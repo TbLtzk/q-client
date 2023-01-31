@@ -26,6 +26,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	"github.com/naoina/toml"
 	"gitlab.com/q-dev/q-client/accounts/external"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/accounts/scwallet"
@@ -173,8 +174,6 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 		override := ctx.Bool(utils.OverrideTerminalTotalDifficultyPassed.Name)
 		cfg.Eth.OverrideTerminalTotalDifficultyPassed = &override
 	}
-
-	backend, eth := utils.RegisterEthService(stack, &cfg.Eth)
 
 	// Warn users to migrate if they have a legacy freezer format.
 	if eth != nil && !ctx.IsSet(utils.IgnoreLegacyReceiptsFlag.Name) {

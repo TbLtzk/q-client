@@ -23,11 +23,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/params"
-	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -96,22 +96,22 @@ and displays information about any security vulnerabilities that affect the curr
 		Usage:     "Display license information",
 		ArgsUsage: " ",
 	}
-	writeAddrCommand = cli.Command{
-		Action:      utils.MigrateFlags(writeAddress),
-		Name:        "writeaddress",
-		Usage:       "write out the node's public key and quit (nodekey flag is required)",
-		Description: "writes node's public key from a given nodekey file. if the file doesn't exist, generates a new key and saves at given path",
-		ArgsUsage:   "",
-		Category:    "MISCELLANEOUS COMMANDS",
-	}
+	//writeAddrCommand = &cli.Command{
+	//	Action:      utils.MigrateFlags(writeAddress),
+	//	Name:        "writeaddress",
+	//	Usage:       "write out the node's public key and quit (nodekey flag is required)",
+	//	Description: "writes node's public key from a given nodekey file. if the file doesn't exist, generates a new key and saves at given path",
+	//	ArgsUsage:   "",
+	//	Category:    "MISCELLANEOUS COMMANDS",
+	//}
 )
 
 func writeAddress(ctx *cli.Context) error {
-	if !ctx.GlobalIsSet(utils.NodeKeyFileFlag.Name) {
+	if !ctx.IsSet(utils.NodeKeyFileFlag.Name) {
 		utils.Fatalf("%s must be set", utils.NodeKeyFileFlag.Name)
 	}
 
-	fpath := ctx.GlobalString(utils.NodeKeyFileFlag.Name)
+	fpath := ctx.String(utils.NodeKeyFileFlag.Name)
 	key, err := crypto.LoadECDSA(fpath)
 	if os.IsNotExist(err) {
 		key, err = crypto.GenerateKey()

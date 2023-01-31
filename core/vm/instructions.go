@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"github.com/holiman/uint256"
 	"sync/atomic"
 
 	"gitlab.com/q-dev/q-client/common"

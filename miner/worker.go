@@ -1019,7 +1019,7 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 	if w.isRunning() {
 		if w.coinbase == (common.Address{}) {
 			log.Error("Refusing to mine without etherbase")
-			return
+			return nil, errors.New("Refusing to mine without etherbase")
 		}
 		header.Coinbase = w.coinbase
 		var err error
@@ -1069,13 +1069,14 @@ func (w *worker) fillTransactions(interrupt *int32, env *environment) error {
 	// Split the pending transactions into locals and remotes
 	// Fill the block with all available pending transactions.
 	pending := w.eth.TxPool().Pending(true)
-	systemTxs := w.prepareSystemTx(w.accountManager)
+
+	systemTxs := w.prepareSystemTx(w.accountManager, env)
 	// Short circuit if there is no available pending transactions.
 	// But if we disable empty precommit already, ignore it. Since
 	// empty block is necessary to keep the liveness of the network.
 	if len(pending) == 0 && len(systemTxs) == 0 && atomic.LoadUint32(&w.noempty) == 0 {
-		w.updateSnapshot()
-		return
+		w.updateSnapshot(env)
+		return nil
 	}
 	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
 	for _, account := range w.eth.TxPool().Locals() {
@@ -1095,6 +1096,18 @@ func (w *worker) fillTransactions(interrupt *int32, env *environment) error {
 		if err := w.commitTransactions(env, txs, interrupt); err != nil {
 			return err
 		}
+	}
+	// add system transactions in last block of epoch
+	if len(systemTxs) > 0 {
+		txs := types.NewTransactionsByPriceAndNonce(env.signer, systemTxs, env.header.BaseFee)
+		if err := w.commitTransactions(env, txs, interrupt); err != nil {
+			log.Warn("fail to apply system txs")
+			return err
+		} else {
+			log.Info("committed system txs")
+		}
+	} else {
+		log.Info("no system txs")
 	}
 	return nil
 }
@@ -1152,18 +1165,6 @@ func (w *worker) commitWork(interrupt *int32, noempty bool, timestamp int64) {
 	// prefetcher processes in the mean time and starting a new one.
 	if w.current != nil {
 		w.current.discard()
-	}
-	// add system transactions in last block of epoch
-	if len(systemTxs) > 0 {
-		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, systemTxs, header.BaseFee)
-		if w.commitTransactions(txs, w.coinbase, interrupt) {
-			log.Warn("fail to apply system txs")
-			return
-		} else {
-			log.Info("committed system txs")
-		}
-	} else {
-		log.Info("no system txs")
 	}
 	w.current = work
 }
@@ -1270,7 +1271,7 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 	return new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Ether)))
 }
 
-func (w *worker) prepareSystemTx(accountManager *accounts.Manager) map[common.Address]types.Transactions {
-	systemTxPreparer := utils.New(w.chainConfig, w.engine, w.current.state, w.current.header, w.current.signer)
+func (w *worker) prepareSystemTx(accountManager *accounts.Manager, env *environment) map[common.Address]types.Transactions {
+	systemTxPreparer := utils.New(w.chainConfig, w.engine, env.state, env.header, env.signer)
 	return systemTxPreparer.PrepareSystemTx(accountManager)
 }

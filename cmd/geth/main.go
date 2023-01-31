@@ -231,7 +231,7 @@ func init() {
 		removedbCommand,
 		dumpCommand,
 		dumpGenesisCommand,
-		writeAddrCommand,
+		//writeAddrCommand,
 		// See accountcmd.go:
 		accountCommand,
 		walletCommand,
@@ -264,7 +264,6 @@ func init() {
 		metricsFlags,
 		governanceFlags,
 	)
-	app.Flags = append(app.Flags, governanceFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		flags.MigrateGlobalFlags(ctx)

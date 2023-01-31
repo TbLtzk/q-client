@@ -20,6 +20,20 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"gitlab.com/q-dev/q-client/consensus/clique"
+	lescatalyst "gitlab.com/q-dev/q-client/les/catalyst"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/metrics"
+	"gitlab.com/q-dev/q-client/metrics/exp"
+	"gitlab.com/q-dev/q-client/metrics/influxdb"
+	"gitlab.com/q-dev/q-client/miner"
+	"gitlab.com/q-dev/q-client/node"
+	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/nat"
+	"gitlab.com/q-dev/q-client/p2p/netutil"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/rpc"
 	"math"
 	"math/big"
 	"os"
@@ -31,6 +45,7 @@ import (
 
 	pcsclite "github.com/gballet/go-libpcsclite"
 	gopsutil "github.com/shirou/gopsutil/mem"
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
@@ -58,22 +73,6 @@ import (
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/les"
-	lescatalyst "gitlab.com/q-dev/q-client/les/catalyst"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/metrics"
-	"gitlab.com/q-dev/q-client/metrics/exp"
-	"gitlab.com/q-dev/q-client/metrics/influxdb"
-	"gitlab.com/q-dev/q-client/miner"
-	"gitlab.com/q-dev/q-client/node"
-	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/p2p/enode"
-	"gitlab.com/q-dev/q-client/p2p/nat"
-	"gitlab.com/q-dev/q-client/p2p/netutil"
-	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/rpc"
-	pcsclite "github.com/gballet/go-libpcsclite"
-	gopsutil "github.com/shirou/gopsutil/mem"
-	"github.com/urfave/cli/v2"
 )
 
 // These are all the command line flags we support.
@@ -160,17 +159,20 @@ var (
 	}
 
 	// Q networks
-	DevnetFlag = cli.BoolFlag{
-		Name:  "devnet",
-		Usage: "Devnet network: pre-configured poa short-lived test network",
+	DevnetFlag = &cli.BoolFlag{
+		Name:     "devnet",
+		Usage:    "Devnet network: pre-configured poa short-lived test network",
+		Category: flags.EthCategory,
 	}
-	TestnetFlag = cli.BoolFlag{
-		Name:  "testnet",
-		Usage: "Testnet network: pre-configured poa test network",
+	TestnetFlag = &cli.BoolFlag{
+		Name:     "testnet",
+		Usage:    "Testnet network: pre-configured poa test network",
+		Category: flags.EthCategory,
 	}
-	FischerFlag = cli.BoolFlag{
-		Name:  "fischer",
-		Usage: "Testnet network: pre-configured poa test network",
+	FischerFlag = &cli.BoolFlag{
+		Name:     "fischer",
+		Usage:    "Testnet network: pre-configured poa test network",
+		Category: flags.EthCategory,
 	}
 
 	// Dev mode
@@ -419,7 +421,7 @@ var (
 	}
 	TxPoolPriceLimitFlag = &cli.Uint64Flag{
 		Name:     "txpool.pricelimit",
-		Usage: "Minimum gas price limit to enforce for acceptance into the pool. EPQFI param will be used by default",
+		Usage:    "Minimum gas price limit to enforce for acceptance into the pool. EPQFI param will be used by default",
 		Value:    ethconfig.Defaults.TxPool.PriceLimit,
 		Category: flags.TxPoolCategory,
 	}
@@ -802,11 +804,11 @@ var (
 	}
 
 	// Governance flags
-	RootTimestampFlag = cli.Uint64Flag{
+	RootTimestampFlag = &cli.Uint64Flag{
 		Name:  "root.timestamp",
 		Usage: "timestamp of root nodes list",
 	}
-	RootAddressesFlag = cli.StringFlag{
+	RootAddressesFlag = &cli.StringFlag{
 		Name:  "root.addresses",
 		Usage: "comma separated address of root nodes list",
 	}
@@ -912,10 +914,11 @@ var (
 		Value:    ethconfig.Defaults.GPO.IgnorePrice.Int64(),
 		Category: flags.GasPriceCategory,
 	}
-	GpoGasPriceFactor = cli.Float64Flag{
-		Name:  "gpo.gaspricefactor",
-		Usage: "Factor that is applied on top of the calculated minimum transaction price to be recommended for transactions",
-		Value: ethconfig.Defaults.GPO.Factor,
+	GpoGasPriceFactor = &cli.Float64Flag{
+		Name:     "gpo.gaspricefactor",
+		Usage:    "Factor that is applied on top of the calculated minimum transaction price to be recommended for transactions",
+		Value:    ethconfig.Defaults.GPO.Factor,
+		Category: flags.GasPriceCategory,
 	}
 
 	// Metrics flags
@@ -1302,7 +1305,7 @@ func setWS(ctx *cli.Context, cfg *node.Config) {
 	}
 
 	if ctx.IsSet(WSApiFlag.Name) {
-		cfg.WSModules = filterProtectedAPIs(SplitAndTrim(ctx.String(WSApiFlag.Name)), "ws", ctx.GlobalString(GCModeFlag.Name))
+		cfg.WSModules = filterProtectedAPIs(SplitAndTrim(ctx.String(WSApiFlag.Name)), "ws", ctx.String(GCModeFlag.Name))
 	}
 
 	if ctx.IsSet(WSPathPrefixFlag.Name) {
@@ -1630,8 +1633,8 @@ func setGPO(ctx *cli.Context, cfg *gasprice.Config, light bool) {
 	if ctx.IsSet(GpoIgnoreGasPriceFlag.Name) {
 		cfg.IgnorePrice = big.NewInt(ctx.Int64(GpoIgnoreGasPriceFlag.Name))
 	}
-	if ctx.GlobalIsSet(GpoGasPriceFactor.Name) {
-		cfg.Factor = ctx.GlobalFloat64(GpoGasPriceFactor.Name)
+	if ctx.IsSet(GpoGasPriceFactor.Name) {
+		cfg.Factor = ctx.Float64(GpoGasPriceFactor.Name)
 	}
 }
 
@@ -1800,15 +1803,15 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 }
 
 func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
-	if !(ctx.GlobalIsSet(RootTimestampFlag.Name) || ctx.GlobalIsSet(RootAddressesFlag.Name)) {
+	if !(ctx.IsSet(RootTimestampFlag.Name) || ctx.IsSet(RootAddressesFlag.Name)) {
 		switch true {
-		case ctx.GlobalBool(DevnetFlag.Name):
+		case ctx.Bool(DevnetFlag.Name):
 			cfg.RootList = params.DevnetRootNodes
-		case ctx.GlobalBool(TestnetFlag.Name):
+		case ctx.Bool(TestnetFlag.Name):
 			cfg.RootList = params.TestnetRootNodes
-		case ctx.GlobalBool(FischerFlag.Name):
+		case ctx.Bool(FischerFlag.Name):
 			cfg.RootList = params.TestnetRootNodes
-		case !ctx.GlobalIsSet(NetworkIdFlag.Name):
+		case !ctx.IsSet(NetworkIdFlag.Name):
 			cfg.RootList = params.MainnetRootNodes
 		default:
 			cfg.RootList = params.TestnetRootNodes
@@ -1817,15 +1820,15 @@ func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
 	}
 
 	// validate flags
-	if !ctx.GlobalIsSet(RootTimestampFlag.Name) {
+	if !ctx.IsSet(RootTimestampFlag.Name) {
 		Fatalf("flag %s is required when %s is set", RootTimestampFlag.Name, RootAddressesFlag.Name)
 	}
-	if !ctx.GlobalIsSet(RootAddressesFlag.Name) {
+	if !ctx.IsSet(RootAddressesFlag.Name) {
 		Fatalf("flag %s is required when %s is set", RootAddressesFlag.Name, RootTimestampFlag.Name)
 	}
 
 	var addrs []common.Address
-	for _, str := range strings.Split(ctx.GlobalString(RootAddressesFlag.Name), ",") {
+	for _, str := range strings.Split(ctx.String(RootAddressesFlag.Name), ",") {
 		if !common.IsHexAddress(str) {
 			Fatalf("invalid %s: %s is not a hex encoded address", RootAddressesFlag.Name, str)
 		}
@@ -1834,7 +1837,7 @@ func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
 	}
 
 	cfg.RootList = common.RootList{
-		Timestamp: ctx.GlobalUint64(RootTimestampFlag.Name),
+		Timestamp: ctx.Uint64(RootTimestampFlag.Name),
 		Nodes:     addrs,
 	}
 }
@@ -2329,7 +2332,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		if ctx.Bool(FakePoWFlag.Name) {
 			ethashConf.PowMode = ethash.ModeFake
 		}
-		engine = ethconfig.CreateConsensusEngine(stack, config, &ethashConf, nil, false, chainDb)
+		engine = ethconfig.CreateConsensusEngine(stack, config, &ethashConf, nil, false, chainDb, nil, nil)
 	}
 	if gcmode := ctx.String(GCModeFlag.Name); gcmode != "full" && gcmode != ArchiveValue {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)

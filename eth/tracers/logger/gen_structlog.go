@@ -10,7 +10,6 @@ import (
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/core/vm"
-	"github.com/holiman/uint256"
 )
 
 var _ = (*structLogMarshaling)(nil)

@@ -19,6 +19,7 @@ package clique
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -26,8 +27,10 @@ import (
 	"sync"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
+	_ "gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus"
@@ -42,10 +45,8 @@ import (
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/trie"
-	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/q-dev/system-contracts/generated"
 	"golang.org/x/crypto/sha3"
-	_ "gitlab.com/q-dev/q-client/accounts/keystore"
 )
 
 const (
@@ -455,7 +456,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		}
 	}
 	// All basic checks passed, verify the seal and return
-	return c.verifySeal(snap, header, parents)
+	return c.verifySeal(chain, header, parents)
 }
 
 func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *params.ChainConfig, signerListFromPast bool) error {
@@ -686,7 +687,7 @@ func (c *Clique) VerifyUncles(chain consensus.ChainReader, block *types.Block) e
 // consensus protocol requirements. The method accepts an optional list of parent
 // headers that aren't yet part of the local blockchain to generate the snapshots
 // from.
-func (c *Clique) verifySeal(snap *Snapshot, header *types.Header, parents []*types.Header) error {
+func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Header, parents []*types.Header) error {
 	// Verifying the genesis block is not supported
 	number := header.Number.Uint64()
 	if number == 0 {
@@ -784,7 +785,7 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	c.lock.RUnlock()
 	}*/
 	// Set the correct difficulty
-	header.Difficulty = calcDifficulty(snap, signer)
+	header.Difficulty = calcDifficulty(snap, c.signer)
 
 	// Ensure the extra data has all its components
 	if len(header.Extra) < extraVanity {

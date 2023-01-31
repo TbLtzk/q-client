@@ -76,6 +76,10 @@ func (beacon *Beacon) Author(header *types.Header) (common.Address, error) {
 	return header.Coinbase, nil
 }
 
+func (beacon *Beacon) Signer() common.Address {
+	return common.Address{}
+}
+
 // VerifyHeader checks whether a header conforms to the consensus rules of the
 // stock Ethereum consensus engine.
 func (beacon *Beacon) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header, seal bool) error {

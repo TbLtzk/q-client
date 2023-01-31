@@ -294,7 +294,7 @@ func (b *EthAPIBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.S
 }
 
 func (b *EthAPIBackend) SyncProgress() ethereum.SyncProgress {
-	return b.eth.Downloader().Progress()
+	return ethereum.SyncProgress(b.eth.Downloader().Progress())
 }
 
 func (b *EthAPIBackend) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
