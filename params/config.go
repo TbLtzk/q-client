@@ -31,10 +31,10 @@ var (
 	QMainnetGenesisHash = common.HexToHash("0x7579ce66d1bc55ee09fab06c1e8ec6456ec24ca58d82797c21c4dc4c007508e9") //QMainnet
 	MainnetGenesisHash  = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3") //Ethereum Mainnet
 	RopstenGenesisHash  = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
-	SepoliaGenesisHash = common.HexToHash("0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9")
+	SepoliaGenesisHash  = common.HexToHash("0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9")
 	RinkebyGenesisHash  = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
 	GoerliGenesisHash   = common.HexToHash("0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a")
-	KilnGenesisHash    = common.HexToHash("0x51c7fe41be669f69c45c33a56982cbde405313342d9e2b00d7c91a7b284dd4f8")
+	KilnGenesisHash     = common.HexToHash("0x51c7fe41be669f69c45c33a56982cbde405313342d9e2b00d7c91a7b284dd4f8")
 )
 
 // TrustedCheckpoints associates each known checkpoint with the genesis hash of
@@ -390,12 +390,12 @@ type ChainConfig struct {
 	BerlinBlock         *big.Int `json:"berlinBlock,omitempty"`         // Berlin switch block (nil = no fork, 0 = already on berlin)
 	AthosBlock          *big.Int `json:"athosBlock,omitempty"`          //Improve Layer 0 Governance epic. //TODO set in configs
 
-	LondonBlock *big.Int `json:"londonBlock,omitempty"` // London switch block (nil = no fork, 0 = already on london)
-	ArrowGlacierBlock   *big.Int `json:"arrowGlacierBlock,omitempty"`   // Eip-4345 (bomb delay) switch block (nil = no fork, 0 = already activated)
-	GrayGlacierBlock    *big.Int `json:"grayGlacierBlock,omitempty"`    // Eip-5133 (bomb delay) switch block (nil = no fork, 0 = already activated)
-	MergeNetsplitBlock  *big.Int `json:"mergeNetsplitBlock,omitempty"`  // Virtual fork after The Merge to use as a network splitter
-	ShanghaiBlock       *big.Int `json:"shanghaiBlock,omitempty"`       // Shanghai switch block (nil = no fork, 0 = already on shanghai)
-	CancunBlock         *big.Int `json:"cancunBlock,omitempty"`         // Cancun switch block (nil = no fork, 0 = already on cancun)
+	LondonBlock        *big.Int `json:"londonBlock,omitempty"`        // London switch block (nil = no fork, 0 = already on london)
+	ArrowGlacierBlock  *big.Int `json:"arrowGlacierBlock,omitempty"`  // Eip-4345 (bomb delay) switch block (nil = no fork, 0 = already activated)
+	GrayGlacierBlock   *big.Int `json:"grayGlacierBlock,omitempty"`   // Eip-5133 (bomb delay) switch block (nil = no fork, 0 = already activated)
+	MergeNetsplitBlock *big.Int `json:"mergeNetsplitBlock,omitempty"` // Virtual fork after The Merge to use as a network splitter
+	ShanghaiBlock      *big.Int `json:"shanghaiBlock,omitempty"`      // Shanghai switch block (nil = no fork, 0 = already on shanghai)
+	CancunBlock        *big.Int `json:"cancunBlock,omitempty"`        // Cancun switch block (nil = no fork, 0 = already on cancun)
 
 	// TerminalTotalDifficulty is the amount of total difficulty reached by
 	// the network that triggers the consensus upgrade.
@@ -468,7 +468,7 @@ func (c *ChainConfig) String() string {
 	// Create a list of forks with a short description of them. Forks that only
 	// makes sense for mainnet should be optional at printing to avoid bloating
 	// the output for testnets and private networks.
-	banner += "Pre-Merge hard forks:\n"
+	//banner += "Pre-Merge hard forks:\n"
 	banner += fmt.Sprintf(" - Homestead:                   %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/homestead.md)\n", c.HomesteadBlock)
 	if c.DAOForkBlock != nil {
 		banner += fmt.Sprintf(" - DAO Fork:                    %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/dao-fork.md)\n", c.DAOForkBlock)
@@ -484,28 +484,29 @@ func (c *ChainConfig) String() string {
 		banner += fmt.Sprintf(" - Muir Glacier:                %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/muir-glacier.md)\n", c.MuirGlacierBlock)
 	}
 	banner += fmt.Sprintf(" - Berlin:                      %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/berlin.md)\n", c.BerlinBlock)
-	banner += fmt.Sprintf(" - London:                      %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/london.md)\n", c.LondonBlock)
-	if c.ArrowGlacierBlock != nil {
-		banner += fmt.Sprintf(" - Arrow Glacier:               %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/arrow-glacier.md)\n", c.ArrowGlacierBlock)
-	}
-	if c.GrayGlacierBlock != nil {
-		banner += fmt.Sprintf(" - Gray Glacier:                %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/gray-glacier.md)\n", c.GrayGlacierBlock)
-	}
-	if c.ShanghaiBlock != nil {
-		banner += fmt.Sprintf(" - Shanghai:                     %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/shanghai.md)\n", c.ShanghaiBlock)
-	}
-	if c.CancunBlock != nil {
-		banner += fmt.Sprintf(" - Cancun:                      %-8v\n", c.CancunBlock)
-	}
+
+	//if c.ArrowGlacierBlock != nil {
+	//	banner += fmt.Sprintf(" - Arrow Glacier:               %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/arrow-glacier.md)\n", c.ArrowGlacierBlock)
+	//}
+	//if c.GrayGlacierBlock != nil {
+	//	banner += fmt.Sprintf(" - Gray Glacier:                %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/gray-glacier.md)\n", c.GrayGlacierBlock)
+	//}
+	//if c.ShanghaiBlock != nil {
+	//	banner += fmt.Sprintf(" - Shanghai:                     %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/shanghai.md)\n", c.ShanghaiBlock)
+	//}
+	//if c.CancunBlock != nil {
+	//	banner += fmt.Sprintf(" - Cancun:                      %-8v\n", c.CancunBlock)
+	//}
 	if c.AthosBlock != nil {
-		banner += fmt.Sprintf(" - Athos:                      %-8v\n", c.AthosBlock)
+		banner += fmt.Sprintf(" - Athos:    	                  %-8v (https://gitlab.com/q-dev/QIPs)\n", c.AthosBlock)
 	}
+	banner += fmt.Sprintf(" - London:                      %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/london.md)\n", c.LondonBlock)
 	banner += "\n"
 
 	// Add a special section for the merge as it's non-obvious
 	if c.TerminalTotalDifficulty == nil {
-		banner += "The Merge is not yet available for this network!\n"
-		banner += " - Hard-fork specification: https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/paris.md"
+		//banner += "The Merge is not yet available for this network!\n"
+		//banner += " - Hard-fork specification: https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/paris.md"
 	} else {
 		banner += "Merge configured:\n"
 		banner += " - Hard-fork specification:    https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/paris.md\n"
@@ -655,11 +656,11 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 		{name: "berlinBlock", block: c.BerlinBlock},
 		{name: "athosBlock", block: c.AthosBlock},
 		//{name: "londonBlock", block: c.LondonBlock},
-		{name: "arrowGlacierBlock", block: c.ArrowGlacierBlock, optional: true},
-		{name: "grayGlacierBlock", block: c.GrayGlacierBlock, optional: true},
-		{name: "mergeNetsplitBlock", block: c.MergeNetsplitBlock, optional: true},
-		{name: "shanghaiBlock", block: c.ShanghaiBlock, optional: true},
-		{name: "cancunBlock", block: c.CancunBlock, optional: true},
+		//{name: "arrowGlacierBlock", block: c.ArrowGlacierBlock, optional: true},
+		//{name: "grayGlacierBlock", block: c.GrayGlacierBlock, optional: true},
+		//{name: "mergeNetsplitBlock", block: c.MergeNetsplitBlock, optional: true},
+		//{name: "shanghaiBlock", block: c.ShanghaiBlock, optional: true},
+		//{name: "cancunBlock", block: c.CancunBlock, optional: true},
 	} {
 		if lastFork.name != "" {
 			// Next one must be higher number
