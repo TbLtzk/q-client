@@ -2,6 +2,8 @@ package governance
 
 import (
 	"math/big"
+	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
@@ -84,12 +86,24 @@ func (a *GovernancePublicAPI) ActiveExclusionList() *ExclusionList {
 	return newExclusionList(a.gov.RootManager.getActiveExclusionSet())
 }
 
+func (a *GovernancePublicAPI) ActiveExclusionListPrettify() *ExclusionListPrettify {
+	return newExclusionListPrettify(a.gov.RootManager.getActiveExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64())
+}
+
 func (a *GovernancePublicAPI) DesiredExclusionList() *ExclusionList {
 	return newExclusionList(a.gov.RootManager.getDesiredExclusionSet())
 }
 
+func (a *GovernancePublicAPI) DesiredExclusionListPrettify() *ExclusionListPrettify {
+	return newExclusionListPrettify(a.gov.RootManager.getDesiredExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64())
+}
+
 func (a *GovernancePublicAPI) ProposedExclusionList() *ExclusionList {
 	return newExclusionList(a.gov.RootManager.getProposedExclusionSet())
+}
+
+func (a *GovernancePublicAPI) ProposedExclusionListPrettify() *ExclusionListPrettify {
+	return newExclusionListPrettify(a.gov.RootManager.getProposedExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64())
 }
 
 func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusionList) (common.Hash, error) {
@@ -116,7 +130,7 @@ func (a *GovernancePublicAPI) DiffExclusionList(nameA, nameB string) ([]DiffEntr
 
 func (a *GovernanceAPI) GetRootNodeApprovals(blockNumber *big.Int, hash *common.Hash) (*[]common.RootNodeApproval, error) {
 	list, err := a.gov.RootManager.getActiveApprovalList(blockNumber, hash)
-	res := []common.RootNodeApproval{}
+	var res []common.RootNodeApproval
 	if list != nil {
 		res = list.Approvals
 	}
@@ -157,6 +171,13 @@ type ExclusionList struct {
 	Signers []common.Address `json:"signers"`
 }
 
+type ExclusionListPrettify struct {
+	Hash       common.Hash                 `json:"hash"`
+	Timestamp  string                      `json:"timestamp (created at)"`
+	Signers    []common.Address            `json:"signers"`
+	Validators map[common.Address][]string `json:"validators"`
+}
+
 func newExclusionList(set *exclusionSet) *ExclusionList {
 	if set == nil {
 		return nil
@@ -173,5 +194,48 @@ func newExclusionList(set *exclusionSet) *ExclusionList {
 		Hash:       set.hash,
 		Validators: l.Validators,
 		Signers:    signers,
+	}
+}
+
+func newExclusionListPrettify(set *exclusionSet, currentBlock int64) *ExclusionListPrettify {
+	if set == nil {
+		return nil
+	}
+
+	var signers []common.Address
+	for addr := range set.signers {
+		signers = append(signers, addr)
+	}
+
+	formattedBlockRanges := make(map[common.Address][]string)
+
+	for address, blockRangesByAddress := range set.blockRanges {
+		var stringBlockRanges []string
+		var endBlockPlusState string
+		for _, br := range blockRangesByAddress {
+			switch {
+			case br.EndAddress == 0:
+				endBlockPlusState = " (active, everlasting)"
+			case int64(br.EndAddress) < currentBlock && int64(br.StartAddress) < currentBlock:
+				endBlockPlusState = " - #" + strconv.FormatInt(int64(br.EndAddress), 10) + " (expired)"
+			case int64(br.EndAddress) > currentBlock && int64(br.StartAddress) > currentBlock:
+				endBlockPlusState = " - #" + strconv.FormatInt(int64(br.EndAddress), 10) +
+					" (scheduled at block #" + strconv.FormatInt(int64(br.StartAddress), 10) + ")"
+			case int64(br.EndAddress) > currentBlock && int64(br.StartAddress) < currentBlock:
+				endBlockPlusState = " - #" + strconv.FormatInt(int64(br.EndAddress), 10) +
+					" (active, ends at block #" + strconv.FormatInt(int64(br.EndAddress), 10) + ")"
+			}
+			stringBlockRange := "#" + strconv.FormatInt(int64(br.StartAddress), 10) + endBlockPlusState
+			stringBlockRanges = append(stringBlockRanges, stringBlockRange)
+		}
+		formattedBlockRanges[address] = stringBlockRanges
+	}
+
+	timeUnix := time.Unix(int64(set.timestamp), 0)
+	return &ExclusionListPrettify{
+		Timestamp:  strconv.FormatInt(int64(set.timestamp), 10) + " (" + timeUnix.String() + ")",
+		Hash:       set.hash,
+		Signers:    signers,
+		Validators: formattedBlockRanges,
 	}
 }
