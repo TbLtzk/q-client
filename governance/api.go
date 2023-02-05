@@ -106,6 +106,11 @@ func (a *GovernancePublicAPI) ProposedExclusionListPrettify() *ExclusionListPret
 	return newExclusionListPrettify(a.gov.RootManager.getProposedExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64())
 }
 
+func (a *GovernancePublicAPI) IsInExclusionList(address string) map[string][]string {
+	return checkExclusionLists(common.HexToAddress(address), a.gov.RootManager.getActiveExclusionSet(), a.gov.RootManager.getDesiredExclusionSet(),
+		a.gov.RootManager.getProposedExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64())
+}
+
 func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusionList) (common.Hash, error) {
 	set, err := newExclusionSet(&list)
 	if err != nil {
@@ -210,25 +215,7 @@ func newExclusionListPrettify(set *exclusionSet, currentBlock int64) *ExclusionL
 	formattedBlockRanges := make(map[common.Address][]string)
 
 	for address, blockRangesByAddress := range set.blockRanges {
-		var stringBlockRanges []string
-		var endBlockPlusState string
-		for _, br := range blockRangesByAddress {
-			switch {
-			case br.EndAddress == 0:
-				endBlockPlusState = " (active, everlasting)"
-			case int64(br.EndAddress) < currentBlock && int64(br.StartAddress) < currentBlock:
-				endBlockPlusState = " - #" + strconv.FormatInt(int64(br.EndAddress), 10) + " (expired)"
-			case int64(br.EndAddress) > currentBlock && int64(br.StartAddress) > currentBlock:
-				endBlockPlusState = " - #" + strconv.FormatInt(int64(br.EndAddress), 10) +
-					" (scheduled at block #" + strconv.FormatInt(int64(br.StartAddress), 10) + ")"
-			case int64(br.EndAddress) > currentBlock && int64(br.StartAddress) < currentBlock:
-				endBlockPlusState = " - #" + strconv.FormatInt(int64(br.EndAddress), 10) +
-					" (active, ends at block #" + strconv.FormatInt(int64(br.EndAddress), 10) + ")"
-			}
-			stringBlockRange := "#" + strconv.FormatInt(int64(br.StartAddress), 10) + endBlockPlusState
-			stringBlockRanges = append(stringBlockRanges, stringBlockRange)
-		}
-		formattedBlockRanges[address] = stringBlockRanges
+		formattedBlockRanges[address] = getBanStates(blockRangesByAddress, currentBlock)
 	}
 
 	timeUnix := time.Unix(int64(set.timestamp), 0)
@@ -237,5 +224,58 @@ func newExclusionListPrettify(set *exclusionSet, currentBlock int64) *ExclusionL
 		Hash:       set.hash,
 		Signers:    signers,
 		Validators: formattedBlockRanges,
+	}
+}
+
+func getBanStates(blockRangesByAddress []common.BlockRange, currentBlock int64) []string {
+	var endBlockPlusState string
+	var stringBlockRanges []string
+	for _, br := range blockRangesByAddress {
+		startBlock := int64(br.StartAddress)
+		endBlock := int64(br.EndAddress)
+		switch {
+		case endBlock == 0:
+			endBlockPlusState = " (active, everlasting)"
+		case endBlock < currentBlock && startBlock < currentBlock:
+			endBlockPlusState = " - #" + strconv.FormatInt(endBlock, 10) + " (expired)"
+		case endBlock > currentBlock && startBlock > currentBlock:
+			endBlockPlusState = " - #" + strconv.FormatInt(endBlock, 10) +
+				" (scheduled at block #" + strconv.FormatInt(startBlock, 10) + ")"
+		case endBlock > currentBlock && startBlock < currentBlock:
+			endBlockPlusState = " - #" + strconv.FormatInt(endBlock, 10) +
+				" (active, ends at block #" + strconv.FormatInt(endBlock, 10) + ")"
+		}
+		stringBlockRange := "#" + strconv.FormatInt(startBlock, 10) + endBlockPlusState
+		stringBlockRanges = append(stringBlockRanges, stringBlockRange)
+	}
+	return stringBlockRanges
+}
+
+func checkExclusionLists(address common.Address, activeExSet *exclusionSet, desiredExSet *exclusionSet, proposedExSet *exclusionSet, currentBlock int64) map[string][]string {
+	searchResults := make(map[string][]string)
+	var searchResultsByList []string
+
+	activeString := "Active exclusion list"
+	activeString, searchResultsByList = searchAddressInList(activeString, activeExSet, address, currentBlock)
+	searchResults[activeString] = searchResultsByList
+
+	desiredString := "Desired exclusion list"
+	desiredString, searchResultsByList = searchAddressInList(desiredString, desiredExSet, address, currentBlock)
+	searchResults[desiredString] = searchResultsByList
+	
+	proposedString := "Proposed exclusion list"
+	proposedString, searchResultsByList = searchAddressInList(proposedString, proposedExSet, address, currentBlock)
+	searchResults[proposedString] = searchResultsByList
+
+	return searchResults
+}
+
+func searchAddressInList(setString string, set *exclusionSet, address common.Address, currentBlock int64) (string, []string) {
+	if set != nil && set.blockRanges[address] != nil && getBanStates(set.blockRanges[address], currentBlock) != nil {
+		setString += " (" + set.hash.String() + ", " + strconv.FormatInt(int64(set.timestamp), 10) + "), on block range(s)"
+		return setString, getBanStates(set.blockRanges[address], currentBlock)
+	} else {
+		setString += ", provided address is absent"
+		return setString, nil
 	}
 }

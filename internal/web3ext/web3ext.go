@@ -699,6 +699,11 @@ web3._extend({
 			call: 'gov_proposedExclusionListPrettify',
 			params: 0,
 		}),
+		new web3._extend.Method({
+			name: 'isInExclusionList',
+			call: 'gov_isInExclusionList',
+			params: 1,
+		}),
     ],
 	properties: []
 });
@@ -767,6 +772,11 @@ web3._extend({
 			name: 'proposedExclusionListPrettify',
 			call: 'govPub_proposedExclusionListPrettify',
 			params: 0,
+		}),
+		new web3._extend.Method({
+			name: 'isInExclusionList',
+			call: 'govPub_isInExclusionList',
+			params: 1,
 		}),
     ],
 	properties: []
