@@ -20,6 +20,7 @@ package compiler
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // --combined-output format
