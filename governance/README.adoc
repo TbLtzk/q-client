@@ -122,6 +122,24 @@ Here, `signers` - root nodes that signed the list, `validators` - list of exclud
 `block` is block number since which validator is excluded. If an endBlock non 0 value is set up - validator exclusion ends after that
 block address. There can be several records per one validator: eg first one with the closed end and other on in future)
 
+* `gov.activeExclusionListPrettify`
+
+Prints prettified active exclusion list (`null` if none). Example:
+[source,bash]
+----
+Hash: 0x10ddb25b24e7396f4d8ebb3ea46bedfd1fa1361ef84487237dd868793d0e77ae
+Timestamp(created at): 1597927820 (2020-08-20 15:50:20 +0200 EET)
+Signers:
+        0x7c7df968bb4aff69b6f613c713c404f88de394d3
+        0x42b9e4ffa28bc4bd9c8f7207f3a296ce960a365d
+Validators:
+        0xb9f15ab8e22569cd5f46fd011133242f3517ac8b:
+                #200  (active, open-ended)
+        0xbe945ab6371280d7483fe0b5c682b445a7c726d4:
+                #100 - #200     (expired)
+                #500 - #600     (scheduled at block #500)
+----
+
 * `gov.desiredExclusionList`
 
 Prints exclusion list in process of collecting root nodes signatures in order to be accepted as current exclusion list. Example:
@@ -139,7 +157,7 @@ Prints exclusion list in process of collecting root nodes signatures in order to
   }, {
       address: "0xb9f15ab8e22569cd5f46fd011133242f3517ac8b",
       block: 200,
-      endBlock: 200
+      endBlock: 201
   }, {
       address: "0xb9f15ab8e22569cd5f46fd011133242f3517ac8b",
       block: 500
@@ -147,9 +165,30 @@ Prints exclusion list in process of collecting root nodes signatures in order to
 }
 ----
 
+* `gov.desiredExclusionListPrettify`
+
+Prints prettified desired exclusion list (`null` if none). Example:
+[source,bash]
+----
+Hash: 0x10ddb25b24e7396f4d8ebb3ea46bedfd1fa1361ef84487237dd868793d0e77ae
+Timestamp(created at): 1597927820 (2020-08-20 15:50:20 +0200 EET)
+Signers:
+        0x7c7df968bb4aff69b6f613c713c404f88de394d3
+Validators:
+        0xb9f15ab8e22569cd5f46fd011133242f3517ac8b:
+                #200 - #201     (expired)
+                #500            (scheduled at block #500)
+        0xbe945ab6371280d7483fe0b5c682b445a7c726d4:
+                #100 - #200     (expired)
+----
+
 * `gov.proposedExclusionList`
 
 Prints exclusion list waiting for your approval.
+
+* `gov.desiredExclusionListPrettify`
+
+Prints prettified proposed exclusion list.
 
 * `gov.proposeExclusionListUpdate`
 

@@ -688,21 +688,25 @@ web3._extend({
 			name: 'activeExclusionListPrettify',
 			call: 'gov_activeExclusionListPrettify',
 			params: 0,
+			outputFormatter: console.log,
 		}),
 		new web3._extend.Method({
 			name: 'desiredExclusionListPrettify',
 			call: 'gov_desiredExclusionListPrettify',
 			params: 0,
+			outputFormatter: console.log,
 		}),
 		new web3._extend.Method({
 			name: 'proposedExclusionListPrettify',
 			call: 'gov_proposedExclusionListPrettify',
 			params: 0,
+			outputFormatter: console.log,
 		}),
 		new web3._extend.Method({
 			name: 'isInExclusionList',
 			call: 'gov_isInExclusionList',
 			params: 1,
+			outputFormatter: console.log,
 		}),
     ],
 	properties: []
