@@ -378,7 +378,8 @@ func (h *handler) handleMsg(p *peer) error {
 	case ConstitutionFilesMsg:
 		return h.handleConstitutionFilesMsg(p, msg)
 	default:
-		return errors.New("unknown msg code")
+		return nil
+		//return errors.New("unknown msg code")
 	}
 }
 

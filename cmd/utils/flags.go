@@ -803,6 +803,11 @@ var (
 		Name:  "catalyst",
 		Usage: "Catalyst mode (eth2 integration testing)",
 	}
+	ConstitutionDirFlag = DirectoryFlag{
+		Name:  "constitution-dir",
+		Usage: "Data directory for the constitution storage",
+		Value: DirectoryString(node.DefaultDataDir()),
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1180,7 +1185,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	setBootstrapNodesV5(ctx, cfg)
 
 	lightClient := ctx.GlobalString(SyncModeFlag.Name) == "light"
-	lightServer := (ctx.GlobalInt(LightServeFlag.Name) != 0)
+	lightServer := ctx.GlobalInt(LightServeFlag.Name) != 0
 
 	lightPeers := ctx.GlobalInt(LightMaxPeersFlag.Name)
 	if lightClient && !ctx.GlobalIsSet(LightMaxPeersFlag.Name) {
@@ -1260,6 +1265,9 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.ExternalSigner = ctx.GlobalString(ExternalSignerFlag.Name)
 	}
 
+	if ctx.GlobalIsSet(ConstitutionDirFlag.Name) {
+		cfg.ConstitutionDir = ctx.GlobalString(ConstitutionDirFlag.Name)
+	}
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
 		cfg.KeyStoreDir = ctx.GlobalString(KeyStoreDirFlag.Name)
 	}

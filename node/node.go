@@ -513,6 +513,11 @@ func (n *Node) InstanceDir() string {
 	return n.config.instanceDir()
 }
 
+// InstanceDir retrieves the instance directory used by the protocol stack.
+func (n *Node) ConstitutionDir() string {
+	return n.config.ConstitutionDir
+}
+
 // AccountManager retrieves the account manager used by the protocol stack.
 func (n *Node) AccountManager() *accounts.Manager {
 	return n.accman
