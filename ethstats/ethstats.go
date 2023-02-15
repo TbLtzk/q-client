@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	ethereum "gitlab.com/q-dev/q-client"
 	"math/big"
 	"net/http"
 	"runtime"
@@ -30,7 +31,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/gorilla/websocket"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/mclock"

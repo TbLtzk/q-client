@@ -19,9 +19,9 @@ package bind
 import (
 	"context"
 	"errors"
+	ethereum "gitlab.com/q-dev/q-client"
 	"time"
 
-	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/log"
