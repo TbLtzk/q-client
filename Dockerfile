@@ -1,4 +1,5 @@
 # Support setting various labels on the final image
+ARG ARCH=""
 ARG COMMIT=""
 ARG VERSION=""
 ARG BUILDNUM=""
@@ -25,6 +26,7 @@ EXPOSE 8545 8546 30303 30303/udp
 ENTRYPOINT ["geth"]
 
 # Add some metadata labels to help programatic image consumption
+ARG ARCH=""
 ARG COMMIT=""
 ARG VERSION=""
 ARG BUILDNUM=""
