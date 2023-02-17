@@ -75,7 +75,7 @@ build:
       --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}"
       --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
       --build-arg COMMIT="${CI_COMMIT_SHORT_SHA}"
-      --build-arg ARCH="AMD64"
+      --build-arg ARCH="ARM64"
       --build-arg VERSION="${RELEASE_VERSION}"
       --build-arg BUILDNUM="${CI_JOB_ID}"
       --build-arg BUILD_TOKEN="${CI_JOB_TOKEN}"
