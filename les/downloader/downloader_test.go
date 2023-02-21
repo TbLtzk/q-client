@@ -19,6 +19,7 @@ package downloader
 import (
 	"errors"
 	"fmt"
+	ethereum "gitlab.com/q-dev/q-client"
 	"math/big"
 	"strings"
 	"sync"
@@ -26,7 +27,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/state/snapshot"

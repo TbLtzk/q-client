@@ -35,6 +35,7 @@ import (
 
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-isatty"
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/utils"
@@ -54,9 +55,6 @@ import (
 	"gitlab.com/q-dev/q-client/signer/fourbyte"
 	"gitlab.com/q-dev/q-client/signer/rules"
 	"gitlab.com/q-dev/q-client/signer/storage"
-	"github.com/mattn/go-colorable"
-	"github.com/mattn/go-isatty"
-	"github.com/urfave/cli/v2"
 )
 
 const legalWarning = `
@@ -249,7 +247,6 @@ func init() {
 		testFlag,
 		advancedMode,
 		acceptFlag,
-		legacyRPCPortFlag,
 	}
 	app.Action = signer
 	app.Commands = []*cli.Command{initCommand,
