@@ -8,6 +8,8 @@ include:
 variables:
   IMAGE_NAME: "qdevelopment/q-client"
   RELEASE_IMAGE_NAME: "qblockchain/q-client"
+  IMAGE_NAME_ARM: "qdevelopment/q-client-arm"
+  RELEASE_IMAGE_NAME_ARM: "qblockchain/q-client-arm"
 
 workflow:
   rules:
@@ -63,7 +65,7 @@ build:
     entrypoint: [""]
   stage: "build"
   tags:
-    - "gitlab-org-docker-arm"
+    - "gitlab-org-docker"
   before_script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
@@ -75,6 +77,30 @@ build:
       --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}"
       --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
       --build-arg COMMIT="${CI_COMMIT_SHORT_SHA}"
+      --build-arg ARCH="amd64v8"
+      --build-arg VERSION="${RELEASE_VERSION}"
+      --build-arg BUILDNUM="${CI_JOB_ID}"
+      --build-arg BUILD_TOKEN="${CI_JOB_TOKEN}"
+      --build-arg USERNAME="gitlab-ci-token"
+
+build-arm:
+  image:
+    name: "gcr.io/kaniko-project/executor:v1.8.1-debug"
+    entrypoint: [""]
+  stage: "build"
+  tags:
+    - "gitlab-org-docker-arm"
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+  script:
+    - >-
+      /kaniko/executor
+      --context "${CI_PROJECT_DIR}"
+      --dockerfile "${CI_PROJECT_DIR}/Dockerfile.alltools"
+      --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}"
+      --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}"
+      --build-arg COMMIT="${CI_COMMIT_SHORT_SHA}"
       --build-arg ARCH="arm64v8"
       --build-arg VERSION="${RELEASE_VERSION}"
       --build-arg BUILDNUM="${CI_JOB_ID}"
@@ -82,6 +108,31 @@ build:
       --build-arg USERNAME="gitlab-ci-token"
 
 publish:
+  image:
+    name: "gcr.io/go-containerregistry/crane/debug:v0.11.0"
+    entrypoint: [""]
+  stage: "release"
+  tags:
+    - "gitlab-org-docker"
+  only:
+    - "master"
+  dependencies:
+    - "prepare"
+  needs:
+    - "build"
+    - "prepare"
+  before_script:
+    - "crane auth login index.docker.io -u ${REGISTRY_USER} -p ${REGISTRY_PASS}"
+    - "crane auth login ${CI_REGISTRY} -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD}"
+  script:
+    - >-
+      crane copy "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${RELEASE_IMAGE_NAME}:${RELEASE_VERSION}"
+    - >-
+      crane copy "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${CI_REGISTRY_IMAGE}:${RELEASE_VERSION}"
+    - >-
+      crane copy "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${CI_REGISTRY_IMAGE}:latest"
+
+publish-arm:
   image:
     name: "gcr.io/go-containerregistry/crane/debug:v0.11.0"
     entrypoint: [""]
@@ -100,11 +151,11 @@ publish:
     - "crane auth login ${CI_REGISTRY} -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD}"
   script:
     - >-
-      crane copy "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${RELEASE_IMAGE_NAME}:${RELEASE_VERSION}"
+      crane copy "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}" "${RELEASE_IMAGE_NAME_ARM}:${RELEASE_VERSION}"
     - >-
-      crane copy "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${CI_REGISTRY_IMAGE}:${RELEASE_VERSION}"
+      crane copy "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}" "${CI_REGISTRY_IMAGE}:${RELEASE_VERSION}"
     - >-
-      crane copy "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" "${CI_REGISTRY_IMAGE}:latest"
+      crane copy "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}" "${CI_REGISTRY_IMAGE}:latest"
 
 release:
   needs:
