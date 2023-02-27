@@ -56,12 +56,7 @@ func (g *Governance) APIs() []rpc.API {
 
 // Start Governance service.
 func (g *Governance) Start() error {
-	if g.RootManager.isRootNode(true) {
-		log.Info("Node belongs to the current root node set")
-	}
-
 	g.handler.run()
-
 	return nil
 }
 

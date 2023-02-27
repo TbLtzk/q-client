@@ -886,7 +886,7 @@ func (s *RootManager) getActiveApprovalList(blockNumber *big.Int, hash *common.H
 		if block == nil {
 			return nil, errors.New("Can't find block by specified hash")
 		}
-		return s.getActiveApprovalListByBlockNumber(block.Number())
+		return s.getActiveApprovalListByBlockNumberAndHash(block.Number(), *hash)
 	default:
 		return s.db.getLastApprovals().Copy(), nil
 	}
@@ -899,6 +899,21 @@ func (s *RootManager) getActiveApprovalListByBlockNumber(blockNumber *big.Int) (
 	}
 	res := &common.RootNodeApprovalList{}
 	return res.FillFromArray(approvals), nil
+}
+
+func (s *RootManager) getActiveApprovalListByBlockNumberAndHash(blockNumber *big.Int, hash common.Hash) (*common.RootNodeApprovalList, error) {
+	approvals, err := s.db.getApprovalRecordsByBlockNumber(blockNumber)
+	if err != nil {
+		return nil, err
+	}
+	res := &common.RootNodeApprovalList{}
+	var tApprovals []common.RootNodeApproval
+	for _, approval := range approvals {
+		if approval.Hash == hash {
+			tApprovals = append(tApprovals, approval)
+		}
+	}
+	return res.FillFromArray(tApprovals), nil
 }
 
 func (s *RootManager) getDesiredExclusionSet() *exclusionSet {
