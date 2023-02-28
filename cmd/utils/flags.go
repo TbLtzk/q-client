@@ -1037,6 +1037,11 @@ var (
 		AncientFlag,
 		RemoteDBFlag,
 	}
+	ConstitutionDirFlag = DirectoryFlag{
+		Name:  "constitution-dir",
+		Usage: "Data directory for the constitution storage",
+		Value: DirectoryString(node.DefaultDataDir()),
+	}
 
 	ArchiveValue = "archive"
 )
@@ -1544,6 +1549,9 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.ExternalSigner = ctx.String(ExternalSignerFlag.Name)
 	}
 
+	if ctx.IsSet(ConstitutionDirFlag.Name) {
+		cfg.ConstitutionDir = ctx.String(ConstitutionDirFlag.Name)
+	}
 	if ctx.IsSet(KeyStoreDirFlag.Name) {
 		cfg.KeyStoreDir = ctx.String(KeyStoreDirFlag.Name)
 	}

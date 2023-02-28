@@ -182,12 +182,16 @@ type ExclusionSetProvider interface {
 	ExclusionSetValidators() map[common.Address][]common.BlockRange
 	ExclusionSetTimestamp() uint64
 	HandleTransitionBlockSignature(header *types.Header)
+	ValidatePreviousTransitionBlockSignature()
 }
 
 // NoopExclusionSetProvider is needed for testing.
 type NoopExclusionSetProvider struct{}
 
 func (p *NoopExclusionSetProvider) HandleTransitionBlockSignature(header *types.Header) {
+
+}
+func (p *NoopExclusionSetProvider) ValidatePreviousTransitionBlockSignature() {
 
 }
 
@@ -732,11 +736,11 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 			return errWrongDifficulty
 		}
 	}
-
-	if number%c.config.Epoch == 0 {
-		c.exclusionSetProvider.HandleTransitionBlockSignature(header)
-	}
 	return nil
+}
+
+func (c *Clique) VerifyLastTransitionBlock() {
+	c.exclusionSetProvider.ValidatePreviousTransitionBlockSignature()
 }
 
 // Prepare implements consensus.Engine, preparing all the consensus fields of the

@@ -35,6 +35,11 @@ var (
 	approvalLastBlockPrefix = []byte("wl-block")
 )
 
+var (
+	constitutionStorageKey     = []byte("constitution-storage")
+	constitutionFileRequestKey = []byte("constitution-file-request")
+)
+
 func newDatabase(path string) (*database, error) {
 	db, err := leveldb.New(path, 0, 0, "gov", false)
 	if err != nil {
@@ -335,4 +340,71 @@ func (db *database) getApprovalRecordsByBlockNumber(blockNumber *big.Int) ([]com
 		panic(errors.Wrap(err, "failed to unmarshal root node approvals"))
 	}
 	return signs, nil
+}
+
+func (db *database) getConstitutionFiles() ([]common.ConstitutionFile, error) {
+
+	has, err := db.store.Has(constitutionStorageKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check if constitution storage exists")
+	}
+	if !has {
+		if errC := db.saveConstitutionStorage(&[]common.ConstitutionFile{}); errC != nil {
+			return nil, errors.Wrap(err, "failed to initialize constitution storage")
+		}
+	}
+	raw, errGet := db.store.Get(constitutionStorageKey)
+	if errGet != nil {
+		return nil, errors.Wrap(errGet, "failed to get constitution storage from db")
+	}
+	var files []common.ConstitutionFile
+	if err := json.Unmarshal(raw, &files); err != nil {
+		panic(errors.Wrap(err, "failed to unmarshal constitution storage"))
+	}
+
+	return files, nil
+
+}
+
+func (db *database) getConstitutionFileRequests() ([]common.Hash, error) {
+
+	has, err := db.store.Has(constitutionFileRequestKey)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check if constitution request storage exists")
+	}
+	if !has {
+		if errC := db.saveConstitutionFileRequests(&[]common.Hash{}); errC != nil {
+			return nil, errors.Wrap(err, "failed to initialize constitution request storage")
+		}
+	}
+	raw, errGet := db.store.Get(constitutionFileRequestKey)
+	if errGet != nil {
+		return nil, errors.Wrap(errGet, "failed to get constitution file requests from db")
+	}
+	var hashes []common.Hash
+	if err := json.Unmarshal(raw, &hashes); err != nil {
+		panic(errors.Wrap(err, "failed to unmarshal constitution file requests"))
+	}
+
+	return hashes, nil
+
+}
+
+func (db *database) saveConstitutionStorage(storage *[]common.ConstitutionFile) error {
+	raw, err := json.Marshal(storage)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to marshal constitution storage"))
+	}
+
+	return db.store.Put(constitutionStorageKey, raw)
+}
+
+func (db *database) saveConstitutionFileRequests(storage *[]common.Hash) error {
+	raw, err := json.Marshal(storage)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to marshal constitution file requests"))
+	}
+
+	return db.store.Put(constitutionFileRequestKey, raw)
 }

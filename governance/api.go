@@ -114,6 +114,35 @@ func (a *GovernancePublicAPI) DiffExclusionList(nameA, nameB string) ([]DiffEntr
 	return a.gov.RootManager.diffExclusionListByName(nameA, nameB)
 }
 
+func (a *GovernanceAPI) AddConstitutionFile(filename string, constitutionHash *common.Hash) error {
+	return a.gov.ConstitutionManager.addConstitutionFile(filename)
+}
+
+//RequestForConstitutionFile creates request for specific constitution file from it's peers.
+//Once this request created, node will be asking its peers for this file until it succeeded
+func (a *GovernanceAPI) RequestForConstitutionFile(constitutionHash *common.Hash) error {
+	hash, err := a.gov.ConstitutionManager.addConstitutionFileRequest(constitutionHash)
+
+	if err != nil {
+		return err
+	}
+
+	var hashes []common.Hash
+	hashes = append(hashes, *hash)
+	newReq := common.ConstitutionFilesRequest{Hashes: hashes}
+
+	a.gov.handler.broadcastConstitutionRequest(&newReq)
+	return nil
+}
+
+func (a *GovernanceAPI) ConstitutionFileRequests() ([]common.Hash, error) {
+	return a.gov.ConstitutionManager.db.getConstitutionFileRequests()
+}
+
+func (a *GovernanceAPI) ConstitutionFiles() ([]common.ConstitutionFile, error) {
+	return a.gov.ConstitutionManager.db.getConstitutionFiles()
+}
+
 func (a *GovernanceAPI) GetRootNodeApprovals(blockNumber *big.Int, hash *common.Hash) (*[]common.RootNodeApproval, error) {
 	list, err := a.gov.RootManager.getActiveApprovalList(blockNumber, hash)
 	res := []common.RootNodeApproval{}
