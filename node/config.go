@@ -206,6 +206,8 @@ type Config struct {
 
 	// JWTSecret is the hex-encoded jwt secret.
 	JWTSecret string `toml:",omitempty"`
+
+	ConstitutionDir string `toml:",omitempty"`
 }
 
 // IPCEndpoint resolves an IPC endpoint based on a configured value, taking into

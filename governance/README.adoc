@@ -1,4 +1,4 @@
-# governance rpc methods reference
+= governance rpc methods reference
 
 In order to control root list and validators exclusion list, there's a new rpc namespace `gov`.
 
@@ -24,8 +24,8 @@ In order to control root list and validators exclusion list, there's a new rpc n
 }
 ----
 
-## Root List Management
-* `gov.activeRootList`
+== Root List Management
+==== gov.activeRootList
 
 Prints current root list. Example:
 [source,bash]
@@ -41,7 +41,7 @@ Prints current root list. Example:
 
 Here, `hash` - hash of sorted root list and timestamp, `nodes` - addresses of root nodes, `signers` - root nodes that signed the list.
 
-* `gov.desiredRootList`
+==== gov.desiredRootList
 
 Prints root list that is in process of collection signatures in order to replace current root list. Example:
 [source,bash]
@@ -55,15 +55,15 @@ Prints root list that is in process of collection signatures in order to replace
 }
 ----
 
-* `gov.proposedRootList`
+==== gov.proposedRootList
 
 Prints root list waiting for your approval.
 
-* `gov.onchainRootList`
+==== gov.onchainRootList
 
 Prints on-chain root list.
 
-* `gov.proposeRootListUpdate`
+==== gov.proposeRootListUpdate
 
 Propose a new version of root list. At least one key from the new list should be unlocked, otherwise method will return the error "not a member of new list". Example:
 [source,bash]
@@ -84,17 +84,17 @@ Method accepts a new root list as object, not as a string (note, argument is not
 
 Required fields are `nodes` and `timestamp`. Output of the method (in the example, `0x263ff519a38305a1a13ff43100f7f2599ac70128b8a92f9c6c4ba2ec93171cda`) is calculated hash of new root list.
 
-* `gov.proposeRootListUpdate`
+=== `gov.proposeRootListUpdate`
 
 Propose current on-chain root list. At least one key from the new list should be unlocked, otherwise method will return the error "not a member of new list".
 
-* `gov.acceptProposedRootList`
+=== `gov.acceptProposedRootList`
 Accept root list returned from `gov.proposedRootList()`. This method will sign and start distributing the proposed root list. Also, the proposed list will replace current `desired list`.
 
-## Validators Exclusion List Management
+== Validators Exclusion List Management
 Methods for exclusion list management have same behaviour as methods for root list management.
 
-* `gov.activeExclusionList`
+=== `gov.activeExclusionList`
 
 Prints current exclusion list (`null` if none). Example:
 [source,bash]
@@ -122,7 +122,7 @@ Here, `signers` - root nodes that signed the list, `validators` - list of exclud
 `block` is block number since which validator is excluded. If an endBlock non 0 value is set up - validator exclusion ends after that
 block address. There can be several records per one validator: eg first one with the closed end and other on in future)
 
-* `gov.desiredExclusionList`
+==== gov.desiredExclusionList
 
 Prints exclusion list in process of collecting root nodes signatures in order to be accepted as current exclusion list. Example:
 [source,bash]
@@ -147,11 +147,11 @@ Prints exclusion list in process of collecting root nodes signatures in order to
 }
 ----
 
-* `gov.proposedExclusionList`
+==== gov.proposedExclusionList
 
 Prints exclusion list waiting for your approval.
 
-* `gov.proposeExclusionListUpdate`
+==== gov.proposeExclusionListUpdate
 
 Propose new version of exclusion list. `timestamp` must be larger than current exclusion list's `timestamp`. Can be called only on
 q-client with one of root nodes keys unlocked. Submitted exclusion list must contain all previous records. Also, if record is not
@@ -179,11 +179,11 @@ Example:
 
 Method prints calculated `hash` of the list.
 
-* `gov.acceptProposedExclusionList`
+==== gov.acceptProposedExclusionList
 
 Accept exlusion list returned from `gov.proposedExclusionList()`. This method will sign and start distributing the proposed exclusion list. Also, the proposed list will replace current `desired list`.
 
-* `gov.diffRootList`
+==== gov.diffRootList
 
 Show diff between two root node lists. It takes two root node list names as parameters. Available names: `active`, `desired`, `proposed`, `onchain`. Usage example:
 [source,bash]
@@ -198,7 +198,7 @@ Show diff between two root node lists. It takes two root node list names as para
 }]
 ----
 
-* `gov.diffExclusionList`
+==== gov.diffExclusionList
 
 Show diff between two exclusion lists. It takes two exclusion list names as parameters. Available names: `active`, `desired`, `proposed`. Usage example:
 [source,bash]
@@ -213,7 +213,7 @@ Show diff between two exclusion lists. It takes two exclusion list names as para
 }]
 ----
 
-* `gov.getRootNodeApprovals`
+==== gov.getRootNodeApprovals
 
 Prints rootnode approvals for the latest transition block. By default with no params provided - returns signatures of the latest block. If only one parameter specified (`blockNumber`) - returns signatures of specified block. Second parameter - `hash` - hash of the required block. Usage of both `blockNumber` and `hash` is forbidden.
 
@@ -270,3 +270,28 @@ Error: Block number and hash cannot be specified at the same time
         at <eval>:1:25(5)
 
 ----
+
+== Constitution storage Management
+Set of methods to manage your constitution files.
+Constitution storage allows you to store new constitution files and create requests for the required ones.
+All constitution files are stored in the "./constitution-storage" directory of the node. This directory will contain
+constitution files and drafts. Every file stored in this folder will be validated during node functioning. If non-draft file doesn't
+have valid filename (with the pattern *_Q-Constitution-AB_AABBCCDD_*) - it will be deleted automatically. Also, if the hash of this file doesn't
+correspond to its filename and does not belong to valid constitution hashes - it will be deleted as well.
+However, you can store any amount of files in the _"./constitution-storage/drafts"_ folder until you decide to publish them.
+All constitution files which you reqested from your peers will be named and placed into the _"./constitution-storage"_ folder automatically.
+
+
+==== gov.AddConstitutionFile
+
+Allows you to add new constitution file. File should be placed into the "./constitution-storage/drafts" directory
+inside the _datadir_. During execution this file will be validated - if hash of the file doesn't belong to blockchain - execution will be reverted.
+
+==== gov.RequestForConstitutionFile
+Command creates request for the constitution file. If requested hash is valid, request will be added to queue. As soon as one of your node's peer has requested file - it will be downloaded and added to the constitution storage.
+
+==== gov.ConstitutionFileRequests
+Displays a list of your constitution file requests. This list will become shorter every time you're getting requested file.
+
+==== gov.ConstitutionFiles
+Displays a list of constitution files which are present in your local constitution storage
