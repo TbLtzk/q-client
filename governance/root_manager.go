@@ -1062,7 +1062,21 @@ func (s *RootManager) formatBlock(block uint64) string {
 	return strconv.FormatUint(block, 10)
 }
 
+func (s *RootManager) ValidatePreviousTransitionBlockSignature() {
+	if s.bc == nil {
+		return
+	}
+	currentBlock := s.bc.CurrentBlock().Number().Uint64()
+	previousTransitionBlock := currentBlock - currentBlock%s.bc.Config().Clique.Epoch
+	s.HandleTransitionBlockSignature(s.bc.GetBlockByNumber(previousTransitionBlock).Header())
+
+}
+
 func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
+	if header == nil {
+		return
+	}
+
 	s.approvalLock.Lock()
 	defer s.approvalLock.Unlock()
 
