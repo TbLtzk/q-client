@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // GovernanceAPI. (shouldn't be opened via http/ws)
@@ -150,6 +151,51 @@ func (a *GovernanceAPI) GetRootNodeApprovals(blockNumber *big.Int, hash *common.
 		res = list.Approvals
 	}
 	return &res, err
+}
+
+func (a *GovernanceAPI) GetLatestTransitionBlocks(amount int) (*[]TransitionBlocksWithApproval, error) {
+	currentBlockNumber := a.gov.RootManager.bc.CurrentBlock().Number().Uint64()
+	if uint64(amount) > currentBlockNumber/101 {
+		log.Error("Not enough transition blocks!")
+		return nil, nil
+	}
+	transitionBlockNumber := currentBlockNumber - currentBlockNumber%101
+	transitionBlocks := make([]TransitionBlocksWithApproval, amount)
+	for amount > 0 {
+		transitionBlock := a.gov.RootManager.bc.GetHeaderByNumber(transitionBlockNumber)
+		rNApprovals, err := a.GetRootNodeApprovals(transitionBlock.Number, nil)
+		if err != nil {
+			return nil, err
+		}
+		var approvals []Approval
+		for _, approval := range *rNApprovals {
+			if approval.Hash == transitionBlock.Hash() {
+				approvals = append(approvals, Approval{
+					Signer:    approval.Signer,
+					Signature: approval.Signature,
+				})
+			}
+		}
+		transitionBlocks[amount-1] = TransitionBlocksWithApproval{
+			BlockNumber: transitionBlock.Number,
+			Hash:        transitionBlock.Hash(),
+			Approvals:   approvals,
+		}
+		transitionBlockNumber = transitionBlockNumber - 101
+		amount--
+	}
+	return &transitionBlocks, nil
+}
+
+type Approval struct {
+	Signer    common.Address `json:"signer"`
+	Signature []byte         `json:"signature"`
+}
+
+type TransitionBlocksWithApproval struct {
+	BlockNumber *big.Int    `json:"blockNumber"`
+	Hash        common.Hash `json:"hash"`
+	Approvals   []Approval  `json:"approvals"`
 }
 
 type RootList struct {
