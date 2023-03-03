@@ -18,7 +18,6 @@ type Governance struct {
 
 // New Governance service.
 func New(stack *node.Node, rm *RootManager) (*Governance, error) {
-
 	cm, errCm := NewConstitutionManager(stack.ConstitutionDir(), rm.db, rm)
 	if errCm != nil {
 		log.Error("Can't create ConstitutionManager: %v", errCm)

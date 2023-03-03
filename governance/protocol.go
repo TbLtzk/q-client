@@ -8,16 +8,16 @@ import (
 // Constants to match up protocol versions and messages
 const (
 	protocolName = "qgov" // protocolName is the official short name of the protocol used during capability negotiation.
-	qgov2        = 2
+	qgov2        = 2      //TODO decide when to remove this outdated protocol
 	qgov3        = 3
 	qgov4        = 4
 )
 
 // ProtocolVersions are the supported versions of the gov protocol (first is primary).
-var ProtocolVersions = []uint{qgov2, qgov3}
+var ProtocolVersions = []uint{qgov2, qgov3, qgov4}
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
-var protocolLengths = map[uint]uint64{qgov2: 3, qgov3: 4, qgov4: 20}
+var protocolLengths = map[uint]uint64{qgov2: 3, qgov3: 4, qgov4: 6}
 
 // maximum possible number of root nodes
 const maxNRootNodes = 101
@@ -26,7 +26,7 @@ const maxNRootNodes = 101
 // (doubled max cap list)
 const protocolMaxMsgSize = 2*maxNRootNodes*(crypto.SignatureLength+common.AddressLength) + common.HashLength
 const maxConstitutionFileSize = 512000 //TODO define correct value
-const protocolMaxMsgSize = maxConstitutionFileSize + 2*maxNRootNodes*(crypto.SignatureLength+common.AddressLength) + common.HashLength
+
 // protocol message codes
 const (
 	StatusMsg                  = 0x00

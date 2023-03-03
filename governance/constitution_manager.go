@@ -72,7 +72,7 @@ func NewConstitutionManager(datadir string, db *database, rm *RootManager) (*Con
 	return manager, nil
 }
 
-//TODO call init
+// TODO call init
 func (cm *ConstitutionManager) InitRegistry(reg *contracts.Registry) {
 	cm.reg = reg
 }
@@ -257,7 +257,7 @@ func (cm *ConstitutionManager) validateStorageDir() ([]string, error) {
 	return validFileNames, nil
 }
 
-//gov.addConstitutionFile("a.adoc","0x5c5f8818734daeee729e3ff22cec58843d24b11b0addb7b8a6b0f194f6af81c6")
+// gov.addConstitutionFile("a.adoc","0x5c5f8818734daeee729e3ff22cec58843d24b11b0addb7b8a6b0f194f6af81c6")
 func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 	cm.validateStorage()
 
@@ -302,13 +302,15 @@ func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
 	}
 
 	cv := cm.reg.ConstitutionVoting()
-
 	cvE, err := cv.ConstitutionVotingFilterer.FilterProposalExecuted(nil, nil)
+	defer cvE.Close()
+
 	if err != nil {
 		return false, errors.Wrap(err, wrapped)
 	}
 	ok := cvE.Next()
 	for ok {
+		//log.Error(common.BytesToHash(cvE.Event.ConstitutionHash[:]).String())
 		if bytes.Equal(cvE.Event.ConstitutionHash[:], hash.Bytes()) {
 			return true, nil
 		}
@@ -334,7 +336,8 @@ func (cm *ConstitutionManager) storeConstitutionFile(contents []byte, cFile comm
 		//No need to update same file
 		for _, dbFile := range dbFiles {
 			if dbFile.Hash == cFile.Hash {
-				return errors.New("Cannot add constitution file. Same file already exists")
+				//return errors.New("Cannot add constitution file. Same file already exists")
+				return nil //exists, skip
 			}
 		}
 	} else {
@@ -356,6 +359,7 @@ func (cm *ConstitutionManager) storeConstitutionFile(contents []byte, cFile comm
 			return errSave
 		}
 	}
+	log.Info("Constitution file with hash" + cFile.Hash.String() + " added successfully")
 	return nil
 }
 
@@ -369,22 +373,32 @@ func (cm *ConstitutionManager) addConstitutionFileRequest(requiredHash *common.H
 		return nil, errors.New("Hash cannot be empty")
 	}
 
-	dbFiles, err := cm.db.getConstitutionFileRequests()
+	hashes, err := cm.db.getConstitutionFileRequests()
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to load constitution file request storage from the database")
 	}
-	for _, dbHash := range dbFiles {
+	for _, dbHash := range hashes {
 		if dbHash == *requiredHash {
 			return nil, errors.New("File with the requested hash already exists in the request list")
 		}
 	}
 
-	dbFiles = append(dbFiles, *requiredHash)
-	if errSave := cm.db.saveConstitutionFileRequests(&dbFiles); errSave != nil {
+	dbFiles, errF := cm.db.getConstitutionFiles()
+	if errF != nil {
+		return nil, errors.Wrap(err, "Failed to load constitution file storage from the database")
+	}
+	for _, file := range dbFiles {
+		if file.Hash == *requiredHash {
+			return nil, errors.New("File with the requested hash already exists in the storage")
+		}
+	}
+
+	hashes = append(hashes, *requiredHash)
+	if errSave := cm.db.saveConstitutionFileRequests(&hashes); errSave != nil {
 		return nil, errors.Wrap(errSave, "Failed to save constitution file requests to the database")
 	}
 
-	cm.requiredHashes = dbFiles
+	cm.requiredHashes = hashes
 
 	return requiredHash, nil
 }
@@ -411,9 +425,10 @@ func (cm *ConstitutionManager) getHashOfFile(filePath string) common.Hash {
 
 func (cm *ConstitutionManager) preformatFileContents(bytes []byte) []byte {
 	contents := string(bytes)
-	re := regexp.MustCompile(`\r?\n`)
-	contents = re.ReplaceAllString(contents, "\r")
-	//What else?
+	//TODO
+	//re := regexp.MustCompile(`\r?\n`)
+	//contents = re.ReplaceAllString(contents, "\r")
+	////What else?
 	return []byte(contents)
 }
 
@@ -428,7 +443,7 @@ func (cm *ConstitutionManager) getHashByFileContent(bytes []byte) common.Hash {
 	return value
 }
 
-//TODO
+// TODO
 func (cm *ConstitutionManager) fileExists(path string) error {
 	_, errF := os.OpenFile(path, os.O_RDONLY, 0)
 	return errF
@@ -442,7 +457,7 @@ func (cm *ConstitutionManager) populateConstitutionFileRequest() common.Constitu
 	return res
 }
 
-//fileName should be just name without basedir
+// fileName should be just name without basedir
 func (cm *ConstitutionManager) getFileContents(fileName string) ([]byte, error) {
 	contents, errC := os.ReadFile(fileName)
 	if errC != nil {
