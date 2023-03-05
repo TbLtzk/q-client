@@ -11,14 +11,14 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Returns information about DNSSEC for a specific hosted zone, including the key
-// signing keys (KSKs) and zone signing keys (ZSKs) in the hosted zone.
+// Returns information about DNSSEC for a specific hosted zone, including the
+// key-signing keys (KSKs) in the hosted zone.
 func (c *Client) GetDNSSEC(ctx context.Context, params *GetDNSSECInput, optFns ...func(*Options)) (*GetDNSSECOutput, error) {
 	if params == nil {
 		params = &GetDNSSECInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "GetDNSSEC", params, optFns, addOperationGetDNSSECMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "GetDNSSEC", params, optFns, c.addOperationGetDNSSECMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -34,11 +34,13 @@ type GetDNSSECInput struct {
 	//
 	// This member is required.
 	HostedZoneId *string
+
+	noSmithyDocumentSerde
 }
 
 type GetDNSSECOutput struct {
 
-	// The key signing keys (KSKs) in your account.
+	// The key-signing keys (KSKs) in your account.
 	//
 	// This member is required.
 	KeySigningKeys []types.KeySigningKey
@@ -50,9 +52,11 @@ type GetDNSSECOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationGetDNSSECMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationGetDNSSECMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpGetDNSSEC{}, middleware.After)
 	if err != nil {
 		return err

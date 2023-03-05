@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // AccessServiceToken represents an Access Service Token.
@@ -26,6 +24,18 @@ type AccessServiceToken struct {
 type AccessServiceTokenUpdateResponse struct {
 	CreatedAt *time.Time `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at"`
+	ExpiresAt *time.Time `json:"expires_at"`
+	ID        string     `json:"id"`
+	Name      string     `json:"name"`
+	ClientID  string     `json:"client_id"`
+}
+
+// AccessServiceTokenRefreshResponse represents the response from the API
+// when an existing service token is refreshed to last longer.
+type AccessServiceTokenRefreshResponse struct {
+	CreatedAt *time.Time `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
+	ExpiresAt *time.Time `json:"expires_at"`
 	ID        string     `json:"id"`
 	Name      string     `json:"name"`
 	ClientID  string     `json:"client_id"`
@@ -37,6 +47,19 @@ type AccessServiceTokenUpdateResponse struct {
 type AccessServiceTokenCreateResponse struct {
 	CreatedAt    *time.Time `json:"created_at"`
 	UpdatedAt    *time.Time `json:"updated_at"`
+	ExpiresAt    *time.Time `json:"expires_at"`
+	ID           string     `json:"id"`
+	Name         string     `json:"name"`
+	ClientID     string     `json:"client_id"`
+	ClientSecret string     `json:"client_secret"`
+}
+
+// AccessServiceTokenRotateResponse is the same API response as the Create
+// operation.
+type AccessServiceTokenRotateResponse struct {
+	CreatedAt    *time.Time `json:"created_at"`
+	UpdatedAt    *time.Time `json:"updated_at"`
+	ExpiresAt    *time.Time `json:"expires_at"`
 	ID           string     `json:"id"`
 	Name         string     `json:"name"`
 	ClientID     string     `json:"client_id"`
@@ -78,6 +101,24 @@ type AccessServiceTokensUpdateDetailResponse struct {
 	Result   AccessServiceTokenUpdateResponse `json:"result"`
 }
 
+// AccessServiceTokensRefreshDetailResponse is the API response, containing a
+// single Access Service Token.
+type AccessServiceTokensRefreshDetailResponse struct {
+	Success  bool                              `json:"success"`
+	Errors   []string                          `json:"errors"`
+	Messages []string                          `json:"messages"`
+	Result   AccessServiceTokenRefreshResponse `json:"result"`
+}
+
+// AccessServiceTokensRotateSecretDetailResponse is the API response, containing a
+// single Access Service Token.
+type AccessServiceTokensRotateSecretDetailResponse struct {
+	Success  bool                             `json:"success"`
+	Errors   []string                         `json:"errors"`
+	Messages []string                         `json:"messages"`
+	Result   AccessServiceTokenRotateResponse `json:"result"`
+}
+
 // AccessServiceTokens returns all Access Service Tokens for an account.
 //
 // API reference: https://api.cloudflare.com/#access-service-tokens-list-access-service-tokens
@@ -103,7 +144,7 @@ func (api *API) accessServiceTokens(ctx context.Context, id string, routeRoot Ro
 	var accessServiceTokensListResponse AccessServiceTokensListResponse
 	err = json.Unmarshal(res, &accessServiceTokensListResponse)
 	if err != nil {
-		return []AccessServiceToken{}, ResultInfo{}, errors.Wrap(err, errUnmarshalError)
+		return []AccessServiceToken{}, ResultInfo{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return accessServiceTokensListResponse.Result, accessServiceTokensListResponse.ResultInfo, nil
@@ -138,7 +179,7 @@ func (api *API) createAccessServiceToken(ctx context.Context, id, name string, r
 	var accessServiceTokenCreation AccessServiceTokensCreationDetailResponse
 	err = json.Unmarshal(res, &accessServiceTokenCreation)
 	if err != nil {
-		return AccessServiceTokenCreateResponse{}, errors.Wrap(err, errUnmarshalError)
+		return AccessServiceTokenCreateResponse{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return accessServiceTokenCreation.Result, nil
@@ -175,7 +216,7 @@ func (api *API) updateAccessServiceToken(ctx context.Context, id, uuid, name str
 	var accessServiceTokenUpdate AccessServiceTokensUpdateDetailResponse
 	err = json.Unmarshal(res, &accessServiceTokenUpdate)
 	if err != nil {
-		return AccessServiceTokenUpdateResponse{}, errors.Wrap(err, errUnmarshalError)
+		return AccessServiceTokenUpdateResponse{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return accessServiceTokenUpdate.Result, nil
@@ -208,8 +249,49 @@ func (api *API) deleteAccessServiceToken(ctx context.Context, id, uuid string, r
 	var accessServiceTokenUpdate AccessServiceTokensUpdateDetailResponse
 	err = json.Unmarshal(res, &accessServiceTokenUpdate)
 	if err != nil {
-		return AccessServiceTokenUpdateResponse{}, errors.Wrap(err, errUnmarshalError)
+		return AccessServiceTokenUpdateResponse{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
 	}
 
 	return accessServiceTokenUpdate.Result, nil
+}
+
+// RefreshAccessServiceToken updates the expiry of an Access Service Token
+// in place.
+//
+// API reference: https://api.cloudflare.com/#access-service-tokens-refresh-a-service-token
+func (api *API) RefreshAccessServiceToken(ctx context.Context, rc *ResourceContainer, id string) (AccessServiceTokenRefreshResponse, error) {
+	uri := fmt.Sprintf("/%s/%s/access/service_tokens/%s/refresh", rc.Level, rc.Identifier, id)
+
+	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, nil)
+	if err != nil {
+		return AccessServiceTokenRefreshResponse{}, err
+	}
+
+	var accessServiceTokenRefresh AccessServiceTokensRefreshDetailResponse
+	err = json.Unmarshal(res, &accessServiceTokenRefresh)
+	if err != nil {
+		return AccessServiceTokenRefreshResponse{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+	}
+
+	return accessServiceTokenRefresh.Result, nil
+}
+
+// RotateAccessServiceToken rotates the client secret of an Access Service
+// Token in place.
+// API reference: https://api.cloudflare.com/#access-service-tokens-rotate-a-service-token
+func (api *API) RotateAccessServiceToken(ctx context.Context, rc *ResourceContainer, id string) (AccessServiceTokenRotateResponse, error) {
+	uri := fmt.Sprintf("/%s/%s/access/service_tokens/%s/rotate", rc.Level, rc.Identifier, id)
+
+	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, nil)
+	if err != nil {
+		return AccessServiceTokenRotateResponse{}, err
+	}
+
+	var accessServiceTokenRotate AccessServiceTokensRotateSecretDetailResponse
+	err = json.Unmarshal(res, &accessServiceTokenRotate)
+	if err != nil {
+		return AccessServiceTokenRotateResponse{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+	}
+
+	return accessServiceTokenRotate.Result, nil
 }

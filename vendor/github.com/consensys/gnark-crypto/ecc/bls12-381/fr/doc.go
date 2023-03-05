@@ -16,28 +16,38 @@
 
 // Package fr contains field arithmetic operations for modulus = 0x73eda7...000001.
 //
-// The API is similar to math/big (big.Int), but the operations are significantly faster (up to 20x for the modular multiplication on amd64, see also https://hackmd.io/@zkteam/modular_multiplication)
+// The API is similar to math/big (big.Int), but the operations are significantly faster (up to 20x for the modular multiplication on amd64, see also https://hackmd.io/@gnark/modular_multiplication)
 //
 // The modulus is hardcoded in all the operations.
 //
 // Field elements are represented as an array, and assumed to be in Montgomery form in all methods:
-// 	type Element [4]uint64
 //
-// Example API signature
-// 	// Mul z = x * y mod q
-// 	func (z *Element) Mul(x, y *Element) *Element
+//	type Element [4]uint64
+//
+// # Usage
+//
+// Example API signature:
+//
+//	// Mul z = x * y (mod q)
+//	func (z *Element) Mul(x, y *Element) *Element
 //
 // and can be used like so:
-// 	var a, b Element
-// 	a.SetUint64(2)
-// 	b.SetString("984896738")
-// 	a.Mul(a, b)
-// 	a.Sub(a, a)
-// 	 .Add(a, b)
-// 	 .Inv(a)
-// 	b.Exp(b, new(big.Int).SetUint64(42))
 //
-// Modulus
-// 	0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001 // base 16
-// 	52435875175126190479447740508185965837690552500527637822603658699938581184513 // base 10
+//	var a, b Element
+//	a.SetUint64(2)
+//	b.SetString("984896738")
+//	a.Mul(a, b)
+//	a.Sub(a, a)
+//	 .Add(a, b)
+//	 .Inv(a)
+//	b.Exp(b, new(big.Int).SetUint64(42))
+//
+// Modulus q =
+//
+//	q[base10] = 52435875175126190479447740508185965837690552500527637822603658699938581184513
+//	q[base16] = 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001
+//
+// # Warning
+//
+// This code has not been audited and is provided as-is. In particular, there is no security guarantees such as constant time implementation or side-channel attack resistance.
 package fr

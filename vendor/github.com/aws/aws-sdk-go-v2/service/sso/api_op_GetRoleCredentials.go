@@ -17,7 +17,7 @@ func (c *Client) GetRoleCredentials(ctx context.Context, params *GetRoleCredenti
 		params = &GetRoleCredentialsInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "GetRoleCredentials", params, optFns, addOperationGetRoleCredentialsMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "GetRoleCredentials", params, optFns, c.addOperationGetRoleCredentialsMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ type GetRoleCredentialsInput struct {
 	// The token issued by the CreateToken API call. For more information, see
 	// CreateToken
 	// (https://docs.aws.amazon.com/singlesignon/latest/OIDCAPIReference/API_CreateToken.html)
-	// in the AWS SSO OIDC API Reference Guide.
+	// in the IAM Identity Center OIDC API Reference Guide.
 	//
 	// This member is required.
 	AccessToken *string
@@ -46,6 +46,8 @@ type GetRoleCredentialsInput struct {
 	//
 	// This member is required.
 	RoleName *string
+
+	noSmithyDocumentSerde
 }
 
 type GetRoleCredentialsOutput struct {
@@ -55,9 +57,11 @@ type GetRoleCredentialsOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationGetRoleCredentialsMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationGetRoleCredentialsMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestjson1_serializeOpGetRoleCredentials{}, middleware.After)
 	if err != nil {
 		return err
