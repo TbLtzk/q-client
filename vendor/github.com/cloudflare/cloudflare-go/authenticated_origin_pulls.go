@@ -3,9 +3,10 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // AuthenticatedOriginPulls represents global AuthenticatedOriginPulls (tls_client_auth) metadata.
@@ -26,14 +27,14 @@ type AuthenticatedOriginPullsResponse struct {
 //
 // API reference: https://api.cloudflare.com/#zone-settings-get-tls-client-auth-setting
 func (api *API) GetAuthenticatedOriginPullsStatus(ctx context.Context, zoneID string) (AuthenticatedOriginPulls, error) {
-	uri := fmt.Sprintf("/zones/%s/settings/tls_client_auth", zoneID)
+	uri := "/zones/" + zoneID + "/settings/tls_client_auth"
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return AuthenticatedOriginPulls{}, err
 	}
 	var r AuthenticatedOriginPullsResponse
 	if err := json.Unmarshal(res, &r); err != nil {
-		return AuthenticatedOriginPulls{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return AuthenticatedOriginPulls{}, errors.Wrap(err, errUnmarshalError)
 	}
 	return r.Result, nil
 }
@@ -42,7 +43,7 @@ func (api *API) GetAuthenticatedOriginPullsStatus(ctx context.Context, zoneID st
 //
 // API reference: https://api.cloudflare.com/#zone-settings-change-tls-client-auth-setting
 func (api *API) SetAuthenticatedOriginPullsStatus(ctx context.Context, zoneID string, enable bool) (AuthenticatedOriginPulls, error) {
-	uri := fmt.Sprintf("/zones/%s/settings/tls_client_auth", zoneID)
+	uri := "/zones/" + zoneID + "/settings/tls_client_auth"
 	var val string
 	if enable {
 		val = "on"
@@ -60,7 +61,7 @@ func (api *API) SetAuthenticatedOriginPullsStatus(ctx context.Context, zoneID st
 	}
 	var r AuthenticatedOriginPullsResponse
 	if err := json.Unmarshal(res, &r); err != nil {
-		return AuthenticatedOriginPulls{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return AuthenticatedOriginPulls{}, errors.Wrap(err, errUnmarshalError)
 	}
 	return r.Result, nil
 }

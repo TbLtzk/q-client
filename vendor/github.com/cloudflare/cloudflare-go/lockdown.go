@@ -3,9 +3,11 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"time"
+	"net/url"
+	"strconv"
+
+	"github.com/pkg/errors"
 )
 
 // ZoneLockdown represents a Zone Lockdown rule. A rule only permits access to
@@ -17,8 +19,6 @@ type ZoneLockdown struct {
 	Configurations []ZoneLockdownConfig `json:"configurations"`
 	Paused         bool                 `json:"paused"`
 	Priority       int                  `json:"priority,omitempty"`
-	CreatedOn      *time.Time           `json:"created_on,omitempty"`
-	ModifiedOn     *time.Time           `json:"modified_on,omitempty"`
 }
 
 // ZoneLockdownConfig represents a Zone Lockdown config, which comprises
@@ -44,148 +44,110 @@ type ZoneLockdownListResponse struct {
 	ResultInfo `json:"result_info"`
 }
 
-// ZoneLockdownCreateParams contains required and optional params
-// for creating a zone lockdown.
-type ZoneLockdownCreateParams struct {
-	Description    string               `json:"description"`
-	URLs           []string             `json:"urls"`
-	Configurations []ZoneLockdownConfig `json:"configurations"`
-	Paused         bool                 `json:"paused"`
-	Priority       int                  `json:"priority,omitempty"`
-}
-
-// ZoneLockdownUpdateParams contains required and optional params
-// for updating a zone lockdown.
-type ZoneLockdownUpdateParams struct {
-	ID             string               `json:"id"`
-	Description    string               `json:"description"`
-	URLs           []string             `json:"urls"`
-	Configurations []ZoneLockdownConfig `json:"configurations"`
-	Paused         bool                 `json:"paused"`
-	Priority       int                  `json:"priority,omitempty"`
-}
-
-type LockdownListParams struct {
-	ResultInfo
-}
-
 // CreateZoneLockdown creates a Zone ZoneLockdown rule for the given zone ID.
 //
 // API reference: https://api.cloudflare.com/#zone-ZoneLockdown-create-a-ZoneLockdown-rule
-func (api *API) CreateZoneLockdown(ctx context.Context, rc *ResourceContainer, params ZoneLockdownCreateParams) (ZoneLockdown, error) {
-	uri := fmt.Sprintf("/zones/%s/firewall/lockdowns", rc.Identifier)
-	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, params)
+func (api *API) CreateZoneLockdown(ctx context.Context, zoneID string, ld ZoneLockdown) (*ZoneLockdownResponse, error) {
+	uri := "/zones/" + zoneID + "/firewall/lockdowns"
+	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, ld)
 	if err != nil {
-		return ZoneLockdown{}, err
+		return nil, err
 	}
 
 	response := &ZoneLockdownResponse{}
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return ZoneLockdown{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return nil, errors.Wrap(err, errUnmarshalError)
 	}
 
-	return response.Result, nil
+	return response, nil
 }
 
-// UpdateZoneLockdown updates a Zone ZoneLockdown rule (based on the ID) for the given zone ID.
+// UpdateZoneLockdown updates a Zone ZoneLockdown rule (based on the ID) for the
+// given zone ID.
 //
 // API reference: https://api.cloudflare.com/#zone-ZoneLockdown-update-ZoneLockdown-rule
-func (api *API) UpdateZoneLockdown(ctx context.Context, rc *ResourceContainer, params ZoneLockdownUpdateParams) (ZoneLockdown, error) {
-	uri := fmt.Sprintf("/zones/%s/firewall/lockdowns/%s", rc.Identifier, params.ID)
-	res, err := api.makeRequestContext(ctx, http.MethodPut, uri, params)
+func (api *API) UpdateZoneLockdown(ctx context.Context, zoneID string, id string, ld ZoneLockdown) (*ZoneLockdownResponse, error) {
+	uri := "/zones/" + zoneID + "/firewall/lockdowns/" + id
+	res, err := api.makeRequestContext(ctx, http.MethodPut, uri, ld)
 	if err != nil {
-		return ZoneLockdown{}, err
+		return nil, err
 	}
 
 	response := &ZoneLockdownResponse{}
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return ZoneLockdown{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return nil, errors.Wrap(err, errUnmarshalError)
 	}
 
-	return response.Result, nil
+	return response, nil
 }
 
-// DeleteZoneLockdown deletes a Zone ZoneLockdown rule (based on the ID) for the given zone ID.
+// DeleteZoneLockdown deletes a Zone ZoneLockdown rule (based on the ID) for the
+// given zone ID.
 //
 // API reference: https://api.cloudflare.com/#zone-ZoneLockdown-delete-ZoneLockdown-rule
-func (api *API) DeleteZoneLockdown(ctx context.Context, rc *ResourceContainer, id string) (ZoneLockdown, error) {
-	uri := fmt.Sprintf("/zones/%s/firewall/lockdowns/%s", rc.Identifier, id)
+func (api *API) DeleteZoneLockdown(ctx context.Context, zoneID string, id string) (*ZoneLockdownResponse, error) {
+	uri := "/zones/" + zoneID + "/firewall/lockdowns/" + id
 	res, err := api.makeRequestContext(ctx, http.MethodDelete, uri, nil)
 	if err != nil {
-		return ZoneLockdown{}, err
+		return nil, err
 	}
 
 	response := &ZoneLockdownResponse{}
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return ZoneLockdown{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return nil, errors.Wrap(err, errUnmarshalError)
 	}
 
-	return response.Result, nil
+	return response, nil
 }
 
-// ZoneLockdown retrieves a Zone ZoneLockdown rule (based on the ID) for the given zone ID.
+// ZoneLockdown retrieves a Zone ZoneLockdown rule (based on the ID) for the
+// given zone ID.
 //
 // API reference: https://api.cloudflare.com/#zone-ZoneLockdown-ZoneLockdown-rule-details
-func (api *API) ZoneLockdown(ctx context.Context, rc *ResourceContainer, id string) (ZoneLockdown, error) {
-	uri := fmt.Sprintf("/zones/%s/firewall/lockdowns/%s", rc.Identifier, id)
+func (api *API) ZoneLockdown(ctx context.Context, zoneID string, id string) (*ZoneLockdownResponse, error) {
+	uri := "/zones/" + zoneID + "/firewall/lockdowns/" + id
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
-		return ZoneLockdown{}, err
+		return nil, err
 	}
 
 	response := &ZoneLockdownResponse{}
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return ZoneLockdown{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return nil, errors.Wrap(err, errUnmarshalError)
 	}
 
-	return response.Result, nil
+	return response, nil
 }
 
-// ListZoneLockdowns retrieves every Zone ZoneLockdown rules for a given zone ID.
-//
-// Automatically paginates all results unless `params.PerPage` and `params.Page`
-// is set.
+// ListZoneLockdowns retrieves a list of Zone ZoneLockdown rules for a given
+// zone ID by page number.
 //
 // API reference: https://api.cloudflare.com/#zone-ZoneLockdown-list-ZoneLockdown-rules
-func (api *API) ListZoneLockdowns(ctx context.Context, rc *ResourceContainer, params LockdownListParams) ([]ZoneLockdown, *ResultInfo, error) {
-	autoPaginate := true
-	if params.PerPage >= 1 || params.Page >= 1 {
-		autoPaginate = false
-	}
-	if params.PerPage < 1 {
-		params.PerPage = 50
-	}
-	if params.Page < 1 {
-		params.Page = 1
+func (api *API) ListZoneLockdowns(ctx context.Context, zoneID string, page int) (*ZoneLockdownListResponse, error) {
+	v := url.Values{}
+	if page <= 0 {
+		page = 1
 	}
 
-	var zoneLockdowns []ZoneLockdown
-	var zResponse ZoneLockdownListResponse
-	for {
-		zResponse = ZoneLockdownListResponse{}
-		uri := buildURI(fmt.Sprintf("/zones/%s/firewall/lockdowns", rc.Identifier), params)
+	v.Set("page", strconv.Itoa(page))
+	v.Set("per_page", strconv.Itoa(100))
+	query := "?" + v.Encode()
 
-		res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
-		if err != nil {
-			return []ZoneLockdown{}, &ResultInfo{}, err
-		}
-
-		err = json.Unmarshal(res, &zResponse)
-		if err != nil {
-			return []ZoneLockdown{}, &ResultInfo{}, fmt.Errorf("failed to unmarshal filters JSON data: %w", err)
-		}
-
-		zoneLockdowns = append(zoneLockdowns, zResponse.Result...)
-		params.ResultInfo = zResponse.ResultInfo.Next()
-
-		if params.ResultInfo.Done() || !autoPaginate {
-			break
-		}
+	uri := "/zones/" + zoneID + "/firewall/lockdowns" + query
+	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
+	if err != nil {
+		return nil, err
 	}
 
-	return zoneLockdowns, &zResponse.ResultInfo, nil
+	response := &ZoneLockdownListResponse{}
+	err = json.Unmarshal(res, &response)
+	if err != nil {
+		return nil, errors.Wrap(err, errUnmarshalError)
+	}
+
+	return response, nil
 }

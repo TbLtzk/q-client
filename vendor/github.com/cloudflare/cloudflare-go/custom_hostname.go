@@ -3,15 +3,15 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
-// CustomHostnameStatus is the enumeration of valid state values in the CustomHostnameSSL.
+// CustomHostnameStatus is the enumeration of valid state values in the CustomHostnameSSL
 type CustomHostnameStatus string
 
 const (
@@ -21,64 +21,45 @@ const (
 	ACTIVE CustomHostnameStatus = "active"
 	// MOVED status represents state of CustomHostname is moved.
 	MOVED CustomHostnameStatus = "moved"
-	// DELETED status represents state of CustomHostname is deleted.
+	// DELETED status represents state of CustomHostname is removed.
 	DELETED CustomHostnameStatus = "deleted"
-	// BLOCKED status represents state of CustomHostname is blocked from going active.
-	BLOCKED CustomHostnameStatus = "blocked"
 )
 
 // CustomHostnameSSLSettings represents the SSL settings for a custom hostname.
 type CustomHostnameSSLSettings struct {
 	HTTP2         string   `json:"http2,omitempty"`
-	HTTP3         string   `json:"http3,omitempty"`
 	TLS13         string   `json:"tls_1_3,omitempty"`
 	MinTLSVersion string   `json:"min_tls_version,omitempty"`
 	Ciphers       []string `json:"ciphers,omitempty"`
-	EarlyHints    string   `json:"early_hints,omitempty"`
 }
 
-// CustomHostnameOwnershipVerification represents ownership verification status of a given custom hostname.
+//CustomHostnameOwnershipVerification represents ownership verification status of a given custom hostname.
 type CustomHostnameOwnershipVerification struct {
 	Type  string `json:"type,omitempty"`
 	Name  string `json:"name,omitempty"`
 	Value string `json:"value,omitempty"`
 }
 
-// SSLValidationError represents errors that occurred during SSL validation.
-type SSLValidationError struct {
+//CustomHostnameSSLValidationErrors represents errors that occurred during SSL validation.
+type CustomHostnameSSLValidationErrors struct {
 	Message string `json:"message,omitempty"`
-}
-
-// CustomHostnameSSLCertificates represent certificate properties like issuer, expires date and etc.
-type CustomHostnameSSLCertificates struct {
-	Issuer            string     `json:"issuer"`
-	SerialNumber      string     `json:"serial_number"`
-	Signature         string     `json:"signature"`
-	ExpiresOn         *time.Time `json:"expires_on"`
-	IssuedOn          *time.Time `json:"issued_on"`
-	FingerprintSha256 string     `json:"fingerprint_sha256"`
-	ID                string     `json:"id"`
 }
 
 // CustomHostnameSSL represents the SSL section in a given custom hostname.
 type CustomHostnameSSL struct {
-	ID                   string                          `json:"id,omitempty"`
-	Status               string                          `json:"status,omitempty"`
-	Method               string                          `json:"method,omitempty"`
-	Type                 string                          `json:"type,omitempty"`
-	Wildcard             *bool                           `json:"wildcard,omitempty"`
-	CustomCertificate    string                          `json:"custom_certificate,omitempty"`
-	CustomKey            string                          `json:"custom_key,omitempty"`
-	CertificateAuthority string                          `json:"certificate_authority,omitempty"`
-	Issuer               string                          `json:"issuer,omitempty"`
-	SerialNumber         string                          `json:"serial_number,omitempty"`
-	Settings             CustomHostnameSSLSettings       `json:"settings,omitempty"`
-	Certificates         []CustomHostnameSSLCertificates `json:"certificates,omitempty"`
-	// Deprecated: use ValidationRecords.
-	// If there a single validation record, this will equal ValidationRecords[0] for backwards compatibility.
-	SSLValidationRecord
-	ValidationRecords []SSLValidationRecord `json:"validation_records,omitempty"`
-	ValidationErrors  []SSLValidationError  `json:"validation_errors,omitempty"`
+	Status               string                              `json:"status,omitempty"`
+	Method               string                              `json:"method,omitempty"`
+	Type                 string                              `json:"type,omitempty"`
+	CnameTarget          string                              `json:"cname_target,omitempty"`
+	CnameName            string                              `json:"cname,omitempty"`
+	Wildcard             bool                                `json:"wildcard,omitempty"`
+	CustomCertificate    string                              `json:"custom_certificate,omitempty"`
+	CustomKey            string                              `json:"custom_key,omitempty"`
+	CertificateAuthority string                              `json:"certificate_authority,omitempty"`
+	Settings             CustomHostnameSSLSettings           `json:"settings,omitempty"`
+	ValidationErrors     []CustomHostnameSSLValidationErrors `json:"validation_errors,omitempty"`
+	HTTPUrl              string                              `json:"http_url,omitempty"`
+	HTTPBody             string                              `json:"http_body,omitempty"`
 }
 
 // CustomMetadata defines custom metadata for the hostname. This requires logic to be implemented by Cloudflare to act on the data provided.
@@ -89,9 +70,8 @@ type CustomHostname struct {
 	ID                        string                                  `json:"id,omitempty"`
 	Hostname                  string                                  `json:"hostname,omitempty"`
 	CustomOriginServer        string                                  `json:"custom_origin_server,omitempty"`
-	CustomOriginSNI           string                                  `json:"custom_origin_sni,omitempty"`
-	SSL                       *CustomHostnameSSL                      `json:"ssl,omitempty"`
-	CustomMetadata            *CustomMetadata                         `json:"custom_metadata,omitempty"`
+	SSL                       CustomHostnameSSL                       `json:"ssl,omitempty"`
+	CustomMetadata            CustomMetadata                          `json:"custom_metadata,omitempty"`
 	Status                    CustomHostnameStatus                    `json:"status,omitempty"`
 	VerificationErrors        []string                                `json:"verification_errors,omitempty"`
 	OwnershipVerification     CustomHostnameOwnershipVerification     `json:"ownership_verification,omitempty"`
@@ -118,7 +98,7 @@ type CustomHostnameListResponse struct {
 	ResultInfo `json:"result_info"`
 }
 
-// CustomHostnameFallbackOrigin represents a Custom Hostnames Fallback Origin.
+// CustomHostnameFallbackOrigin represents a Custom Hostnames Fallback Origin
 type CustomHostnameFallbackOrigin struct {
 	Origin string   `json:"origin,omitempty"`
 	Status string   `json:"status,omitempty"`
@@ -135,8 +115,8 @@ type CustomHostnameFallbackOriginResponse struct {
 // hostname in the given zone.
 //
 // API reference: https://api.cloudflare.com/#custom-hostname-for-a-zone-update-custom-hostname-configuration
-func (api *API) UpdateCustomHostnameSSL(ctx context.Context, zoneID string, customHostnameID string, ssl *CustomHostnameSSL) (*CustomHostnameResponse, error) {
-	uri := fmt.Sprintf("/zones/%s/custom_hostnames/%s", zoneID, customHostnameID)
+func (api *API) UpdateCustomHostnameSSL(ctx context.Context, zoneID string, customHostnameID string, ssl CustomHostnameSSL) (*CustomHostnameResponse, error) {
+	uri := "/zones/" + zoneID + "/custom_hostnames/" + customHostnameID
 	ch := CustomHostname{
 		SSL: ssl,
 	}
@@ -148,7 +128,7 @@ func (api *API) UpdateCustomHostnameSSL(ctx context.Context, zoneID string, cust
 	var response *CustomHostnameResponse
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return nil, errors.Wrap(err, errUnmarshalError)
 	}
 	return response, nil
 }
@@ -158,7 +138,7 @@ func (api *API) UpdateCustomHostnameSSL(ctx context.Context, zoneID string, cust
 //
 // API reference: https://api.cloudflare.com/#custom-hostname-for-a-zone-update-custom-hostname-configuration
 func (api *API) UpdateCustomHostname(ctx context.Context, zoneID string, customHostnameID string, ch CustomHostname) (*CustomHostnameResponse, error) {
-	uri := fmt.Sprintf("/zones/%s/custom_hostnames/%s", zoneID, customHostnameID)
+	uri := "/zones/" + zoneID + "/custom_hostnames/" + customHostnameID
 	res, err := api.makeRequestContext(ctx, http.MethodPatch, uri, ch)
 	if err != nil {
 		return nil, err
@@ -167,7 +147,7 @@ func (api *API) UpdateCustomHostname(ctx context.Context, zoneID string, customH
 	var response *CustomHostnameResponse
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return nil, errors.Wrap(err, errUnmarshalError)
 	}
 	return response, nil
 }
@@ -177,7 +157,7 @@ func (api *API) UpdateCustomHostname(ctx context.Context, zoneID string, customH
 //
 // API reference: https://api.cloudflare.com/#custom-hostname-for-a-zone-delete-a-custom-hostname-and-any-issued-ssl-certificates-
 func (api *API) DeleteCustomHostname(ctx context.Context, zoneID string, customHostnameID string) error {
-	uri := fmt.Sprintf("/zones/%s/custom_hostnames/%s", zoneID, customHostnameID)
+	uri := "/zones/" + zoneID + "/custom_hostnames/" + customHostnameID
 	res, err := api.makeRequestContext(ctx, http.MethodDelete, uri, nil)
 	if err != nil {
 		return err
@@ -186,7 +166,7 @@ func (api *API) DeleteCustomHostname(ctx context.Context, zoneID string, customH
 	var response *CustomHostnameResponse
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return errors.Wrap(err, errUnmarshalError)
 	}
 
 	return nil
@@ -196,7 +176,7 @@ func (api *API) DeleteCustomHostname(ctx context.Context, zoneID string, customH
 //
 // API reference: https://api.cloudflare.com/#custom-hostname-for-a-zone-create-custom-hostname
 func (api *API) CreateCustomHostname(ctx context.Context, zoneID string, ch CustomHostname) (*CustomHostnameResponse, error) {
-	uri := fmt.Sprintf("/zones/%s/custom_hostnames", zoneID)
+	uri := "/zones/" + zoneID + "/custom_hostnames"
 	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, ch)
 	if err != nil {
 		return nil, err
@@ -205,7 +185,7 @@ func (api *API) CreateCustomHostname(ctx context.Context, zoneID string, ch Cust
 	var response *CustomHostnameResponse
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return nil, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return response, nil
@@ -224,8 +204,9 @@ func (api *API) CustomHostnames(ctx context.Context, zoneID string, page int, fi
 	if filter.Hostname != "" {
 		v.Set("hostname", filter.Hostname)
 	}
+	query := "?" + v.Encode()
 
-	uri := fmt.Sprintf("/zones/%s/custom_hostnames?%s", zoneID, v.Encode())
+	uri := "/zones/" + zoneID + "/custom_hostnames" + query
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return []CustomHostname{}, ResultInfo{}, err
@@ -243,7 +224,7 @@ func (api *API) CustomHostnames(ctx context.Context, zoneID string, page int, fi
 //
 // API reference: https://api.cloudflare.com/#custom-hostname-for-a-zone-custom-hostname-configuration-details
 func (api *API) CustomHostname(ctx context.Context, zoneID string, customHostnameID string) (CustomHostname, error) {
-	uri := fmt.Sprintf("/zones/%s/custom_hostnames/%s", zoneID, customHostnameID)
+	uri := "/zones/" + zoneID + "/custom_hostnames/" + customHostnameID
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return CustomHostname{}, err
@@ -252,7 +233,7 @@ func (api *API) CustomHostname(ctx context.Context, zoneID string, customHostnam
 	var response CustomHostnameResponse
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return CustomHostname{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return CustomHostname{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return response.Result, nil
@@ -262,7 +243,7 @@ func (api *API) CustomHostname(ctx context.Context, zoneID string, customHostnam
 func (api *API) CustomHostnameIDByName(ctx context.Context, zoneID string, hostname string) (string, error) {
 	customHostnames, _, err := api.CustomHostnames(ctx, zoneID, 1, CustomHostname{Hostname: hostname})
 	if err != nil {
-		return "", fmt.Errorf("CustomHostnames command failed: %w", err)
+		return "", errors.Wrap(err, "CustomHostnames command failed")
 	}
 	for _, ch := range customHostnames {
 		if ch.Hostname == hostname {
@@ -276,7 +257,7 @@ func (api *API) CustomHostnameIDByName(ctx context.Context, zoneID string, hostn
 //
 // API reference: https://api.cloudflare.com/#custom-hostname-fallback-origin-for-a-zone-update-fallback-origin-for-custom-hostnames
 func (api *API) UpdateCustomHostnameFallbackOrigin(ctx context.Context, zoneID string, chfo CustomHostnameFallbackOrigin) (*CustomHostnameFallbackOriginResponse, error) {
-	uri := fmt.Sprintf("/zones/%s/custom_hostnames/fallback_origin", zoneID)
+	uri := "/zones/" + zoneID + "/custom_hostnames/fallback_origin"
 	res, err := api.makeRequestContext(ctx, http.MethodPut, uri, chfo)
 	if err != nil {
 		return nil, err
@@ -285,7 +266,7 @@ func (api *API) UpdateCustomHostnameFallbackOrigin(ctx context.Context, zoneID s
 	var response *CustomHostnameFallbackOriginResponse
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return nil, errors.Wrap(err, errUnmarshalError)
 	}
 	return response, nil
 }
@@ -294,7 +275,7 @@ func (api *API) UpdateCustomHostnameFallbackOrigin(ctx context.Context, zoneID s
 //
 // API reference: https://api.cloudflare.com/#custom-hostname-fallback-origin-for-a-zone-delete-fallback-origin-for-custom-hostnames
 func (api *API) DeleteCustomHostnameFallbackOrigin(ctx context.Context, zoneID string) error {
-	uri := fmt.Sprintf("/zones/%s/custom_hostnames/fallback_origin", zoneID)
+	uri := "/zones/" + zoneID + "/custom_hostnames/fallback_origin"
 	res, err := api.makeRequestContext(ctx, http.MethodDelete, uri, nil)
 	if err != nil {
 		return err
@@ -303,7 +284,7 @@ func (api *API) DeleteCustomHostnameFallbackOrigin(ctx context.Context, zoneID s
 	var response *CustomHostnameFallbackOriginResponse
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return errors.Wrap(err, errUnmarshalError)
 	}
 	return nil
 }
@@ -312,7 +293,7 @@ func (api *API) DeleteCustomHostnameFallbackOrigin(ctx context.Context, zoneID s
 //
 // API reference: https://api.cloudflare.com/#custom-hostname-fallback-origin-for-a-zone-properties
 func (api *API) CustomHostnameFallbackOrigin(ctx context.Context, zoneID string) (CustomHostnameFallbackOrigin, error) {
-	uri := fmt.Sprintf("/zones/%s/custom_hostnames/fallback_origin", zoneID)
+	uri := "/zones/" + zoneID + "/custom_hostnames/fallback_origin"
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return CustomHostnameFallbackOrigin{}, err
@@ -321,7 +302,7 @@ func (api *API) CustomHostnameFallbackOrigin(ctx context.Context, zoneID string)
 	var response CustomHostnameFallbackOriginResponse
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return CustomHostnameFallbackOrigin{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return CustomHostnameFallbackOrigin{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return response.Result, nil

@@ -3,22 +3,20 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
-// The definitions in this file are deprecated and should be removed after
-// enough time is given for users to migrate. Use the more general `List`
-// methods instead.
-
 const (
-	// IPListTypeIP specifies a list containing IP addresses.
+	// IPListTypeIP specifies a list containing IP addresses
 	IPListTypeIP = "ip"
 )
 
-// IPListBulkOperation contains information about a Bulk Operation.
+// IPListBulkOperation contains information about a Bulk Operation
 type IPListBulkOperation struct {
 	ID        string     `json:"id"`
 	Status    string     `json:"status"`
@@ -26,7 +24,7 @@ type IPListBulkOperation struct {
 	Completed *time.Time `json:"completed"`
 }
 
-// IPList contains information about an IP List.
+// IPList contains information about an IP List
 type IPList struct {
 	ID                    string     `json:"id"`
 	Name                  string     `json:"name"`
@@ -38,7 +36,7 @@ type IPList struct {
 	ModifiedOn            *time.Time `json:"modified_on"`
 }
 
-// IPListItem contains information about a single IP List Item.
+// IPListItem contains information about a single IP List Item
 type IPListItem struct {
 	ID         string     `json:"id"`
 	IP         string     `json:"ip"`
@@ -47,41 +45,41 @@ type IPListItem struct {
 	ModifiedOn *time.Time `json:"modified_on"`
 }
 
-// IPListCreateRequest contains data for a new IP List.
+// IPListCreateRequest contains data for a new IP List
 type IPListCreateRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Kind        string `json:"kind"`
 }
 
-// IPListItemCreateRequest contains data for a new IP List Item.
+// IPListItemCreateRequest contains data for a new IP List Item
 type IPListItemCreateRequest struct {
 	IP      string `json:"ip"`
 	Comment string `json:"comment"`
 }
 
-// IPListItemDeleteRequest wraps IP List Items that shall be deleted.
+// IPListItemDeleteRequest wraps IP List Items that shall be deleted
 type IPListItemDeleteRequest struct {
 	Items []IPListItemDeleteItemRequest `json:"items"`
 }
 
-// IPListItemDeleteItemRequest contains single IP List Items that shall be deleted.
+// IPListItemDeleteItemRequest contains single IP List Items that shall be deleted
 type IPListItemDeleteItemRequest struct {
 	ID string `json:"id"`
 }
 
-// IPListUpdateRequest contains data for an IP List update.
+// IPListUpdateRequest contains data for an IP List update
 type IPListUpdateRequest struct {
 	Description string `json:"description"`
 }
 
-// IPListResponse contains a single IP List.
+// IPListResponse contains a single IP List
 type IPListResponse struct {
 	Response
 	Result IPList `json:"result"`
 }
 
-// IPListItemCreateResponse contains information about the creation of an IP List Item.
+// IPListItemCreateResponse contains information about the creation of an IP List Item
 type IPListItemCreateResponse struct {
 	Response
 	Result struct {
@@ -89,19 +87,19 @@ type IPListItemCreateResponse struct {
 	} `json:"result"`
 }
 
-// IPListListResponse contains a slice of IP Lists.
+// IPListListResponse contains a slice of IP Lists
 type IPListListResponse struct {
 	Response
 	Result []IPList `json:"result"`
 }
 
-// IPListBulkOperationResponse contains information about a Bulk Operation.
+// IPListBulkOperationResponse contains information about a Bulk Operation
 type IPListBulkOperationResponse struct {
 	Response
 	Result IPListBulkOperation `json:"result"`
 }
 
-// IPListDeleteResponse contains information about the deletion of an IP List.
+// IPListDeleteResponse contains information about the deletion of an IP List
 type IPListDeleteResponse struct {
 	Response
 	Result struct {
@@ -109,14 +107,14 @@ type IPListDeleteResponse struct {
 	} `json:"result"`
 }
 
-// IPListItemsListResponse contains information about IP List Items.
+// IPListItemsListResponse contains information about IP List Items
 type IPListItemsListResponse struct {
 	Response
 	ResultInfo `json:"result_info"`
 	Result     []IPListItem `json:"result"`
 }
 
-// IPListItemDeleteResponse contains information about the deletion of an IP List Item.
+// IPListItemDeleteResponse contains information about the deletion of an IP List Item
 type IPListItemDeleteResponse struct {
 	Response
 	Result struct {
@@ -124,19 +122,17 @@ type IPListItemDeleteResponse struct {
 	} `json:"result"`
 }
 
-// IPListItemsGetResponse contains information about a single IP List Item.
+// IPListItemsGetResponse contains information about a single IP List Item
 type IPListItemsGetResponse struct {
 	Response
 	Result IPListItem `json:"result"`
 }
 
-// ListIPLists lists all IP Lists.
+// ListIPLists lists all IP Lists
 //
 // API reference: https://api.cloudflare.com/#rules-lists-list-lists
-//
-// Deprecated: Use `ListLists` instead.
-func (api *API) ListIPLists(ctx context.Context, accountID string) ([]IPList, error) {
-	uri := fmt.Sprintf("/accounts/%s/rules/lists", accountID)
+func (api *API) ListIPLists(ctx context.Context) ([]IPList, error) {
+	uri := fmt.Sprintf("/accounts/%s/rules/lists", api.AccountID)
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return []IPList{}, err
@@ -144,20 +140,18 @@ func (api *API) ListIPLists(ctx context.Context, accountID string) ([]IPList, er
 
 	result := IPListListResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return []IPList{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return []IPList{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return result.Result, nil
 }
 
-// CreateIPList creates a new IP List.
+// CreateIPList creates a new IP List
 //
 // API reference: https://api.cloudflare.com/#rules-lists-create-list
-//
-// Deprecated: Use `CreateList` instead.
-func (api *API) CreateIPList(ctx context.Context, accountID, name, description, kind string) (IPList,
+func (api *API) CreateIPList(ctx context.Context, name string, description string, kind string) (IPList,
 	error) {
-	uri := fmt.Sprintf("/accounts/%s/rules/lists", accountID)
+	uri := fmt.Sprintf("/accounts/%s/rules/lists", api.AccountID)
 	res, err := api.makeRequestContext(ctx, http.MethodPost, uri,
 		IPListCreateRequest{Name: name, Description: description, Kind: kind})
 	if err != nil {
@@ -166,7 +160,7 @@ func (api *API) CreateIPList(ctx context.Context, accountID, name, description, 
 
 	result := IPListResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return IPList{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return IPList{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return result.Result, nil
@@ -175,10 +169,8 @@ func (api *API) CreateIPList(ctx context.Context, accountID, name, description, 
 // GetIPList returns a single IP List
 //
 // API reference: https://api.cloudflare.com/#rules-lists-get-list
-//
-// Deprecated: Use `GetList` instead.
-func (api *API) GetIPList(ctx context.Context, accountID, ID string) (IPList, error) {
-	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s", accountID, ID)
+func (api *API) GetIPList(ctx context.Context, id string) (IPList, error) {
+	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s", api.AccountID, id)
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return IPList{}, err
@@ -186,19 +178,17 @@ func (api *API) GetIPList(ctx context.Context, accountID, ID string) (IPList, er
 
 	result := IPListResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return IPList{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return IPList{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return result.Result, nil
 }
 
-// UpdateIPList updates the description of an existing IP List.
+// UpdateIPList updates the description of an existing IP List
 //
 // API reference: https://api.cloudflare.com/#rules-lists-update-list
-//
-// Deprecated: Use `UpdateList` instead.
-func (api *API) UpdateIPList(ctx context.Context, accountID, ID, description string) (IPList, error) {
-	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s", accountID, ID)
+func (api *API) UpdateIPList(ctx context.Context, id string, description string) (IPList, error) {
+	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s", api.AccountID, id)
 	res, err := api.makeRequestContext(ctx, http.MethodPut, uri, IPListUpdateRequest{Description: description})
 	if err != nil {
 		return IPList{}, err
@@ -206,19 +196,17 @@ func (api *API) UpdateIPList(ctx context.Context, accountID, ID, description str
 
 	result := IPListResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return IPList{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return IPList{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return result.Result, nil
 }
 
-// DeleteIPList deletes an IP List.
+// DeleteIPList deletes an IP List
 //
 // API reference: https://api.cloudflare.com/#rules-lists-delete-list
-//
-// Deprecated: Use `DeleteList` instead.
-func (api *API) DeleteIPList(ctx context.Context, accountID, ID string) (IPListDeleteResponse, error) {
-	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s", accountID, ID)
+func (api *API) DeleteIPList(ctx context.Context, id string) (IPListDeleteResponse, error) {
+	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s", api.AccountID, id)
 	res, err := api.makeRequestContext(ctx, http.MethodDelete, uri, nil)
 	if err != nil {
 		return IPListDeleteResponse{}, err
@@ -226,18 +214,16 @@ func (api *API) DeleteIPList(ctx context.Context, accountID, ID string) (IPListD
 
 	result := IPListDeleteResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return IPListDeleteResponse{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return IPListDeleteResponse{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return result, nil
 }
 
-// ListIPListItems returns a list with all items in an IP List.
+// ListIPListItems returns a list with all items in an IP List
 //
 // API reference: https://api.cloudflare.com/#rules-lists-list-list-items
-//
-// Deprecated: Use `ListListItems` instead.
-func (api *API) ListIPListItems(ctx context.Context, accountID, ID string) ([]IPListItem, error) {
+func (api *API) ListIPListItems(ctx context.Context, id string) ([]IPListItem, error) {
 	var list []IPListItem
 	var cursor string
 	var cursorQuery string
@@ -246,7 +232,7 @@ func (api *API) ListIPListItems(ctx context.Context, accountID, ID string) ([]IP
 		if len(cursor) > 0 {
 			cursorQuery = fmt.Sprintf("?cursor=%s", cursor)
 		}
-		uri := fmt.Sprintf("/accounts/%s/rules/lists/%s/items%s", accountID, ID, cursorQuery)
+		uri := fmt.Sprintf("/accounts/%s/rules/lists/%s/items%s", api.AccountID, id, cursorQuery)
 		res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 		if err != nil {
 			return []IPListItem{}, err
@@ -254,7 +240,7 @@ func (api *API) ListIPListItems(ctx context.Context, accountID, ID string) ([]IP
 
 		result := IPListItemsListResponse{}
 		if err := json.Unmarshal(res, &result); err != nil {
-			return []IPListItem{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+			return []IPListItem{}, errors.Wrap(err, errUnmarshalError)
 		}
 
 		list = append(list, result.Result...)
@@ -266,15 +252,12 @@ func (api *API) ListIPListItems(ctx context.Context, accountID, ID string) ([]IP
 	return list, nil
 }
 
-// CreateIPListItemAsync creates a new IP List Item asynchronously. Users have
-// to poll the operation status by using the operation_id returned by this
-// function.
+// CreateIPListItemAsync creates a new IP List Item asynchronously. Users have to poll the operation status by
+// using the operation_id returned by this function.
 //
 // API reference: https://api.cloudflare.com/#rules-lists-create-list-items
-//
-// Deprecated: Use `CreateListItemAsync` instead.
-func (api *API) CreateIPListItemAsync(ctx context.Context, accountID, ID, ip, comment string) (IPListItemCreateResponse, error) {
-	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s/items", accountID, ID)
+func (api *API) CreateIPListItemAsync(ctx context.Context, id, ip, comment string) (IPListItemCreateResponse, error) {
+	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s/items", api.AccountID, id)
 	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, []IPListItemCreateRequest{{IP: ip, Comment: comment}})
 	if err != nil {
 		return IPListItemCreateResponse{}, err
@@ -282,41 +265,35 @@ func (api *API) CreateIPListItemAsync(ctx context.Context, accountID, ID, ip, co
 
 	result := IPListItemCreateResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return IPListItemCreateResponse{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return IPListItemCreateResponse{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return result, nil
 }
 
-// CreateIPListItem creates a new IP List Item synchronously and returns the
-// current set of IP List Items.
-//
-// Deprecated: Use `CreateListItem` instead.
-func (api *API) CreateIPListItem(ctx context.Context, accountID, ID, ip, comment string) ([]IPListItem, error) {
-	result, err := api.CreateIPListItemAsync(ctx, accountID, ID, ip, comment)
+// CreateIPListItem creates a new IP List Item synchronously and returns the current set of IP List Items
+func (api *API) CreateIPListItem(ctx context.Context, id, ip, comment string) ([]IPListItem, error) {
+	result, err := api.CreateIPListItemAsync(ctx, id, ip, comment)
 
 	if err != nil {
 		return []IPListItem{}, err
 	}
 
-	err = api.pollIPListBulkOperation(ctx, accountID, result.Result.OperationID)
+	err = api.pollIPListBulkOperation(ctx, result.Result.OperationID)
 	if err != nil {
 		return []IPListItem{}, err
 	}
 
-	return api.ListIPListItems(ctx, accountID, ID)
+	return api.ListIPListItems(ctx, id)
 }
 
-// CreateIPListItemsAsync bulk creates many IP List Items asynchronously. Users
-// have to poll the operation status by using the operation_id returned by this
-// function.
+// CreateIPListItemsAsync bulk creates many IP List Items asynchronously. Users have to poll the operation status by
+// using the operation_id returned by this function.
 //
 // API reference: https://api.cloudflare.com/#rules-lists-create-list-items
-//
-// Deprecated: Use `CreateListItemsAsync` instead.
-func (api *API) CreateIPListItemsAsync(ctx context.Context, accountID, ID string, items []IPListItemCreateRequest) (
+func (api *API) CreateIPListItemsAsync(ctx context.Context, id string, items []IPListItemCreateRequest) (
 	IPListItemCreateResponse, error) {
-	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s/items", accountID, ID)
+	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s/items", api.AccountID, id)
 	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, items)
 	if err != nil {
 		return IPListItemCreateResponse{}, err
@@ -324,41 +301,35 @@ func (api *API) CreateIPListItemsAsync(ctx context.Context, accountID, ID string
 
 	result := IPListItemCreateResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return IPListItemCreateResponse{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return IPListItemCreateResponse{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return result, nil
 }
 
-// CreateIPListItems bulk creates many IP List Items synchronously and returns
-// the current set of IP List Items.
-//
-// Deprecated: Use `CreateListItems` instead.
-func (api *API) CreateIPListItems(ctx context.Context, accountID, ID string, items []IPListItemCreateRequest) (
+// CreateIPListItems bulk creates many IP List Items synchronously and returns the current set of IP List Items
+func (api *API) CreateIPListItems(ctx context.Context, id string, items []IPListItemCreateRequest) (
 	[]IPListItem, error) {
-	result, err := api.CreateIPListItemsAsync(ctx, accountID, ID, items)
+	result, err := api.CreateIPListItemsAsync(ctx, id, items)
 	if err != nil {
 		return []IPListItem{}, err
 	}
 
-	err = api.pollIPListBulkOperation(ctx, accountID, result.Result.OperationID)
+	err = api.pollIPListBulkOperation(ctx, result.Result.OperationID)
 	if err != nil {
 		return []IPListItem{}, err
 	}
 
-	return api.ListIPListItems(ctx, accountID, ID)
+	return api.ListIPListItems(ctx, id)
 }
 
-// ReplaceIPListItemsAsync replaces all IP List Items asynchronously. Users have
-// to poll the operation status by using the operation_id returned by this
-// function.
+// ReplaceIPListItemsAsync replaces all IP List Items asynchronously. Users have to poll the operation status by
+// using the operation_id returned by this function.
 //
 // API reference: https://api.cloudflare.com/#rules-lists-replace-list-items
-//
-// Deprecated: Use `ReplaceListItemsAsync` instead.
-func (api *API) ReplaceIPListItemsAsync(ctx context.Context, accountID, ID string, items []IPListItemCreateRequest) (
+func (api *API) ReplaceIPListItemsAsync(ctx context.Context, id string, items []IPListItemCreateRequest) (
 	IPListItemCreateResponse, error) {
-	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s/items", accountID, ID)
+	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s/items", api.AccountID, id)
 	res, err := api.makeRequestContext(ctx, http.MethodPut, uri, items)
 	if err != nil {
 		return IPListItemCreateResponse{}, err
@@ -366,41 +337,35 @@ func (api *API) ReplaceIPListItemsAsync(ctx context.Context, accountID, ID strin
 
 	result := IPListItemCreateResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return IPListItemCreateResponse{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return IPListItemCreateResponse{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return result, nil
 }
 
-// ReplaceIPListItems replaces all IP List Items synchronously and returns the
-// current set of IP List Items.
-//
-// Deprecated: Use `ReplaceListItems` instead.
-func (api *API) ReplaceIPListItems(ctx context.Context, accountID, ID string, items []IPListItemCreateRequest) (
+// ReplaceIPListItems replaces all IP List Items synchronously and returns the current set of IP List Items
+func (api *API) ReplaceIPListItems(ctx context.Context, id string, items []IPListItemCreateRequest) (
 	[]IPListItem, error) {
-	result, err := api.ReplaceIPListItemsAsync(ctx, accountID, ID, items)
+	result, err := api.ReplaceIPListItemsAsync(ctx, id, items)
 	if err != nil {
 		return []IPListItem{}, err
 	}
 
-	err = api.pollIPListBulkOperation(ctx, accountID, result.Result.OperationID)
+	err = api.pollIPListBulkOperation(ctx, result.Result.OperationID)
 	if err != nil {
 		return []IPListItem{}, err
 	}
 
-	return api.ListIPListItems(ctx, accountID, ID)
+	return api.ListIPListItems(ctx, id)
 }
 
-// DeleteIPListItemsAsync removes specific Items of an IP List by their ID
-// asynchronously. Users have to poll the operation status by using the
-// operation_id returned by this function.
+// DeleteIPListItemsAsync removes specific Items of an IP List by their ID asynchronously. Users have to poll the
+// operation status by using the operation_id returned by this function.
 //
 // API reference: https://api.cloudflare.com/#rules-lists-delete-list-items
-//
-// Deprecated: Use `DeleteListItemsAsync` instead.
-func (api *API) DeleteIPListItemsAsync(ctx context.Context, accountID, ID string, items IPListItemDeleteRequest) (
+func (api *API) DeleteIPListItemsAsync(ctx context.Context, id string, items IPListItemDeleteRequest) (
 	IPListItemDeleteResponse, error) {
-	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s/items", accountID, ID)
+	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s/items", api.AccountID, id)
 	res, err := api.makeRequestContext(ctx, http.MethodDelete, uri, items)
 	if err != nil {
 		return IPListItemDeleteResponse{}, err
@@ -408,38 +373,34 @@ func (api *API) DeleteIPListItemsAsync(ctx context.Context, accountID, ID string
 
 	result := IPListItemDeleteResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return IPListItemDeleteResponse{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return IPListItemDeleteResponse{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return result, nil
 }
 
-// DeleteIPListItems removes specific Items of an IP List by their ID
-// synchronously and returns the current set of IP List Items.
-//
-// Deprecated: Use `DeleteListItems` instead.
-func (api *API) DeleteIPListItems(ctx context.Context, accountID, ID string, items IPListItemDeleteRequest) (
+// DeleteIPListItems removes specific Items of an IP List by their ID synchronously and returns the current set
+// of IP List Items
+func (api *API) DeleteIPListItems(ctx context.Context, id string, items IPListItemDeleteRequest) (
 	[]IPListItem, error) {
-	result, err := api.DeleteIPListItemsAsync(ctx, accountID, ID, items)
+	result, err := api.DeleteIPListItemsAsync(ctx, id, items)
 	if err != nil {
 		return []IPListItem{}, err
 	}
 
-	err = api.pollIPListBulkOperation(ctx, accountID, result.Result.OperationID)
+	err = api.pollIPListBulkOperation(ctx, result.Result.OperationID)
 	if err != nil {
 		return []IPListItem{}, err
 	}
 
-	return api.ListIPListItems(ctx, accountID, ID)
+	return api.ListIPListItems(ctx, id)
 }
 
-// GetIPListItem returns a single IP List Item.
+// GetIPListItem returns a single IP List Item
 //
 // API reference: https://api.cloudflare.com/#rules-lists-get-list-item
-//
-// Deprecated: Use `GetListItem` instead.
-func (api *API) GetIPListItem(ctx context.Context, accountID, listID, id string) (IPListItem, error) {
-	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s/items/%s", accountID, listID, id)
+func (api *API) GetIPListItem(ctx context.Context, listID, id string) (IPListItem, error) {
+	uri := fmt.Sprintf("/accounts/%s/rules/lists/%s/items/%s", api.AccountID, listID, id)
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return IPListItem{}, err
@@ -447,19 +408,17 @@ func (api *API) GetIPListItem(ctx context.Context, accountID, listID, id string)
 
 	result := IPListItemsGetResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return IPListItem{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return IPListItem{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return result.Result, nil
 }
 
-// GetIPListBulkOperation returns the status of a bulk operation.
+// GetIPListBulkOperation returns the status of a bulk operation
 //
 // API reference: https://api.cloudflare.com/#rules-lists-get-bulk-operation
-//
-// Deprecated: Use `GetListBulkOperation` instead.
-func (api *API) GetIPListBulkOperation(ctx context.Context, accountID, ID string) (IPListBulkOperation, error) {
-	uri := fmt.Sprintf("/accounts/%s/rules/lists/bulk_operations/%s", accountID, ID)
+func (api *API) GetIPListBulkOperation(ctx context.Context, id string) (IPListBulkOperation, error) {
+	uri := fmt.Sprintf("/accounts/%s/rules/lists/bulk_operations/%s", api.AccountID, id)
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return IPListBulkOperation{}, err
@@ -467,25 +426,20 @@ func (api *API) GetIPListBulkOperation(ctx context.Context, accountID, ID string
 
 	result := IPListBulkOperationResponse{}
 	if err := json.Unmarshal(res, &result); err != nil {
-		return IPListBulkOperation{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return IPListBulkOperation{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return result.Result, nil
 }
 
-// pollIPListBulkOperation implements synchronous behaviour for some
-// asynchronous endpoints. bulk-operation status can be either pending, running,
-// failed or completed.
-func (api *API) pollIPListBulkOperation(ctx context.Context, accountID, ID string) error {
-	for i := uint8(0); i < 16; i++ {
-		sleepDuration := 1 << (i / 2) * time.Second
-		select {
-		case <-time.After(sleepDuration):
-		case <-ctx.Done():
-			return fmt.Errorf("operation aborted during backoff: %w", ctx.Err())
-		}
+// pollIPListBulkOperation implements synchronous behaviour for some asynchronous endpoints.
+// bulk-operation status can be either pending, running, failed or completed
+func (api *API) pollIPListBulkOperation(ctx context.Context, id string) error {
+	var i uint8
+	for i = 0; i < 16; i++ {
+		time.Sleep(0x1 << uint8(math.Ceil(float64(i/2))) * time.Second)
 
-		bulkResult, err := api.GetIPListBulkOperation(ctx, accountID, ID)
+		bulkResult, err := api.GetIPListBulkOperation(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -498,7 +452,7 @@ func (api *API) pollIPListBulkOperation(ctx context.Context, accountID, ID strin
 		case "completed":
 			return nil
 		default:
-			return fmt.Errorf("%s: %s", errOperationUnexpectedStatus, bulkResult.Status)
+			return errors.New(fmt.Sprintf("%s: %s", errOperationUnexpectedStatus, bulkResult.Status))
 		}
 	}
 

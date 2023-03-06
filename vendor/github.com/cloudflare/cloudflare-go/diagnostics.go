@@ -3,8 +3,9 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 // DiagnosticsTracerouteConfiguration is the overarching structure of the
@@ -79,7 +80,7 @@ type DiagnosticsTracerouteResponseColos struct {
 //
 // API documentation: https://api.cloudflare.com/#diagnostics-traceroute
 func (api *API) PerformTraceroute(ctx context.Context, accountID string, targets, colos []string, tracerouteOptions DiagnosticsTracerouteConfigurationOptions) ([]DiagnosticsTracerouteResponseResult, error) {
-	uri := fmt.Sprintf("/accounts/%s/diagnostics/traceroute", accountID)
+	uri := "/accounts/" + accountID + "/diagnostics/traceroute"
 	diagnosticsPayload := DiagnosticsTracerouteConfiguration{
 		Targets: targets,
 		Colos:   colos,
@@ -94,7 +95,7 @@ func (api *API) PerformTraceroute(ctx context.Context, accountID string, targets
 	var diagnosticsResponse DiagnosticsTracerouteResponse
 	err = json.Unmarshal(res, &diagnosticsResponse)
 	if err != nil {
-		return []DiagnosticsTracerouteResponseResult{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return []DiagnosticsTracerouteResponseResult{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return diagnosticsResponse.Result, nil

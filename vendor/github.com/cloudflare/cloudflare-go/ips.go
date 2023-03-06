@@ -2,10 +2,11 @@ package cloudflare
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // IPRangesResponse contains the structure for the API response, not modified.
@@ -35,20 +36,19 @@ type IPsResponse struct {
 //
 // API reference: https://api.cloudflare.com/#cloudflare-ips
 func IPs() (IPRanges, error) {
-	uri := fmt.Sprintf("%s/ips?china_colo=1", apiURL)
-	resp, err := http.Get(uri) //nolint:gosec
+	resp, err := http.Get(apiURL + "/ips?china_colo=1")
 	if err != nil {
-		return IPRanges{}, fmt.Errorf("HTTP request failed: %w", err)
+		return IPRanges{}, errors.Wrap(err, "HTTP request failed")
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return IPRanges{}, fmt.Errorf("Response body could not be read: %w", err)
+		return IPRanges{}, errors.Wrap(err, "Response body could not be read")
 	}
 	var r IPsResponse
 	err = json.Unmarshal(body, &r)
 	if err != nil {
-		return IPRanges{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return IPRanges{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	var ips IPRanges

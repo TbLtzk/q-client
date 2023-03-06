@@ -5,14 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
-)
 
-type AccessApprovalGroup struct {
-	EmailListUuid   string   `json:"email_list_uuid,omitempty"`
-	EmailAddresses  []string `json:"email_addresses,omitempty"`
-	ApprovalsNeeded int      `json:"approvals_needed,omitempty"`
-}
+	"github.com/pkg/errors"
+)
 
 // AccessPolicy defines a policy for allowing or disallowing access to
 // one or more Access applications.
@@ -23,11 +21,6 @@ type AccessPolicy struct {
 	CreatedAt  *time.Time `json:"created_at"`
 	UpdatedAt  *time.Time `json:"updated_at"`
 	Name       string     `json:"name"`
-
-	PurposeJustificationRequired *bool                 `json:"purpose_justification_required,omitempty"`
-	PurposeJustificationPrompt   *string               `json:"purpose_justification_prompt,omitempty"`
-	ApprovalRequired             *bool                 `json:"approval_required,omitempty"`
-	ApprovalGroups               []AccessApprovalGroup `json:"approval_groups"`
 
 	// The include policy works like an OR logical operator. The user must
 	// satisfy one of the rules.
@@ -74,15 +67,24 @@ func (api *API) ZoneLevelAccessPolicies(ctx context.Context, zoneID, application
 }
 
 func (api *API) accessPolicies(ctx context.Context, id string, applicationID string, pageOpts PaginationOptions, routeRoot RouteRoot) ([]AccessPolicy, ResultInfo, error) {
-	uri := buildURI(
-		fmt.Sprintf(
-			"/%s/%s/access/apps/%s/policies",
-			routeRoot,
-			id,
-			applicationID,
-		),
-		pageOpts,
+	v := url.Values{}
+	if pageOpts.PerPage > 0 {
+		v.Set("per_page", strconv.Itoa(pageOpts.PerPage))
+	}
+	if pageOpts.Page > 0 {
+		v.Set("page", strconv.Itoa(pageOpts.Page))
+	}
+
+	uri := fmt.Sprintf(
+		"/%s/%s/access/apps/%s/policies",
+		routeRoot,
+		id,
+		applicationID,
 	)
+
+	if len(v) > 0 {
+		uri = uri + "?" + v.Encode()
+	}
 
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
@@ -92,7 +94,7 @@ func (api *API) accessPolicies(ctx context.Context, id string, applicationID str
 	var accessPolicyListResponse AccessPolicyListResponse
 	err = json.Unmarshal(res, &accessPolicyListResponse)
 	if err != nil {
-		return []AccessPolicy{}, ResultInfo{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return []AccessPolicy{}, ResultInfo{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return accessPolicyListResponse.Result, accessPolicyListResponse.ResultInfo, nil
@@ -129,7 +131,7 @@ func (api *API) accessPolicy(ctx context.Context, id string, applicationID strin
 	var accessPolicyDetailResponse AccessPolicyDetailResponse
 	err = json.Unmarshal(res, &accessPolicyDetailResponse)
 	if err != nil {
-		return AccessPolicy{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return AccessPolicy{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return accessPolicyDetailResponse.Result, nil
@@ -165,7 +167,7 @@ func (api *API) createAccessPolicy(ctx context.Context, id, applicationID string
 	var accessPolicyDetailResponse AccessPolicyDetailResponse
 	err = json.Unmarshal(res, &accessPolicyDetailResponse)
 	if err != nil {
-		return AccessPolicy{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return AccessPolicy{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return accessPolicyDetailResponse.Result, nil
@@ -187,7 +189,7 @@ func (api *API) UpdateZoneLevelAccessPolicy(ctx context.Context, zoneID, applica
 
 func (api *API) updateAccessPolicy(ctx context.Context, id, applicationID string, accessPolicy AccessPolicy, routeRoot RouteRoot) (AccessPolicy, error) {
 	if accessPolicy.ID == "" {
-		return AccessPolicy{}, fmt.Errorf("access policy ID cannot be empty")
+		return AccessPolicy{}, errors.Errorf("access policy ID cannot be empty")
 	}
 	uri := fmt.Sprintf(
 		"/%s/%s/access/apps/%s/policies/%s",
@@ -205,7 +207,7 @@ func (api *API) updateAccessPolicy(ctx context.Context, id, applicationID string
 	var accessPolicyDetailResponse AccessPolicyDetailResponse
 	err = json.Unmarshal(res, &accessPolicyDetailResponse)
 	if err != nil {
-		return AccessPolicy{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return AccessPolicy{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return accessPolicyDetailResponse.Result, nil

@@ -3,8 +3,9 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 // LogpullRetentionConfiguration describes a the structure of a Logpull Retention
@@ -24,7 +25,7 @@ type LogpullRetentionConfigurationResponse struct {
 //
 // API reference: https://developers.cloudflare.com/logs/logpull-api/enabling-log-retention/
 func (api *API) GetLogpullRetentionFlag(ctx context.Context, zoneID string) (*LogpullRetentionConfiguration, error) {
-	uri := fmt.Sprintf("/zones/%s/logs/control/retention/flag", zoneID)
+	uri := "/zones/" + zoneID + "/logs/control/retention/flag"
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return &LogpullRetentionConfiguration{}, err
@@ -32,7 +33,7 @@ func (api *API) GetLogpullRetentionFlag(ctx context.Context, zoneID string) (*Lo
 	var r LogpullRetentionConfigurationResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return nil, errors.Wrap(err, errUnmarshalError)
 	}
 	return &r.Result, nil
 }
@@ -41,7 +42,7 @@ func (api *API) GetLogpullRetentionFlag(ctx context.Context, zoneID string) (*Lo
 //
 // API reference: https://developers.cloudflare.com/logs/logpull-api/enabling-log-retention/
 func (api *API) SetLogpullRetentionFlag(ctx context.Context, zoneID string, enabled bool) (*LogpullRetentionConfiguration, error) {
-	uri := fmt.Sprintf("/zones/%s/logs/control/retention/flag", zoneID)
+	uri := "/zones/" + zoneID + "/logs/control/retention/flag"
 	flagPayload := LogpullRetentionConfiguration{Flag: enabled}
 
 	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, flagPayload)

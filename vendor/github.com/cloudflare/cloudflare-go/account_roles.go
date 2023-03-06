@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 // AccountRole defines the roles that a member can have attached.
@@ -43,7 +45,7 @@ type AccountRoleDetailResponse struct {
 //
 // API reference: https://api.cloudflare.com/#account-roles-list-roles
 func (api *API) AccountRoles(ctx context.Context, accountID string) ([]AccountRole, error) {
-	uri := fmt.Sprintf("/accounts/%s/roles?per_page=50", accountID)
+	uri := "/accounts/" + accountID + "/roles"
 
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
@@ -53,7 +55,7 @@ func (api *API) AccountRoles(ctx context.Context, accountID string) ([]AccountRo
 	var accountRolesListResponse AccountRolesListResponse
 	err = json.Unmarshal(res, &accountRolesListResponse)
 	if err != nil {
-		return []AccountRole{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return []AccountRole{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return accountRolesListResponse.Result, nil
@@ -73,7 +75,7 @@ func (api *API) AccountRole(ctx context.Context, accountID string, roleID string
 	var accountRole AccountRoleDetailResponse
 	err = json.Unmarshal(res, &accountRole)
 	if err != nil {
-		return AccountRole{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return AccountRole{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return accountRole.Result, nil

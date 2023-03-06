@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // CustomPage represents a custom page configuration.
@@ -59,11 +61,11 @@ func (api *API) CustomPages(ctx context.Context, options *CustomPageOptions) ([]
 	)
 
 	if options.AccountID == "" && options.ZoneID == "" {
-		return nil, ErrAccountIDOrZoneIDAreRequired
+		return nil, errors.New("either account ID or zone ID must be provided")
 	}
 
 	if options.AccountID != "" && options.ZoneID != "" {
-		return nil, ErrAccountIDAndZoneIDAreMutuallyExclusive
+		return nil, errors.New("account ID and zone ID are mutually exclusive")
 	}
 
 	// Should the account ID be defined, treat this as an account level operation.
@@ -85,7 +87,7 @@ func (api *API) CustomPages(ctx context.Context, options *CustomPageOptions) ([]
 	var customPageResponse CustomPageResponse
 	err = json.Unmarshal(res, &customPageResponse)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return nil, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return customPageResponse.Result, nil
@@ -101,11 +103,11 @@ func (api *API) CustomPage(ctx context.Context, options *CustomPageOptions, cust
 	)
 
 	if options.AccountID == "" && options.ZoneID == "" {
-		return CustomPage{}, ErrAccountIDOrZoneIDAreRequired
+		return CustomPage{}, errors.New("either account ID or zone ID must be provided")
 	}
 
 	if options.AccountID != "" && options.ZoneID != "" {
-		return CustomPage{}, ErrAccountIDAndZoneIDAreMutuallyExclusive
+		return CustomPage{}, errors.New("account ID and zone ID are mutually exclusive")
 	}
 
 	// Should the account ID be defined, treat this as an account level operation.
@@ -127,7 +129,7 @@ func (api *API) CustomPage(ctx context.Context, options *CustomPageOptions, cust
 	var customPageResponse CustomPageDetailResponse
 	err = json.Unmarshal(res, &customPageResponse)
 	if err != nil {
-		return CustomPage{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return CustomPage{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return customPageResponse.Result, nil
@@ -143,11 +145,11 @@ func (api *API) UpdateCustomPage(ctx context.Context, options *CustomPageOptions
 	)
 
 	if options.AccountID == "" && options.ZoneID == "" {
-		return CustomPage{}, ErrAccountIDOrZoneIDAreRequired
+		return CustomPage{}, errors.New("either account ID or zone ID must be provided")
 	}
 
 	if options.AccountID != "" && options.ZoneID != "" {
-		return CustomPage{}, ErrAccountIDAndZoneIDAreMutuallyExclusive
+		return CustomPage{}, errors.New("account ID and zone ID are mutually exclusive")
 	}
 
 	// Should the account ID be defined, treat this as an account level operation.
@@ -169,7 +171,7 @@ func (api *API) UpdateCustomPage(ctx context.Context, options *CustomPageOptions
 	var customPageResponse CustomPageDetailResponse
 	err = json.Unmarshal(res, &customPageResponse)
 	if err != nil {
-		return CustomPage{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return CustomPage{}, errors.Wrap(err, errUnmarshalError)
 	}
 
 	return customPageResponse.Result, nil

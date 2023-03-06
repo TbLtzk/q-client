@@ -3,31 +3,33 @@ package cloudflare
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // Healthcheck describes a Healthcheck object.
 type Healthcheck struct {
-	ID                   string                 `json:"id,omitempty"`
-	CreatedOn            *time.Time             `json:"created_on,omitempty"`
-	ModifiedOn           *time.Time             `json:"modified_on,omitempty"`
-	Name                 string                 `json:"name"`
-	Description          string                 `json:"description"`
-	Suspended            bool                   `json:"suspended"`
-	Address              string                 `json:"address"`
-	Retries              int                    `json:"retries,omitempty"`
-	Timeout              int                    `json:"timeout,omitempty"`
-	Interval             int                    `json:"interval,omitempty"`
-	ConsecutiveSuccesses int                    `json:"consecutive_successes,omitempty"`
-	ConsecutiveFails     int                    `json:"consecutive_fails,omitempty"`
-	Type                 string                 `json:"type,omitempty"`
-	CheckRegions         []string               `json:"check_regions"`
-	HTTPConfig           *HealthcheckHTTPConfig `json:"http_config,omitempty"`
-	TCPConfig            *HealthcheckTCPConfig  `json:"tcp_config,omitempty"`
-	Status               string                 `json:"status"`
-	FailureReason        string                 `json:"failure_reason"`
+	ID                   string                  `json:"id,omitempty"`
+	CreatedOn            *time.Time              `json:"created_on,omitempty"`
+	ModifiedOn           *time.Time              `json:"modified_on,omitempty"`
+	Name                 string                  `json:"name"`
+	Description          string                  `json:"description"`
+	Suspended            bool                    `json:"suspended"`
+	Address              string                  `json:"address"`
+	Retries              int                     `json:"retries,omitempty"`
+	Timeout              int                     `json:"timeout,omitempty"`
+	Interval             int                     `json:"interval,omitempty"`
+	ConsecutiveSuccesses int                     `json:"consecutive_successes,omitempty"`
+	ConsecutiveFails     int                     `json:"consecutive_fails,omitempty"`
+	Type                 string                  `json:"type,omitempty"`
+	CheckRegions         []string                `json:"check_regions"`
+	HTTPConfig           *HealthcheckHTTPConfig  `json:"http_config,omitempty"`
+	TCPConfig            *HealthcheckTCPConfig   `json:"tcp_config,omitempty"`
+	Notification         HealthcheckNotification `json:"notification,omitempty"`
+	Status               string                  `json:"status"`
+	FailureReason        string                  `json:"failure_reason"`
 }
 
 // HealthcheckHTTPConfig describes configuration for a HTTP healthcheck.
@@ -48,6 +50,12 @@ type HealthcheckTCPConfig struct {
 	Port   uint16 `json:"port,omitempty"`
 }
 
+// HealthcheckNotification describes notification configuration for a healthcheck.
+type HealthcheckNotification struct {
+	Suspended      bool     `json:"suspended,omitempty"`
+	EmailAddresses []string `json:"email_addresses,omitempty"`
+}
+
 // HealthcheckListResponse is the API response, containing an array of healthchecks.
 type HealthcheckListResponse struct {
 	Response
@@ -65,7 +73,7 @@ type HealthcheckResponse struct {
 //
 // API reference: https://api.cloudflare.com/#health-checks-list-health-checks
 func (api *API) Healthchecks(ctx context.Context, zoneID string) ([]Healthcheck, error) {
-	uri := fmt.Sprintf("/zones/%s/healthchecks", zoneID)
+	uri := "/zones/" + zoneID + "/healthchecks"
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return []Healthcheck{}, err
@@ -73,7 +81,7 @@ func (api *API) Healthchecks(ctx context.Context, zoneID string) ([]Healthcheck,
 	var r HealthcheckListResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return []Healthcheck{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return []Healthcheck{}, errors.Wrap(err, errUnmarshalError)
 	}
 	return r.Result, nil
 }
@@ -82,7 +90,7 @@ func (api *API) Healthchecks(ctx context.Context, zoneID string) ([]Healthcheck,
 //
 // API reference: https://api.cloudflare.com/#health-checks-health-check-details
 func (api *API) Healthcheck(ctx context.Context, zoneID, healthcheckID string) (Healthcheck, error) {
-	uri := fmt.Sprintf("/zones/%s/healthchecks/%s", zoneID, healthcheckID)
+	uri := "/zones/" + zoneID + "/healthchecks/" + healthcheckID
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return Healthcheck{}, err
@@ -90,7 +98,7 @@ func (api *API) Healthcheck(ctx context.Context, zoneID, healthcheckID string) (
 	var r HealthcheckResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return Healthcheck{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return Healthcheck{}, errors.Wrap(err, errUnmarshalError)
 	}
 	return r.Result, nil
 }
@@ -99,7 +107,7 @@ func (api *API) Healthcheck(ctx context.Context, zoneID, healthcheckID string) (
 //
 // API reference: https://api.cloudflare.com/#health-checks-create-health-check
 func (api *API) CreateHealthcheck(ctx context.Context, zoneID string, healthcheck Healthcheck) (Healthcheck, error) {
-	uri := fmt.Sprintf("/zones/%s/healthchecks", zoneID)
+	uri := "/zones/" + zoneID + "/healthchecks"
 	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, healthcheck)
 	if err != nil {
 		return Healthcheck{}, err
@@ -107,7 +115,7 @@ func (api *API) CreateHealthcheck(ctx context.Context, zoneID string, healthchec
 	var r HealthcheckResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return Healthcheck{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return Healthcheck{}, errors.Wrap(err, errUnmarshalError)
 	}
 	return r.Result, nil
 }
@@ -116,7 +124,7 @@ func (api *API) CreateHealthcheck(ctx context.Context, zoneID string, healthchec
 //
 // API reference: https://api.cloudflare.com/#health-checks-update-health-check
 func (api *API) UpdateHealthcheck(ctx context.Context, zoneID string, healthcheckID string, healthcheck Healthcheck) (Healthcheck, error) {
-	uri := fmt.Sprintf("/zones/%s/healthchecks/%s", zoneID, healthcheckID)
+	uri := "/zones/" + zoneID + "/healthchecks/" + healthcheckID
 	res, err := api.makeRequestContext(ctx, http.MethodPut, uri, healthcheck)
 	if err != nil {
 		return Healthcheck{}, err
@@ -124,7 +132,7 @@ func (api *API) UpdateHealthcheck(ctx context.Context, zoneID string, healthchec
 	var r HealthcheckResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return Healthcheck{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return Healthcheck{}, errors.Wrap(err, errUnmarshalError)
 	}
 	return r.Result, nil
 }
@@ -133,7 +141,7 @@ func (api *API) UpdateHealthcheck(ctx context.Context, zoneID string, healthchec
 //
 // API reference: https://api.cloudflare.com/#health-checks-delete-health-check
 func (api *API) DeleteHealthcheck(ctx context.Context, zoneID string, healthcheckID string) error {
-	uri := fmt.Sprintf("/zones/%s/healthchecks/%s", zoneID, healthcheckID)
+	uri := "/zones/" + zoneID + "/healthchecks/" + healthcheckID
 	res, err := api.makeRequestContext(ctx, http.MethodDelete, uri, nil)
 	if err != nil {
 		return err
@@ -141,7 +149,7 @@ func (api *API) DeleteHealthcheck(ctx context.Context, zoneID string, healthchec
 	var r HealthcheckResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return errors.Wrap(err, errUnmarshalError)
 	}
 	return nil
 }
@@ -150,7 +158,7 @@ func (api *API) DeleteHealthcheck(ctx context.Context, zoneID string, healthchec
 //
 // API reference: https://api.cloudflare.com/#health-checks-create-preview-health-check
 func (api *API) CreateHealthcheckPreview(ctx context.Context, zoneID string, healthcheck Healthcheck) (Healthcheck, error) {
-	uri := fmt.Sprintf("/zones/%s/healthchecks/preview", zoneID)
+	uri := "/zones/" + zoneID + "/healthchecks/preview"
 	res, err := api.makeRequestContext(ctx, http.MethodPost, uri, healthcheck)
 	if err != nil {
 		return Healthcheck{}, err
@@ -158,7 +166,7 @@ func (api *API) CreateHealthcheckPreview(ctx context.Context, zoneID string, hea
 	var r HealthcheckResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return Healthcheck{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return Healthcheck{}, errors.Wrap(err, errUnmarshalError)
 	}
 	return r.Result, nil
 }
@@ -167,7 +175,7 @@ func (api *API) CreateHealthcheckPreview(ctx context.Context, zoneID string, hea
 //
 // API reference: https://api.cloudflare.com/#health-checks-health-check-preview-details
 func (api *API) HealthcheckPreview(ctx context.Context, zoneID, id string) (Healthcheck, error) {
-	uri := fmt.Sprintf("/zones/%s/healthchecks/preview/%s", zoneID, id)
+	uri := "/zones/" + zoneID + "/healthchecks/preview/" + id
 	res, err := api.makeRequestContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return Healthcheck{}, err
@@ -175,7 +183,7 @@ func (api *API) HealthcheckPreview(ctx context.Context, zoneID, id string) (Heal
 	var r HealthcheckResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return Healthcheck{}, fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return Healthcheck{}, errors.Wrap(err, errUnmarshalError)
 	}
 	return r.Result, nil
 }
@@ -184,7 +192,7 @@ func (api *API) HealthcheckPreview(ctx context.Context, zoneID, id string) (Heal
 //
 // API reference: https://api.cloudflare.com/#health-checks-delete-preview-health-check
 func (api *API) DeleteHealthcheckPreview(ctx context.Context, zoneID string, id string) error {
-	uri := fmt.Sprintf("/zones/%s/healthchecks/preview/%s", zoneID, id)
+	uri := "/zones/" + zoneID + "/healthchecks/preview/" + id
 	res, err := api.makeRequestContext(ctx, http.MethodDelete, uri, nil)
 	if err != nil {
 		return err
@@ -192,7 +200,7 @@ func (api *API) DeleteHealthcheckPreview(ctx context.Context, zoneID string, id 
 	var r HealthcheckResponse
 	err = json.Unmarshal(res, &r)
 	if err != nil {
-		return fmt.Errorf("%s: %w", errUnmarshalError, err)
+		return errors.Wrap(err, errUnmarshalError)
 	}
 	return nil
 }
