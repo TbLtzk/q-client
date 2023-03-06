@@ -20,6 +20,15 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"math"
+	"math/big"
+	"os"
+	"path/filepath"
+	godebug "runtime/debug"
+	"strconv"
+	"strings"
+	"time"
+
 	"gitlab.com/q-dev/q-client/consensus/clique"
 	lescatalyst "gitlab.com/q-dev/q-client/les/catalyst"
 	"gitlab.com/q-dev/q-client/log"
@@ -34,14 +43,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/netutil"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rpc"
-	"math"
-	"math/big"
-	"os"
-	"path/filepath"
-	godebug "runtime/debug"
-	"strconv"
-	"strings"
-	"time"
 
 	pcsclite "github.com/gballet/go-libpcsclite"
 	gopsutil "github.com/shirou/gopsutil/mem"
@@ -1071,7 +1072,10 @@ func MakeDataDir(ctx *cli.Context) string {
 			return filepath.Join(path, "kiln")
 		}
 		if ctx.Bool(TestnetFlag.Name) || ctx.Bool(FischerFlag.Name) {
-			return filepath.Join(path, "qtestnet")
+			return filepath.Join(path, "qnetwork")
+		}
+		if !ctx.IsSet(NetworkIdFlag.Name) {
+			return filepath.Join(path, "qmainnet")
 		}
 		return path
 	}
@@ -1619,6 +1623,8 @@ func SetDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "kiln")
 	case (ctx.Bool(TestnetFlag.Name) || ctx.Bool(FischerFlag.Name)) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "qtestnet")
+	case !ctx.IsSet(NetworkIdFlag.Name) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "qmainnet")
 	}
 }
 

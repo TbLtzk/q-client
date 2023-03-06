@@ -9,6 +9,16 @@ FROM golang:1.19-alpine as builder
 
 RUN apk add --no-cache make gcc musl-dev linux-headers git
 
+# Fetch dependencies
+# RUN go get -u ./...
+
+# Verify dependencies
+RUN go mod verify
+
+# Update vendor
+RUN go mod vendor
+
+# Build geth
 ADD . /q-client
 ARG BUILD_TOKEN
 ARG USERNAME=oauth2

@@ -14,13 +14,14 @@ import (
 // Lists all AWS accounts assigned to the user. These AWS accounts are assigned by
 // the administrator of the account. For more information, see Assign User Access
 // (https://docs.aws.amazon.com/singlesignon/latest/userguide/useraccess.html#assignusers)
-// in the AWS SSO User Guide. This operation returns a paginated response.
+// in the IAM Identity Center User Guide. This operation returns a paginated
+// response.
 func (c *Client) ListAccounts(ctx context.Context, params *ListAccountsInput, optFns ...func(*Options)) (*ListAccountsOutput, error) {
 	if params == nil {
 		params = &ListAccountsInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListAccounts", params, optFns, addOperationListAccountsMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListAccounts", params, optFns, c.addOperationListAccountsMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +36,7 @@ type ListAccountsInput struct {
 	// The token issued by the CreateToken API call. For more information, see
 	// CreateToken
 	// (https://docs.aws.amazon.com/singlesignon/latest/OIDCAPIReference/API_CreateToken.html)
-	// in the AWS SSO OIDC API Reference Guide.
+	// in the IAM Identity Center OIDC API Reference Guide.
 	//
 	// This member is required.
 	AccessToken *string
@@ -46,6 +47,8 @@ type ListAccountsInput struct {
 	// (Optional) When requesting subsequent pages, this is the page token from the
 	// previous response output.
 	NextToken *string
+
+	noSmithyDocumentSerde
 }
 
 type ListAccountsOutput struct {
@@ -59,9 +62,11 @@ type ListAccountsOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationListAccountsMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationListAccountsMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestjson1_serializeOpListAccounts{}, middleware.After)
 	if err != nil {
 		return err
@@ -146,6 +151,10 @@ type ListAccountsPaginator struct {
 
 // NewListAccountsPaginator returns a new ListAccountsPaginator
 func NewListAccountsPaginator(client ListAccountsAPIClient, params *ListAccountsInput, optFns ...func(*ListAccountsPaginatorOptions)) *ListAccountsPaginator {
+	if params == nil {
+		params = &ListAccountsInput{}
+	}
+
 	options := ListAccountsPaginatorOptions{}
 	if params.MaxResults != nil {
 		options.Limit = *params.MaxResults
@@ -155,21 +164,18 @@ func NewListAccountsPaginator(client ListAccountsAPIClient, params *ListAccounts
 		fn(&options)
 	}
 
-	if params == nil {
-		params = &ListAccountsInput{}
-	}
-
 	return &ListAccountsPaginator{
 		options:   options,
 		client:    client,
 		params:    params,
 		firstPage: true,
+		nextToken: params.NextToken,
 	}
 }
 
 // HasMorePages returns a boolean indicating whether more pages are available
 func (p *ListAccountsPaginator) HasMorePages() bool {
-	return p.firstPage || p.nextToken != nil
+	return p.firstPage || (p.nextToken != nil && len(*p.nextToken) != 0)
 }
 
 // NextPage retrieves the next ListAccounts page.
@@ -196,7 +202,10 @@ func (p *ListAccountsPaginator) NextPage(ctx context.Context, optFns ...func(*Op
 	prevToken := p.nextToken
 	p.nextToken = result.NextToken
 
-	if p.options.StopOnDuplicateToken && prevToken != nil && p.nextToken != nil && *prevToken == *p.nextToken {
+	if p.options.StopOnDuplicateToken &&
+		prevToken != nil &&
+		p.nextToken != nil &&
+		*prevToken == *p.nextToken {
 		p.nextToken = nil
 	}
 

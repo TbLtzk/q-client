@@ -1,115 +1,14 @@
 package fptower
 
-// MulByV2NRInv set z to x*(y*v^2*(1,1)^{-1}) and return z
-func (z *E12) MulByV2NRInv(x *E12, y *E2) *E12 {
-
-	var result E12
-	var yNRInv E2
-	yNRInv.MulByNonResidueInv(y)
-
-	result.C0.B0.Mul(&x.C0.B1, y)
-	result.C0.B1.Mul(&x.C0.B2, y)
-	result.C0.B2.Mul(&x.C0.B0, &yNRInv)
-
-	result.C1.B0.Mul(&x.C1.B1, y)
-	result.C1.B1.Mul(&x.C1.B2, y)
-	result.C1.B2.Mul(&x.C1.B0, &yNRInv)
-
-	z.Set(&result)
-	return z
-}
-
-// MulByVWNRInv set z to x*(y*v*w*(1,1)^{-1}) and return z
-func (z *E12) MulByVWNRInv(x *E12, y *E2) *E12 {
-	var result E12
-	var yNRInv E2
-	yNRInv.MulByNonResidueInv(y)
-
-	result.C0.B0.Mul(&x.C1.B1, y)
-	result.C0.B1.Mul(&x.C1.B2, y)
-	result.C0.B2.Mul(&x.C1.B0, &yNRInv)
-
-	result.C1.B0.Mul(&x.C0.B2, y)
-	result.C1.B1.Mul(&x.C0.B0, &yNRInv)
-	result.C1.B2.Mul(&x.C0.B1, &yNRInv)
-
-	z.Set(&result)
-	return z
-}
-
-// MulByWNRInv set z to x*(y*w*(1,1)^{-1}) and return z
-func (z *E12) MulByWNRInv(x *E12, y *E2) *E12 {
-
-	var result E12
-	var yNRInv E2
-	yNRInv.MulByNonResidueInv(y)
-
-	result.C0.B0.Mul(&x.C1.B2, y)
-	result.C0.B1.Mul(&x.C1.B0, &yNRInv)
-	result.C0.B2.Mul(&x.C1.B1, &yNRInv)
-
-	result.C1.B0.Mul(&x.C0.B0, &yNRInv)
-	result.C1.B1.Mul(&x.C0.B1, &yNRInv)
-	result.C1.B2.Mul(&x.C0.B2, &yNRInv)
-
-	z.Set(&result)
-	return z
-}
-
-// MulBy014 multiplication by sparse element
-func (z *E12) MulBy014(c0, c1, c4 *E2) *E12 {
-
-	var z0, z1, z2, z3, z4, z5, tmp1, tmp2 E2
-	var t [12]E2
-
-	z0 = z.C0.B0
-	z1 = z.C0.B1
-	z2 = z.C0.B2
-	z3 = z.C1.B0
-	z4 = z.C1.B1
-	z5 = z.C1.B2
-
-	tmp1.MulByNonResidue(c1)
-	tmp2.MulByNonResidue(c4)
-
-	t[0].Mul(&tmp1, &z2)
-	t[1].Mul(&tmp2, &z4)
-	t[2].Mul(c1, &z0)
-	t[3].Mul(&tmp2, &z5)
-	t[4].Mul(c1, &z1)
-	t[5].Mul(c4, &z3)
-	t[6].Mul(&tmp1, &z5)
-	t[7].Mul(&tmp2, &z2)
-	t[8].Mul(c1, &z3)
-	t[9].Mul(c4, &z0)
-	t[10].Mul(c1, &z4)
-	t[11].Mul(c4, &z1)
-
-	z.C0.B0.Mul(c0, &z0).
-		Add(&z.C0.B0, &t[0]).
-		Add(&z.C0.B0, &t[1])
-	z.C0.B1.Mul(c0, &z1).
-		Add(&z.C0.B1, &t[2]).
-		Add(&z.C0.B1, &t[3])
-	z.C0.B2.Mul(c0, &z2).
-		Add(&z.C0.B2, &t[4]).
-		Add(&z.C0.B2, &t[5])
-	z.C1.B0.Mul(c0, &z3).
-		Add(&z.C1.B0, &t[6]).
-		Add(&z.C1.B0, &t[7])
-	z.C1.B1.Mul(c0, &z4).
-		Add(&z.C1.B1, &t[8]).
-		Add(&z.C1.B1, &t[9])
-	z.C1.B2.Mul(c0, &z5).
-		Add(&z.C1.B2, &t[10]).
-		Add(&z.C1.B2, &t[11])
-
-	return z
-}
-
 func (z *E12) nSquare(n int) {
 	for i := 0; i < n; i++ {
 		z.CyclotomicSquare(z)
+	}
+}
+
+func (z *E12) nSquareCompressed(n int) {
+	for i := 0; i < n; i++ {
+		z.CyclotomicSquareCompressed(z)
 	}
 }
 
@@ -117,24 +16,85 @@ func (z *E12) nSquare(n int) {
 // const t/2 uint64 = 7566188111470821376 // negative
 func (z *E12) ExptHalf(x *E12) *E12 {
 	var result E12
-	result.CyclotomicSquare(x)
-	result.Mul(&result, x)
-	result.nSquare(2)
-	result.Mul(&result, x)
-	result.nSquare(3)
-	result.Mul(&result, x)
-	result.nSquare(9)
-	result.Mul(&result, x)
-	result.nSquare(32)
-	result.Mul(&result, x)
-	result.nSquare(15)
+	var t [2]E12
+	result.Set(x)
+	result.nSquareCompressed(15)
+	t[0].Set(&result)
+	result.nSquareCompressed(32)
+	t[1].Set(&result)
+	batch := BatchDecompressKarabina([]E12{t[0], t[1]})
+	result.Mul(&batch[0], &batch[1])
+	batch[1].nSquare(9)
+	result.Mul(&result, &batch[1])
+	batch[1].nSquare(3)
+	result.Mul(&result, &batch[1])
+	batch[1].nSquare(2)
+	result.Mul(&result, &batch[1])
+	batch[1].CyclotomicSquare(&batch[1])
+	result.Mul(&result, &batch[1])
 	return z.Conjugate(&result) // because tAbsVal is negative
 }
 
-// Expt set z to x^t in E12 and return z
+// Expt set z to xᵗ in E12 and return z
 // const t uint64 = 15132376222941642752 // negative
 func (z *E12) Expt(x *E12) *E12 {
 	var result E12
 	result.ExptHalf(x)
 	return z.CyclotomicSquare(&result)
+}
+
+// MulBy014 multiplication by sparse element (c0, c1, 0, 0, c4)
+func (z *E12) MulBy014(c0, c1, c4 *E2) *E12 {
+
+	var a, b E6
+	var d E2
+
+	a.Set(&z.C0)
+	a.MulBy01(c0, c1)
+
+	b.Set(&z.C1)
+	b.MulBy1(c4)
+	d.Add(c1, c4)
+
+	z.C1.Add(&z.C1, &z.C0)
+	z.C1.MulBy01(c0, &d)
+	z.C1.Sub(&z.C1, &a)
+	z.C1.Sub(&z.C1, &b)
+	z.C0.MulByNonResidue(&b)
+	z.C0.Add(&z.C0, &a)
+
+	return z
+}
+
+// Mul014By014 multiplication of sparse element (c0,c1,0,0,c4,0) by sparse element (d0,d1,0,0,d4,0)
+func (z *E12) Mul014By014(d0, d1, d4, c0, c1, c4 *E2) *E12 {
+	var tmp, x0, x1, x4, x04, x01, x14 E2
+	x0.Mul(c0, d0)
+	x1.Mul(c1, d1)
+	x4.Mul(c4, d4)
+	tmp.Add(c0, c4)
+	x04.Add(d0, d4).
+		Mul(&x04, &tmp).
+		Sub(&x04, &x0).
+		Sub(&x04, &x4)
+	tmp.Add(c0, c1)
+	x01.Add(d0, d1).
+		Mul(&x01, &tmp).
+		Sub(&x01, &x0).
+		Sub(&x01, &x1)
+	tmp.Add(c1, c4)
+	x14.Add(d1, d4).
+		Mul(&x14, &tmp).
+		Sub(&x14, &x1).
+		Sub(&x14, &x4)
+
+	z.C0.B0.MulByNonResidue(&x4).
+		Add(&z.C0.B0, &x0)
+	z.C0.B1.Set(&x01)
+	z.C0.B2.Set(&x1)
+	z.C1.B0.SetZero()
+	z.C1.B1.Set(&x04)
+	z.C1.B2.Set(&x14)
+
+	return z
 }
