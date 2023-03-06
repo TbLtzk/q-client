@@ -121,11 +121,11 @@ Specifying the `--testnet` or `--fischer` flag, however, will reconfigure your `
    network, which uses different P2P bootnodes, different network IDs and genesis
    states.
  * Instead of using the default data directory (`~/.ethereum` on Linux for example), `geth`
-   will nest itself one level deeper into a `qtestnet` subfolder (`~/.ethereum/qtestnet` on
+   will nest itself one level deeper into a `qtestnet` subfolder (`~/.ethereum/qnetwork` on
    Linux). Note, on OSX and Linux this also means that attaching to a running testnet node
    requires the use of a custom endpoint since `geth attach` will try to attach to a
    production node endpoint by default, e.g.,
-   `geth attach <datadir>/qtestnet/geth.ipc`. Windows users are not affected by
+   `geth attach <datadir>/qnetwork/geth.ipc`. Windows users are not affected by
    this.
 
 *Note: Although there are some internal protective measures to prevent transactions from

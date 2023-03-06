@@ -20,6 +20,15 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"math"
+	"math/big"
+	"os"
+	"path/filepath"
+	godebug "runtime/debug"
+	"strconv"
+	"strings"
+	"time"
+
 	"gitlab.com/q-dev/q-client/consensus/clique"
 	lescatalyst "gitlab.com/q-dev/q-client/les/catalyst"
 	"gitlab.com/q-dev/q-client/log"
@@ -34,14 +43,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/netutil"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rpc"
-	"math"
-	"math/big"
-	"os"
-	"path/filepath"
-	godebug "runtime/debug"
-	"strconv"
-	"strings"
-	"time"
 
 	pcsclite "github.com/gballet/go-libpcsclite"
 	gopsutil "github.com/shirou/gopsutil/mem"
@@ -1015,6 +1016,13 @@ var (
 		Value:    metrics.DefaultConfig.InfluxDBOrganization,
 		Category: flags.MetricsCategory,
 	}
+
+	// ConstitutionDirFlag Constitution storage
+	ConstitutionDirFlag = &flags.DirectoryFlag{
+		Name:  "constitution-dir",
+		Usage: "Data directory for the constitution storage",
+		Value: flags.DirectoryString(node.DefaultDataDir()),
+	}
 )
 
 var (
@@ -1036,11 +1044,6 @@ var (
 		DataDirFlag,
 		AncientFlag,
 		RemoteDBFlag,
-	}
-	ConstitutionDirFlag = DirectoryFlag{
-		Name:  "constitution-dir",
-		Usage: "Data directory for the constitution storage",
-		Value: DirectoryString(node.DefaultDataDir()),
 	}
 
 	ArchiveValue = "archive"
@@ -1069,7 +1072,10 @@ func MakeDataDir(ctx *cli.Context) string {
 			return filepath.Join(path, "kiln")
 		}
 		if ctx.Bool(TestnetFlag.Name) || ctx.Bool(FischerFlag.Name) {
-			return filepath.Join(path, "qtestnet")
+			return filepath.Join(path, "qnetwork")
+		}
+		if !ctx.IsSet(NetworkIdFlag.Name) {
+			return filepath.Join(path, "qmainnet")
 		}
 		return path
 	}
@@ -1257,7 +1263,7 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	}
 }
 
-//Prevents opening gov api as external endpoint
+// Prevents opening gov api as external endpoint
 func filterProtectedAPIs(ret []string, ns string, gcmodevalue string) []string {
 	res := []string{}
 	for _, api := range ret {
@@ -1465,7 +1471,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	setBootstrapNodesV5(ctx, cfg)
 
 	lightClient := ctx.String(SyncModeFlag.Name) == "light"
-	lightServer := (ctx.Int(LightServeFlag.Name) != 0)
+	lightServer := ctx.Int(LightServeFlag.Name) != 0
 
 	lightPeers := ctx.Int(LightMaxPeersFlag.Name)
 	if lightClient && !ctx.IsSet(LightMaxPeersFlag.Name) {
@@ -1540,6 +1546,7 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	setNodeUserIdent(ctx, cfg)
 	SetDataDir(ctx, cfg)
 	setSmartCard(ctx, cfg)
+	setConstitutionDir(ctx, cfg)
 
 	if ctx.IsSet(JWTSecretFlag.Name) {
 		cfg.JWTSecret = ctx.String(JWTSecretFlag.Name)
@@ -1547,10 +1554,6 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 
 	if ctx.IsSet(ExternalSignerFlag.Name) {
 		cfg.ExternalSigner = ctx.String(ExternalSignerFlag.Name)
-	}
-
-	if ctx.IsSet(ConstitutionDirFlag.Name) {
-		cfg.ConstitutionDir = ctx.String(ConstitutionDirFlag.Name)
 	}
 	if ctx.IsSet(KeyStoreDirFlag.Name) {
 		cfg.KeyStoreDir = ctx.String(KeyStoreDirFlag.Name)
@@ -1620,6 +1623,16 @@ func SetDataDir(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "kiln")
 	case (ctx.Bool(TestnetFlag.Name) || ctx.Bool(FischerFlag.Name)) && cfg.DataDir == node.DefaultDataDir():
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "qtestnet")
+	case !ctx.IsSet(NetworkIdFlag.Name) && cfg.DataDir == node.DefaultDataDir():
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "qmainnet")
+	}
+}
+
+func setConstitutionDir(ctx *cli.Context, cfg *node.Config) {
+	cfg.ConstitutionDir = cfg.DataDir
+
+	if ctx.IsSet(ConstitutionDirFlag.Name) {
+		cfg.ConstitutionDir = ctx.String(ConstitutionDirFlag.Name)
 	}
 }
 

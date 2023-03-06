@@ -809,6 +809,7 @@ web3._extend({
     ],
 	properties: []
 });
+`
 
 const MinerJs = `
 web3._extend({

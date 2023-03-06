@@ -366,8 +366,14 @@ func (h *handler) handleMsg(p *peer) error {
 		return err
 	}
 
-	if msg.Size > protocolMaxMsgSize {
-		return errors.Wrap(err, "message too large")
+	if msg.Code != ConstitutionFilesMsg {
+		if msg.Size > protocolMaxMsgSize {
+			return errors.Wrap(err, "message too large")
+		}
+	} else {
+		if msg.Size > maxConstitutionFileSize {
+			return errors.Wrap(err, "message too large")
+		}
 	}
 
 	defer func() { _ = msg.Discard() }()
@@ -483,7 +489,7 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 			}
 		}
 		if !wasRequested {
-			log.Error("Received file with non-requested hash", "hash", file.Hash)
+			log.Error("Received constitfile with non-requested hash", "hash", file.Hash)
 		}
 	}
 
@@ -493,7 +499,6 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 		for _, request := range fulFilledRequests {
 			if request == hash {
 				fulfilled = true
-				//TODO proper logging
 			}
 
 		}
@@ -787,15 +792,19 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 			log.Error("Requested file hash doesn't belong to history")
 		}
 
+		foundInFiles := false
 		for _, exFile := range exFiles {
 			if exFile.Hash == hash {
 				presentFiles = append(presentFiles, exFile)
+				foundInFiles = true
 			}
 		}
 
-		for _, dFile := range drafts {
-			if dFile.Hash == hash {
-				presentFiles = append(presentFiles, dFile)
+		if !foundInFiles {
+			for _, dFile := range drafts {
+				if dFile.Hash == hash {
+					presentFiles = append(presentFiles, dFile)
+				}
 			}
 		}
 

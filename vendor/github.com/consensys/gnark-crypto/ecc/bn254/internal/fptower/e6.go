@@ -63,20 +63,13 @@ func (z *E6) SetRandom() (*E6, error) {
 	return z, nil
 }
 
-// ToMont converts to Mont form
-func (z *E6) ToMont() *E6 {
-	z.B0.ToMont()
-	z.B1.ToMont()
-	z.B2.ToMont()
-	return z
+// IsZero returns true if the two elements are equal, false otherwise
+func (z *E6) IsZero() bool {
+	return z.B0.IsZero() && z.B1.IsZero() && z.B2.IsZero()
 }
 
-// FromMont converts from Mont form
-func (z *E6) FromMont() *E6 {
-	z.B0.FromMont()
-	z.B1.FromMont()
-	z.B2.FromMont()
-	return z
+func (z *E6) IsOne() bool {
+	return z.B0.IsOne() && z.B1.IsZero() && z.B2.IsZero()
 }
 
 // Add adds two elements of E6
@@ -120,6 +113,70 @@ func (z *E6) String() string {
 func (z *E6) MulByNonResidue(x *E6) *E6 {
 	z.B2, z.B1, z.B0 = x.B1, x.B0, x.B2
 	z.B0.MulByNonResidue(&z.B0)
+	return z
+}
+
+// MulByE2 multiplies an element in E6 by an element in E2
+func (z *E6) MulByE2(x *E6, y *E2) *E6 {
+	var yCopy E2
+	yCopy.Set(y)
+	z.B0.Mul(&x.B0, &yCopy)
+	z.B1.Mul(&x.B1, &yCopy)
+	z.B2.Mul(&x.B2, &yCopy)
+	return z
+}
+
+// MulBy01 multiplication by sparse element (c0,c1,0)
+func (z *E6) MulBy01(c0, c1 *E2) *E6 {
+
+	var a, b, tmp, t0, t1, t2 E2
+
+	a.Mul(&z.B0, c0)
+	b.Mul(&z.B1, c1)
+
+	tmp.Add(&z.B1, &z.B2)
+	t0.Mul(c1, &tmp)
+	t0.Sub(&t0, &b)
+	t0.MulByNonResidue(&t0)
+	t0.Add(&t0, &a)
+
+	tmp.Add(&z.B0, &z.B2)
+	t2.Mul(c0, &tmp)
+	t2.Sub(&t2, &a)
+	t2.Add(&t2, &b)
+
+	t1.Add(c0, c1)
+	tmp.Add(&z.B0, &z.B1)
+	t1.Mul(&t1, &tmp)
+	t1.Sub(&t1, &a)
+	t1.Sub(&t1, &b)
+
+	z.B0.Set(&t0)
+	z.B1.Set(&t1)
+	z.B2.Set(&t2)
+
+	return z
+}
+
+// MulBy1 multiplication of E6 by sparse element (0, c1, 0)
+func (z *E6) MulBy1(c1 *E2) *E6 {
+
+	var b, tmp, t0, t1 E2
+	b.Mul(&z.B1, c1)
+
+	tmp.Add(&z.B1, &z.B2)
+	t0.Mul(c1, &tmp)
+	t0.Sub(&t0, &b)
+	t0.MulByNonResidue(&t0)
+
+	tmp.Add(&z.B0, &z.B1)
+	t1.Mul(c1, &tmp)
+	t1.Sub(&t1, &b)
+
+	z.B0.Set(&t0)
+	z.B1.Set(&t1)
+	z.B2.Set(&b)
+
 	return z
 }
 
@@ -173,6 +230,8 @@ func (z *E6) Square(x *E6) *E6 {
 }
 
 // Inverse an element in E6
+//
+// if x == 0, sets and returns z = x
 func (z *E6) Inverse(x *E6) *E6 {
 	// Algorithm 17 from https://eprint.iacr.org/2010/354.pdf
 	// step 9 is wrong in the paper it's t1-t4
@@ -197,4 +256,56 @@ func (z *E6) Inverse(x *E6) *E6 {
 	z.B2.Mul(&c2, &t6)
 
 	return z
+}
+
+// BatchInvertE6 returns a new slice with every element inverted.
+// Uses Montgomery batch inversion trick
+//
+// if a[i] == 0, returns result[i] = a[i]
+func BatchInvertE6(a []E6) []E6 {
+	res := make([]E6, len(a))
+	if len(a) == 0 {
+		return res
+	}
+
+	zeroes := make([]bool, len(a))
+	var accumulator E6
+	accumulator.SetOne()
+
+	for i := 0; i < len(a); i++ {
+		if a[i].IsZero() {
+			zeroes[i] = true
+			continue
+		}
+		res[i].Set(&accumulator)
+		accumulator.Mul(&accumulator, &a[i])
+	}
+
+	accumulator.Inverse(&accumulator)
+
+	for i := len(a) - 1; i >= 0; i-- {
+		if zeroes[i] {
+			continue
+		}
+		res[i].Mul(&res[i], &accumulator)
+		accumulator.Mul(&accumulator, &a[i])
+	}
+
+	return res
+}
+
+func (z *E6) Select(cond int, caseZ *E6, caseNz *E6) *E6 {
+	//Might be able to save a nanosecond or two by an aggregate implementation
+
+	z.B0.Select(cond, &caseZ.B0, &caseNz.B0)
+	z.B1.Select(cond, &caseZ.B1, &caseNz.B1)
+	z.B2.Select(cond, &caseZ.B2, &caseNz.B2)
+
+	return z
+}
+
+func (z *E6) Div(x *E6, y *E6) *E6 {
+	var r E6
+	r.Inverse(y).Mul(x, &r)
+	return z.Set(&r)
 }

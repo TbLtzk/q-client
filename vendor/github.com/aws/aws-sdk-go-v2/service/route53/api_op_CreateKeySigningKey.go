@@ -11,14 +11,14 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Creates a new key signing key (KSK) associated with a hosted zone. You can only
+// Creates a new key-signing key (KSK) associated with a hosted zone. You can only
 // have two KSKs per hosted zone.
 func (c *Client) CreateKeySigningKey(ctx context.Context, params *CreateKeySigningKeyInput, optFns ...func(*Options)) (*CreateKeySigningKeyOutput, error) {
 	if params == nil {
 		params = &CreateKeySigningKeyInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "CreateKeySigningKey", params, optFns, addOperationCreateKeySigningKeyMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "CreateKeySigningKey", params, optFns, c.addOperationCreateKeySigningKeyMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -40,13 +40,13 @@ type CreateKeySigningKeyInput struct {
 	// This member is required.
 	HostedZoneId *string
 
-	// The Amazon resource name (ARN) for a customer managed key (CMK) in AWS Key
-	// Management Service (KMS). The KeyManagementServiceArn must be unique for each
-	// key signing key (KSK) in a single hosted zone. To see an example of
-	// KeyManagementServiceArn that grants the correct permissions for DNSSEC, scroll
-	// down to Example. You must configure the CMK as follows: Status Enabled Key spec
-	// ECC_NIST_P256 Key usage Sign and verify Key policy The key policy must give
-	// permission for the following actions:
+	// The Amazon resource name (ARN) for a customer managed key in Key Management
+	// Service (KMS). The KeyManagementServiceArn must be unique for each key-signing
+	// key (KSK) in a single hosted zone. To see an example of KeyManagementServiceArn
+	// that grants the correct permissions for DNSSEC, scroll down to Example. You must
+	// configure the customer managed customer managed key as follows: Status Enabled
+	// Key spec ECC_NIST_P256 Key usage Sign and verify Key policy The key policy must
+	// give permission for the following actions:
 	//
 	// * DescribeKey
 	//
@@ -59,26 +59,29 @@ type CreateKeySigningKeyInput struct {
 	// principal for your account. Specify the following:
 	//
 	// * "Service":
-	// "api-service.dnssec.route53.aws.internal"
+	// "dnssec-route53.amazonaws.com"
 	//
-	// For more information about working
-	// with CMK in KMS, see AWS Key Management Service concepts
+	// For more information about working with a
+	// customer managed key in KMS, see Key Management Service concepts
 	// (https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html).
 	//
 	// This member is required.
 	KeyManagementServiceArn *string
 
-	// An alphanumeric string used to identify a key signing key (KSK). Name must be
-	// unique for each key signing key in the same hosted zone.
+	// A string used to identify a key-signing key (KSK). Name can include numbers,
+	// letters, and underscores (_). Name must be unique for each key-signing key in
+	// the same hosted zone.
 	//
 	// This member is required.
 	Name *string
 
-	// A string specifying the initial status of the key signing key (KSK). You can set
+	// A string specifying the initial status of the key-signing key (KSK). You can set
 	// the value to ACTIVE or INACTIVE.
 	//
 	// This member is required.
 	Status *string
+
+	noSmithyDocumentSerde
 }
 
 type CreateKeySigningKeyOutput struct {
@@ -89,21 +92,23 @@ type CreateKeySigningKeyOutput struct {
 	// This member is required.
 	ChangeInfo *types.ChangeInfo
 
-	// The key signing key (KSK) that the request creates.
+	// The key-signing key (KSK) that the request creates.
 	//
 	// This member is required.
 	KeySigningKey *types.KeySigningKey
 
-	// The unique URL representing the new key signing key (KSK).
+	// The unique URL representing the new key-signing key (KSK).
 	//
 	// This member is required.
 	Location *string
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationCreateKeySigningKeyMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationCreateKeySigningKeyMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpCreateKeySigningKey{}, middleware.After)
 	if err != nil {
 		return err

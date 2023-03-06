@@ -29,11 +29,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/peterh/liner"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/console/prompt"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/log"
-	"github.com/peterh/liner"
 	"golang.org/x/term"
 )
 
@@ -236,6 +236,8 @@ func (w *wizard) readPassword() string {
 	return string(text)
 }
 
+// readNonEmptyAddress reads a single line from stdin, trimming if from spaces and converts
+// it to an Ethereum address. Dereferences address, if not nil.
 func (w *wizard) readNonEmptyAddress() common.Address {
 	for {
 		addr := w.readAddress()
@@ -243,7 +245,7 @@ func (w *wizard) readNonEmptyAddress() common.Address {
 			return *addr
 		}
 
-		fmt.Println("please, print non-empty address")
+		fmt.Println("Invalid user provided address")
 	}
 }
 

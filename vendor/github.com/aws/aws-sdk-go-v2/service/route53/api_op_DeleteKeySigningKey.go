@@ -11,15 +11,20 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Deletes a key signing key (KSK). Before you can delete a KSK, you must
-// deactivate it. The KSK must be deactived before you can delete it regardless of
-// whether the hosted zone is enabled for DNSSEC signing.
+// Deletes a key-signing key (KSK). Before you can delete a KSK, you must
+// deactivate it. The KSK must be deactivated before you can delete it regardless
+// of whether the hosted zone is enabled for DNSSEC signing. You can use
+// DeactivateKeySigningKey
+// (https://docs.aws.amazon.com/Route53/latest/APIReference/API_DeactivateKeySigningKey.html)
+// to deactivate the key before you delete it. Use GetDNSSEC
+// (https://docs.aws.amazon.com/Route53/latest/APIReference/API_GetDNSSEC.html) to
+// verify that the KSK is in an INACTIVE status.
 func (c *Client) DeleteKeySigningKey(ctx context.Context, params *DeleteKeySigningKeyInput, optFns ...func(*Options)) (*DeleteKeySigningKeyOutput, error) {
 	if params == nil {
 		params = &DeleteKeySigningKeyInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "DeleteKeySigningKey", params, optFns, addOperationDeleteKeySigningKeyMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "DeleteKeySigningKey", params, optFns, c.addOperationDeleteKeySigningKeyMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -36,10 +41,12 @@ type DeleteKeySigningKeyInput struct {
 	// This member is required.
 	HostedZoneId *string
 
-	// An alphanumeric string used to identify a key signing key (KSK).
+	// A string used to identify a key-signing key (KSK).
 	//
 	// This member is required.
 	Name *string
+
+	noSmithyDocumentSerde
 }
 
 type DeleteKeySigningKeyOutput struct {
@@ -52,9 +59,11 @@ type DeleteKeySigningKeyOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationDeleteKeySigningKeyMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationDeleteKeySigningKeyMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpDeleteKeySigningKey{}, middleware.After)
 	if err != nil {
 		return err

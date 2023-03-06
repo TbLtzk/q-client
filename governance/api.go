@@ -119,8 +119,8 @@ func (a *GovernanceAPI) AddConstitutionFile(filename string, constitutionHash *c
 	return a.gov.ConstitutionManager.addConstitutionFile(filename)
 }
 
-//RequestForConstitutionFile creates request for specific constitution file from it's peers.
-//Once this request created, node will be asking its peers for this file until it succeeded
+// RequestForConstitutionFile creates request for specific constitution file from it's peers.
+// Once this request created, node will be asking its peers for this file until it succeeded
 func (a *GovernanceAPI) RequestForConstitutionFile(constitutionHash *common.Hash) error {
 	hash, err := a.gov.ConstitutionManager.addConstitutionFileRequest(constitutionHash)
 
@@ -133,6 +133,9 @@ func (a *GovernanceAPI) RequestForConstitutionFile(constitutionHash *common.Hash
 	newReq := common.ConstitutionFilesRequest{Hashes: hashes}
 
 	a.gov.handler.broadcastConstitutionRequest(&newReq)
+
+	log.Info("Request for the constitution file with hash " + constitutionHash.String() + " created. Once one of your peers has file with the required hash - you'll be informed.")
+
 	return nil
 }
 

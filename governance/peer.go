@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
-	"gitlab.com/q-dev/q-client/common"
 	"log"
 	"path/filepath"
 	"sync"
@@ -84,24 +83,24 @@ type peer struct {
 
 	version int
 
-	rootSetCh      chan *rootSet
-	exclusionSetCh chan *exclusionSet
-	approvalCh     chan *common.RootNodeApprovalList
+	rootSetCh           chan *rootSet
+	exclusionSetCh      chan *exclusionSet
+	approvalCh          chan *common.RootNodeApprovalList
 	constitutionFilesCh chan *common.ConstitutionFilesResponse
-	done           chan struct{}
+	done                chan struct{}
 }
 
 func newPeer(version int, conn *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
-		Peer:           conn,
-		id:             conn.ID().String(),
-		rw:             rw,
-		version:        version,
-		rootSetCh:      make(chan *rootSet),
-		exclusionSetCh: make(chan *exclusionSet),
+		Peer:                conn,
+		id:                  conn.ID().String(),
+		rw:                  rw,
+		version:             version,
+		rootSetCh:           make(chan *rootSet),
+		exclusionSetCh:      make(chan *exclusionSet),
 		approvalCh:          make(chan *common.RootNodeApprovalList),
 		constitutionFilesCh: make(chan *common.ConstitutionFilesResponse),
-		done:           make(chan struct{}),
+		done:                make(chan struct{}),
 	}
 }
 
@@ -316,11 +315,15 @@ func (p *peer) sendApprovalList(approvalList *common.RootNodeApprovalList) error
 }
 
 func (p *peer) sendConstitutionFileRequest(request *common.ConstitutionFilesRequest) error {
-	return p2p.Send(p.rw, ConstitutionFileRequestMsg, request)
+	if p.version >= qgov4 {
+		return p2p.Send(p.rw, ConstitutionFileRequestMsg, request)
+	}
+	return nil
 }
 
 func (p *peer) sendConstitutionFiles(files *common.ConstitutionFilesResponse) error {
-	return p2p.Send(p.rw, ConstitutionFilesMsg, files)
+	if p.version >= qgov4 {
+		return p2p.Send(p.rw, ConstitutionFilesMsg, files)
+	}
+	return nil
 }
-
-//TODO avoid

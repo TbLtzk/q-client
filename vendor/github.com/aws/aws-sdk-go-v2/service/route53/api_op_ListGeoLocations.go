@@ -15,7 +15,9 @@ import (
 // and continents are listed last. If Amazon Route 53 supports subdivisions for a
 // country (for example, states or provinces), the subdivisions for that country
 // are listed in alphabetical order immediately after the corresponding country.
-// For a list of supported geolocation codes, see the GeoLocation
+// Route 53 does not perform authorization for this API because it retrieves
+// information that is already available to the public. For a list of supported
+// geolocation codes, see the GeoLocation
 // (https://docs.aws.amazon.com/Route53/latest/APIReference/API_GeoLocation.html)
 // data type.
 func (c *Client) ListGeoLocations(ctx context.Context, params *ListGeoLocationsInput, optFns ...func(*Options)) (*ListGeoLocationsOutput, error) {
@@ -23,7 +25,7 @@ func (c *Client) ListGeoLocations(ctx context.Context, params *ListGeoLocationsI
 		params = &ListGeoLocationsInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListGeoLocations", params, optFns, addOperationListGeoLocationsMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListGeoLocations", params, optFns, c.addOperationListGeoLocationsMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -65,6 +67,8 @@ type ListGeoLocationsInput struct {
 	// startsubdivisioncode to return the next page of results. To list subdivisions
 	// (U.S. states), you must include both startcountrycode and startsubdivisioncode.
 	StartSubdivisionCode *string
+
+	noSmithyDocumentSerde
 }
 
 // A complex type containing the response information for the request.
@@ -107,9 +111,11 @@ type ListGeoLocationsOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationListGeoLocationsMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationListGeoLocationsMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpListGeoLocations{}, middleware.After)
 	if err != nil {
 		return err
