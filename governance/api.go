@@ -2,6 +2,9 @@ package governance
 
 import (
 	"math/big"
+	"sort"
+	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
@@ -85,12 +88,29 @@ func (a *GovernancePublicAPI) ActiveExclusionList() *ExclusionList {
 	return newExclusionList(a.gov.RootManager.getActiveExclusionSet())
 }
 
+func (a *GovernancePublicAPI) ActiveExclusionListPrettify() string {
+	return printPretiffiedList(newExclusionListPrettify(a.gov.RootManager.getActiveExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
+}
+
 func (a *GovernancePublicAPI) DesiredExclusionList() *ExclusionList {
 	return newExclusionList(a.gov.RootManager.getDesiredExclusionSet())
 }
 
+func (a *GovernancePublicAPI) DesiredExclusionListPrettify() string {
+	return printPretiffiedList(newExclusionListPrettify(a.gov.RootManager.getDesiredExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
+}
+
 func (a *GovernancePublicAPI) ProposedExclusionList() *ExclusionList {
 	return newExclusionList(a.gov.RootManager.getProposedExclusionSet())
+}
+
+func (a *GovernancePublicAPI) ProposedExclusionListPrettify() string {
+	return printPretiffiedList(newExclusionListPrettify(a.gov.RootManager.getProposedExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
+}
+
+func (a *GovernancePublicAPI) IsInExclusionList(address string) string {
+	return printPrettifiedSearch(checkExclusionLists(common.HexToAddress(address), a.gov.RootManager.getActiveExclusionSet(),
+		a.gov.RootManager.getDesiredExclusionSet(), a.gov.RootManager.getProposedExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
 }
 
 func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusionList) (common.Hash, error) {
@@ -149,7 +169,7 @@ func (a *GovernanceAPI) ConstitutionFiles() ([]common.ConstitutionFile, error) {
 
 func (a *GovernanceAPI) GetRootNodeApprovals(blockNumber *big.Int, hash *common.Hash) (*[]common.RootNodeApproval, error) {
 	list, err := a.gov.RootManager.getActiveApprovalList(blockNumber, hash)
-	res := []common.RootNodeApproval{}
+	var res []common.RootNodeApproval
 	if list != nil {
 		res = list.Approvals
 	}
@@ -235,6 +255,13 @@ type ExclusionList struct {
 	Signers []common.Address `json:"signers"`
 }
 
+type ExclusionListPrettify struct {
+	Hash       common.Hash                 `json:"hash"`
+	Timestamp  string                      `json:"timestamp (created at)"`
+	Signers    []common.Address            `json:"signers"`
+	Validators map[common.Address][]string `json:"validators"`
+}
+
 func newExclusionList(set *exclusionSet) *ExclusionList {
 	if set == nil {
 		return nil
@@ -252,4 +279,111 @@ func newExclusionList(set *exclusionSet) *ExclusionList {
 		Validators: l.Validators,
 		Signers:    signers,
 	}
+}
+
+func newExclusionListPrettify(set *exclusionSet, currentBlock int64) *ExclusionListPrettify {
+	if set == nil {
+		return nil
+	}
+
+	var signers []common.Address
+	for addr := range set.signers {
+		signers = append(signers, addr)
+	}
+
+	formattedBlockRanges := make(map[common.Address][]string)
+
+	for address, blockRangesByAddress := range set.blockRanges {
+		formattedBlockRanges[address] = getBanStates(blockRangesByAddress, currentBlock)
+	}
+
+	timeUnix := time.Unix(int64(set.timestamp), 0)
+	return &ExclusionListPrettify{
+		Timestamp:  strconv.FormatInt(int64(set.timestamp), 10) + " (" + timeUnix.String() + ")",
+		Hash:       set.hash,
+		Signers:    signers,
+		Validators: formattedBlockRanges,
+	}
+}
+
+func getBanStates(blockRangesByAddress []common.BlockRange, currentBlock int64) []string {
+	var endBlockString string
+	var stringBlockRanges []string
+	for _, br := range blockRangesByAddress {
+		startBlock := int64(br.StartAddress)
+		endBlock := int64(br.EndAddress)
+		switch {
+		case endBlock == 0:
+			endBlockString = "\t(active, open-ended)"
+		case endBlock < currentBlock && startBlock < currentBlock:
+			endBlockString = " - #" + strconv.FormatInt(endBlock, 10) + "\t(expired)"
+		case endBlock > currentBlock && startBlock > currentBlock:
+			endBlockString = " - #" + strconv.FormatInt(endBlock, 10) + "\t(scheduled at block #" + strconv.FormatInt(startBlock, 10) + ")"
+		case endBlock > currentBlock && startBlock < currentBlock:
+			endBlockString = " - #" + strconv.FormatInt(endBlock, 10) +
+				"\t(active, ends at block #" + strconv.FormatInt(endBlock, 10) + ")"
+		}
+		stringBlockRange := "#" + strconv.FormatInt(startBlock, 10) + endBlockString
+		stringBlockRanges = append(stringBlockRanges, stringBlockRange)
+	}
+	return stringBlockRanges
+}
+
+func checkExclusionLists(address common.Address, activeExSet *exclusionSet, desiredExSet *exclusionSet, proposedExSet *exclusionSet, currentBlock int64) map[string][]string {
+	searchResults := make(map[string][]string)
+	var searchResultsByList []string
+
+	activeString := "Active exclusion list"
+	activeString, searchResultsByList = searchAddressInList(activeString, activeExSet, address, currentBlock)
+	searchResults[activeString] = searchResultsByList
+
+	desiredString := "Desired exclusion list"
+	desiredString, searchResultsByList = searchAddressInList(desiredString, desiredExSet, address, currentBlock)
+	searchResults[desiredString] = searchResultsByList
+
+	proposedString := "Proposed exclusion list"
+	proposedString, searchResultsByList = searchAddressInList(proposedString, proposedExSet, address, currentBlock)
+	searchResults[proposedString] = searchResultsByList
+
+	return searchResults
+}
+
+func searchAddressInList(setString string, set *exclusionSet, address common.Address, currentBlock int64) (string, []string) {
+	if set != nil && set.blockRanges[address] != nil && getBanStates(set.blockRanges[address], currentBlock) != nil {
+		setString += " (" + set.hash.String() + ", " + strconv.FormatInt(int64(set.timestamp), 10) + "), on block range(s)"
+		return setString, getBanStates(set.blockRanges[address], currentBlock)
+	} else {
+		setString += ", provided address is absent"
+		return setString, nil
+	}
+}
+
+func printPretiffiedList(prettified *ExclusionListPrettify) string {
+	res := "Hash: " + prettified.Hash.String() + "\n"
+	res += "Timestamp(created at): " + prettified.Timestamp + "\n"
+	res += "Signers: \n"
+	for _, s := range prettified.Signers {
+		res += "\t" + s.String() + "\n"
+	}
+	res += "Validators: \n"
+	for address, branges := range prettified.Validators {
+		res += "\t" + address.String() + ": \n"
+		sort.Strings(branges)
+		for _, br := range branges {
+			res += "\t\t" + br + "\n"
+		}
+	}
+	return res
+}
+
+func printPrettifiedSearch(searchResults map[string][]string) string {
+	res := ""
+	for listType, branges := range searchResults {
+		res += listType + "\n"
+		sort.Strings(branges)
+		for _, br := range branges {
+			res += "\t" + br + "\n"
+		}
+	}
+	return res
 }

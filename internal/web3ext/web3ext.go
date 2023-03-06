@@ -722,6 +722,30 @@ web3._extend({
 			inputFormatter: [null, null]
 		}),
 		new web3._extend.Method({
+			name: 'activeExclusionListPrettify',
+			call: 'gov_activeExclusionListPrettify',
+			params: 0,
+			outputFormatter: console.log,
+		}),
+		new web3._extend.Method({
+			name: 'desiredExclusionListPrettify',
+			call: 'gov_desiredExclusionListPrettify',
+			params: 0,
+			outputFormatter: console.log,
+		}),
+		new web3._extend.Method({
+			name: 'proposedExclusionListPrettify',
+			call: 'gov_proposedExclusionListPrettify',
+			params: 0,
+			outputFormatter: console.log,
+		}),
+		new web3._extend.Method({
+			name: 'isInExclusionList',
+			call: 'gov_isInExclusionList',
+			params: 1,
+			outputFormatter: console.log,
+		}),
+		new web3._extend.Method({
 			name: 'getLatestTransitionBlocks',
 			call: 'gov_getLatestTransitionBlocks',
 			params: 1,
@@ -805,6 +829,26 @@ web3._extend({
 			call: 'gov_getLatestTransitionBlocks',
 			params: 1,
 			inputFormatter: [null]
+		}),
+		new web3._extend.Method({
+			name: 'activeExclusionListPrettify',
+			call: 'govPub_activeExclusionListPrettify',
+			params: 0,
+		}),
+		new web3._extend.Method({
+			name: 'desiredExclusionListPrettify',
+			call: 'govPub_desiredExclusionListPrettify',
+			params: 0,
+		}),
+		new web3._extend.Method({
+			name: 'proposedExclusionListPrettify',
+			call: 'govPub_proposedExclusionListPrettify',
+			params: 0,
+		}),
+		new web3._extend.Method({
+			name: 'isInExclusionList',
+			call: 'govPub_isInExclusionList',
+			params: 1,
 		}),
     ],
 	properties: []
