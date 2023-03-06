@@ -127,19 +127,6 @@ func (r *Registry) ActiveValidatorsNumber() *int64 {
 	return &x
 }
 
-// ConstitutionVoting returns ConstitutionVoting contract backend if available.
-func (r *Registry) ConstitutionVoting() *generated.ConstitutionVoting {
-	addr := r.getAddr("governance.constitution.parametersVoting")
-	if (addr == common.Address{}) {
-		log.Debug("governance.constitution.parametersVoting is not deployed")
-		return nil
-	}
-
-	// err is never returned here
-	constitutionVoting, _ := generated.NewConstitutionVoting(addr, r.Backend)
-	return constitutionVoting
-}
-
 // EpqfiParameters returns EpqfiParameters contract backend if available.
 func (r *Registry) EpqfiParameters() *generated.EPQFIParameters {
 	addr := r.getAddr("governance.experts.EPQFI.parameters")
