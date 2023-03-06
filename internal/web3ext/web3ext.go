@@ -102,6 +102,76 @@ web3._extend({
 			call: 'clique_getEpochLength',
 			params: 0,
 		}),
+		new web3._extend.Method({
+			name: 'getConstitutionVotings',
+			call: 'clique_getConstitutionVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getGeneralUpdateVotings',
+			call: 'clique_getGeneralUpdateVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEmergencyUpdateVotings',
+			call: 'clique_getEmergencyUpdateVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getRootsVotings',
+			call: 'clique_getRootsVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getRootNodesSlashingVotings',
+			call: 'clique_getRootNodesSlashingVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getValidatorsSlashingVotings',
+			call: 'clique_getValidatorsSlashingVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEpqfiMembershipVotings',
+			call: 'clique_getEpqfiMembershipVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEpqfiParametersVotings',
+			call: 'clique_getEpqfiParametersVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEpdrMembershipVotings',
+			call: 'clique_getEpqfiMembershipVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEpdrParametersVotings',
+			call: 'clique_getEpqfiParametersVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEprsMembershipVotings',
+			call: 'clique_getEpqfiMembershipVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEprsParametersVotings',
+			call: 'clique_getEpqfiParametersVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getContractRegistryAddressVotings',
+			call: 'clique_getContractRegistryAddressVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getContractRegistryUpgradeVotings',
+			call: 'clique_getContractRegistryUpgradeVotings',
+			params: 1,
+		}),
 	],
 	properties: [
 		new web3._extend.Property({
