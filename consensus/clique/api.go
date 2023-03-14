@@ -523,10 +523,11 @@ func (api *API) GetEmergencyUpdateVotings(proposalCounter int64) ([]GeneralVotin
 		}
 		votings = append(votings, voting)
 	}
+
 	return votings, nil
 }
 
-func (api *API) GetRootsVotings(proposalCounter int64) ([]RootsVoting, error) {
+func (api *API) GetRootsVotings(proposalCounter int64, blockNumber int64) ([]RootsVoting, error) {
 	var votings []RootsVoting
 	votingOpts := &bind.CallOpts{
 		Pending:     false,
@@ -535,10 +536,11 @@ func (api *API) GetRootsVotings(proposalCounter int64) ([]RootsVoting, error) {
 		Context:     nil,
 	}
 	votingFilterOpts := &bind.FilterOpts{
-		Start:   0,
+		Start:   uint64(blockNumber),
 		End:     nil,
 		Context: nil,
 	}
+
 	provider := api.clique.registry.RootsVoting()
 	filterIter, err := provider.FilterProposalCreated(votingFilterOpts)
 	if err != nil {
