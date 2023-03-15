@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"gitlab.com/q-dev/q-client/sentryMonitor"
 	"io"
 	"math/big"
 	"math/rand"
@@ -545,7 +546,7 @@ func (c *Clique) aliasAccounts(filtered []common.Address, isAthos bool) []common
 	return filteredWithAliases
 }
 
-//TODO remove in production
+// TODO remove in production
 func (c *Clique) unAliasAccounts(filtered []common.Address, isAthos bool) []common.Address {
 	if !isAthos {
 		return filtered
@@ -715,6 +716,7 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 		return err
 	}
 	if _, ok := snap.Signers[signer]; !ok {
+		sentryMonitor.HandleError(errUnauthorizedSigner)
 		return errUnauthorizedSigner
 	}
 
@@ -730,9 +732,11 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 	if !c.fakeDiff {
 		inturn := snap.inturn(header.Number.Uint64(), signer)
 		if inturn && header.Difficulty.Cmp(diffInTurn) != 0 {
+			sentryMonitor.HandleError(errWrongDifficulty)
 			return errWrongDifficulty
 		}
 		if !inturn && header.Difficulty.Cmp(diffNoTurn) != 0 {
+			sentryMonitor.HandleError(errWrongDifficulty)
 			return errWrongDifficulty
 		}
 	}

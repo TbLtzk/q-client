@@ -20,6 +20,7 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"gitlab.com/q-dev/q-client/miner"
 	"math"
 	"math/big"
 	"os"
@@ -35,7 +36,6 @@ import (
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/metrics/exp"
 	"gitlab.com/q-dev/q-client/metrics/influxdb"
-	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/enode"
@@ -43,6 +43,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/netutil"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/sentryMonitor"
 
 	pcsclite "github.com/gballet/go-libpcsclite"
 	gopsutil "github.com/shirou/gopsutil/mem"
@@ -1022,6 +1023,25 @@ var (
 		Name:  "constitution-dir",
 		Usage: "Data directory for the constitution storage",
 		Value: flags.DirectoryString(node.DefaultDataDir()),
+	}
+
+	// Sentry flags
+	SentryEnabledFlag = &cli.BoolFlag{
+		Name:     "sentry",
+		Usage:    "Enable sentry monitoring",
+		Category: flags.SentryCategory,
+	}
+	SentryDsnFlag = &cli.StringFlag{
+		Name:     "sentry.dsn",
+		Usage:    "Sentry dsn value",
+		Value:    sentryMonitor.DefaultConfig.DSN,
+		Category: flags.SentryCategory,
+	}
+	SentryTracesSampleRateFlag = &cli.Float64Flag{
+		Name:     "sentry.traceSampleRate",
+		Usage:    "Sentry trace sample rate",
+		Value:    sentryMonitor.DefaultConfig.TracesSampleRate,
+		Category: flags.SentryCategory,
 	}
 )
 
@@ -2266,6 +2286,22 @@ func SetupMetrics(ctx *cli.Context) {
 			address := fmt.Sprintf("%s:%d", ctx.String(MetricsHTTPFlag.Name), ctx.Int(MetricsPortFlag.Name))
 			log.Info("Enabling stand-alone metrics HTTP endpoint", "address", address)
 			exp.Setup(address)
+		}
+	}
+}
+
+func SetupSentry(ctx *cli.Context) {
+	if ctx.IsSet(SentryEnabledFlag.Name) {
+		var cfg sentryMonitor.SentryMonitoringConfig
+		cfg.Enabled = true
+		cfg.DSN = ctx.String(SentryDsnFlag.Name)
+		cfg.TracesSampleRate = ctx.Float64(SentryTracesSampleRateFlag.Name)
+		cfg.Release = params.QVersion + "/" + params.QVersionMeta + "/" + params.Version
+
+		log.Info("Enabling sentry monitoring")
+		err := sentryMonitor.StartMonitoring(cfg)
+		if err != nil {
+			log.Error("Sentry enabled flag is set but initialization failed: %s", err)
 		}
 	}
 }

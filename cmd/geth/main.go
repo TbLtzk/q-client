@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/getsentry/sentry-go"
 	"gitlab.com/q-dev/q-client/consensus/clique"
 	"os"
 	"sort"
@@ -216,6 +217,12 @@ var (
 		utils.RootTimestampFlag,
 		utils.RootAddressesFlag,
 	}
+
+	sentryFlags = []cli.Flag{
+		utils.SentryEnabledFlag,
+		utils.SentryDsnFlag,
+		utils.SentryTracesSampleRateFlag,
+	}
 )
 
 func init() {
@@ -265,6 +272,7 @@ func init() {
 		debug.Flags,
 		metricsFlags,
 		governanceFlags,
+		sentryFlags,
 	)
 
 	app.Before = func(ctx *cli.Context) error {
@@ -279,6 +287,7 @@ func init() {
 }
 
 func main() {
+	defer sentry.Flush(2 * time.Second)
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -357,6 +366,9 @@ func prepare(ctx *cli.Context) {
 
 	// Start metrics export if enabled
 	utils.SetupMetrics(ctx)
+
+	// Start sentry monitoring if enabled
+	utils.SetupSentry(ctx)
 
 	// Start system runtime metrics collection
 	go metrics.CollectProcessMetrics(3 * time.Second)
