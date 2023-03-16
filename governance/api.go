@@ -135,7 +135,7 @@ func (a *GovernancePublicAPI) DiffExclusionList(nameA, nameB string) ([]DiffEntr
 	return a.gov.RootManager.diffExclusionListByName(nameA, nameB)
 }
 
-func (a *GovernanceAPI) AddConstitutionFile(filename string, constitutionHash *common.Hash) error {
+func (a *GovernanceAPI) AddConstitutionFile(filename string) error {
 	return a.gov.ConstitutionManager.addConstitutionFile(filename)
 }
 
