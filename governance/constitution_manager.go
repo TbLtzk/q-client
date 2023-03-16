@@ -389,7 +389,7 @@ func (cm *ConstitutionManager) storeConstitutionFile(contents []byte, cFile comm
 			return errSave
 		}
 	}
-	log.Info("Constitution file with hash" + cFile.Hash.String() + " added successfully")
+	log.Info("Constitution file with hash " + cFile.Hash.String() + " added successfully")
 	return nil
 }
 
