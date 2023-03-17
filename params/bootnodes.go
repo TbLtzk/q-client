@@ -16,7 +16,9 @@
 
 package params
 
-import "gitlab.com/q-dev/q-client/common"
+import (
+	"gitlab.com/q-dev/q-client/common"
+)
 
 //// MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on
 //// the main Ethereum network.
@@ -114,18 +116,24 @@ var YoloV1Bootnodes = []string{
 // Q network.
 var MainnetBootnodes = []string{
 	"enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@bootnode.q.org:30301",
+	"enode://3021f73a6f14f8594384923f7f0228f81a806d1708e5c046db12661bdce6b0f10625fae12771aa36f7a4d1f110d4e5a589bf3d34ec4b1d2c6d10e382d90f6983@extrabootnode.q.org:30314",
+	"enode://34b9e4e18bc37e4437bc0a9b10ac8ae5d0aab2b2e827310e90ec1012e818d07962b162d98e083ec5487e0cf87d1ffefb46332ec05209ec82fb675ae7afe3e241@extrabootnode.q.org:30315",
+	"enode://f6204e3d971ec3dce74b8af2933e33551993790ab789500b82c80276f9e97e41b310f08d4a6cfdf330e72c6136f8df85a11fa923410f277f9c743f8a77e105f1@extrabootnode.q.org:30316",
 }
 
 // DevnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Q devnet network.
 var DevnetBootnodes = []string{
-	"enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@35.161.73.158:30301",
+	"enode://3dc52b0fefeda02972816dfae089c266ed4cba79c6a153cc5676da26a3122215e1d3865ef27b3391f88272d2fee1f36e238cebce5deb00c5a2fea763d8ebd99b@bootnode.qdevnet.org:30301",
 }
 
 // TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Q testnet network.
 var TestnetBootnodes = []string{
-	"enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@bootnode.qtestnet.org:30301",
+	"enode://88ba6bd2d11752c42f3a4bb038f4eee35456c0cfc3484305d4a35c5072b3c6fb6a1ab6553ad8330f3de119724076e0e498d1af4d9175befe6ba4583a6b99c0dd@bootnode.qtestnet.org:30301",
+	"enode://c610793186e4f719c1ace0983459c6ec7984d676e4a323681a1cbc8a67f506d1eccc4e164e53c2929019ed0e5cfc1bc800662d6fb47c36e978ab94c417031ac8@extrabootnode.qtestnet.org:30304",
+	"enode://8eff01a7e5a66c5630cbd22149e069bbf8a8a22370cef61b232179e21ba8c7b74d40e8ee5aa62c54d145f7fc671b851e5ccbfe124fce75944cf1b06e29c55c80@extrabootnode.qtestnet.org:30305",
+	"enode://7a8ade64b79961a7752daedc4104ca4b79f1a67a10ea5c9721e7115d820dbe7599fe9e03c9c315081ccf6a2afb0b6652ee4965e38f066fe5bf129abd6d26df58@extrabootnode.qtestnet.org:30306",
 }
 
 const dnsPrefix = "enrtree://AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE@"
@@ -138,16 +146,12 @@ func KnownDNSNetwork(genesis common.Hash, protocol string) string {
 	switch genesis {
 	case MainnetGenesisHash:
 		net = "mainnet"
-	case RopstenGenesisHash:
-		net = "ropsten"
-	case RinkebyGenesisHash:
-		net = "rinkeby"
-	case GoerliGenesisHash:
-		net = "goerli"
-	case SepoliaGenesisHash:
-		net = "sepolia"
+	case TestnetGenesisHash:
+		net = "testnet"
+	case DevnetGenesisHash:
+		return dnsPrefix + "discovery.qdevnet.org"
 	default:
 		return ""
 	}
-	return dnsPrefix + protocol + "." + net + ".ethdisco.net"
+	return dnsPrefix + net + ".discovery.q.org"
 }
