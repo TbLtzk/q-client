@@ -28,7 +28,7 @@ var (
 
 const (
 	draftsDir              = "drafts"
-	constitutionFilePrefix = `Q-Constitution-AB`
+	constitutionFilePrefix = `Q-Constitution-`
 	filePattern            = constitutionFilePrefix + `_0x[A-Fa-f0-9]{6}\.adoc`
 )
 
@@ -72,6 +72,11 @@ func NewConstitutionManager(datadir string, db *database, rm *RootManager) (*Con
 
 	requiredHashes, _ := db.getConstitutionFileRequests()
 	manager.requiredHashes = requiredHashes
+
+	//TODO this is too dirty. Find a better way to wait until registry is initialized
+	time.AfterFunc(time.Second*5, func() {
+		manager.CheckLastConstitutionFileExists()
+	})
 
 	return manager, nil
 }
@@ -307,7 +312,7 @@ func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 		return errV
 	}
 	if !ok {
-		return errors.New("Provided file's hash is invalid")
+		return errors.New("The hash of the provided file is invalid")
 	}
 
 	cFile := common.ConstitutionFile{
@@ -332,6 +337,10 @@ func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
 	}
 
 	cv := cm.reg.ConstitutionVoting()
+	if cv == nil {
+		return false, errors.New("Contract registry not initialized or voting contract hasn't deployed yet")
+	}
+
 	cvE, err := cv.ConstitutionVotingFilterer.FilterProposalExecuted(nil, nil)
 	defer cvE.Close()
 
@@ -340,7 +349,7 @@ func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
 	}
 	ok := cvE.Next()
 	for ok {
-		//log.Error(common.BytesToHash(cvE.Event.ConstitutionHash[:]).String())
+		log.Error(common.BytesToHash(cvE.Event.ConstitutionHash[:]).String())
 		if bytes.Equal(cvE.Event.ConstitutionHash[:], hash.Bytes()) {
 			return true, nil
 		}
@@ -348,6 +357,39 @@ func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (cm *ConstitutionManager) getLastConstitutionHash() (*common.Hash, error) {
+	wrapped := "Cannot check hash validity"
+	if cm.reg == nil {
+		err := errors.New("Contract registry not initialized")
+		log.Error(wrapped, "error", err)
+		return nil, err
+	}
+
+	cv := cm.reg.ConstitutionVoting()
+	if cv == nil {
+		log.Warn("Contract registry not initialized or voting contract hasn't deployed yet")
+		return nil, nil
+	}
+
+	cvE, err := cv.ConstitutionVotingFilterer.FilterProposalExecuted(nil, nil)
+	defer cvE.Close()
+
+	if err != nil {
+		return nil, errors.Wrap(err, wrapped)
+	}
+	ok := true
+	for ok {
+		ok = cvE.Next()
+		if !ok && cvE.Event != nil {
+			var hash common.Hash
+			hash.SetBytes(cvE.Event.ConstitutionHash[:])
+			return &hash, nil
+		}
+	}
+
+	return nil, nil
 }
 
 func (cm *ConstitutionManager) filenameFromHash(constitutionHash common.Hash) string {
@@ -522,4 +564,14 @@ func (cm *ConstitutionManager) getDraftFiles() ([]common.ConstitutionFile, error
 	}
 
 	return resfiles, nil
+}
+
+func (cm *ConstitutionManager) CheckLastConstitutionFileExists() {
+	hash, err := cm.getLastConstitutionHash()
+	if err != nil {
+		return
+	}
+	if hash != nil {
+		cm.addConstitutionFileRequest(hash)
+	}
 }
