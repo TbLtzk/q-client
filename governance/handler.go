@@ -526,7 +526,7 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 
 	switch {
 	case rm.active.isAcceptable(received) && (rm.desired == nil || rm.desired.hash != received.hash):
-		if rm.isMember(received.rootAddresses) {
+		if rm.isMember(rm.active.rootAddresses) {
 			rm.signRootSet(received)
 		}
 
