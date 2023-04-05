@@ -3,9 +3,13 @@ package governance
 import (
 	"bytes"
 	"crypto/sha256"
+	"fmt"
 	"gitlab.com/q-dev/q-client/event"
+	"io"
 	"io/fs"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -24,7 +28,7 @@ var (
 
 const (
 	draftsDir              = "drafts"
-	constitutionFilePrefix = `Q-Constitution-AB`
+	constitutionFilePrefix = `Q-Constitution-`
 	filePattern            = constitutionFilePrefix + `_0x[A-Fa-f0-9]{6}\.adoc`
 )
 
@@ -68,6 +72,11 @@ func NewConstitutionManager(datadir string, db *database, rm *RootManager) (*Con
 
 	requiredHashes, _ := db.getConstitutionFileRequests()
 	manager.requiredHashes = requiredHashes
+
+	//TODO this is too dirty. Find a better way to wait until registry is initialized
+	time.AfterFunc(time.Second*5, func() {
+		manager.CheckLastConstitutionFileExists()
+	})
 
 	return manager, nil
 }
@@ -257,9 +266,35 @@ func (cm *ConstitutionManager) validateStorageDir() ([]string, error) {
 	return validFileNames, nil
 }
 
-// gov.addConstitutionFile("a.adoc","0x5c5f8818734daeee729e3ff22cec58843d24b11b0addb7b8a6b0f194f6af81c6")
+// gov.addConstitutionFile("a.adoc")
+// gov.addConstitutionFile("https://constitution.q.org/constitution/latest")
 func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 	cm.validateStorage()
+
+	_, err := url.ParseRequestURI(filename)
+	if err == nil {
+		log.Info("The provided path is a URL. Trying to download a file")
+
+		resp, errGet := http.Get(filename)
+		defer resp.Body.Close()
+
+		if errGet != nil {
+			return errors.New("Download failed. Check if the provided URL is correct")
+		}
+		newFileName := fmt.Sprint(time.Now().Unix())
+		newFilePath := filepath.Join(cm.baseDir, draftsDir, newFileName)
+		out, errCreate := os.Create(newFilePath)
+		defer out.Close()
+		if errCreate != nil {
+			return errors.New("Failed to create temporary file")
+		}
+		_, errCopy := io.Copy(out, resp.Body)
+		if errCopy != nil {
+			return errors.New("Failed to copy downloaded file")
+		}
+		log.Info("File downloaded successfully")
+		filename = newFileName
+	}
 
 	//cm.storageLock.Lock()
 	//defer cm.storageLock.Unlock()
@@ -277,7 +312,7 @@ func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 		return errV
 	}
 	if !ok {
-		return errors.New("Provided file's hash is invalid")
+		return errors.New("The hash of the provided file is invalid")
 	}
 
 	cFile := common.ConstitutionFile{
@@ -302,6 +337,10 @@ func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
 	}
 
 	cv := cm.reg.ConstitutionVoting()
+	if cv == nil {
+		return false, errors.New("Contract registry not initialized or voting contract hasn't deployed yet")
+	}
+
 	cvE, err := cv.ConstitutionVotingFilterer.FilterProposalExecuted(nil, nil)
 	defer cvE.Close()
 
@@ -310,7 +349,7 @@ func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
 	}
 	ok := cvE.Next()
 	for ok {
-		//log.Error(common.BytesToHash(cvE.Event.ConstitutionHash[:]).String())
+		log.Error(common.BytesToHash(cvE.Event.ConstitutionHash[:]).String())
 		if bytes.Equal(cvE.Event.ConstitutionHash[:], hash.Bytes()) {
 			return true, nil
 		}
@@ -318,6 +357,39 @@ func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (cm *ConstitutionManager) getLastConstitutionHash() (*common.Hash, error) {
+	wrapped := "Cannot check hash validity"
+	if cm.reg == nil {
+		err := errors.New("Contract registry not initialized")
+		log.Error(wrapped, "error", err)
+		return nil, err
+	}
+
+	cv := cm.reg.ConstitutionVoting()
+	if cv == nil {
+		log.Warn("Contract registry not initialized or voting contract hasn't deployed yet")
+		return nil, nil
+	}
+
+	cvE, err := cv.ConstitutionVotingFilterer.FilterProposalExecuted(nil, nil)
+	defer cvE.Close()
+
+	if err != nil {
+		return nil, errors.Wrap(err, wrapped)
+	}
+	ok := true
+	for ok {
+		ok = cvE.Next()
+		if !ok && cvE.Event != nil {
+			var hash common.Hash
+			hash.SetBytes(cvE.Event.ConstitutionHash[:])
+			return &hash, nil
+		}
+	}
+
+	return nil, nil
 }
 
 func (cm *ConstitutionManager) filenameFromHash(constitutionHash common.Hash) string {
@@ -359,7 +431,7 @@ func (cm *ConstitutionManager) storeConstitutionFile(contents []byte, cFile comm
 			return errSave
 		}
 	}
-	log.Info("Constitution file with hash" + cFile.Hash.String() + " added successfully")
+	log.Info("Constitution file with hash " + cFile.Hash.String() + " added successfully")
 	return nil
 }
 
@@ -492,4 +564,14 @@ func (cm *ConstitutionManager) getDraftFiles() ([]common.ConstitutionFile, error
 	}
 
 	return resfiles, nil
+}
+
+func (cm *ConstitutionManager) CheckLastConstitutionFileExists() {
+	hash, err := cm.getLastConstitutionHash()
+	if err != nil {
+		return
+	}
+	if hash != nil {
+		cm.addConstitutionFileRequest(hash)
+	}
 }

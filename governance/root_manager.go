@@ -163,7 +163,7 @@ func (s *RootManager) updateAliasesOfRootSets() {
 	}
 }
 
-// ExclusionSet returns set of excluded validators addresses.
+// ExclusionSetValidators returns set of excluded validators addresses.
 func (s *RootManager) ExclusionSetValidators() map[common.Address][]common.BlockRange {
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
@@ -618,8 +618,8 @@ func (s *RootManager) validateRootSet(addresses []common.Address, lock bool) err
 }
 
 func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
-	if !s.isMember(set.rootAddresses) {
-		return nil, errors.New("not a member of new list")
+	if !s.isRootNode(false) {
+		return nil, errors.New("not a root node")
 	}
 
 	s.rootLock.Lock()
@@ -648,18 +648,13 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 		return nil, errInvalidExclusionListTimestamp
 	}
 
-	err := s.validateRootSet(set.getAddresses(), false)
-	if err != nil {
-		return nil, err
-	}
-
 	if s.signRootSet(set) {
 		log.Info("Signed desired root list", "hash", set.hash.Hex())
 	}
 
 	s.proposed = set
 	s.db.saveProposedRootSet(set)
-	err = s.acceptProposedRootList(false)
+	err := s.acceptProposedRootList(false)
 	if err != nil {
 		return nil, err
 	}
@@ -668,6 +663,10 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 }
 
 func (s *RootManager) acceptProposedRootList(lock bool) error {
+	if !s.isRootNode(false) {
+		return errors.New("not a root node")
+	}
+
 	if lock {
 		s.rootLock.Lock()
 		defer s.rootLock.Unlock()
@@ -679,11 +678,6 @@ func (s *RootManager) acceptProposedRootList(lock bool) error {
 
 	if s.desired != nil && s.proposed.timestamp <= s.desired.timestamp {
 		return errProposedRootListObsolete
-	}
-
-	err := s.validateRootSet(s.proposed.getAddresses(), false)
-	if err != nil {
-		return err
 	}
 
 	if s.signRootSet(s.proposed) {

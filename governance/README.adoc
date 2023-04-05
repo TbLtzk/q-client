@@ -366,12 +366,20 @@ All constitution files which you reqested from your peers will be named and plac
 
 Allows you to add new constitution file.
 File should be placed into the "./constitution-storage/drafts" directory inside the _datadir_.
+Alternatively, as a parameter you can specify the URL of the file. In this case, file will be downloaded and placed into Drafts folder automatically.
 During execution this file will be validated - if hash of the file doesn't belong to blockchain - execution will be reverted.
 
 ----
 >gov.addConstitutionFile("5dfd08904f23e0497b291487319f07e32113f3c5bdc9c540adeb113019920c21.adoc")
 Validating constitution storage
-Constitution file with hash0x5dfd08904f23e0497b291487319f07e32113f3c5bdc9c540adeb113019920c21 added successfully
+Constitution file with hash 0x5dfd08904f23e0497b291487319f07e32113f3c5bdc9c540adeb113019920c21 added successfully
+----
+----
+gov.addConstitutionFile("https://constitution.q.org/constitution/latest")
+Constitution file with hash 0x25a0ad3b8de911b1745691b83875291c75f424487551ec83f7ef9ae8205ef059 added successfully
+
+Validating constitution storage
+The provided path is a URL. Trying to download a file
 ----
 
 ==== gov.RequestForConstitutionFile

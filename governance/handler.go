@@ -210,7 +210,9 @@ func (h *handler) broadcastApprovals() {
 
 func (h *handler) broadcastConstitutionRequest(request *common.ConstitutionFilesRequest) {
 	for _, p := range h.peers.all() {
-		p.sendConstitutionFileRequest(request)
+		if p.version >= qgov4 {
+			p.sendConstitutionFileRequest(request)
+		}
 	}
 
 }
@@ -326,7 +328,7 @@ func (h *handler) runPeer(p *peer) error {
 		}
 	}
 
-	if p.version >= qgov3 {
+	if p.version >= qgov4 {
 		newReq := common.ConstitutionFilesRequest{Hashes: h.constitutionManager.requiredHashes}
 		p.sendConstitutionFileRequest(&newReq)
 	}
@@ -524,7 +526,7 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 
 	switch {
 	case rm.active.isAcceptable(received) && (rm.desired == nil || rm.desired.hash != received.hash):
-		if rm.isMember(received.rootAddresses) {
+		if rm.isMember(rm.active.rootAddresses) {
 			rm.signRootSet(received)
 		}
 

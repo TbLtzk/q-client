@@ -120,7 +120,7 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'getRootsVotings',
 			call: 'clique_getRootsVotings',
-			params: 1,
+			params: 2,
 		}),
 		new web3._extend.Method({
 			name: 'getRootNodesSlashingVotings',

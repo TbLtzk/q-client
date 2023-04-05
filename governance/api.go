@@ -89,7 +89,7 @@ func (a *GovernancePublicAPI) ActiveExclusionList() *ExclusionList {
 }
 
 func (a *GovernancePublicAPI) ActiveExclusionListPrettify() string {
-	return printPretiffiedList(newExclusionListPrettify(a.gov.RootManager.getActiveExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
+	return printPrettifiedList(newExclusionListPrettify(a.gov.RootManager.getActiveExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
 }
 
 func (a *GovernancePublicAPI) DesiredExclusionList() *ExclusionList {
@@ -97,7 +97,7 @@ func (a *GovernancePublicAPI) DesiredExclusionList() *ExclusionList {
 }
 
 func (a *GovernancePublicAPI) DesiredExclusionListPrettify() string {
-	return printPretiffiedList(newExclusionListPrettify(a.gov.RootManager.getDesiredExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
+	return printPrettifiedList(newExclusionListPrettify(a.gov.RootManager.getDesiredExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
 }
 
 func (a *GovernancePublicAPI) ProposedExclusionList() *ExclusionList {
@@ -105,7 +105,7 @@ func (a *GovernancePublicAPI) ProposedExclusionList() *ExclusionList {
 }
 
 func (a *GovernancePublicAPI) ProposedExclusionListPrettify() string {
-	return printPretiffiedList(newExclusionListPrettify(a.gov.RootManager.getProposedExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
+	return printPrettifiedList(newExclusionListPrettify(a.gov.RootManager.getProposedExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
 }
 
 func (a *GovernancePublicAPI) IsInExclusionList(address string) string {
@@ -135,7 +135,7 @@ func (a *GovernancePublicAPI) DiffExclusionList(nameA, nameB string) ([]DiffEntr
 	return a.gov.RootManager.diffExclusionListByName(nameA, nameB)
 }
 
-func (a *GovernanceAPI) AddConstitutionFile(filename string, constitutionHash *common.Hash) error {
+func (a *GovernanceAPI) AddConstitutionFile(filename string) error {
 	return a.gov.ConstitutionManager.addConstitutionFile(filename)
 }
 
@@ -358,7 +358,10 @@ func searchAddressInList(setString string, set *exclusionSet, address common.Add
 	}
 }
 
-func printPretiffiedList(prettified *ExclusionListPrettify) string {
+func printPrettifiedList(prettified *ExclusionListPrettify) string {
+	if prettified == nil {
+		return ""
+	}
 	res := "Hash: " + prettified.Hash.String() + "\n"
 	res += "Timestamp(created at): " + prettified.Timestamp + "\n"
 	res += "Signers: \n"
