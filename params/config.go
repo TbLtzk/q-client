@@ -27,14 +27,16 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	// QMainnetGenesisHash TODO replace MainnetGenesisHash with QMainnetGenesisHash. But it can affect on DNS and other functionality. Requires deeper analysis
-	QMainnetGenesisHash = common.HexToHash("0x7579ce66d1bc55ee09fab06c1e8ec6456ec24ca58d82797c21c4dc4c007508e9") //QMainnet
-	MainnetGenesisHash  = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3") //Ethereum Mainnet
-	RopstenGenesisHash  = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
-	SepoliaGenesisHash  = common.HexToHash("0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9")
-	RinkebyGenesisHash  = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
-	GoerliGenesisHash   = common.HexToHash("0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a")
-	KilnGenesisHash     = common.HexToHash("0x51c7fe41be669f69c45c33a56982cbde405313342d9e2b00d7c91a7b284dd4f8")
+	MainnetGenesisHash = common.HexToHash("0x7579ce66d1bc55ee09fab06c1e8ec6456ec24ca58d82797c21c4dc4c007508e9") //QMainnet
+	TestnetGenesisHash = common.HexToHash("0x7989645d3b77e443a739a0489f86cbd54ec3f484a744d32f1d58bfc1bed698de") //Q Testnet
+	DevnetGenesisHash  = common.HexToHash("0x796d1bf4d4d2ec5acd086f1621d2826a51cefd943f8e2f1c36159d19c793bd81") //Q Devnet
+	//TODO remove
+	//EthereumMainnetGenesisHash  = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3") //Mainnet
+	RopstenGenesisHash = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
+	SepoliaGenesisHash = common.HexToHash("0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9")
+	RinkebyGenesisHash = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
+	GoerliGenesisHash  = common.HexToHash("0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a")
+	KilnGenesisHash    = common.HexToHash("0x51c7fe41be669f69c45c33a56982cbde405313342d9e2b00d7c91a7b284dd4f8")
 )
 
 // TrustedCheckpoints associates each known checkpoint with the genesis hash of

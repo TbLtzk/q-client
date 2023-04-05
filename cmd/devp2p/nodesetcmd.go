@@ -25,11 +25,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/core/forkid"
 	"gitlab.com/q-dev/q-client/p2p/enr"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
-	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -229,6 +229,8 @@ func ethFilter(args []string) (nodeFilter, error) {
 	switch args[0] {
 	case "mainnet":
 		filter = forkid.NewStaticFilter(params.MainnetChainConfig, params.MainnetGenesisHash)
+	case "testnet":
+		filter = forkid.NewStaticFilter(params.TestnetChainConfig, params.TestnetGenesisHash)
 	case "rinkeby":
 		filter = forkid.NewStaticFilter(params.RinkebyChainConfig, params.RinkebyGenesisHash)
 	case "goerli":

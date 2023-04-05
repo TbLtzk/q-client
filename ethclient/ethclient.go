@@ -27,8 +27,8 @@ import (
 	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
-	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/indexer"
 	"gitlab.com/q-dev/q-client/rpc"
 )
 
@@ -88,15 +88,15 @@ func (ec *Client) BlockByNumber(ctx context.Context, number *big.Int) (*types.Bl
 	return ec.getBlock(ctx, "eth_getBlockByNumber", toBlockNumArg(number), true)
 }
 
-func (ec *Client) OotStats(ctx context.Context, number *big.Int) (*clique.OutOfTurnStats, error) {
-	var result *clique.OutOfTurnStats
-	err := ec.c.CallContext(ctx, &result, "clique_getOutOfTurnStatsByNumber", toBlockNumArg(number))
+func (ec *Client) OotStats(ctx context.Context, number *big.Int) (*indexer.OutOfTurnStats, error) {
+	var result *indexer.OutOfTurnStats
+	err := ec.c.CallContext(ctx, &result, "indexer_getOutOfTurnStatsByNumber", toBlockNumArg(number))
 	return result, err
 }
 
-func (ec *Client) ValidatorMetrics(ctx context.Context, cycleSeqNumber uint64) ([]*clique.ValidatorMetrics, error) {
-	var result []*clique.ValidatorMetrics
-	err := ec.c.CallContext(ctx, &result, "clique_getValidatorsMetricsForCycle", cycleSeqNumber)
+func (ec *Client) ValidatorMetrics(ctx context.Context, cycleSeqNumber uint64) ([]*indexer.ValidatorMetrics, error) {
+	var result []*indexer.ValidatorMetrics
+	err := ec.c.CallContext(ctx, &result, "indexer_getValidatorsMetricsForCycle", cycleSeqNumber)
 	return result, err
 }
 
@@ -106,87 +106,87 @@ func (ec *Client) EpochLength(ctx context.Context) (uint64, error) {
 	return result, err
 }
 
-func (ec *Client) ConstitutionVotings(ctx context.Context, proposalCounter int64) ([]clique.ConstitutionVoting, error) {
-	var result []clique.ConstitutionVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getConstitutionVotings", proposalCounter)
+func (ec *Client) ConstitutionVotings(ctx context.Context, proposalCounter int64) ([]indexer.ConstitutionVoting, error) {
+	var result []indexer.ConstitutionVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getConstitutionVotings", proposalCounter)
 	return result, err
 }
 
-func (ec *Client) GeneralUpdateVotings(ctx context.Context, proposalCounter int64) ([]clique.GeneralVoting, error) {
-	var result []clique.GeneralVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getGeneralUpdateVotings", proposalCounter)
+func (ec *Client) GeneralUpdateVotings(ctx context.Context, proposalCounter int64) ([]indexer.GeneralVoting, error) {
+	var result []indexer.GeneralVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getGeneralUpdateVotings", proposalCounter)
 	return result, err
 }
 
-func (ec *Client) EmergencyUpdateVotings(ctx context.Context, proposalCounter int64) ([]clique.GeneralVoting, error) {
-	var result []clique.GeneralVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getEmergencyUpdateVotings", proposalCounter)
+func (ec *Client) EmergencyUpdateVotings(ctx context.Context, proposalCounter int64) ([]indexer.GeneralVoting, error) {
+	var result []indexer.GeneralVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getEmergencyUpdateVotings", proposalCounter)
 	return result, err
 }
 
-func (ec *Client) RootsVotings(ctx context.Context, proposalCounter int64) ([]clique.RootsVoting, error) {
-	var result []clique.RootsVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getRootsVotings", proposalCounter)
+func (ec *Client) RootsVotings(ctx context.Context, proposalCounter int64, blockNumber int64) ([]indexer.RootsVoting, error) {
+	var result []indexer.RootsVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getRootsVotings", proposalCounter, blockNumber)
 	return result, err
 }
 
-func (ec *Client) RootNodesSlashingVotings(ctx context.Context, proposalCounter int64) ([]clique.GeneralVoting, error) {
-	var result []clique.GeneralVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getRootNodesSlashingVotings", proposalCounter)
+func (ec *Client) RootNodesSlashingVotings(ctx context.Context, proposalCounter int64) ([]indexer.GeneralVoting, error) {
+	var result []indexer.GeneralVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getRootNodesSlashingVotings", proposalCounter)
 	return result, err
 }
 
-func (ec *Client) ValidatorsSlashingVotings(ctx context.Context, proposalCounter int64) ([]clique.GeneralVoting, error) {
-	var result []clique.GeneralVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getValidatorsSlashingVotings", proposalCounter)
+func (ec *Client) ValidatorsSlashingVotings(ctx context.Context, proposalCounter int64) ([]indexer.GeneralVoting, error) {
+	var result []indexer.GeneralVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getValidatorsSlashingVotings", proposalCounter)
 	return result, err
 }
 
-func (ec *Client) EpqfiMembershipVotings(ctx context.Context, proposalCounter int64) ([]clique.GeneralVoting, error) {
-	var result []clique.GeneralVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getEpqfiMembershipVotings", proposalCounter)
+func (ec *Client) EpqfiMembershipVotings(ctx context.Context, proposalCounter int64) ([]indexer.GeneralVoting, error) {
+	var result []indexer.GeneralVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getEpqfiMembershipVotings", proposalCounter)
 	return result, err
 }
 
-func (ec *Client) EpqfiParametersVotings(ctx context.Context, proposalCounter int64) ([]clique.GeneralVoting, error) {
-	var result []clique.GeneralVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getEpqfiParametersVotings", proposalCounter)
+func (ec *Client) EpqfiParametersVotings(ctx context.Context, proposalCounter int64) ([]indexer.GeneralVoting, error) {
+	var result []indexer.GeneralVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getEpqfiParametersVotings", proposalCounter)
 	return result, err
 }
 
-func (ec *Client) EpdrMembershipVotings(ctx context.Context, proposalCounter int64) ([]clique.GeneralVoting, error) {
-	var result []clique.GeneralVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getEpdrMembershipVotings", proposalCounter)
+func (ec *Client) EpdrMembershipVotings(ctx context.Context, proposalCounter int64) ([]indexer.GeneralVoting, error) {
+	var result []indexer.GeneralVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getEpdrMembershipVotings", proposalCounter)
 	return result, err
 }
 
-func (ec *Client) EpdrParametersVotings(ctx context.Context, proposalCounter int64) ([]clique.GeneralVoting, error) {
-	var result []clique.GeneralVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getEpdrParametersVotings", proposalCounter)
+func (ec *Client) EpdrParametersVotings(ctx context.Context, proposalCounter int64) ([]indexer.GeneralVoting, error) {
+	var result []indexer.GeneralVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getEpdrParametersVotings", proposalCounter)
 	return result, err
 }
 
-func (ec *Client) EprsMembershipVotings(ctx context.Context, proposalCounter int64) ([]clique.GeneralVoting, error) {
-	var result []clique.GeneralVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getEprsMembershipVotings", proposalCounter)
+func (ec *Client) EprsMembershipVotings(ctx context.Context, proposalCounter int64) ([]indexer.GeneralVoting, error) {
+	var result []indexer.GeneralVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getEprsMembershipVotings", proposalCounter)
 	return result, err
 }
 
-func (ec *Client) EprsParametersVotings(ctx context.Context, proposalCounter int64) ([]clique.GeneralVoting, error) {
-	var result []clique.GeneralVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getEprsParametersVotings", proposalCounter)
+func (ec *Client) EprsParametersVotings(ctx context.Context, proposalCounter int64) ([]indexer.GeneralVoting, error) {
+	var result []indexer.GeneralVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getEprsParametersVotings", proposalCounter)
 	return result, err
 }
 
-func (ec *Client) ContractRegistryAddressVotings(ctx context.Context, proposalCounter int64) ([]clique.ContractRegistryVoting, error) {
-	var result []clique.ContractRegistryVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getContractRegistryAddressVotings", proposalCounter)
+func (ec *Client) ContractRegistryAddressVotings(ctx context.Context, proposalCounter int64) ([]indexer.ContractRegistryVoting, error) {
+	var result []indexer.ContractRegistryVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getContractRegistryAddressVotings", proposalCounter)
 	return result, err
 }
 
-func (ec *Client) ContractRegistryUpgradeVotings(ctx context.Context, proposalCounter int64) ([]clique.ContractRegistryVoting, error) {
-	var result []clique.ContractRegistryVoting
-	err := ec.c.CallContext(ctx, &result, "clique_getContractRegistryUpgradeVotings", proposalCounter)
+func (ec *Client) ContractRegistryUpgradeVotings(ctx context.Context, proposalCounter int64) ([]indexer.ContractRegistryVoting, error) {
+	var result []indexer.ContractRegistryVoting
+	err := ec.c.CallContext(ctx, &result, "indexer_getContractRegistryUpgradeVotings", proposalCounter)
 	return result, err
 }
 
