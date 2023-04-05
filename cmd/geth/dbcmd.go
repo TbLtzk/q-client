@@ -27,6 +27,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/olekukonko/tablewriter"
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
@@ -39,8 +41,6 @@ import (
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/trie"
-	"github.com/olekukonko/tablewriter"
-	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -355,12 +355,12 @@ func checkStateContent(ctx *cli.Context) error {
 
 func showLeveldbStats(db ethdb.KeyValueStater) {
 	if stats, err := db.Stat("leveldb.stats"); err != nil {
-		log.Warn("Failed to read database stats", "error", err)
+		log.WarnAndNotify("Failed to read database stats", "error", err)
 	} else {
 		fmt.Println(stats)
 	}
 	if ioStats, err := db.Stat("leveldb.iostats"); err != nil {
-		log.Warn("Failed to read database iostats", "error", err)
+		log.WarnAndNotify("Failed to read database iostats", "error", err)
 	} else {
 		fmt.Println(ioStats)
 	}

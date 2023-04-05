@@ -23,6 +23,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/rawdb"
@@ -35,7 +36,6 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/trie"
-	cli "github.com/urfave/cli/v2"
 )
 
 var (
@@ -201,7 +201,7 @@ func verifyState(ctx *cli.Context) error {
 	chaindb := utils.MakeChainDatabase(ctx, stack, true)
 	headBlock := rawdb.ReadHeadBlock(chaindb)
 	if headBlock == nil {
-		log.Error("Failed to load head block")
+		log.ErrorAndNotify("Failed to load head block")
 		return errors.New("no head block")
 	}
 	snaptree, err := snapshot.New(chaindb, trie.NewDatabase(chaindb), 256, headBlock.Root(), false, false, false)
@@ -248,7 +248,7 @@ func traverseState(ctx *cli.Context) error {
 	chaindb := utils.MakeChainDatabase(ctx, stack, true)
 	headBlock := rawdb.ReadHeadBlock(chaindb)
 	if headBlock == nil {
-		log.Error("Failed to load head block")
+		log.ErrorAndNotify("Failed to load head block")
 		return errors.New("no head block")
 	}
 	if ctx.NArg() > 1 {
@@ -337,7 +337,7 @@ func traverseRawState(ctx *cli.Context) error {
 	chaindb := utils.MakeChainDatabase(ctx, stack, true)
 	headBlock := rawdb.ReadHeadBlock(chaindb)
 	if headBlock == nil {
-		log.Error("Failed to load head block")
+		log.ErrorAndNotify("Failed to load head block")
 		return errors.New("no head block")
 	}
 	if ctx.NArg() > 1 {

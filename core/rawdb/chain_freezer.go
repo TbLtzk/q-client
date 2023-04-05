@@ -126,7 +126,7 @@ func (f *chainFreezer) freeze(db ethdb.KeyValueStore) {
 		frozen := atomic.LoadUint64(&f.frozen)
 		switch {
 		case number == nil:
-			log.Error("Current full block number unavailable", "hash", hash)
+			log.ErrorAndNotify("Current full block number unavailable", "hash", hash)
 			backoff = true
 			continue
 
@@ -142,7 +142,7 @@ func (f *chainFreezer) freeze(db ethdb.KeyValueStore) {
 		}
 		head := ReadHeader(nfdb, hash, *number)
 		if head == nil {
-			log.Error("Current full block unavailable", "number", *number, "hash", hash)
+			log.ErrorAndNotify("Current full block unavailable", "number", *number, "hash", hash)
 			backoff = true
 			continue
 		}

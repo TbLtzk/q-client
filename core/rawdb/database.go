@@ -519,7 +519,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 	table.Render()
 
 	if unaccounted.size > 0 {
-		log.Error("Database contains unaccounted data", "size", unaccounted.size, "count", unaccounted.count)
+		log.ErrorAndNotify("Database contains unaccounted data", "size", unaccounted.size, "count", unaccounted.count)
 	}
 
 	return nil
