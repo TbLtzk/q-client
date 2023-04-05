@@ -52,8 +52,8 @@ func Warn(msg string, ctx ...interface{}) {
 
 // WarnAndNotify is a convenient alias for Root().Warn
 func WarnAndNotify(msg string, ctx ...interface{}) {
-	sentryMonitor.HandleWarningWithArgs(msg, ctx)
 	root.write(msg, LvlWarn, ctx, skipLevel)
+	sentryMonitor.HandleWarningWithArgs(msg, ctx)
 }
 
 // Error is a convenient alias for Root().Error
@@ -63,15 +63,15 @@ func Error(msg string, ctx ...interface{}) {
 
 // ErrorAndNotify is a convenient alias for Root().Error
 func ErrorAndNotify(msg string, ctx ...interface{}) {
-	sentryMonitor.HandleErrorWithArgs(msg, ctx)
 	root.write(msg, LvlError, ctx, skipLevel)
+	sentryMonitor.HandleErrorWithArgs(msg, ctx)
 }
 
 // Crit is a convenient alias for Root().Crit
 func Crit(msg string, ctx ...interface{}) {
+	root.write(msg, LvlCrit, ctx, skipLevel)
 	sentryMonitor.HandleErrorMessage(msg) //This type of errors will be handled in any case
 
-	root.write(msg, LvlCrit, ctx, skipLevel)
 	os.Exit(1)
 }
 
