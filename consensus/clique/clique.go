@@ -451,7 +451,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		}
 
 		signers := make([]byte, len(snap.Signers)*common.AddressLength)
-		for i, signer := range snap.signers() {
+		for i, signer := range snap.SignersList() {
 			copy(signers[i*common.AddressLength:], signer[:])
 		}
 		extraSuffix := len(header.Extra) - extraSeal
@@ -472,7 +472,7 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 
 	provider := c.registry.Validators()
 	if provider == nil {
-		snap.Signers = toSet(filterSigners(number, snap.signers(), excludedSigners))
+		snap.Signers = toSet(filterSigners(number, snap.SignersList(), excludedSigners))
 		return nil
 	}
 
@@ -486,7 +486,7 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 
 	// this can happen when 'validators' contract is deployed but is empty
 	if len(signers) == 0 {
-		snap.Signers = toSet(filterSigners(number, snap.signers(), excludedSigners))
+		snap.Signers = toSet(filterSigners(number, snap.SignersList(), excludedSigners))
 		return nil
 	}
 
@@ -545,8 +545,8 @@ func (c *Clique) aliasAccounts(filtered []common.Address, isAthos bool) []common
 	return filteredWithAliases
 }
 
-//TODO remove in production
-func (c *Clique) unAliasAccounts(filtered []common.Address, isAthos bool) []common.Address {
+// TODO remove in production
+func (c *Clique) UnAliasAccounts(filtered []common.Address, isAthos bool) []common.Address {
 	if !isAthos {
 		return filtered
 	}
@@ -798,7 +798,7 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	header.Extra = header.Extra[:extraVanity]
 
 	if number%c.config.Epoch == 0 {
-		for _, signer := range snap.signers() {
+		for _, signer := range snap.SignersList() {
 			header.Extra = append(header.Extra, signer[:]...)
 		}
 	}
