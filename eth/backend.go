@@ -48,6 +48,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/governance"
+	"gitlab.com/q-dev/q-client/indexer"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/internal/shutdowncheck"
 	"gitlab.com/q-dev/q-client/log"
@@ -325,6 +326,17 @@ func (s *Ethereum) APIs() []rpc.API {
 
 	// Append any APIs exposed explicitly by the consensus engine
 	apis = append(apis, s.engine.APIs(s.BlockChain())...)
+	cliqueApi := s.engine.APIs(s.BlockChain())[0]
+	switch cliqueApi.Service.(type) {
+	case *clique.API:
+		indexerr := indexer.New(cliqueApi.Service.(*clique.API))
+		apis = append(apis, rpc.API{
+			Namespace: "indexer",
+			Version:   "1.0",
+			Service:   indexer.NewIndexerAPI(indexerr),
+			Public:    true,
+		})
+	}
 
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{
