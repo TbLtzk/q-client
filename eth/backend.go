@@ -48,6 +48,7 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/governance"
+	"gitlab.com/q-dev/q-client/indexer"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/miner"
@@ -319,7 +320,16 @@ func (s *Ethereum) APIs() []rpc.API {
 	apis := ethapi.GetAPIs(s.APIBackend)
 
 	// Append any APIs exposed explicitly by the consensus engine
-	apis = append(apis, s.engine.APIs(s.BlockChain())...)
+	cliqque := s.engine.APIs(s.BlockChain())
+	apis = append(apis, cliqque...)
+
+	indexerr := indexer.New(cliqque[0].Service.(*clique.API))
+	apis = append(apis, rpc.API{
+		Namespace: "indexer",
+		Version:   "1.0",
+		Service:   indexer.NewIndexerAPI(indexerr),
+		Public:    true,
+	})
 
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{

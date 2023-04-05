@@ -32,6 +32,7 @@ var Modules = map[string]string{
 	"vflux":    VfluxJs,
 	"gov":      GovJs,
 	"govPub":   GovPublicJs,
+	"indexer":  IndexerJs,
 }
 
 const CliqueJs = `
@@ -82,101 +83,109 @@ web3._extend({
 			inputFormatter: [null]
 		}),
 		new web3._extend.Method({
-			name: 'getOutOfTurnStatsByHash',
-			call: 'clique_getOutOfTurnStatsByHash',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'getOutOfTurnStatsByNumber',
-			call: 'clique_getOutOfTurnStatsByNumber',
-			params: 1,
-			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
-		}),
-		new web3._extend.Method({
-			name: 'getValidatorsMetricsForCycle',
-			call: 'clique_getValidatorsMetricsForCycle',
-			params: 1,
-		}),
-		new web3._extend.Method({
 			name: 'getEpochLength',
 			call: 'clique_getEpochLength',
 			params: 0,
-		}),
-		new web3._extend.Method({
-			name: 'getConstitutionVotings',
-			call: 'clique_getConstitutionVotings',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getGeneralUpdateVotings',
-			call: 'clique_getGeneralUpdateVotings',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getEmergencyUpdateVotings',
-			call: 'clique_getEmergencyUpdateVotings',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getRootsVotings',
-			call: 'clique_getRootsVotings',
-			params: 2,
-		}),
-		new web3._extend.Method({
-			name: 'getRootNodesSlashingVotings',
-			call: 'clique_getRootNodesSlashingVotings',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getValidatorsSlashingVotings',
-			call: 'clique_getValidatorsSlashingVotings',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getEpqfiMembershipVotings',
-			call: 'clique_getEpqfiMembershipVotings',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getEpqfiParametersVotings',
-			call: 'clique_getEpqfiParametersVotings',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getEpdrMembershipVotings',
-			call: 'clique_getEpqfiMembershipVotings',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getEpdrParametersVotings',
-			call: 'clique_getEpqfiParametersVotings',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getEprsMembershipVotings',
-			call: 'clique_getEpqfiMembershipVotings',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getEprsParametersVotings',
-			call: 'clique_getEpqfiParametersVotings',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getContractRegistryAddressVotings',
-			call: 'clique_getContractRegistryAddressVotings',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getContractRegistryUpgradeVotings',
-			call: 'clique_getContractRegistryUpgradeVotings',
-			params: 1,
 		}),
 	],
 	properties: [
 		new web3._extend.Property({
 			name: 'proposals',
 			getter: 'clique_proposals'
+		}),
+	]
+});
+`
+
+const IndexerJs = `
+web3._extend({
+	property: 'indexer',
+	methods: [
+		new web3._extend.Method({
+			name: 'getOutOfTurnStatsByHash',
+			call: 'indexer_getOutOfTurnStatsByHash',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'getOutOfTurnStatsByNumber',
+			call: 'indexer_getOutOfTurnStatsByNumber',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'getValidatorsMetricsForCycle',
+			call: 'indexer_getValidatorsMetricsForCycle',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getConstitutionVotings',
+			call: 'indexer_getConstitutionVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getGeneralUpdateVotings',
+			call: 'indexer_getGeneralUpdateVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEmergencyUpdateVotings',
+			call: 'indexer_getEmergencyUpdateVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getRootsVotings',
+			call: 'indexer_getRootsVotings',
+			params: 2,
+		}),
+		new web3._extend.Method({
+			name: 'getRootNodesSlashingVotings',
+			call: 'indexer_getRootNodesSlashingVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getValidatorsSlashingVotings',
+			call: 'indexer_getValidatorsSlashingVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEpqfiMembershipVotings',
+			call: 'indexer_getEpqfiMembershipVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEpqfiParametersVotings',
+			call: 'indexer_getEpqfiParametersVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEpdrMembershipVotings',
+			call: 'indexer_getEpqfiMembershipVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEpdrParametersVotings',
+			call: 'indexer_getEpqfiParametersVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEprsMembershipVotings',
+			call: 'indexer_getEpqfiMembershipVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getEprsParametersVotings',
+			call: 'indexer_getEpqfiParametersVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getContractRegistryAddressVotings',
+			call: 'indexer_getContractRegistryAddressVotings',
+			params: 1,
+		}),
+		new web3._extend.Method({
+			name: 'getContractRegistryUpgradeVotings',
+			call: 'indexer_getContractRegistryUpgradeVotings',
+			params: 1,
 		}),
 	]
 });
