@@ -638,7 +638,7 @@ func ReadReceipts(db ethdb.Reader, hash common.Hash, number uint64, config *para
 		return nil
 	}
 	if err := receipts.DeriveFields(config, hash, number, body.Transactions); err != nil {
-		log.Error("Failed to derive block receipts fields", "hash", hash, "number", number, "err", err)
+		log.ErrorAndNotify("Failed to derive block receipts fields", "hash", hash, "number", number, "err", err)
 		return nil
 	}
 	return receipts
@@ -743,7 +743,7 @@ func ReadLogs(db ethdb.Reader, hash common.Hash, number uint64, config *params.C
 		return nil
 	}
 	if err := deriveLogFields(receipts, hash, number, body.Transactions); err != nil {
-		log.Error("Failed to derive block receipts fields", "hash", hash, "number", number, "err", err)
+		log.ErrorAndNotify("Failed to derive block receipts fields", "hash", hash, "number", number, "err", err)
 		return nil
 	}
 	logs := make([][]*types.Log, len(receipts))
