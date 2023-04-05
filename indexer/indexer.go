@@ -8,6 +8,6 @@ type Indexer struct {
 	clique *clique.API
 }
 
-func New(clique *clique.API) *Indexer {
-	return &Indexer{clique: clique}
+func New(cliqueApi *clique.API) *Indexer {
+	return &Indexer{clique: cliqueApi}
 }
