@@ -136,7 +136,7 @@ var TestnetBootnodes = []string{
 	"enode://7a8ade64b79961a7752daedc4104ca4b79f1a67a10ea5c9721e7115d820dbe7599fe9e03c9c315081ccf6a2afb0b6652ee4965e38f066fe5bf129abd6d26df58@extrabootnode.qtestnet.org:30306",
 }
 
-const dnsPrefix = "enrtree://AKA3AM6LPBYEUDMVNU3BSVQJ5AD45Y7YPOHJLEF6W26QOE4VTUDPE@"
+const dnsPrefix = "enrtree://ALOTQTGPWL46IKN6REI34RXFTPPI4CFZZW46ZFRTM4U73ID3B7HHK@"
 
 // KnownDNSNetwork returns the address of a public DNS-based node list for the given
 // genesis hash and protocol. See https://github.com/ethereum/discv4-dns-lists for more
