@@ -74,6 +74,8 @@ build:
       /kaniko/executor
       --context "${CI_PROJECT_DIR}"
       --dockerfile "${CI_PROJECT_DIR}/Dockerfile.alltools"
+      --cache=true
+      --cache-repo=registry.gitlab.com/q-dev/q-client/cache
       --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}"
       --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
       --build-arg COMMIT="${CI_COMMIT_SHORT_SHA}"
@@ -98,6 +100,8 @@ build-arm:
       /kaniko/executor
       --context "${CI_PROJECT_DIR}"
       --dockerfile "${CI_PROJECT_DIR}/Dockerfile.alltools"
+      --cache=true
+      --cache-repo=registry.gitlab.com/q-dev/q-client/cache-arm
       --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_SLUG}"
       --destination "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA}"
       --build-arg COMMIT="${CI_COMMIT_SHORT_SHA}"
