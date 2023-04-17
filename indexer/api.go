@@ -238,7 +238,7 @@ func (api *IndexerAPI) GetEmergencyUpdateVotings(proposalCounter int64) ([]Gener
 	return votings, nil
 }
 
-func (api *IndexerAPI) GetRootsVotings(proposalCounter int64, blockNumber int64) ([]RootsVoting, error) {
+func (api *IndexerAPI) GetRootsVotings(proposalCounter int64, blockNumber uint64, lastBlockNumber uint64) ([]RootsVoting, error) {
 	var votings []RootsVoting
 	votingOpts := &bind.CallOpts{
 		Pending:     false,
@@ -247,8 +247,8 @@ func (api *IndexerAPI) GetRootsVotings(proposalCounter int64, blockNumber int64)
 		Context:     nil,
 	}
 	votingFilterOpts := &bind.FilterOpts{
-		Start:   uint64(blockNumber),
-		End:     nil,
+		Start:   blockNumber,
+		End:     &lastBlockNumber,
 		Context: nil,
 	}
 
