@@ -27,7 +27,7 @@ RUN go env -w GOPRIVATE=gitlab.com/q-dev/*
 RUN cd /q-client && make geth
 
 # Pull Geth into a second stage deploy alpine container
-FROM ${ARCH}/alpine:latest
+FROM ${ARCH}alpine:latest
 
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /q-client/build/bin/geth /usr/local/bin/
