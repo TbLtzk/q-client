@@ -124,9 +124,9 @@ func (ec *Client) EmergencyUpdateVotings(ctx context.Context, proposalCounter in
 	return result, err
 }
 
-func (ec *Client) RootsVotings(ctx context.Context, proposalCounter int64, blockNumber int64) ([]indexer.RootsVoting, error) {
+func (ec *Client) RootsVotings(ctx context.Context, proposalCounter uint64, blockNumber int64, lastBlockNumber uint64) ([]indexer.RootsVoting, error) {
 	var result []indexer.RootsVoting
-	err := ec.c.CallContext(ctx, &result, "indexer_getRootsVotings", proposalCounter, blockNumber)
+	err := ec.c.CallContext(ctx, &result, "indexer_getRootsVotings", proposalCounter, blockNumber, lastBlockNumber)
 	return result, err
 }
 
