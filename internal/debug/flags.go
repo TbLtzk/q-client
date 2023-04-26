@@ -24,14 +24,14 @@ import (
 	"os"
 	"runtime"
 
-	"gitlab.com/q-dev/q-client/internal/flags"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/metrics"
-	"gitlab.com/q-dev/q-client/metrics/exp"
 	"github.com/fjl/memsize/memsizeui"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
+	"gitlab.com/q-dev/q-client/internal/flags"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/metrics"
+	"gitlab.com/q-dev/q-client/metrics/exp"
 )
 
 var Memsize memsizeui.Handler

@@ -501,31 +501,6 @@ func Test_rootSet_isAcceptable(t *testing.T) {
 	}
 }
 
-func exclusionSetsAreEqual(t *testing.T, a, b *exclusionSet) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	if a.timestamp != b.timestamp {
-		return false
-	}
-	if a.hash != b.hash {
-		return false
-	}
-	if !assert.ElementsMatch(t, a.addrToBlock, b.addrToBlock) {
-		return false
-	}
-	if !reflect.DeepEqual(a.blockRanges, b.blockRanges) {
-		return false
-	}
-	if !assert.Equal(t, a.signers, b.signers) {
-		return false
-	}
-	return true
-}
-
 func Test_rootSet_isEnoughExSetSignatures(t *testing.T) {
 	type rootSetFields struct {
 		timestamp     uint64

@@ -212,7 +212,6 @@ func TestSuggestTipCap(t *testing.T) {
 }
 
 func TestCalcGasPice(t *testing.T) {
-
 	var cases = []struct {
 		txFee, qQusdExchangeRate, txSize *big.Int
 		expect                           *big.Int

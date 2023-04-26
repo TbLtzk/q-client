@@ -3,7 +3,6 @@ package governance
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"log"
 	"path/filepath"
 	"sync"
@@ -297,13 +296,6 @@ func (p *peer) asyncSendConstitutionFiles(cm *ConstitutionManager, files []commo
 		})
 	}
 	p.sendConstitutionFiles(&res)
-}
-
-func stringToBin(s string) (binString string) {
-	for _, c := range s {
-		binString = fmt.Sprintf("%s%b", binString, c)
-	}
-	return
 }
 
 func (p *peer) sendExclusionList(set *exclusionSet) error {

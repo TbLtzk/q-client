@@ -247,7 +247,6 @@ func (db *database) getLastApprovals() *common.RootNodeApprovalList {
 }
 
 func (db *database) updateApprovalBlockNumber(blockNumber *big.Int) error {
-
 	dbBN, err := db.getApprovalLastBlockNumber()
 	if err != nil {
 		return err

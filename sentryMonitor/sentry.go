@@ -31,6 +31,7 @@ func HandleError(err error) {
 	if !config.Enabled {
 		return
 	}
+
 	sentry.CaptureException(err)
 }
 

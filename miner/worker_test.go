@@ -535,7 +535,7 @@ func TestGetSealingWorkEthash(t *testing.T) {
 }
 
 func TestGetSealingWorkClique(t *testing.T) {
-	testGetSealingWork(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase()), false)
+	testGetSealingWork(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase(), nil, nil), false)
 }
 
 func TestGetSealingWorkPostMerge(t *testing.T) {

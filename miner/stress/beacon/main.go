@@ -497,7 +497,7 @@ func makeFullNode(genesis *core.Genesis) (*node.Node, *eth.Ethereum, *ethcatalys
 		LightPeers:       10,
 		LightNoSyncServe: true,
 	}
-	ethBackend, err := eth.New(stack, econfig)
+	ethBackend, err := eth.New(stack, econfig, nil, nil)
 	if err != nil {
 		return nil, nil, nil, err
 	}

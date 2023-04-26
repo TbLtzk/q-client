@@ -22,10 +22,6 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 )
 
-var (
-	errConstitutionFileRequestIsEmpty = errors.New("constitution file request is empty")
-)
-
 const (
 	draftsDir              = "drafts"
 	constitutionFilePrefix = `Q-Constitution-`

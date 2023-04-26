@@ -71,3 +71,4 @@ issues:
     - 'SA1019: strings.Title has been deprecated since Go 1.18 and an alternative has been available since Go 1.0: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead.'
     - 'SA1029: should not use built-in type string as key for value'
     - 'G306: Expect WriteFile permissions to be 0600 or less'
+    - 'SA1019: package io/ioutil is deprecated: As of Go 1.16, the same functionality is now provided by package io or package os, and those implementations should be preferred in new code. See the specific function documentation for details.'

@@ -127,7 +127,7 @@ func testDAOForkBlockNewChain(t *testing.T, test int, genesis string, expectBloc
 	}
 	defer db.Close()
 
-	genesisHash := params.QMainnetGenesisHash
+	genesisHash := params.MainnetGenesisHash
 	if genesis != "" {
 		genesisHash = daoGenesisHash
 	}
