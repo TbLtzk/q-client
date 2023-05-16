@@ -69,12 +69,21 @@ func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error)
 		addrToBlock: addrs,
 		blockRanges: validatorsSet,
 	}
-	set.hash = set.calcHash()
+
+	if (list.Hash != common.Hash{}) {
+		set.hash = set.calcFullHash() //new hash rule only for validation (for now). Try it first
+	} else {
+		set.hash = set.calcHash() //old hash rule is applied if list is new and hash is empty
+	}
 
 	set.fixTimestamp()
 
 	if set.hash != list.Hash && (list.Hash != common.Hash{}) {
-		return nil, errHashMismatch
+		set.hash = set.calcHash()
+		set.fixTimestamp()
+		if set.hash != list.Hash && (list.Hash != common.Hash{}) {
+			return nil, errHashMismatch
+		}
 	}
 
 	signers := make(map[common.Address][]byte)
@@ -97,6 +106,29 @@ func (s *exclusionSet) calcHash() common.Hash {
 		msg = append(msg, addr.Bytes()...)
 	}
 
+	return crypto.Keccak256Hash(msg)
+}
+
+func (s *exclusionSet) calcFullHash() common.Hash {
+	msg := append([]byte{}, fmt.Sprint(s.timestamp)...)
+
+	keys := make([]common.Address, 0, len(s.blockRanges))
+
+	for k := range s.blockRanges {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].String() < keys[j].String()
+	})
+
+	for _, address := range keys {
+		msg = append(msg, address.Bytes()...)
+		ranges := s.blockRanges[address]
+		for _, r := range ranges {
+			msg = append(msg, fmt.Sprint(r.StartAddress)...)
+			msg = append(msg, fmt.Sprint(r.EndAddress)...)
+		}
+	}
 	return crypto.Keccak256Hash(msg)
 }
 
