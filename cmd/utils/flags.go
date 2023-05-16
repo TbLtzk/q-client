@@ -20,7 +20,6 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"gitlab.com/q-dev/q-client/miner"
 	"math"
 	"math/big"
 	"os"
@@ -36,6 +35,7 @@ import (
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/metrics/exp"
 	"gitlab.com/q-dev/q-client/metrics/influxdb"
+	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/enode"
@@ -2434,7 +2434,6 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 }
 
 func MakeRootManager(stack *node.Node, networkId uint64, govCfg *governance.Config) *governance.RootManager {
-
 	rm, err := governance.NewRootManager(stack.AccountManager(), networkId, stack.InstanceDir(), govCfg)
 	if err != nil {
 		Fatalf("Can't create RootManager: %v", err)

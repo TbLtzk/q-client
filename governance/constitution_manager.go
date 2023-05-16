@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"gitlab.com/q-dev/q-client/event"
 	"io"
-	"io/fs"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"sync"
 	"time"
@@ -19,7 +17,9 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/contracts"
+	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/system-contracts/generated"
 )
 
 const (
@@ -33,6 +33,7 @@ type ConstitutionManager struct {
 	db             *database
 	reg            *contracts.Registry
 	requiredHashes []common.Hash
+	knownHashes    []common.Hash
 
 	constitutionFeed *event.Feed
 	storageLock      sync.Mutex
@@ -69,10 +70,13 @@ func NewConstitutionManager(datadir string, db *database, rm *RootManager) (*Con
 	requiredHashes, _ := db.getConstitutionFileRequests()
 	manager.requiredHashes = requiredHashes
 
-	//TODO this is too dirty. Find a better way to wait until registry is initialized
-	time.AfterFunc(time.Second*5, func() {
-		manager.CheckLastConstitutionFileExists()
-	})
+	knownHashes, _ := db.getKnownConstitutionFiles()
+	manager.knownHashes = knownHashes
+
+	////TODO this is too dirty. Find a better way to wait until registry is initialized
+	//time.AfterFunc(time.Second*5, func() {
+	//	manager.CheckLastConstitutionFileExists()
+	//})
 
 	return manager, nil
 }
@@ -191,7 +195,6 @@ func (cm *ConstitutionManager) validateStorage() {
 		if err := cm.db.saveConstitutionStorage(&resDbFiles); err != nil {
 			log.Error("Constitution storage update error", "err", err)
 		}
-
 	}
 
 	//Remove all incorrect files
@@ -227,6 +230,47 @@ func (cm *ConstitutionManager) validateStorage() {
 		}
 	}
 
+	//Update known files - add new ones if any
+	resKnownFiles := []common.Hash{}
+	for _, existingFile := range resDbFiles {
+		resKnownFiles = append(resKnownFiles, existingFile.Hash)
+	}
+
+	//validation of hashes inside
+	if err := cm.updateKnownConstitutionFiles(resKnownFiles); err != nil {
+		log.Error("Failed to update known constitution files", "err", err)
+		//return
+	}
+}
+
+func (cm *ConstitutionManager) updateKnownConstitutionFiles(newFiles []common.Hash) error {
+	knownFiles, err := cm.db.getKnownConstitutionFiles()
+	if err != nil {
+		return errors.Wrap(err, "Failed to get known constitution files")
+	}
+
+	resMap := make(map[common.Hash]bool)
+	newFiles = append(newFiles, knownFiles...)
+	for _, file := range newFiles {
+		if _, err := cm.isHashValid(file); err != nil {
+			continue
+		}
+
+		resMap[file] = true
+	}
+	res := make([]common.Hash, 0, len(resMap))
+	for file := range resMap {
+		res = append(res, file)
+	}
+	if !reflect.DeepEqual(res, knownFiles) {
+		if err := cm.db.saveKnownConstitutionFiles(&res); err != nil {
+			return errors.Wrap(err, "Failed to save known constitution files")
+		}
+	}
+
+	cm.knownHashes = res
+
+	return nil
 }
 
 func (cm *ConstitutionManager) validateConstitutionDatabase() ([]common.ConstitutionFile, error) {
@@ -248,7 +292,7 @@ func (cm *ConstitutionManager) validateConstitutionFileRequestDatabase() ([]comm
 func (cm *ConstitutionManager) validateStorageDir() ([]string, error) {
 	var validFileNames []string
 
-	files, err := ioutil.ReadDir(cm.baseDir)
+	files, err := os.ReadDir(cm.baseDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error processing constitution storage path")
 	}
@@ -272,7 +316,12 @@ func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 		log.Info("The provided path is a URL. Trying to download a file")
 
 		resp, errGet := http.Get(filename)
-		defer resp.Body.Close()
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				log.Error("Failed to close response body", "err", err)
+			}
+		}(resp.Body)
 
 		if errGet != nil {
 			return errors.New("Download failed. Check if the provided URL is correct")
@@ -280,7 +329,12 @@ func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 		newFileName := fmt.Sprint(time.Now().Unix())
 		newFilePath := filepath.Join(cm.baseDir, draftsDir, newFileName)
 		out, errCreate := os.Create(newFilePath)
-		defer out.Close()
+		defer func(out *os.File) {
+			err := out.Close()
+			if err != nil {
+				log.Error("Failed to close file", "err", err)
+			}
+		}(out)
 		if errCreate != nil {
 			return errors.New("Failed to create temporary file")
 		}
@@ -338,14 +392,18 @@ func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
 	}
 
 	cvE, err := cv.ConstitutionVotingFilterer.FilterProposalExecuted(nil, nil)
-	defer cvE.Close()
+	defer func(cvE *generated.ConstitutionVotingProposalExecutedIterator) {
+		err := cvE.Close()
+		if err != nil {
+			log.Error("Error closing event iterator", "error", err)
+		}
+	}(cvE)
 
 	if err != nil {
 		return false, errors.Wrap(err, wrapped)
 	}
 	ok := cvE.Next()
 	for ok {
-		log.Error(common.BytesToHash(cvE.Event.ConstitutionHash[:]).String())
 		if bytes.Equal(cvE.Event.ConstitutionHash[:], hash.Bytes()) {
 			return true, nil
 		}
@@ -370,7 +428,12 @@ func (cm *ConstitutionManager) getLastConstitutionHash() (*common.Hash, error) {
 	}
 
 	cvE, err := cv.ConstitutionVotingFilterer.FilterProposalExecuted(nil, nil)
-	defer cvE.Close()
+	defer func(cvE *generated.ConstitutionVotingProposalExecutedIterator) {
+		err := cvE.Close()
+		if err != nil {
+			log.Error("Failed to close event iterator", "error", err)
+		}
+	}(cvE)
 
 	if err != nil {
 		return nil, errors.Wrap(err, wrapped)
@@ -392,42 +455,68 @@ func (cm *ConstitutionManager) filenameFromHash(constitutionHash common.Hash) st
 	return constitutionFilePrefix + "_" + constitutionHash.String()[:8] + ".adoc"
 }
 
-func (cm *ConstitutionManager) storeConstitutionFile(contents []byte, cFile common.ConstitutionFile, regular bool) error {
+func (cm *ConstitutionManager) storeConstitutionFile(contents []byte, cFile common.ConstitutionFile, legit bool) error {
 	dbFiles, err := cm.db.getConstitutionFiles()
+	if err != nil {
+		return errors.New("Failed to load constitution storage from the database")
+	}
+
+	knownDbFiles, err := cm.db.getKnownConstitutionFiles()
 	if err != nil {
 		return errors.New("Failed to load constitution storage from the database")
 	}
 
 	resDir := cm.baseDir
 
-	if regular {
+	hasFile := false
+	hasKnownFile := false
+	if legit {
 		//No need to update same file
 		for _, dbFile := range dbFiles {
 			if dbFile.Hash == cFile.Hash {
-				//return errors.New("Cannot add constitution file. Same file already exists")
-				return nil //exists, skip
+				hasFile = true
 			}
+		}
+
+		for _, knownFile := range knownDbFiles {
+			if knownFile == cFile.Hash {
+				hasKnownFile = true
+			}
+		}
+
+		if hasFile && hasKnownFile {
+			return nil
 		}
 	} else {
 		resDir = filepath.Join(resDir, draftsDir)
 	}
 
-	newFilePath := filepath.Join(resDir, cFile.Name)
-
-	if errRn := os.WriteFile(newFilePath, contents, 0644); errRn != nil {
-		log.Error("Cannot save new constitution file to file storage", "error", newFilePath)
-		return errRn
+	if !hasFile {
+		newFilePath := filepath.Join(resDir, cFile.Name)
+		if errRn := os.WriteFile(newFilePath, contents, 0644); errRn != nil {
+			log.Error("Cannot save new constitution file to file storage", "error", newFilePath)
+			return errRn
+		}
 	}
 
 	//We only need add a record to the DB in case if file is not a draft
-	if regular {
+	if legit && !hasFile {
 		dbFiles = append(dbFiles, cFile)
 		if errSave := cm.db.saveConstitutionStorage(&dbFiles); errSave != nil {
-			log.Error("Cannot save new constitution file to database", "error", errSave)
+			log.Error("Cannot save new constitution file to the database", "error", errSave)
 			return errSave
 		}
+		log.Info("Constitution file with hash " + cFile.Hash.String() + " added successfully")
 	}
-	log.Info("Constitution file with hash " + cFile.Hash.String() + " added successfully")
+	if !hasKnownFile {
+		knownDbFiles = append(knownDbFiles, cFile.Hash)
+		if errSave := cm.db.saveKnownConstitutionFiles(&knownDbFiles); errSave != nil {
+			log.Error("Cannot save known constitution files to the database", "error", errSave)
+			return errSave
+		}
+		log.Info("Constitution file with hash " + cFile.Hash.String() + " added to known files successfully")
+	}
+
 	return nil
 }
 
@@ -471,7 +560,7 @@ func (cm *ConstitutionManager) addConstitutionFileRequest(requiredHash *common.H
 	return requiredHash, nil
 }
 
-func (cm *ConstitutionManager) fileHasValidName(file fs.FileInfo) bool {
+func (cm *ConstitutionManager) fileHasValidName(file os.DirEntry) bool {
 	match, _ := regexp.MatchString(filePattern, file.Name())
 
 	if (file.IsDir() && file.Name() != draftsDir) || (!file.IsDir() && !match) {
@@ -483,7 +572,7 @@ func (cm *ConstitutionManager) fileHasValidName(file fs.FileInfo) bool {
 }
 
 func (cm *ConstitutionManager) getHashOfFile(filePath string) common.Hash {
-	bytes, err := ioutil.ReadFile(filePath)
+	bytes, err := os.ReadFile(filePath)
 	if err != nil {
 		log.Error("Cannot get file hash", "error", err)
 	}
@@ -517,14 +606,6 @@ func (cm *ConstitutionManager) fileExists(path string) error {
 	return errF
 }
 
-func (cm *ConstitutionManager) populateConstitutionFileRequest() common.ConstitutionFilesRequest {
-	var res common.ConstitutionFilesRequest
-	if cm.requiredHashes != nil {
-		res.Hashes = cm.requiredHashes
-	}
-	return res
-}
-
 // fileName should be just name without basedir
 func (cm *ConstitutionManager) getFileContents(fileName string) ([]byte, error) {
 	contents, errC := os.ReadFile(fileName)
@@ -540,7 +621,7 @@ func (cm *ConstitutionManager) getDraftFiles() ([]common.ConstitutionFile, error
 
 	draftsPath := filepath.Join(cm.baseDir, draftsDir)
 
-	files, err := ioutil.ReadDir(draftsPath)
+	files, err := os.ReadDir(draftsPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error processing constitution storage drafts path")
 	}
@@ -568,6 +649,10 @@ func (cm *ConstitutionManager) CheckLastConstitutionFileExists() {
 		return
 	}
 	if hash != nil {
-		cm.addConstitutionFileRequest(hash)
+		_, err := cm.addConstitutionFileRequest(hash)
+		if err != nil {
+			log.Error("Cannot add constitution file request", "error", err)
+			return
+		}
 	}
 }

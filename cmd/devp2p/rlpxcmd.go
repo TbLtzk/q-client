@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/cmd/devp2p/internal/ethtest"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/p2p/rlpx"
 	"gitlab.com/q-dev/q-client/rlp"
-	"github.com/urfave/cli/v2"
 )
 
 var (

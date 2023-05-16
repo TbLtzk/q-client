@@ -31,7 +31,7 @@ stages:
   - ".post"
 
 test:
-  image: golang:1.17.13
+  image: golang:1.19.5
   stage: test
   extends: .before_script_template
   tags:
@@ -48,7 +48,7 @@ test:
       junit: report.xml
 
 lint:
-  image: golang:1.16.7
+  image: golang:1.19.5
   stage: test
   extends: .before_script_template
   tags:

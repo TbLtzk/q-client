@@ -23,8 +23,8 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/q-dev/q-client/log"
 	"github.com/urfave/cli/v2"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // main is just a boring entry point to set up the CLI app.

@@ -3,7 +3,7 @@ package governance
 import (
 	"bytes"
 	"compress/gzip"
-	"io/ioutil"
+	"io"
 	"sync"
 	"time"
 
@@ -40,7 +40,6 @@ type handler struct {
 }
 
 func newHandler(rootManager *RootManager, cm *ConstitutionManager) *handler {
-
 	desiredRootCh := make(chan *rootSet)
 	desiredRootSub := rootManager.desiredRootFeed.Subscribe(desiredRootCh)
 
@@ -214,7 +213,15 @@ func (h *handler) broadcastConstitutionRequest(request *common.ConstitutionFiles
 			p.sendConstitutionFileRequest(request)
 		}
 	}
+}
 
+//nolint:unused
+func (h *handler) broadcastKnownConstitutionFiles(files *common.KnownConstitutionFilesMessage) {
+	for _, p := range h.peers.all() {
+		if p.version >= qgov4 {
+			p.sendKnownConstitutionFiles(files)
+		}
+	}
 }
 
 func (h *handler) stop() {
@@ -306,31 +313,33 @@ func (h *handler) runPeer(p *peer) error {
 	h.peers.register(p)
 	defer h.peers.unregister(p)
 
-	if status != nil {
-		for _, set := range []*rootSet{status.currentRootSet, status.desiredRootSet, status.proposedRootSet} {
-			if set == nil {
-				continue
-			}
-
-			if err := h.handleRootSet(p, set); err != nil {
-				return err
-			}
+	//Status nil check goes higher
+	for _, set := range []*rootSet{status.currentRootSet, status.desiredRootSet, status.proposedRootSet} {
+		if set == nil {
+			continue
 		}
 
-		for _, set := range []*exclusionSet{status.currentExSet, status.desiredExSet, status.proposedExSet} {
-			if set == nil {
-				continue
-			}
+		if err := h.handleRootSet(p, set); err != nil {
+			return err
+		}
+	}
 
-			if err := h.handleExclusionSet(p, set); err != nil {
-				return err
-			}
+	for _, set := range []*exclusionSet{status.currentExSet, status.desiredExSet, status.proposedExSet} {
+		if set == nil {
+			continue
+		}
+
+		if err := h.handleExclusionSet(p, set); err != nil {
+			return err
 		}
 	}
 
 	if p.version >= qgov4 {
 		newReq := common.ConstitutionFilesRequest{Hashes: h.constitutionManager.requiredHashes}
 		p.sendConstitutionFileRequest(&newReq)
+
+		filesReq := common.KnownConstitutionFilesMessage{Hashes: h.constitutionManager.knownHashes}
+		p.sendKnownConstitutionFiles(&filesReq)
 	}
 
 	h.peerWG.Add(1)
@@ -393,6 +402,8 @@ func (h *handler) handleMsg(p *peer) error {
 		return h.handleConstitutionRequestMsg(p, msg)
 	case ConstitutionFilesMsg:
 		return h.handleConstitutionFilesMsg(p, msg)
+	case KnownConstitutionFilesMsg:
+		return h.handleKnownFilesMsg(p, msg)
 	default:
 		return errors.New("unknown msg code")
 	}
@@ -431,6 +442,14 @@ func (h *handler) handleConstitutionRequestMsg(p *peer, msg p2p.Msg) error {
 	return h.handleConstitutionFileRequest(p, &request)
 }
 
+func (h *handler) handleKnownFilesMsg(p *peer, msg p2p.Msg) error {
+	var request common.KnownConstitutionFilesMessage
+	if err := msg.Decode(&request); err != nil {
+		return err
+	}
+	return h.handleKnownConstitutionFiles(p, &request)
+}
+
 func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 	var response common.ConstitutionFilesResponse
 	if err := msg.Decode(&response); err != nil {
@@ -448,13 +467,12 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 			if file.Hash == hash {
 				wasRequested = true
 				if len(file.Data) > 0 {
-
-					reader := bytes.NewReader([]byte(file.Data))
+					reader := bytes.NewReader(file.Data)
 					gzreader, e1 := gzip.NewReader(reader)
 					if e1 != nil {
 						return e1
 					}
-					output, e2 := ioutil.ReadAll(gzreader)
+					output, e2 := io.ReadAll(gzreader)
 					if e2 != nil {
 						return e2
 					}
@@ -473,12 +491,12 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 					}
 
 					//Received file can be the draft (if was requested previously)
-					regular, errV := h.constitutionManager.isHashValid(hash)
+					legit, errV := h.constitutionManager.isHashValid(hash)
 					if errV != nil {
 						return errV
 					}
 
-					errStore := h.constitutionManager.storeConstitutionFile(output, cFile, regular)
+					errStore := h.constitutionManager.storeConstitutionFile(output, cFile, legit)
 					if errStore != nil {
 						return errStore
 					}
@@ -502,7 +520,6 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 			if request == hash {
 				fulfilled = true
 			}
-
 		}
 		if !fulfilled {
 			resHashes = append(resHashes, hash)
@@ -721,7 +738,6 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 	}
 
 	for _, approval := range received.Approvals {
-
 		pubkey, err := crypto.SigToPub(approval.Hash.Bytes(), approval.Signature)
 		if err != nil {
 			return errInvalidSignature
@@ -767,6 +783,10 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 func (h *handler) handleConstitutionFileRequest(p *peer, received *common.ConstitutionFilesRequest) error {
 	cm := h.constitutionManager
 
+	if cm == nil {
+		log.Error("Constitution manager is not initialized")
+		return nil
+	}
 	//cm.storageLock.Lock()
 	//defer cm.storageLock.Unlock()
 
@@ -780,10 +800,12 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 	}
 
 	drafts, err := cm.getDraftFiles()
+	if err != nil {
+		log.Error("Error getting draft files", "error", err)
+	}
 
 	var presentFiles []common.ConstitutionFile
 	for _, hash := range received.Hashes {
-
 		ok, errV := h.constitutionManager.isHashValid(hash)
 		if errV != nil {
 			return errV
@@ -809,11 +831,48 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 				}
 			}
 		}
-
 	}
 
 	if len(presentFiles) > 0 {
 		p.asyncSendConstitutionFiles(cm, presentFiles)
+	}
+
+	return nil
+}
+
+func (h *handler) handleKnownConstitutionFiles(p *peer, received *common.KnownConstitutionFilesMessage) error {
+	cm := h.constitutionManager
+
+	//cm.storageLock.Lock()
+	//defer cm.storageLock.Unlock()
+
+	if received == nil || len(received.Hashes) == 0 {
+		return nil
+	}
+
+	exFiles, err := cm.db.getKnownConstitutionFiles()
+	if err != nil {
+		return err
+	}
+
+	resNewFiles := make([]common.Hash, 0)
+	for _, hash := range received.Hashes {
+		found := false
+		for _, exFile := range exFiles {
+			if exFile == hash {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			resNewFiles = append(resNewFiles, hash)
+			log.Info("New constitution file found. You can request it by using command: gov.requestForConstitutionFile(\"" + hash.String() + "\")")
+		}
+	}
+	if len(resNewFiles) > 0 {
+		//p.asyncSendConstitutionFilesRequest(cm, resNewFiles)
+		return cm.updateKnownConstitutionFiles(resNewFiles)
 	}
 
 	return nil

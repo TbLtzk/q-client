@@ -28,6 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/consensus/beacon"
 	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
@@ -83,7 +84,8 @@ func TestHeaderVerification(t *testing.T) {
 	}
 }
 
-func TestHeaderVerificationForMergingClique(t *testing.T) { testHeaderVerificationForMerging(t, true) }
+// Not applicable to Q
+// func TestHeaderVerificationForMergingClique(t *testing.T) { testHeaderVerificationForMerging(t, true) }
 func TestHeaderVerificationForMergingEthash(t *testing.T) { testHeaderVerificationForMerging(t, false) }
 
 // Tests the verification for eth1/2 merging, including pre-merge and post-merge
@@ -100,15 +102,15 @@ func testHeaderVerificationForMerging(t *testing.T, isClique bool) {
 		var (
 			key, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 			addr   = crypto.PubkeyToAddress(key.PublicKey)
-			engine = clique.New(params.AllCliqueProtocolChanges.Clique, testdb, nil, nil)
+			engine = clique.New(params.AllCliqueProtocolChanges.Clique, testdb, &clique.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry())
 		)
 		genspec := &Genesis{
 			ExtraData: make([]byte, 32+common.AddressLength+crypto.SignatureLength),
 			Alloc: map[common.Address]GenesisAccount{
 				addr: {Balance: big.NewInt(1)},
 			},
-			BaseFee:    big.NewInt(params.InitialBaseFee),
-			Difficulty: new(big.Int),
+			BaseFee: big.NewInt(params.InitialBaseFee),
+			//Difficulty: new(big.Int),
 		}
 		copy(genspec.ExtraData[32:], addr[:])
 		genesis := genspec.MustCommit(testdb)

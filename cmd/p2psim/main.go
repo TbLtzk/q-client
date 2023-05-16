@@ -19,21 +19,20 @@
 // Here is an example of creating a 2 node network with the first node
 // connected to the second:
 //
-//     $ p2psim node create
-//     Created node01
+//	$ p2psim node create
+//	Created node01
 //
-//     $ p2psim node start node01
-//     Started node01
+//	$ p2psim node start node01
+//	Started node01
 //
-//     $ p2psim node create
-//     Created node02
+//	$ p2psim node create
+//	Created node02
 //
-//     $ p2psim node start node02
-//     Started node02
+//	$ p2psim node start node02
+//	Started node02
 //
-//     $ p2psim node connect node01 node02
-//     Connected node01 to node02
-//
+//	$ p2psim node connect node01 node02
+//	Connected node01 to node02
 package main
 
 import (
@@ -45,6 +44,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/p2p"
@@ -52,7 +52,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/simulations"
 	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/urfave/cli/v2"
 )
 
 var client *simulations.Client

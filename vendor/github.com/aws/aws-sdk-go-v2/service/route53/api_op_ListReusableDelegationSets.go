@@ -12,13 +12,13 @@ import (
 )
 
 // Retrieves a list of the reusable delegation sets that are associated with the
-// current Amazon Web Services account.
+// current AWS account.
 func (c *Client) ListReusableDelegationSets(ctx context.Context, params *ListReusableDelegationSetsInput, optFns ...func(*Options)) (*ListReusableDelegationSetsOutput, error) {
 	if params == nil {
 		params = &ListReusableDelegationSetsInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListReusableDelegationSets", params, optFns, c.addOperationListReusableDelegationSetsMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListReusableDelegationSets", params, optFns, addOperationListReusableDelegationSetsMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +29,7 @@ func (c *Client) ListReusableDelegationSets(ctx context.Context, params *ListReu
 }
 
 // A request to get a list of the reusable delegation sets that are associated with
-// the current Amazon Web Services account.
+// the current AWS account.
 type ListReusableDelegationSetsInput struct {
 
 	// If the value of IsTruncated in the previous response was true, you have more
@@ -45,16 +45,14 @@ type ListReusableDelegationSetsInput struct {
 	// in the response to this request. If you specify a value greater than 100, Route
 	// 53 returns only the first 100 reusable delegation sets.
 	MaxItems *int32
-
-	noSmithyDocumentSerde
 }
 
 // A complex type that contains information about the reusable delegation sets that
-// are associated with the current Amazon Web Services account.
+// are associated with the current AWS account.
 type ListReusableDelegationSetsOutput struct {
 
 	// A complex type that contains one DelegationSet element for each reusable
-	// delegation set that was created by the current Amazon Web Services account.
+	// delegation set that was created by the current AWS account.
 	//
 	// This member is required.
 	DelegationSets []types.DelegationSet
@@ -86,11 +84,9 @@ type ListReusableDelegationSetsOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
-
-	noSmithyDocumentSerde
 }
 
-func (c *Client) addOperationListReusableDelegationSetsMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func addOperationListReusableDelegationSetsMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpListReusableDelegationSets{}, middleware.After)
 	if err != nil {
 		return err

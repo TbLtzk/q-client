@@ -35,7 +35,6 @@ type Schema struct {
 	Unions          []*Union
 	Enums           []*EnumTypeDefinition
 	Extensions      []*Extension
-	SchemaString    string
 }
 
 func (s *Schema) Resolve(name string) Type {

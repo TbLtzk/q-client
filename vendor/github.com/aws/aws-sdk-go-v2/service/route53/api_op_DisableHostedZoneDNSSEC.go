@@ -12,13 +12,13 @@ import (
 )
 
 // Disables DNSSEC signing in a specific hosted zone. This action does not
-// deactivate any key-signing keys (KSKs) that are active in the hosted zone.
+// deactivate any key signing keys (KSKs) that are active in the hosted zone.
 func (c *Client) DisableHostedZoneDNSSEC(ctx context.Context, params *DisableHostedZoneDNSSECInput, optFns ...func(*Options)) (*DisableHostedZoneDNSSECOutput, error) {
 	if params == nil {
 		params = &DisableHostedZoneDNSSECInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "DisableHostedZoneDNSSEC", params, optFns, c.addOperationDisableHostedZoneDNSSECMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "DisableHostedZoneDNSSEC", params, optFns, addOperationDisableHostedZoneDNSSECMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -34,8 +34,6 @@ type DisableHostedZoneDNSSECInput struct {
 	//
 	// This member is required.
 	HostedZoneId *string
-
-	noSmithyDocumentSerde
 }
 
 type DisableHostedZoneDNSSECOutput struct {
@@ -48,11 +46,9 @@ type DisableHostedZoneDNSSECOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
-
-	noSmithyDocumentSerde
 }
 
-func (c *Client) addOperationDisableHostedZoneDNSSECMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func addOperationDisableHostedZoneDNSSECMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpDisableHostedZoneDNSSEC{}, middleware.After)
 	if err != nil {
 		return err

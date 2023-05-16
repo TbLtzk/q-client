@@ -38,6 +38,7 @@ var (
 var (
 	constitutionStorageKey     = []byte("constitution-storage")
 	constitutionFileRequestKey = []byte("constitution-file-request")
+	knownConstitutionFilesKey  = []byte("constitution-known-files")
 )
 
 func newDatabase(path string) (*database, error) {
@@ -243,7 +244,6 @@ func (db *database) getLastApprovals() *common.RootNodeApprovalList {
 		Approvals:   wl,
 	}
 	return &res
-
 }
 
 func (db *database) updateApprovalBlockNumber(blockNumber *big.Int) error {
@@ -287,7 +287,6 @@ func (db *database) getApprovalLastBlockNumber() (*big.Int, error) {
 }
 
 func (db *database) saveApprovalRecord(approval common.RootNodeApproval) error {
-
 	var resApprovals []common.RootNodeApproval
 
 	if exRecords, errEx := db.getApprovalRecordsByBlockNumber(approval.BlockNumber); errEx == nil && exRecords != nil {
@@ -314,7 +313,6 @@ func (db *database) saveApprovalRecord(approval common.RootNodeApproval) error {
 	}
 
 	return db.updateApprovalBlockNumber(approval.BlockNumber)
-
 }
 
 func (db *database) getApprovalRecordsByBlockNumber(blockNumber *big.Int) ([]common.RootNodeApproval, error) {
@@ -342,7 +340,6 @@ func (db *database) getApprovalRecordsByBlockNumber(blockNumber *big.Int) ([]com
 }
 
 func (db *database) getConstitutionFiles() ([]common.ConstitutionFile, error) {
-
 	has, err := db.store.Has(constitutionStorageKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to check if constitution storage exists")
@@ -362,11 +359,9 @@ func (db *database) getConstitutionFiles() ([]common.ConstitutionFile, error) {
 	}
 
 	return files, nil
-
 }
 
 func (db *database) getConstitutionFileRequests() ([]common.Hash, error) {
-
 	has, err := db.store.Has(constitutionFileRequestKey)
 
 	if err != nil {
@@ -387,7 +382,29 @@ func (db *database) getConstitutionFileRequests() ([]common.Hash, error) {
 	}
 
 	return hashes, nil
+}
 
+func (db *database) getKnownConstitutionFiles() ([]common.Hash, error) {
+	has, err := db.store.Has(knownConstitutionFilesKey)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check if known constitution files storage exists")
+	}
+	if !has {
+		if errC := db.saveKnownConstitutionFiles(&[]common.Hash{}); errC != nil {
+			return nil, errors.Wrap(err, "failed to initialize known constitution files storage")
+		}
+	}
+	raw, errGet := db.store.Get(knownConstitutionFilesKey)
+	if errGet != nil {
+		return nil, errors.Wrap(errGet, "failed to get known constitution files from db")
+	}
+	var hashes []common.Hash
+	if err := json.Unmarshal(raw, &hashes); err != nil {
+		panic(errors.Wrap(err, "failed to unmarshal known constitution files"))
+	}
+
+	return hashes, nil
 }
 
 func (db *database) saveConstitutionStorage(storage *[]common.ConstitutionFile) error {
@@ -406,4 +423,13 @@ func (db *database) saveConstitutionFileRequests(storage *[]common.Hash) error {
 	}
 
 	return db.store.Put(constitutionFileRequestKey, raw)
+}
+
+func (db *database) saveKnownConstitutionFiles(storage *[]common.Hash) error {
+	raw, err := json.Marshal(storage)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to marshal known constitution files"))
+	}
+
+	return db.store.Put(knownConstitutionFilesKey, raw)
 }

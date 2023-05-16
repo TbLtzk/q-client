@@ -24,6 +24,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/core"
@@ -32,7 +33,6 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/tests"
-	"github.com/urfave/cli/v2"
 )
 
 type result struct {

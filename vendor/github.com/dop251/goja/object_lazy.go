@@ -17,12 +17,6 @@ func (o *lazyObject) className() string {
 	return obj.className()
 }
 
-func (o *lazyObject) typeOf() valueString {
-	obj := o.create(o.val)
-	o.val.self = obj
-	return obj.typeOf()
-}
-
 func (o *lazyObject) getIdx(p valueInt, receiver Value) Value {
 	obj := o.create(o.val)
 	o.val.self = obj
@@ -193,12 +187,6 @@ func (o *lazyObject) assertCallable() (call func(FunctionCall) Value, ok bool) {
 	return obj.assertCallable()
 }
 
-func (o *lazyObject) vmCall(vm *vm, n int) {
-	obj := o.create(o.val)
-	o.val.self = obj
-	obj.vmCall(vm, n)
-}
-
 func (o *lazyObject) assertConstructor() func(args []Value, newTarget *Object) *Object {
 	obj := o.create(o.val)
 	o.val.self = obj
@@ -307,25 +295,19 @@ func (o *lazyObject) setProto(proto *Object, throw bool) bool {
 	return obj.setProto(proto, throw)
 }
 
-func (o *lazyObject) getPrivateEnv(typ *privateEnvType, create bool) *privateElements {
-	obj := o.create(o.val)
-	o.val.self = obj
-	return obj.getPrivateEnv(typ, create)
-}
-
-func (o *lazyObject) sortLen() int {
+func (o *lazyObject) sortLen() int64 {
 	obj := o.create(o.val)
 	o.val.self = obj
 	return obj.sortLen()
 }
 
-func (o *lazyObject) sortGet(i int) Value {
+func (o *lazyObject) sortGet(i int64) Value {
 	obj := o.create(o.val)
 	o.val.self = obj
 	return obj.sortGet(i)
 }
 
-func (o *lazyObject) swap(i int, j int) {
+func (o *lazyObject) swap(i, j int64) {
 	obj := o.create(o.val)
 	o.val.self = obj
 	obj.swap(i, j)

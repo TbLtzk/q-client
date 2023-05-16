@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
-	"github.com/urfave/cli/v2"
 )
 
 var (

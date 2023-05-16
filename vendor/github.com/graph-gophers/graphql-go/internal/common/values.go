@@ -27,11 +27,9 @@ func ParseArgumentList(l *Lexer) types.ArgumentList {
 		name := l.ConsumeIdentWithLoc()
 		l.ConsumeToken(':')
 		value := ParseLiteral(l, false)
-		directives := ParseDirectives(l)
 		args = append(args, &types.Argument{
-			Name:       name,
-			Value:      value,
-			Directives: directives,
+			Name:  name,
+			Value: value,
 		})
 	}
 	l.ConsumeToken(')')

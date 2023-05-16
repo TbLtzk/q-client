@@ -12,19 +12,18 @@ import (
 )
 
 // Gets information about the traffic policy instances that you created by using
-// the current Amazon Web Services account. After you submit an
-// UpdateTrafficPolicyInstance request, there's a brief delay while Amazon Route 53
-// creates the resource record sets that are specified in the traffic policy
-// definition. For more information, see the State response element. Route 53
-// returns a maximum of 100 items in each response. If you have a lot of traffic
-// policy instances, you can use the MaxItems parameter to list them in groups of
-// up to 100.
+// the current AWS account. After you submit an UpdateTrafficPolicyInstance
+// request, there's a brief delay while Amazon Route 53 creates the resource record
+// sets that are specified in the traffic policy definition. For more information,
+// see the State response element. Route 53 returns a maximum of 100 items in each
+// response. If you have a lot of traffic policy instances, you can use the
+// MaxItems parameter to list them in groups of up to 100.
 func (c *Client) ListTrafficPolicyInstances(ctx context.Context, params *ListTrafficPolicyInstancesInput, optFns ...func(*Options)) (*ListTrafficPolicyInstancesOutput, error) {
 	if params == nil {
 		params = &ListTrafficPolicyInstancesInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListTrafficPolicyInstances", params, optFns, c.addOperationListTrafficPolicyInstancesMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListTrafficPolicyInstances", params, optFns, addOperationListTrafficPolicyInstancesMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +34,7 @@ func (c *Client) ListTrafficPolicyInstances(ctx context.Context, params *ListTra
 }
 
 // A request to get information about the traffic policy instances that you created
-// by using the current Amazon Web Services account.
+// by using the current AWS account.
 type ListTrafficPolicyInstancesInput struct {
 
 	// If the value of IsTruncated in the previous response was true, you have more
@@ -73,8 +72,6 @@ type ListTrafficPolicyInstancesInput struct {
 	// traffic policy instances. If the value of IsTruncated in the previous response
 	// was false, there are no more traffic policy instances to get.
 	TrafficPolicyInstanceTypeMarker types.RRType
-
-	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response information for the request.
@@ -119,11 +116,9 @@ type ListTrafficPolicyInstancesOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
-
-	noSmithyDocumentSerde
 }
 
-func (c *Client) addOperationListTrafficPolicyInstancesMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func addOperationListTrafficPolicyInstancesMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpListTrafficPolicyInstances{}, middleware.After)
 	if err != nil {
 		return err

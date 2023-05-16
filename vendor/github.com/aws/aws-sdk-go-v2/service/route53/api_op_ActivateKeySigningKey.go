@@ -11,14 +11,14 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
-// Activates a key-signing key (KSK) so that it can be used for signing by DNSSEC.
+// Activates a key signing key (KSK) so that it can be used for signing by DNSSEC.
 // This operation changes the KSK status to ACTIVE.
 func (c *Client) ActivateKeySigningKey(ctx context.Context, params *ActivateKeySigningKeyInput, optFns ...func(*Options)) (*ActivateKeySigningKeyOutput, error) {
 	if params == nil {
 		params = &ActivateKeySigningKeyInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ActivateKeySigningKey", params, optFns, c.addOperationActivateKeySigningKeyMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ActivateKeySigningKey", params, optFns, addOperationActivateKeySigningKeyMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -35,14 +35,10 @@ type ActivateKeySigningKeyInput struct {
 	// This member is required.
 	HostedZoneId *string
 
-	// A string used to identify a key-signing key (KSK). Name can include numbers,
-	// letters, and underscores (_). Name must be unique for each key-signing key in
-	// the same hosted zone.
+	// An alphanumeric string used to identify a key signing key (KSK).
 	//
 	// This member is required.
 	Name *string
-
-	noSmithyDocumentSerde
 }
 
 type ActivateKeySigningKeyOutput struct {
@@ -55,11 +51,9 @@ type ActivateKeySigningKeyOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
-
-	noSmithyDocumentSerde
 }
 
-func (c *Client) addOperationActivateKeySigningKeyMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func addOperationActivateKeySigningKeyMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpActivateKeySigningKey{}, middleware.After)
 	if err != nil {
 		return err

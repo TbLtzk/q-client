@@ -22,10 +22,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/common/fdlimit"
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/log"
-	"github.com/urfave/cli/v2"
 )
 
 var (

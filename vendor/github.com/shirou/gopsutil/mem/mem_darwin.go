@@ -4,18 +4,25 @@ package mem
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"unsafe"
 
-	"github.com/shirou/gopsutil/internal/common"
 	"golang.org/x/sys/unix"
 )
 
 func getHwMemsize() (uint64, error) {
-	total, err := unix.SysctlUint64("hw.memsize")
+	totalString, err := unix.Sysctl("hw.memsize")
 	if err != nil {
 		return 0, err
 	}
+
+	// unix.sysctl() helpfully assumes the result is a null-terminated string and
+	// removes the last byte of the result if it's 0 :/
+	totalString += "\x00"
+
+	total := uint64(binary.LittleEndian.Uint64([]byte(totalString)))
+
 	return total, nil
 }
 
@@ -59,12 +66,4 @@ func SwapMemoryWithContext(ctx context.Context) (*SwapMemoryStat, error) {
 	}
 
 	return ret, nil
-}
-
-func SwapDevices() ([]*SwapDevice, error) {
-	return SwapDevicesWithContext(context.Background())
-}
-
-func SwapDevicesWithContext(ctx context.Context) ([]*SwapDevice, error) {
-	return nil, common.ErrNotImplementedError
 }

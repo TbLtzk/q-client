@@ -22,8 +22,8 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/cmd/utils"
 	"github.com/urfave/cli/v2"
+	"gitlab.com/q-dev/q-client/cmd/utils"
 )
 
 // getPassphrase obtains a passphrase given by the user.  It first checks the

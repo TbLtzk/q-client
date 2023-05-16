@@ -80,16 +80,9 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 
 	// implementation note: code is a bit verbose (abusing code generation), but minimize allocations on the heap
 	// in particular, careful attention must be given to usage of Bytes() method on Elements and Points
-	// that return an array (not a slice) of bytes. Using this is beneficial to minimize memory allocations
+	// that return an array (not a slice) of bytes. Using this is beneficial to minimize memallocs
 	// in very large (de)serialization upstream in gnark.
-	// (but detrimental to code readability here)
-
-	var read64 int64
-	if vf, ok := v.(io.ReaderFrom); ok {
-		read64, err = vf.ReadFrom(dec.r)
-		dec.n += read64
-		return
-	}
+	// (but detrimental to code lisibility here)
 
 	var buf [SizeOfG2AffineUncompressed]byte
 	var read int
@@ -112,12 +105,46 @@ func (dec *Decoder) Decode(v interface{}) (err error) {
 		err = t.SetBytesCanonical(buf[:fp.Bytes])
 		return
 	case *[]fr.Element:
-		read64, err = (*fr.Vector)(t).ReadFrom(dec.r)
-		dec.n += read64
+		var sliceLen uint32
+		sliceLen, err = dec.readUint32()
+		if err != nil {
+			return
+		}
+		if len(*t) != int(sliceLen) {
+			*t = make([]fr.Element, sliceLen)
+		}
+
+		for i := 0; i < len(*t); i++ {
+			read, err = io.ReadFull(dec.r, buf[:fr.Bytes])
+			dec.n += int64(read)
+			if err != nil {
+				return
+			}
+			if err = (*t)[i].SetBytesCanonical(buf[:fr.Bytes]); err != nil {
+				return
+			}
+		}
 		return
 	case *[]fp.Element:
-		read64, err = (*fp.Vector)(t).ReadFrom(dec.r)
-		dec.n += read64
+		var sliceLen uint32
+		sliceLen, err = dec.readUint32()
+		if err != nil {
+			return
+		}
+		if len(*t) != int(sliceLen) {
+			*t = make([]fp.Element, sliceLen)
+		}
+
+		for i := 0; i < len(*t); i++ {
+			read, err = io.ReadFull(dec.r, buf[:fp.Bytes])
+			dec.n += int64(read)
+			if err != nil {
+				return
+			}
+			if err = (*t)[i].SetBytesCanonical(buf[:fp.Bytes]); err != nil {
+				return
+			}
+		}
 		return
 	case *G1Affine:
 		// we start by reading compressed point size, if metadata tells us it is uncompressed, we read more.
@@ -367,15 +394,7 @@ func (enc *Encoder) encode(v interface{}) (err error) {
 
 	// implementation note: code is a bit verbose (abusing code generation), but minimize allocations on the heap
 
-	var written64 int64
-	if vw, ok := v.(io.WriterTo); ok {
-		written64, err = vw.WriteTo(enc.w)
-		enc.n += written64
-		return
-	}
-
 	var written int
-
 	switch t := v.(type) {
 	case *fr.Element:
 		buf := t.Bytes()
@@ -397,22 +416,41 @@ func (enc *Encoder) encode(v interface{}) (err error) {
 		written, err = enc.w.Write(buf[:])
 		enc.n += int64(written)
 		return
-	case fr.Vector:
-		written64, err = t.WriteTo(enc.w)
-		enc.n += written64
-		return
-	case fp.Vector:
-		written64, err = t.WriteTo(enc.w)
-		enc.n += written64
-		return
 	case []fr.Element:
-		written64, err = (*fr.Vector)(&t).WriteTo(enc.w)
-		enc.n += written64
-		return
+		// write slice length
+		err = binary.Write(enc.w, binary.BigEndian, uint32(len(t)))
+		if err != nil {
+			return
+		}
+		enc.n += 4
+		var buf [fr.Bytes]byte
+		for i := 0; i < len(t); i++ {
+			buf = t[i].Bytes()
+			written, err = enc.w.Write(buf[:])
+			enc.n += int64(written)
+			if err != nil {
+				return
+			}
+		}
+		return nil
 	case []fp.Element:
-		written64, err = (*fp.Vector)(&t).WriteTo(enc.w)
-		enc.n += written64
-		return
+		// write slice length
+		err = binary.Write(enc.w, binary.BigEndian, uint32(len(t)))
+		if err != nil {
+			return
+		}
+		enc.n += 4
+		var buf [fp.Bytes]byte
+		for i := 0; i < len(t); i++ {
+			buf = t[i].Bytes()
+			written, err = enc.w.Write(buf[:])
+			enc.n += int64(written)
+			if err != nil {
+				return
+			}
+		}
+		return nil
+
 	case []G1Affine:
 		// write slice length
 		err = binary.Write(enc.w, binary.BigEndian, uint32(len(t)))
@@ -470,15 +508,7 @@ func (enc *Encoder) encodeRaw(v interface{}) (err error) {
 
 	// implementation note: code is a bit verbose (abusing code generation), but minimize allocations on the heap
 
-	var written64 int64
-	if vw, ok := v.(io.WriterTo); ok {
-		written64, err = vw.WriteTo(enc.w)
-		enc.n += written64
-		return
-	}
-
 	var written int
-
 	switch t := v.(type) {
 	case *fr.Element:
 		buf := t.Bytes()
@@ -500,22 +530,41 @@ func (enc *Encoder) encodeRaw(v interface{}) (err error) {
 		written, err = enc.w.Write(buf[:])
 		enc.n += int64(written)
 		return
-	case fr.Vector:
-		written64, err = t.WriteTo(enc.w)
-		enc.n += written64
-		return
-	case fp.Vector:
-		written64, err = t.WriteTo(enc.w)
-		enc.n += written64
-		return
 	case []fr.Element:
-		written64, err = (*fr.Vector)(&t).WriteTo(enc.w)
-		enc.n += written64
-		return
+		// write slice length
+		err = binary.Write(enc.w, binary.BigEndian, uint32(len(t)))
+		if err != nil {
+			return
+		}
+		enc.n += 4
+		var buf [fr.Bytes]byte
+		for i := 0; i < len(t); i++ {
+			buf = t[i].Bytes()
+			written, err = enc.w.Write(buf[:])
+			enc.n += int64(written)
+			if err != nil {
+				return
+			}
+		}
+		return nil
 	case []fp.Element:
-		written64, err = (*fp.Vector)(&t).WriteTo(enc.w)
-		enc.n += written64
-		return
+		// write slice length
+		err = binary.Write(enc.w, binary.BigEndian, uint32(len(t)))
+		if err != nil {
+			return
+		}
+		enc.n += 4
+		var buf [fp.Bytes]byte
+		for i := 0; i < len(t); i++ {
+			buf = t[i].Bytes()
+			written, err = enc.w.Write(buf[:])
+			enc.n += int64(written)
+			if err != nil {
+				return
+			}
+		}
+		return nil
+
 	case []G1Affine:
 		// write slice length
 		err = binary.Write(enc.w, binary.BigEndian, uint32(len(t)))

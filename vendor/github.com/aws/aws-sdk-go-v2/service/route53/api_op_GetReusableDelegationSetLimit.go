@@ -21,7 +21,7 @@ func (c *Client) GetReusableDelegationSetLimit(ctx context.Context, params *GetR
 		params = &GetReusableDelegationSetLimitInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "GetReusableDelegationSetLimit", params, optFns, c.addOperationGetReusableDelegationSetLimitMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "GetReusableDelegationSetLimit", params, optFns, addOperationGetReusableDelegationSetLimitMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +45,6 @@ type GetReusableDelegationSetLimitInput struct {
 	//
 	// This member is required.
 	Type types.ReusableDelegationSetLimitType
-
-	noSmithyDocumentSerde
 }
 
 // A complex type that contains the requested limit.
@@ -66,11 +64,9 @@ type GetReusableDelegationSetLimitOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
-
-	noSmithyDocumentSerde
 }
 
-func (c *Client) addOperationGetReusableDelegationSetLimitMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func addOperationGetReusableDelegationSetLimitMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpGetReusableDelegationSetLimit{}, middleware.After)
 	if err != nil {
 		return err

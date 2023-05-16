@@ -27,10 +27,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/enr"
 	"gitlab.com/q-dev/q-client/rlp"
-	"github.com/urfave/cli/v2"
 )
 
 var fileFlag = &cli.StringFlag{Name: "file"}

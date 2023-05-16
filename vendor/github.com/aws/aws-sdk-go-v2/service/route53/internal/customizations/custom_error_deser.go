@@ -21,6 +21,7 @@ import (
 
 // HandleCustomErrorDeserialization check if Route53 response is an error and needs
 // custom error deserialization.
+//
 func HandleCustomErrorDeserialization(stack *middleware.Stack) error {
 	return stack.Deserialize.Insert(&processResponse{}, "OperationDeserializer", middleware.After)
 }

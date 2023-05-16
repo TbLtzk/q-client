@@ -12,17 +12,16 @@ import (
 )
 
 // Gets information about the latest version for every traffic policy that is
-// associated with the current Amazon Web Services account. Policies are listed in
-// the order that they were created in. For information about how of deleting a
-// traffic policy affects the response from ListTrafficPolicies, see
-// DeleteTrafficPolicy
+// associated with the current AWS account. Policies are listed in the order that
+// they were created in. For information about how of deleting a traffic policy
+// affects the response from ListTrafficPolicies, see DeleteTrafficPolicy
 // (https://docs.aws.amazon.com/Route53/latest/APIReference/API_DeleteTrafficPolicy.html).
 func (c *Client) ListTrafficPolicies(ctx context.Context, params *ListTrafficPoliciesInput, optFns ...func(*Options)) (*ListTrafficPoliciesOutput, error) {
 	if params == nil {
 		params = &ListTrafficPoliciesInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListTrafficPolicies", params, optFns, c.addOperationListTrafficPoliciesMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListTrafficPolicies", params, optFns, addOperationListTrafficPoliciesMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -33,8 +32,7 @@ func (c *Client) ListTrafficPolicies(ctx context.Context, params *ListTrafficPol
 }
 
 // A complex type that contains the information about the request to list the
-// traffic policies that are associated with the current Amazon Web Services
-// account.
+// traffic policies that are associated with the current AWS account.
 type ListTrafficPoliciesInput struct {
 
 	// (Optional) The maximum number of traffic policies that you want Amazon Route 53
@@ -51,8 +49,6 @@ type ListTrafficPoliciesInput struct {
 	// ListTrafficPolicies. For the value of TrafficPolicyIdMarker, specify the value
 	// of TrafficPolicyIdMarker that was returned in the previous response.
 	TrafficPolicyIdMarker *string
-
-	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response information for the request.
@@ -79,18 +75,16 @@ type ListTrafficPoliciesOutput struct {
 	TrafficPolicyIdMarker *string
 
 	// A list that contains one TrafficPolicySummary element for each traffic policy
-	// that was created by the current Amazon Web Services account.
+	// that was created by the current AWS account.
 	//
 	// This member is required.
 	TrafficPolicySummaries []types.TrafficPolicySummary
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
-
-	noSmithyDocumentSerde
 }
 
-func (c *Client) addOperationListTrafficPoliciesMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func addOperationListTrafficPoliciesMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpListTrafficPolicies{}, middleware.After)
 	if err != nil {
 		return err

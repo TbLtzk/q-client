@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/console"
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/urfave/cli/v2"
 )
 
 var (

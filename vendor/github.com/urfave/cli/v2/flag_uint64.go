@@ -23,9 +23,6 @@ func (f *Uint64Flag) GetCategory() string {
 
 // Apply populates the flag given the flag set and environment
 func (f *Uint64Flag) Apply(set *flag.FlagSet) error {
-	// set default value so that environment wont be able to overwrite it
-	f.defaultValue = f.Value
-
 	if val, source, found := flagFromEnvOrFile(f.EnvVars, f.FilePath); found {
 		if val != "" {
 			valInt, err := strconv.ParseUint(val, f.Base, 64)
@@ -69,7 +66,7 @@ func (f *Uint64Flag) GetDefaultText() string {
 	if f.DefaultText != "" {
 		return f.DefaultText
 	}
-	return fmt.Sprintf("%d", f.defaultValue)
+	return f.GetValue()
 }
 
 // GetEnvVars returns the env vars for this flag

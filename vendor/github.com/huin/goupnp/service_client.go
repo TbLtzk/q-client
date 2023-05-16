@@ -1,7 +1,6 @@
 package goupnp
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/url"
@@ -22,12 +21,12 @@ type ServiceClient struct {
 	localAddr  net.IP
 }
 
-// NewServiceClientsCtx discovers services, and returns clients for them. err will
+// NewServiceClients discovers services, and returns clients for them. err will
 // report any error with the discovery process (blocking any device/service
 // discovery), errors reports errors on a per-root-device basis.
-func NewServiceClientsCtx(ctx context.Context, searchTarget string) (clients []ServiceClient, errors []error, err error) {
+func NewServiceClients(searchTarget string) (clients []ServiceClient, errors []error, err error) {
 	var maybeRootDevices []MaybeRootDevice
-	if maybeRootDevices, err = DiscoverDevicesCtx(ctx, searchTarget); err != nil {
+	if maybeRootDevices, err = DiscoverDevices(searchTarget); err != nil {
 		return
 	}
 
@@ -50,26 +49,14 @@ func NewServiceClientsCtx(ctx context.Context, searchTarget string) (clients []S
 	return
 }
 
-// NewServiceClients is the legacy version of NewServiceClientsCtx, but uses
-// context.Background() as the context.
-func NewServiceClients(searchTarget string) (clients []ServiceClient, errors []error, err error) {
-	return NewServiceClientsCtx(context.Background(), searchTarget)
-}
-
-// NewServiceClientsByURLCtx creates client(s) for the given service URN, for a
+// NewServiceClientsByURL creates client(s) for the given service URN, for a
 // root device at the given URL.
-func NewServiceClientsByURLCtx(ctx context.Context, loc *url.URL, searchTarget string) ([]ServiceClient, error) {
-	rootDevice, err := DeviceByURLCtx(ctx, loc)
+func NewServiceClientsByURL(loc *url.URL, searchTarget string) ([]ServiceClient, error) {
+	rootDevice, err := DeviceByURL(loc)
 	if err != nil {
 		return nil, err
 	}
 	return NewServiceClientsFromRootDevice(rootDevice, loc, searchTarget)
-}
-
-// NewServiceClientsByURL is the legacy version of NewServiceClientsByURLCtx, but uses
-// context.Background() as the context.
-func NewServiceClientsByURL(loc *url.URL, searchTarget string) ([]ServiceClient, error) {
-	return NewServiceClientsByURLCtx(context.Background(), loc, searchTarget)
 }
 
 // NewServiceClientsFromDevice creates client(s) for the given service URN, in

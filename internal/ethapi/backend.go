@@ -19,10 +19,10 @@ package ethapi
 
 import (
 	"context"
-	ethereum "gitlab.com/q-dev/q-client"
 	"math/big"
 	"time"
 
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus"

@@ -1,4 +1,5 @@
 // Package file encapsulates the file abstractions used by the ast & parser.
+//
 package file
 
 import (
@@ -6,7 +7,6 @@ import (
 	"net/url"
 	"path"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/go-sourcemap/sourcemap"
@@ -38,6 +38,7 @@ func (self *Position) isValid() bool {
 //	line:column         A valid position without filename
 //	file                An invalid position with filename
 //	-                   An invalid position without filename
+//
 func (self Position) String() string {
 	str := self.Filename
 	if self.isValid() {
@@ -159,14 +160,8 @@ func (fl *File) Position(offset int) Position {
 
 	if fl.sourceMap != nil {
 		if source, _, row, col, ok := fl.sourceMap.Source(row, col); ok {
-			sourceUrlStr := source
-			sourceURL := ResolveSourcemapURL(fl.Name(), source)
-			if sourceURL != nil {
-				sourceUrlStr = sourceURL.String()
-			}
-
 			return Position{
-				Filename: sourceUrlStr,
+				Filename: ResolveSourcemapURL(fl.Name(), source).String(),
 				Line:     row,
 				Column:   col,
 			}
@@ -182,14 +177,14 @@ func (fl *File) Position(offset int) Position {
 
 func ResolveSourcemapURL(basename, source string) *url.URL {
 	// if the url is absolute(has scheme) there is nothing to do
-	smURL, err := url.Parse(strings.TrimSpace(source))
+	smURL, err := url.Parse(source)
 	if err == nil && !smURL.IsAbs() {
-		baseURL, err1 := url.Parse(strings.TrimSpace(basename))
+		baseURL, err1 := url.Parse(basename)
 		if err1 == nil && path.IsAbs(baseURL.Path) {
 			smURL = baseURL.ResolveReference(smURL)
 		} else {
-			// pathological case where both are not absolute paths and using Resolve
-			// as above will produce an absolute one
+			// pathological case where both are not absolute paths and using Resolve as above will produce an absolute
+			// one
 			smURL, _ = url.Parse(path.Join(path.Dir(basename), smURL.Path))
 		}
 	}

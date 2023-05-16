@@ -130,7 +130,7 @@ func (h *httpServer) start() error {
 	}
 
 	// Initialize the server.
-	h.server = &http.Server{Handler: h}
+	h.server = &http.Server{Handler: h, ReadHeaderTimeout: rpc.DefaultHTTPTimeouts.ReadHeaderTimeout}
 	if h.timeouts != (rpc.HTTPTimeouts{}) {
 		CheckTimeouts(&h.timeouts)
 		h.server.ReadTimeout = h.timeouts.ReadTimeout
@@ -164,7 +164,7 @@ func (h *httpServer) start() error {
 	}
 	// Log http endpoint.
 	h.log.Info("HTTP server started",
-		"endpoint", listener.Addr(), "auth", (h.httpConfig.jwtSecret != nil),
+		"endpoint", listener.Addr(), "auth", h.httpConfig.jwtSecret != nil,
 		"prefix", h.httpConfig.prefix,
 		"cors", strings.Join(h.httpConfig.CorsAllowedOrigins, ","),
 		"vhosts", strings.Join(h.httpConfig.Vhosts, ","),

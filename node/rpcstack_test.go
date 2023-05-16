@@ -26,12 +26,12 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/q-client/internal/testlog"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/rpc"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/q-dev/q-client/internal/testlog"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 // TestCorsHandler makes sure CORS are properly handled on the http server.

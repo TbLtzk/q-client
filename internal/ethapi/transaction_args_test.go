@@ -19,12 +19,12 @@ package ethapi
 import (
 	"context"
 	"fmt"
-	ethereum "gitlab.com/q-dev/q-client"
 	"math/big"
 	"reflect"
 	"testing"
 	"time"
 
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"

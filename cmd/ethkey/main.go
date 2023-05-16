@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"os"
 
-	"gitlab.com/q-dev/q-client/internal/flags"
 	"github.com/urfave/cli/v2"
+	"gitlab.com/q-dev/q-client/internal/flags"
 )
 
 const (

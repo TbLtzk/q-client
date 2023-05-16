@@ -110,22 +110,6 @@ func (r *Runtime) NewDynamicObject(d DynamicObject) *Object {
 }
 
 /*
-NewSharedDynamicObject is similar to Runtime.NewDynamicObject but the resulting Object can be shared across multiple
-Runtimes. The Object's prototype will be null. The provided DynamicObject must be goroutine-safe.
-*/
-func NewSharedDynamicObject(d DynamicObject) *Object {
-	v := &Object{}
-	o := &dynamicObject{
-		d: d,
-		baseDynamicObject: baseDynamicObject{
-			val: v,
-		},
-	}
-	v.self = o
-	return v
-}
-
-/*
 NewDynamicArray creates an array Object backed by the provided DynamicArray handler.
 It is similar to NewDynamicObject, the differences are:
 
@@ -148,32 +132,15 @@ func (r *Runtime) NewDynamicArray(a DynamicArray) *Object {
 	return v
 }
 
-/*
-NewSharedDynamicArray is similar to Runtime.NewDynamicArray but the resulting Object can be shared across multiple
-Runtimes. The Object's prototype will be null. If you need to run Array's methods on it, use Array.prototype.[...].call(a, ...).
-The provided DynamicArray must be goroutine-safe.
-*/
-func NewSharedDynamicArray(a DynamicArray) *Object {
-	v := &Object{}
-	o := &dynamicArray{
-		a: a,
-		baseDynamicObject: baseDynamicObject{
-			val: v,
-		},
-	}
-	v.self = o
-	return v
-}
-
-func (*dynamicObject) sortLen() int {
+func (*dynamicObject) sortLen() int64 {
 	return 0
 }
 
-func (*dynamicObject) sortGet(i int) Value {
+func (*dynamicObject) sortGet(i int64) Value {
 	return nil
 }
 
-func (*dynamicObject) swap(i int, i2 int) {
+func (*dynamicObject) swap(i int64, i2 int64) {
 }
 
 func (*dynamicObject) className() string {
@@ -242,12 +209,12 @@ func (o *dynamicObject) _set(prop string, v Value, throw bool) bool {
 	if o.d.Set(prop, v) {
 		return true
 	}
-	typeErrorResult(throw, "'Set' on a dynamic object returned false")
+	o.val.runtime.typeErrorResult(throw, "'Set' on a dynamic object returned false")
 	return false
 }
 
 func (o *baseDynamicObject) _setSym(throw bool) {
-	typeErrorResult(throw, "Dynamic objects do not support Symbol properties")
+	o.val.runtime.typeErrorResult(throw, "Dynamic objects do not support Symbol properties")
 }
 
 func (o *dynamicObject) setOwnStr(p unistring.String, v Value, throw bool) bool {
@@ -374,19 +341,19 @@ func (*baseDynamicObject) hasOwnPropertySym(_ *Symbol) bool {
 
 func (o *baseDynamicObject) checkDynamicObjectPropertyDescr(name fmt.Stringer, descr PropertyDescriptor, throw bool) bool {
 	if descr.Getter != nil || descr.Setter != nil {
-		typeErrorResult(throw, "Dynamic objects do not support accessor properties")
+		o.val.runtime.typeErrorResult(throw, "Dynamic objects do not support accessor properties")
 		return false
 	}
 	if descr.Writable == FLAG_FALSE {
-		typeErrorResult(throw, "Dynamic object field %q cannot be made read-only", name.String())
+		o.val.runtime.typeErrorResult(throw, "Dynamic object field %q cannot be made read-only", name.String())
 		return false
 	}
 	if descr.Enumerable == FLAG_FALSE {
-		typeErrorResult(throw, "Dynamic object field %q cannot be made non-enumerable", name.String())
+		o.val.runtime.typeErrorResult(throw, "Dynamic object field %q cannot be made non-enumerable", name.String())
 		return false
 	}
 	if descr.Configurable == FLAG_FALSE {
-		typeErrorResult(throw, "Dynamic object field %q cannot be made non-configurable", name.String())
+		o.val.runtime.typeErrorResult(throw, "Dynamic object field %q cannot be made non-configurable", name.String())
 		return false
 	}
 	return true
@@ -415,7 +382,7 @@ func (o *dynamicObject) _delete(prop string, throw bool) bool {
 	if o.d.Delete(prop) {
 		return true
 	}
-	typeErrorResult(throw, "Could not delete property %q of a dynamic object", prop)
+	o.val.runtime.typeErrorResult(throw, "Could not delete property %q of a dynamic object", prop)
 	return false
 }
 
@@ -447,10 +414,6 @@ func (o *baseDynamicObject) assertCallable() (call func(FunctionCall) Value, ok 
 	return nil, false
 }
 
-func (o *baseDynamicObject) vmCall(vm *vm, n int) {
-	panic(vm.r.NewTypeError("Dynamic object is not callable"))
-}
-
 func (*baseDynamicObject) assertConstructor() func(args []Value, newTarget *Object) *Object {
 	return nil
 }
@@ -465,7 +428,7 @@ func (o *baseDynamicObject) setProto(proto *Object, throw bool) bool {
 }
 
 func (o *baseDynamicObject) hasInstance(v Value) bool {
-	panic(newTypeError("Expecting a function in instanceof check, but got a dynamic object"))
+	panic(o.val.runtime.NewTypeError("Expecting a function in instanceof check, but got a dynamic object"))
 }
 
 func (*baseDynamicObject) isExtensible() bool {
@@ -473,7 +436,7 @@ func (*baseDynamicObject) isExtensible() bool {
 }
 
 func (o *baseDynamicObject) preventExtensions(throw bool) bool {
-	typeErrorResult(throw, "Cannot make a dynamic object non-extensible")
+	o.val.runtime.typeErrorResult(throw, "Cannot make a dynamic object non-extensible")
 	return false
 }
 
@@ -563,23 +526,15 @@ func (*baseDynamicObject) _putProp(name unistring.String, value Value, writable,
 func (*baseDynamicObject) _putSym(s *Symbol, prop Value) {
 }
 
-func (o *baseDynamicObject) getPrivateEnv(*privateEnvType, bool) *privateElements {
-	panic(newTypeError("Dynamic objects cannot have private elements"))
+func (a *dynamicArray) sortLen() int64 {
+	return int64(a.a.Len())
 }
 
-func (o *baseDynamicObject) typeOf() valueString {
-	return stringObjectC
+func (a *dynamicArray) sortGet(i int64) Value {
+	return a.a.Get(int(i))
 }
 
-func (a *dynamicArray) sortLen() int {
-	return a.a.Len()
-}
-
-func (a *dynamicArray) sortGet(i int) Value {
-	return a.a.Get(i)
-}
-
-func (a *dynamicArray) swap(i int, j int) {
+func (a *dynamicArray) swap(i int64, j int64) {
 	x := a.sortGet(i)
 	y := a.sortGet(j)
 	a.a.Set(int(i), y)
@@ -628,7 +583,7 @@ func (a *dynamicArray) _setLen(v Value, throw bool) bool {
 	if a.a.SetLen(toIntStrict(v.ToInteger())) {
 		return true
 	}
-	typeErrorResult(throw, "'SetLen' on a dynamic array returned false")
+	a.val.runtime.typeErrorResult(throw, "'SetLen' on a dynamic array returned false")
 	return false
 }
 
@@ -639,7 +594,7 @@ func (a *dynamicArray) setOwnStr(p unistring.String, v Value, throw bool) bool {
 	if idx, ok := strToInt(p); ok {
 		return a._setIdx(idx, v, throw)
 	}
-	typeErrorResult(throw, "Cannot set property %q on a dynamic array", p.String())
+	a.val.runtime.typeErrorResult(throw, "Cannot set property %q on a dynamic array", p.String())
 	return false
 }
 
@@ -647,7 +602,7 @@ func (a *dynamicArray) _setIdx(idx int, v Value, throw bool) bool {
 	if a.a.Set(idx, v) {
 		return true
 	}
-	typeErrorResult(throw, "'Set' on a dynamic array returned false")
+	a.val.runtime.typeErrorResult(throw, "'Set' on a dynamic array returned false")
 	return false
 }
 
@@ -706,7 +661,7 @@ func (a *dynamicArray) defineOwnPropertyStr(name unistring.String, desc Property
 		if idx, ok := strToInt(name); ok {
 			return a._setIdx(idx, desc.Value, throw)
 		}
-		typeErrorResult(throw, "Cannot define property %q on a dynamic array", name.String())
+		a.val.runtime.typeErrorResult(throw, "Cannot define property %q on a dynamic array", name.String())
 	}
 	return false
 }
@@ -730,7 +685,7 @@ func (a *dynamicArray) deleteStr(name unistring.String, throw bool) bool {
 		return a._delete(idx, throw)
 	}
 	if a.hasOwnPropertyStr(name) {
-		typeErrorResult(throw, "Cannot delete property %q on a dynamic array", name.String())
+		a.val.runtime.typeErrorResult(throw, "Cannot delete property %q on a dynamic array", name.String())
 		return false
 	}
 	return true

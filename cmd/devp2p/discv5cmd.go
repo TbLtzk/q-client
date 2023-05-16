@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/cmd/devp2p/internal/v5test"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/p2p/discover"
-	"github.com/urfave/cli/v2"
 )
 
 var (

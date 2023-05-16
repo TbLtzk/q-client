@@ -11,7 +11,6 @@ import (
 // Uint64Slice wraps []int64 to satisfy flag.Value
 type Uint64Slice struct {
 	slice      []uint64
-	separator  separatorSpec
 	hasBeenSet bool
 }
 
@@ -44,7 +43,7 @@ func (i *Uint64Slice) Set(value string) error {
 		return nil
 	}
 
-	for _, s := range i.separator.flagSplitMultiValues(value) {
+	for _, s := range flagSplitMultiValues(value) {
 		tmp, err := strconv.ParseUint(strings.TrimSpace(s), 0, 64)
 		if err != nil {
 			return err
@@ -54,10 +53,6 @@ func (i *Uint64Slice) Set(value string) error {
 	}
 
 	return nil
-}
-
-func (i *Uint64Slice) WithSeparatorSpec(spec separatorSpec) {
-	i.separator = spec
 }
 
 // String returns a readable representation of this value (for usage defaults)
@@ -158,11 +153,10 @@ func (f *Uint64SliceFlag) Apply(set *flag.FlagSet) error {
 		setValue = f.Value.clone()
 	default:
 		setValue = new(Uint64Slice)
-		setValue.WithSeparatorSpec(f.separator)
 	}
 
 	if val, source, ok := flagFromEnvOrFile(f.EnvVars, f.FilePath); ok && val != "" {
-		for _, s := range f.separator.flagSplitMultiValues(val) {
+		for _, s := range flagSplitMultiValues(val) {
 			if err := setValue.Set(strings.TrimSpace(s)); err != nil {
 				return fmt.Errorf("could not parse %q as uint64 slice value from %s for flag %s: %s", val, source, f.Name, err)
 			}
@@ -179,10 +173,6 @@ func (f *Uint64SliceFlag) Apply(set *flag.FlagSet) error {
 	}
 
 	return nil
-}
-
-func (f *Uint64SliceFlag) WithSeparatorSpec(spec separatorSpec) {
-	f.separator = spec
 }
 
 // Get returns the flag’s value in the given Context.

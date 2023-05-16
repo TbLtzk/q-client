@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gitlab.com/q-dev/q-client/log"
 	"io"
 	"net/http"
 	"os"
@@ -29,9 +28,10 @@ import (
 
 	"github.com/jedisct1/go-minisign"
 	"github.com/urfave/cli/v2"
+	"gitlab.com/q-dev/q-client/log"
 )
 
-var gethPubKeys []string = []string{
+var gethPubKeys = []string{
 	//@holiman, minisign public key FB1D084D39BAEC24
 	"RWQk7Lo5TQgd+wxBNZM+Zoy+7UhhMHaWKzqoes9tvSbFLJYZhNTbrIjx",
 	//minisign public key 138B1CA303E51687

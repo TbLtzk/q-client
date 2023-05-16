@@ -8,6 +8,7 @@ run:
   skip-dirs-use-default: true
   skip-files:
     - core/genesis_alloc.go
+    - core/blockchain_test.go
 
 linters:
   disable-all: true
@@ -50,6 +51,7 @@ linters-settings:
       - G404 # Use of weak random number generator - lots of FP
       - G107 # Potential http request -- those are intentional
       - G306 # G306: Expect WriteFile permissions to be 0600 or less
+      - G114
 
 issues:
   exclude-rules:
@@ -58,13 +60,13 @@ issues:
         - deadcode
         - staticcheck
     - path: internal/build/pgp.go
-      text: 'SA1019: package golang.org/x/crypto/openpgp is deprecated'
+      text: 'SA1019: "golang.org/x/crypto/openpgp" is deprecated: this package is unmaintained except for security fixes.'
     - path: core/vm/contracts.go
-      text: 'SA1019: package golang.org/x/crypto/ripemd160 is deprecated'
+      text: 'SA1019: "golang.org/x/crypto/ripemd160" is deprecated: RIPEMD-160 is a legacy hash and should not be used for new applications.'
     - path: accounts/usbwallet/trezor.go
-      text: 'SA1019: package github.com/golang/protobuf/proto is deprecated'
+      text: 'SA1019: "github.com/golang/protobuf/proto" is deprecated: Use the "google.golang.org/protobuf/proto" package instead.'
     - path: accounts/usbwallet/trezor/
-      text: 'SA1019: package github.com/golang/protobuf/proto is deprecated'
+      text: 'SA1019: "github.com/golang/protobuf/proto" is deprecated: Use the "google.golang.org/protobuf/proto" package instead.'
   exclude:
     - 'SA1019: event.TypeMux is deprecated: use Feed'
     - 'SA1019: strings.Title is deprecated'
@@ -72,3 +74,6 @@ issues:
     - 'SA1029: should not use built-in type string as key for value'
     - 'G306: Expect WriteFile permissions to be 0600 or less'
     - 'SA1019: package io/ioutil is deprecated: As of Go 1.16, the same functionality is now provided by package io or package os, and those implementations should be preferred in new code. See the specific function documentation for details.'
+    - 'SA4015: calling math.Ceil on a converted integer is pointless'
+    - 'SA1019: "io/ioutil" has been deprecated since Go 1.16: As of Go 1.16, the same functionality is now provided by package io or package os, and those implementations should be preferred in new code. See the specific function documentation for details.'
+    - 'SA1019: "io/ioutil" has been deprecated since Go 1.19: As of Go 1.16, the same functionality is now provided by package io or package os, and those implementations should be preferred in new code. See the specific function documentation for details.'

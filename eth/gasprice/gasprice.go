@@ -149,9 +149,9 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 	}
 }
 
-//SuggestTipCapExt returns price from GasPriceProvider if it's possible. Otherwise, it returns standard price
-//from SuggestTipCap
-//Price can be multiplied by cli gpo.gaspricefactor parameter, which can increase/decrease it
+// SuggestTipCapExt returns price from GasPriceProvider if it's possible. Otherwise, it returns standard price
+// from SuggestTipCap
+// Price can be multiplied by cli gpo.gaspricefactor parameter, which can increase/decrease it
 func (oracle *Oracle) SuggestTipCapExt(ctx context.Context, gpp core.GasPriceProvider) (*big.Int, error) {
 	var price *big.Int
 	var err error
@@ -182,7 +182,6 @@ func (oracle *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 	lastHead, lastPrice := oracle.lastHead, oracle.lastPrice
 	oracle.cacheLock.RUnlock()
 	if headHash == lastHead {
-
 		return new(big.Int).Set(lastPrice), nil
 	}
 	oracle.fetchLock.Lock()

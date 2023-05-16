@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/tests"
-	"github.com/urfave/cli/v2"
 )
 
 var (

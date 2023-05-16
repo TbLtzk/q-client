@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf16"
-	"unicode/utf8"
 
 	"github.com/dop251/goja/unistring"
 )
@@ -17,7 +16,7 @@ import (
 const hex = "0123456789abcdef"
 
 func (r *Runtime) builtinJSON_parse(call FunctionCall) Value {
-	d := json.NewDecoder(strings.NewReader(call.Argument(0).toString().String()))
+	d := json.NewDecoder(bytes.NewBufferString(call.Argument(0).toString().String()))
 
 	value, err := r.builtinJSON_decodeValue(d)
 	if err != nil {
@@ -172,13 +171,11 @@ type _builtinJSON_stringifyContext struct {
 	replacerFunction func(FunctionCall) Value
 	gap, indent      string
 	buf              bytes.Buffer
-	allAscii         bool
 }
 
 func (r *Runtime) builtinJSON_stringify(call FunctionCall) Value {
 	ctx := _builtinJSON_stringifyContext{
-		r:        r,
-		allAscii: true,
+		r: r,
 	}
 
 	replacer, _ := call.Argument(1).(*Object)
@@ -257,13 +254,7 @@ func (r *Runtime) builtinJSON_stringify(call FunctionCall) Value {
 	}
 
 	if ctx.do(call.Argument(0)) {
-		if ctx.allAscii {
-			return asciiString(ctx.buf.String())
-		} else {
-			return &importedString{
-				s: ctx.buf.String(),
-			}
-		}
+		return newStringValue(ctx.buf.String())
 	}
 	return _undefined
 }
@@ -315,7 +306,6 @@ func (ctx *_builtinJSON_stringifyContext) str(key Value, holder *Object) bool {
 					panic(err)
 				}
 				ctx.buf.Write(b)
-				ctx.allAscii = false
 				return true
 			} else {
 				switch o1.className() {
@@ -474,7 +464,7 @@ func (ctx *_builtinJSON_stringifyContext) jo(object *Object) {
 
 func (ctx *_builtinJSON_stringifyContext) quote(str valueString) {
 	ctx.buf.WriteByte('"')
-	reader := &lenientUtf16Decoder{utf16Reader: str.utf16Reader()}
+	reader := &lenientUtf16Decoder{utf16Reader: str.utf16Reader(0)}
 	for {
 		r, _, err := reader.ReadRune()
 		if err != nil {
@@ -508,9 +498,6 @@ func (ctx *_builtinJSON_stringifyContext) quote(str valueString) {
 					ctx.buf.WriteByte(hex[r&0xF])
 				} else {
 					ctx.buf.WriteRune(r)
-					if ctx.allAscii && r >= utf8.RuneSelf {
-						ctx.allAscii = false
-					}
 				}
 			}
 		}
@@ -519,7 +506,7 @@ func (ctx *_builtinJSON_stringifyContext) quote(str valueString) {
 }
 
 func (r *Runtime) initJSON() {
-	JSON := r.newBaseObject(r.global.ObjectPrototype, classObject)
+	JSON := r.newBaseObject(r.global.ObjectPrototype, "JSON")
 	JSON._putProp("parse", r.newNativeFunc(r.builtinJSON_parse, nil, "parse", nil, 2), true, false, true)
 	JSON._putProp("stringify", r.newNativeFunc(r.builtinJSON_stringify, nil, "stringify", nil, 3), true, false, true)
 	JSON._putSym(SymToStringTag, valueProp(asciiString(classJSON), false, false, true))

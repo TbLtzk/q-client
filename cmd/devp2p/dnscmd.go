@@ -24,12 +24,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/console/prompt"
 	"gitlab.com/q-dev/q-client/p2p/dnsdisc"
 	"gitlab.com/q-dev/q-client/p2p/enode"
-	"github.com/urfave/cli/v2"
 )
 
 var (

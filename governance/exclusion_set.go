@@ -146,7 +146,6 @@ func (s *exclusionSet) makeList() common.ValidatorExclusionList {
 				EndBlock: blockAddr.EndAddress,
 			})
 		}
-
 	}
 
 	return common.ValidatorExclusionList{
@@ -197,20 +196,19 @@ func (s1 *exclusionSet) addrToBlockRangeExclusiveDiff(s2 *exclusionSet) map[comm
 	// add addess-to-block that is only in s1, but not in s2
 	for addr, blockRangesFromS1 := range s1.blockRanges {
 		for _, blockRangeFromS1 := range blockRangesFromS1 {
-
 			exist := false
 			for _, blockRangeFromS2 := range s2.blockRanges[addr] {
-				blockRangeFromS1.IsEqualTo(blockRangeFromS2)
-				{
-					exist = true
-					break
+				if blockRangeFromS1.IsEqualTo(blockRangeFromS2) {
+					{
+						exist = true
+						break
+					}
 				}
 			}
 
 			if !exist {
 				res[addr] = append(res[addr], blockRangeFromS1)
 			}
-
 		}
 	}
 
@@ -219,17 +217,17 @@ func (s1 *exclusionSet) addrToBlockRangeExclusiveDiff(s2 *exclusionSet) map[comm
 		for _, blockRangeFromS2 := range blockRangesFromS2 {
 			exist := false
 			for _, blockRangeFromS1 := range s1.blockRanges[addr] {
-				blockRangeFromS2.IsEqualTo(blockRangeFromS1)
-				{
-					exist = true
-					break
+				if blockRangeFromS2.IsEqualTo(blockRangeFromS1) {
+					{
+						exist = true
+						break
+					}
 				}
 			}
 
 			if !exist {
 				res[addr] = append(res[addr], blockRangeFromS2)
 			}
-
 		}
 	}
 	return res
@@ -245,7 +243,6 @@ func (s *exclusionSet) getAddresses() []common.Address {
 
 // Fix after unhappy testing
 func (s *exclusionSet) fixTimestamp() {
-
 	if s.hash.String() == "0x0e93f67e14240ec1e3aa6f0e316fc331cd3197816e88a7dc21b8749d092e1762" {
 		s.timestamp = 1669136688
 	}

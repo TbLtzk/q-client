@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/p2p/enode"
-	"github.com/urfave/cli/v2"
 )
 
 var (

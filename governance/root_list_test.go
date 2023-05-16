@@ -1,10 +1,11 @@
 package governance
 
 import (
-	"github.com/stretchr/testify/assert"
-	"gitlab.com/q-dev/q-client/common"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 func Test_newRootSet(t *testing.T) {

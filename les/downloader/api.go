@@ -18,9 +18,9 @@ package downloader
 
 import (
 	"context"
-	ethereum "gitlab.com/q-dev/q-client"
 	"sync"
 
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/rpc"
 )

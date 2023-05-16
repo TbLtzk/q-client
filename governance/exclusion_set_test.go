@@ -1,8 +1,9 @@
 package governance
 
 import (
-	"gitlab.com/q-dev/q-client/common"
 	"testing"
+
+	"gitlab.com/q-dev/q-client/common"
 )
 
 func Test_newExclusionSet(t *testing.T) {

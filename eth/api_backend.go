@@ -19,10 +19,10 @@ package eth
 import (
 	"context"
 	"errors"
-	ethereum "gitlab.com/q-dev/q-client"
 	"math/big"
 	"time"
 
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus"
@@ -294,7 +294,7 @@ func (b *EthAPIBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.S
 }
 
 func (b *EthAPIBackend) SyncProgress() ethereum.SyncProgress {
-	return ethereum.SyncProgress(b.eth.Downloader().Progress())
+	return b.eth.Downloader().Progress()
 }
 
 func (b *EthAPIBackend) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {

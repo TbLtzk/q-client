@@ -23,6 +23,7 @@ import (
 	"math/big"
 	"time"
 
+	fuzz "github.com/google/gofuzz"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core"
@@ -33,7 +34,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
-	fuzz "github.com/google/gofuzz"
 )
 
 var trieRoot common.Hash
