@@ -135,7 +135,7 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'getRootsVotings',
 			call: 'indexer_getRootsVotings',
-			params: 2,
+			params: 3,
 		}),
 		new web3._extend.Method({
 			name: 'getRootNodesSlashingVotings',
