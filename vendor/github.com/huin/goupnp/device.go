@@ -3,7 +3,6 @@
 package goupnp
 
 import (
-	"context"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -52,7 +51,6 @@ type Device struct {
 	ModelDescription string    `xml:"modelDescription"`
 	ModelName        string    `xml:"modelName"`
 	ModelNumber      string    `xml:"modelNumber"`
-	ModelType        string    `xml:"modelType"`
 	ModelURL         URLField  `xml:"modelURL"`
 	SerialNumber     string    `xml:"serialNumber"`
 	UDN              string    `xml:"UDN"`
@@ -150,23 +148,17 @@ func (srv *Service) String() string {
 	return fmt.Sprintf("Service ID %s : %s", srv.ServiceId, srv.ServiceType)
 }
 
-// RequestSCPDCtx requests the SCPD (soap actions and state variables description)
+// RequestSCPD requests the SCPD (soap actions and state variables description)
 // for the service.
-func (srv *Service) RequestSCPDCtx(ctx context.Context) (*scpd.SCPD, error) {
+func (srv *Service) RequestSCPD() (*scpd.SCPD, error) {
 	if !srv.SCPDURL.Ok {
 		return nil, errors.New("bad/missing SCPD URL, or no URLBase has been set")
 	}
 	s := new(scpd.SCPD)
-	if err := requestXml(ctx, srv.SCPDURL.URL.String(), scpd.SCPDXMLNamespace, s); err != nil {
+	if err := requestXml(srv.SCPDURL.URL.String(), scpd.SCPDXMLNamespace, s); err != nil {
 		return nil, err
 	}
 	return s, nil
-}
-
-// RequestSCPD is the legacy version of RequestSCPDCtx, but uses
-// context.Background() as the context.
-func (srv *Service) RequestSCPD() (*scpd.SCPD, error) {
-	return srv.RequestSCPDCtx(context.Background())
 }
 
 // RequestSCDP is for compatibility only, prefer RequestSCPD. This was a

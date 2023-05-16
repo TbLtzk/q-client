@@ -36,24 +36,20 @@ func (d *destructKeyedSource) recordKey(key Value) {
 	d.usedKeys[key] = struct{}{}
 }
 
-func (d *destructKeyedSource) sortLen() int {
+func (d *destructKeyedSource) sortLen() int64 {
 	return d.w().sortLen()
 }
 
-func (d *destructKeyedSource) sortGet(i int) Value {
+func (d *destructKeyedSource) sortGet(i int64) Value {
 	return d.w().sortGet(i)
 }
 
-func (d *destructKeyedSource) swap(i int, i2 int) {
+func (d *destructKeyedSource) swap(i int64, i2 int64) {
 	d.w().swap(i, i2)
 }
 
 func (d *destructKeyedSource) className() string {
 	return d.w().className()
-}
-
-func (d *destructKeyedSource) typeOf() valueString {
-	return d.w().typeOf()
 }
 
 func (d *destructKeyedSource) getStr(p unistring.String, receiver Value) Value {
@@ -172,10 +168,6 @@ func (d *destructKeyedSource) toPrimitive() Value {
 
 func (d *destructKeyedSource) assertCallable() (call func(FunctionCall) Value, ok bool) {
 	return d.w().assertCallable()
-}
-
-func (d *destructKeyedSource) vmCall(vm *vm, n int) {
-	d.w().vmCall(vm, n)
 }
 
 func (d *destructKeyedSource) assertConstructor() func(args []Value, newTarget *Object) *Object {
@@ -305,8 +297,4 @@ func (d *destructKeyedSource) _putProp(name unistring.String, value Value, writa
 
 func (d *destructKeyedSource) _putSym(s *Symbol, prop Value) {
 	d.w()._putSym(s, prop)
-}
-
-func (d *destructKeyedSource) getPrivateEnv(typ *privateEnvType, create bool) *privateElements {
-	return d.w().getPrivateEnv(typ, create)
 }

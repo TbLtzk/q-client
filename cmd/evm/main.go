@@ -22,9 +22,9 @@ import (
 	"math/big"
 	"os"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/cmd/evm/internal/t8ntool"
 	"gitlab.com/q-dev/q-client/internal/flags"
-	"github.com/urfave/cli/v2"
 )
 
 var (

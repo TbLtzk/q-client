@@ -17,7 +17,7 @@ func (c *Client) UpdateTrafficPolicyComment(ctx context.Context, params *UpdateT
 		params = &UpdateTrafficPolicyCommentInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "UpdateTrafficPolicyComment", params, optFns, c.addOperationUpdateTrafficPolicyCommentMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "UpdateTrafficPolicyComment", params, optFns, addOperationUpdateTrafficPolicyCommentMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -46,8 +46,6 @@ type UpdateTrafficPolicyCommentInput struct {
 	//
 	// This member is required.
 	Version *int32
-
-	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response information for the traffic policy.
@@ -60,11 +58,9 @@ type UpdateTrafficPolicyCommentOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
-
-	noSmithyDocumentSerde
 }
 
-func (c *Client) addOperationUpdateTrafficPolicyCommentMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func addOperationUpdateTrafficPolicyCommentMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpUpdateTrafficPolicyComment{}, middleware.After)
 	if err != nil {
 		return err

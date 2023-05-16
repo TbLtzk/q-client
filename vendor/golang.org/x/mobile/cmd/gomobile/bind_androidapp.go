@@ -12,15 +12,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
+	"golang.org/x/mobile/internal/sdkpath"
+	"golang.org/x/sync/errgroup"
 	"golang.org/x/tools/go/packages"
 )
 
-func goAndroidBind(gobind string, pkgs []*packages.Package, androidArchs []string) error {
-	if sdkDir := os.Getenv("ANDROID_HOME"); sdkDir == "" {
-		return fmt.Errorf("this command requires ANDROID_HOME environment variable (path to the Android SDK)")
+func goAndroidBind(gobind string, pkgs []*packages.Package, targets []targetInfo) error {
+	if _, err := sdkpath.AndroidHome(); err != nil {
+		return fmt.Errorf("this command requires the Android SDK to be installed: %w", err)
 	}
 
 	// Run gobind to generate the bindings
@@ -53,31 +54,19 @@ func goAndroidBind(gobind string, pkgs []*packages.Package, androidArchs []strin
 	androidDir := filepath.Join(tmpdir, "android")
 
 	// Generate binding code and java source code only when processing the first package.
-	for _, arch := range androidArchs {
-		if err := writeGoMod("android", arch); err != nil {
-			return err
-		}
-
-		env := androidEnv[arch]
-		// Add the generated packages to GOPATH for reverse bindings.
-		gopath := fmt.Sprintf("GOPATH=%s%c%s", tmpdir, filepath.ListSeparator, goEnv("GOPATH"))
-		env = append(env, gopath)
-		toolchain := ndk.Toolchain(arch)
-
-		err := goBuildAt(
-			filepath.Join(tmpdir, "src"),
-			"./gobind",
-			env,
-			"-buildmode=c-shared",
-			"-o="+filepath.Join(androidDir, "src/main/jniLibs/"+toolchain.abi+"/libgojni.so"),
-		)
-		if err != nil {
-			return err
-		}
+	var wg errgroup.Group
+	for _, t := range targets {
+		t := t
+		wg.Go(func() error {
+			return buildAndroidSO(androidDir, t.arch)
+		})
+	}
+	if err := wg.Wait(); err != nil {
+		return err
 	}
 
 	jsrc := filepath.Join(tmpdir, "java")
-	if err := buildAAR(jsrc, androidDir, pkgs, androidArchs); err != nil {
+	if err := buildAAR(jsrc, androidDir, pkgs, targets); err != nil {
 		return err
 	}
 	return buildSrcJar(jsrc)
@@ -109,7 +98,7 @@ func buildSrcJar(src string) error {
 // These entries are directly at the root of the archive.
 //
 //	AndroidManifest.xml (mandatory)
-// 	classes.jar (mandatory)
+//	classes.jar (mandatory)
 //	assets/ (optional)
 //	jni/<abi>/libgojni.so
 //	R.txt (mandatory)
@@ -120,7 +109,7 @@ func buildSrcJar(src string) error {
 //	aidl (optional, not relevant)
 //
 // javac and jar commands are needed to build classes.jar.
-func buildAAR(srcDir, androidDir string, pkgs []*packages.Package, androidArchs []string) (err error) {
+func buildAAR(srcDir, androidDir string, pkgs []*packages.Package, targets []targetInfo) (err error) {
 	var out io.Writer = ioutil.Discard
 	if buildO == "" {
 		buildO = pkgs[0].Name + ".aar"
@@ -222,8 +211,8 @@ func buildAAR(srcDir, androidDir string, pkgs []*packages.Package, androidArchs 
 		}
 	}
 
-	for _, arch := range androidArchs {
-		toolchain := ndk.Toolchain(arch)
+	for _, t := range targets {
+		toolchain := ndk.Toolchain(t.arch)
 		lib := toolchain.abi + "/libgojni.so"
 		w, err = aarwcreate("jni/" + lib)
 		if err != nil {
@@ -257,7 +246,7 @@ func buildAAR(srcDir, androidDir string, pkgs []*packages.Package, androidArchs 
 
 const (
 	javacTargetVer = "1.7"
-	minAndroidAPI  = 15
+	minAndroidAPI  = 16
 )
 
 func buildJar(w io.Writer, srcDir string) error {
@@ -358,45 +347,55 @@ func writeJar(w io.Writer, dir string) error {
 	return jarw.Close()
 }
 
-// androidAPIPath returns an android SDK platform directory under ANDROID_HOME.
-// If there are multiple platforms that satisfy the minimum version requirement
-// androidAPIPath returns the latest one among them.
-func androidAPIPath() (string, error) {
-	sdk := os.Getenv("ANDROID_HOME")
-	if sdk == "" {
-		return "", fmt.Errorf("ANDROID_HOME environment var is not set")
-	}
-	sdkDir, err := os.Open(filepath.Join(sdk, "platforms"))
+// buildAndroidSO generates an Android libgojni.so file to outputDir.
+// buildAndroidSO is concurrent-safe.
+func buildAndroidSO(outputDir string, arch string) error {
+	// Copy the environment variables to make this function concurrent-safe.
+	env := make([]string, len(androidEnv[arch]))
+	copy(env, androidEnv[arch])
+
+	// Add the generated packages to GOPATH for reverse bindings.
+	gopath := fmt.Sprintf("GOPATH=%s%c%s", tmpdir, filepath.ListSeparator, goEnv("GOPATH"))
+	env = append(env, gopath)
+
+	modulesUsed, err := areGoModulesUsed()
 	if err != nil {
-		return "", fmt.Errorf("failed to find android SDK platform: %v", err)
-	}
-	defer sdkDir.Close()
-	fis, err := sdkDir.Readdir(-1)
-	if err != nil {
-		return "", fmt.Errorf("failed to find android SDK platform (API level: %d): %v", buildAndroidAPI, err)
+		return err
 	}
 
-	var apiPath string
-	var apiVer int
-	for _, fi := range fis {
-		name := fi.Name()
-		if !fi.IsDir() || !strings.HasPrefix(name, "android-") {
-			continue
+	srcDir := filepath.Join(tmpdir, "src")
+
+	if modulesUsed {
+		// Copy the source directory for each architecture for concurrent building.
+		newSrcDir := filepath.Join(tmpdir, "src-android-"+arch)
+		if !buildN {
+			if err := doCopyAll(newSrcDir, srcDir); err != nil {
+				return err
+			}
 		}
-		n, err := strconv.Atoi(name[len("android-"):])
-		if err != nil || n < buildAndroidAPI {
-			continue
+		srcDir = newSrcDir
+
+		if err := writeGoMod(srcDir, "android", arch); err != nil {
+			return err
 		}
-		p := filepath.Join(sdkDir.Name(), name)
-		_, err = os.Stat(filepath.Join(p, "android.jar"))
-		if err == nil && apiVer < n {
-			apiPath = p
-			apiVer = n
+
+		// Run `go mod tidy` to force to create go.sum.
+		// Without go.sum, `go build` fails as of Go 1.16.
+		if err := goModTidyAt(srcDir, env); err != nil {
+			return err
 		}
 	}
-	if apiVer == 0 {
-		return "", fmt.Errorf("failed to find android SDK platform (API level: %d) in %s",
-			buildAndroidAPI, sdkDir.Name())
+
+	toolchain := ndk.Toolchain(arch)
+	if err := goBuildAt(
+		srcDir,
+		"./gobind",
+		env,
+		"-buildmode=c-shared",
+		"-o="+filepath.Join(outputDir, "src", "main", "jniLibs", toolchain.abi, "libgojni.so"),
+	); err != nil {
+		return err
 	}
-	return apiPath, nil
+
+	return nil
 }

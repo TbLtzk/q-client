@@ -91,6 +91,7 @@ func (api *IndexerAPI) getOutOfTurnStatsFromSnapshot(header *types.Header, snaps
 	}, nil
 }
 
+//nolint:unused
 func (api *IndexerAPI) getIndexInAddressSlice(a []common.Address, x common.Address) int {
 	for i, n := range a {
 		if x == n {

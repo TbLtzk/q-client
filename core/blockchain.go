@@ -20,7 +20,6 @@ package core
 import (
 	"errors"
 	"fmt"
-	"gitlab.com/q-dev/q-client/sentryMonitor"
 	"io"
 	"math/big"
 	"sort"
@@ -44,6 +43,7 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/sentryMonitor"
 	"gitlab.com/q-dev/q-client/trie"
 )
 

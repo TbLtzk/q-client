@@ -11,9 +11,7 @@ import (
 // StringSlice wraps a []string to satisfy flag.Value
 type StringSlice struct {
 	slice      []string
-	separator  separatorSpec
 	hasBeenSet bool
-	keepSpace  bool
 }
 
 // NewStringSlice creates a *StringSlice with default values
@@ -45,18 +43,11 @@ func (s *StringSlice) Set(value string) error {
 		return nil
 	}
 
-	for _, t := range s.separator.flagSplitMultiValues(value) {
-		if !s.keepSpace {
-			t = strings.TrimSpace(t)
-		}
-		s.slice = append(s.slice, t)
+	for _, t := range flagSplitMultiValues(value) {
+		s.slice = append(s.slice, strings.TrimSpace(t))
 	}
 
 	return nil
-}
-
-func (s *StringSlice) WithSeparatorSpec(spec separatorSpec) {
-	s.separator = spec
 }
 
 // String returns a readable representation of this value (for usage defaults)
@@ -150,17 +141,11 @@ func (f *StringSliceFlag) Apply(set *flag.FlagSet) error {
 		setValue = f.Value.clone()
 	default:
 		setValue = new(StringSlice)
-		setValue.WithSeparatorSpec(f.separator)
 	}
 
-	setValue.keepSpace = f.KeepSpace
-
 	if val, source, found := flagFromEnvOrFile(f.EnvVars, f.FilePath); found {
-		for _, s := range f.separator.flagSplitMultiValues(val) {
-			if !f.KeepSpace {
-				s = strings.TrimSpace(s)
-			}
-			if err := setValue.Set(s); err != nil {
+		for _, s := range flagSplitMultiValues(val) {
+			if err := setValue.Set(strings.TrimSpace(s)); err != nil {
 				return fmt.Errorf("could not parse %q as string value from %s for flag %s: %s", val, source, f.Name, err)
 			}
 		}
@@ -176,10 +161,6 @@ func (f *StringSliceFlag) Apply(set *flag.FlagSet) error {
 	}
 
 	return nil
-}
-
-func (f *StringSliceFlag) WithSeparatorSpec(spec separatorSpec) {
-	f.separator = spec
 }
 
 // Get returns the flag’s value in the given Context.

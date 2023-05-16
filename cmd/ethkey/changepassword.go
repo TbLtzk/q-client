@@ -21,9 +21,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/utils"
-	"github.com/urfave/cli/v2"
 )
 
 var newPassphraseFlag = &cli.StringFlag{

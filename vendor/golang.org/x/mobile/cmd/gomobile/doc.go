@@ -9,10 +9,10 @@ Gomobile is a tool for building and running mobile apps written in Go.
 
 To install:
 
-	$ go get golang.org/x/mobile/cmd/gomobile
+	$ go install golang.org/x/mobile/cmd/gomobile@latest
 	$ gomobile init
 
-At least Go 1.10 is required.
+At least Go 1.16 is required.
 For detailed instructions, see https://golang.org/wiki/Mobile.
 
 Usage:
@@ -30,18 +30,17 @@ Commands:
 
 Use 'gomobile help [command]' for more information about that command.
 
-
-Build a library for Android and iOS
+# Build a library for Android and iOS
 
 Usage:
 
-	gomobile bind [-target android|ios] [-bootclasspath <path>] [-classpath <path>] [-o output] [build flags] [package]
+	gomobile bind [-target android|ios|iossimulator|macos|maccatalyst] [-bootclasspath <path>] [-classpath <path>] [-o output] [build flags] [package]
 
 Bind generates language bindings for the package named by the import
 path, and compiles a library for the named target system.
 
-The -target flag takes a target system name, either android (the
-default) or ios.
+The -target flag takes either android (the default), or one or more
+comma-delimited Apple platforms (ios, iossimulator, macos, maccatalyst).
 
 For -target android, the bind command produces an AAR (Android ARchive)
 file that archives the precompiled Java API stub classes, the compiled
@@ -53,7 +52,7 @@ example, in Android Studio (1.2+), an AAR file can be imported using
 the module import wizard (File > New > New Module > Import .JAR or
 .AAR package), and setting it as a new dependency
 (File > Project Structure > Dependencies).  This requires 'javac'
-(version 1.7+) and Android SDK (API level 15 or newer) to build the
+(version 1.7+) and Android SDK (API level 16 or newer) to build the
 library for Android. The environment variable ANDROID_HOME must be set
 to the path to Android SDK. Use the -javapkg flag to specify the Java
 package prefix for the generated classes.
@@ -63,9 +62,9 @@ instruction sets (arm, arm64, 386, amd64). A subset of instruction sets
 can be selected by specifying target type with the architecture name. E.g.,
 -target=android/arm,android/386.
 
-For -target ios, gomobile must be run on an OS X machine with Xcode
-installed. The generated Objective-C types can be prefixed with the -prefix
-flag.
+For Apple -target platforms, gomobile must be run on an OS X machine with
+Xcode installed. The generated Objective-C types can be prefixed with the
+-prefix flag.
 
 For -target android, the -bootclasspath and -classpath flags are used to
 control the bootstrap classpath and the classpath for Go wrappers to Java
@@ -76,19 +75,18 @@ The -v flag provides verbose output, including the list of packages built.
 The build flags -a, -n, -x, -gcflags, -ldflags, -tags, -trimpath, and -work
 are shared with the build command. For documentation, see 'go help build'.
 
-
-Compile android APK and iOS app
+# Compile android APK and iOS app
 
 Usage:
 
-	gomobile build [-target android|ios] [-o output] [-bundleid bundleID] [build flags] [package]
+	gomobile build [-target android|ios|iossimulator|macos|maccatalyst] [-o output] [-bundleid bundleID] [build flags] [package]
 
 Build compiles and encodes the app named by the import path.
 
 The named package must define a main function.
 
-The -target flag takes a target system name, either android (the
-default) or ios.
+The -target flag takes either android (the default), or one or more
+comma-delimited Apple platforms (ios, iossimulator, macos, maccatalyst).
 
 For -target android, if an AndroidManifest.xml is defined in the
 package directory, it is added to the APK output. Otherwise, a default
@@ -97,17 +95,25 @@ instruction sets (arm, 386, amd64, arm64). A subset of instruction sets can
 be selected by specifying target type with the architecture name. E.g.
 -target=android/arm,android/386.
 
-For -target ios, gomobile must be run on an OS X machine with Xcode
-installed.
+For Apple -target platforms, gomobile must be run on an OS X machine with
+Xcode installed.
+
+By default, -target ios will generate an XCFramework for both ios
+and iossimulator. Multiple Apple targets can be specified, creating a "fat"
+XCFramework with each slice. To generate a fat XCFramework that supports
+iOS, macOS, and macCatalyst for all supportec architectures (amd64 and arm64),
+specify -target ios,macos,maccatalyst. A subset of instruction sets can be
+selectged by specifying the platform with an architecture name. E.g.
+-target=ios/arm64,maccatalyst/arm64.
 
 If the package directory contains an assets subdirectory, its contents
 are copied into the output.
 
 Flag -iosversion sets the minimal version of the iOS SDK to compile against.
-The default version is 7.0.
+The default version is 13.0.
 
 Flag -androidapi sets the Android API version to compile against.
-The default and minimum is 15.
+The default and minimum is 16.
 
 The -bundleid flag is required for -target ios and sets the bundle ID to use
 with the app.
@@ -120,17 +126,15 @@ The -v flag provides verbose output, including the list of packages built.
 The build flags -a, -i, -n, -x, -gcflags, -ldflags, -tags, -trimpath, and -work are
 shared with the build command. For documentation, see 'go help build'.
 
-
-Remove object files and cached gomobile files
+# Remove object files and cached gomobile files
 
 Usage:
 
 	gomobile clean
 
-Clean removes object files and cached NDK files downloaded by gomobile init
+Clean removes object files and cached NDK files downloaded by gomobile init.
 
-
-Build OpenAL for Android
+# Build OpenAL for Android
 
 Usage:
 
@@ -140,8 +144,7 @@ If a OpenAL source directory is specified with -openal, init will
 build an Android version of OpenAL for use with gomobile build
 and gomobile install.
 
-
-Compile android APK and install on device
+# Compile android APK and install on device
 
 Usage:
 
@@ -156,8 +159,7 @@ The build flags -a, -i, -n, -x, -gcflags, -ldflags, -tags, -trimpath, and -work 
 shared with the build command.
 For documentation, see 'go help build'.
 
-
-Print version
+# Print version
 
 Usage:
 

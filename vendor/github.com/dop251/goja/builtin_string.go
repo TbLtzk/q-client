@@ -157,20 +157,6 @@ func (r *Runtime) string_raw(call FunctionCall) Value {
 	}
 }
 
-func (r *Runtime) stringproto_at(call FunctionCall) Value {
-	r.checkObjectCoercible(call.This)
-	s := call.This.toString()
-	pos := call.Argument(0).ToInteger()
-	length := int64(s.length())
-	if pos < 0 {
-		pos = length + pos
-	}
-	if pos >= length || pos < 0 {
-		return _undefined
-	}
-	return s.substring(int(pos), int(pos+1))
-}
-
 func (r *Runtime) stringproto_charAt(call FunctionCall) Value {
 	r.checkObjectCoercible(call.This)
 	s := call.This.toString()
@@ -178,7 +164,7 @@ func (r *Runtime) stringproto_charAt(call FunctionCall) Value {
 	if pos < 0 || pos >= int64(s.length()) {
 		return stringEmpty
 	}
-	return s.substring(int(pos), int(pos+1))
+	return newStringValue(string(s.charAt(toIntStrict(pos))))
 }
 
 func (r *Runtime) stringproto_charCodeAt(call FunctionCall) Value {
@@ -216,27 +202,16 @@ func (r *Runtime) stringproto_codePointAt(call FunctionCall) Value {
 func (r *Runtime) stringproto_concat(call FunctionCall) Value {
 	r.checkObjectCoercible(call.This)
 	strs := make([]valueString, len(call.Arguments)+1)
-	a, u := devirtualizeString(call.This.toString())
-	allAscii := true
-	totalLen := 0
-	if u == nil {
-		strs[0] = a
-		totalLen = len(a)
-	} else {
-		strs[0] = u
-		totalLen = u.length()
-		allAscii = false
-	}
+	strs[0] = call.This.toString()
+	_, allAscii := strs[0].(asciiString)
+	totalLen := strs[0].length()
 	for i, arg := range call.Arguments {
-		a, u := devirtualizeString(arg.toString())
-		if u != nil {
-			allAscii = false
-			totalLen += u.length()
-			strs[i+1] = u
-		} else {
-			totalLen += a.length()
-			strs[i+1] = a
+		s := arg.toString()
+		if allAscii {
+			_, allAscii = s.(asciiString)
 		}
+		strs[i+1] = s
+		totalLen += s.length()
 	}
 
 	if allAscii {
@@ -452,23 +427,15 @@ func (r *Runtime) stringproto_normalize(call FunctionCall) Value {
 		panic(r.newError(r.global.RangeError, "The normalization form should be one of NFC, NFD, NFKC, NFKD"))
 	}
 
-	switch s := s.(type) {
-	case asciiString:
-		return s
-	case unicodeString:
+	if s, ok := s.(unicodeString); ok {
 		ss := s.String()
 		return newStringValue(f.String(ss))
-	case *importedString:
-		if s.scanned && s.u == nil {
-			return asciiString(s.s)
-		}
-		return newStringValue(f.String(s.s))
-	default:
-		panic(unknownStringTypeErr(s))
 	}
+
+	return s
 }
 
-func (r *Runtime) _stringPad(call FunctionCall, start bool) Value {
+func (r *Runtime) stringproto_padEnd(call FunctionCall) Value {
 	r.checkObjectCoercible(call.This)
 	s := call.This.toString()
 	maxLength := toLength(call.Argument(0))
@@ -476,45 +443,38 @@ func (r *Runtime) _stringPad(call FunctionCall, start bool) Value {
 	if maxLength <= stringLength {
 		return s
 	}
-	strAscii, strUnicode := devirtualizeString(s)
 	var filler valueString
-	var fillerAscii asciiString
-	var fillerUnicode unicodeString
+	var fillerASCII bool
 	if fillString := call.Argument(1); fillString != _undefined {
 		filler = fillString.toString()
 		if filler.length() == 0 {
 			return s
 		}
-		fillerAscii, fillerUnicode = devirtualizeString(filler)
+		_, fillerASCII = filler.(asciiString)
 	} else {
-		fillerAscii = " "
-		filler = fillerAscii
+		filler = asciiString(" ")
+		fillerASCII = true
 	}
 	remaining := toIntStrict(maxLength - stringLength)
-	if fillerUnicode == nil && strUnicode == nil {
-		fl := fillerAscii.length()
+	_, stringASCII := s.(asciiString)
+	if fillerASCII && stringASCII {
+		fl := filler.length()
 		var sb strings.Builder
 		sb.Grow(toIntStrict(maxLength))
-		if !start {
-			sb.WriteString(string(strAscii))
-		}
+		sb.WriteString(s.String())
+		fs := filler.String()
 		for remaining >= fl {
-			sb.WriteString(string(fillerAscii))
+			sb.WriteString(fs)
 			remaining -= fl
 		}
 		if remaining > 0 {
-			sb.WriteString(string(fillerAscii[:remaining]))
-		}
-		if start {
-			sb.WriteString(string(strAscii))
+			sb.WriteString(fs[:remaining])
 		}
 		return asciiString(sb.String())
 	}
 	var sb unicodeStringBuilder
 	sb.Grow(toIntStrict(maxLength))
-	if !start {
-		sb.WriteString(s)
-	}
+	sb.WriteString(s)
 	fl := filler.length()
 	for remaining >= fl {
 		sb.WriteString(filler)
@@ -523,19 +483,60 @@ func (r *Runtime) _stringPad(call FunctionCall, start bool) Value {
 	if remaining > 0 {
 		sb.WriteString(filler.substring(0, remaining))
 	}
-	if start {
-		sb.WriteString(s)
-	}
 
 	return sb.String()
 }
 
-func (r *Runtime) stringproto_padEnd(call FunctionCall) Value {
-	return r._stringPad(call, false)
-}
-
 func (r *Runtime) stringproto_padStart(call FunctionCall) Value {
-	return r._stringPad(call, true)
+	r.checkObjectCoercible(call.This)
+	s := call.This.toString()
+	maxLength := toLength(call.Argument(0))
+	stringLength := int64(s.length())
+	if maxLength <= stringLength {
+		return s
+	}
+	var filler valueString
+	var fillerASCII bool
+	if fillString := call.Argument(1); fillString != _undefined {
+		filler = fillString.toString()
+		if filler.length() == 0 {
+			return s
+		}
+		_, fillerASCII = filler.(asciiString)
+	} else {
+		filler = asciiString(" ")
+		fillerASCII = true
+	}
+	remaining := toIntStrict(maxLength - stringLength)
+	_, stringASCII := s.(asciiString)
+	if fillerASCII && stringASCII {
+		fl := filler.length()
+		var sb strings.Builder
+		sb.Grow(toIntStrict(maxLength))
+		fs := filler.String()
+		for remaining >= fl {
+			sb.WriteString(fs)
+			remaining -= fl
+		}
+		if remaining > 0 {
+			sb.WriteString(fs[:remaining])
+		}
+		sb.WriteString(s.String())
+		return asciiString(sb.String())
+	}
+	var sb unicodeStringBuilder
+	sb.Grow(toIntStrict(maxLength))
+	fl := filler.length()
+	for remaining >= fl {
+		sb.WriteString(filler)
+		remaining -= fl
+	}
+	if remaining > 0 {
+		sb.WriteString(filler.substring(0, remaining))
+	}
+	sb.WriteString(s)
+
+	return sb.String()
 }
 
 func (r *Runtime) stringproto_repeat(call FunctionCall) Value {
@@ -553,20 +554,19 @@ func (r *Runtime) stringproto_repeat(call FunctionCall) Value {
 		return stringEmpty
 	}
 	num := toIntStrict(numInt)
-	a, u := devirtualizeString(s)
-	if u == nil {
+	if s, ok := s.(asciiString); ok {
 		var sb strings.Builder
-		sb.Grow(len(a) * num)
+		sb.Grow(len(s) * num)
 		for i := 0; i < num; i++ {
-			sb.WriteString(string(a))
+			sb.WriteString(string(s))
 		}
 		return asciiString(sb.String())
 	}
 
 	var sb unicodeStringBuilder
-	sb.Grow(u.length() * num)
+	sb.Grow(s.length() * num)
 	for i := 0; i < num; i++ {
-		sb.writeUnicodeString(u)
+		sb.WriteString(s)
 	}
 	return sb.String()
 }
@@ -587,7 +587,12 @@ func stringReplace(s valueString, found [][]int, newstring valueString, rcall fu
 		return s
 	}
 
-	a, u := devirtualizeString(s)
+	var str string
+	var isASCII bool
+	if astr, ok := s.(asciiString); ok {
+		str = string(astr)
+		isASCII = true
+	}
 
 	var buf valueStringBuilder
 
@@ -603,10 +608,10 @@ func stringReplace(s valueString, found [][]int, newstring valueString, rcall fu
 			for index := 0; index < matchCount; index++ {
 				offset := 2 * index
 				if item[offset] != -1 {
-					if u == nil {
-						argumentList[index] = a[item[offset]:item[offset+1]]
+					if isASCII {
+						argumentList[index] = asciiString(str[item[offset]:item[offset+1]])
 					} else {
-						argumentList[index] = u.substring(item[offset], item[offset+1])
+						argumentList[index] = s.substring(item[offset], item[offset+1])
 					}
 				} else {
 					argumentList[index] = _undefined
@@ -629,10 +634,10 @@ func stringReplace(s valueString, found [][]int, newstring valueString, rcall fu
 			matchCount := len(item) / 2
 			writeSubstitution(s, item[0], matchCount, func(idx int) valueString {
 				if item[idx*2] != -1 {
-					if u == nil {
-						return a[item[idx*2]:item[idx*2+1]]
+					if isASCII {
+						return asciiString(str[item[idx*2]:item[idx*2+1]])
 					}
-					return u.substring(item[idx*2], item[idx*2+1])
+					return s.substring(item[idx*2], item[idx*2+1])
 				}
 				return stringEmpty
 			}, newstring, &buf)
@@ -929,7 +934,7 @@ func (r *Runtime) stringIterProto_next(call FunctionCall) Value {
 }
 
 func (r *Runtime) createStringIterProto(val *Object) objectImpl {
-	o := newBaseObjectObj(val, r.getIteratorPrototype(), classObject)
+	o := newBaseObjectObj(val, r.global.IteratorPrototype, classObject)
 
 	o._putProp("next", r.newNativeFunc(r.stringIterProto_next, nil, "next", nil, 0), true, false, true)
 	o._putSym(SymToStringTag, valueProp(asciiString(classStringIterator), false, false, true))
@@ -937,21 +942,11 @@ func (r *Runtime) createStringIterProto(val *Object) objectImpl {
 	return o
 }
 
-func (r *Runtime) getStringIteratorPrototype() *Object {
-	var o *Object
-	if o = r.global.StringIteratorPrototype; o == nil {
-		o = &Object{runtime: r}
-		r.global.StringIteratorPrototype = o
-		o.self = r.createStringIterProto(o)
-	}
-	return o
-}
-
 func (r *Runtime) initString() {
+	r.global.StringIteratorPrototype = r.newLazyObject(r.createStringIterProto)
 	r.global.StringPrototype = r.builtin_newString([]Value{stringEmpty}, r.global.ObjectPrototype)
 
 	o := r.global.StringPrototype.self
-	o._putProp("at", r.newNativeFunc(r.stringproto_at, nil, "at", nil, 1), true, false, true)
 	o._putProp("charAt", r.newNativeFunc(r.stringproto_charAt, nil, "charAt", nil, 1), true, false, true)
 	o._putProp("charCodeAt", r.newNativeFunc(r.stringproto_charCodeAt, nil, "charCodeAt", nil, 1), true, false, true)
 	o._putProp("codePointAt", r.newNativeFunc(r.stringproto_codePointAt, nil, "codePointAt", nil, 1), true, false, true)

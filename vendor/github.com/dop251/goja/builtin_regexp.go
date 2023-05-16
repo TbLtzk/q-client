@@ -125,14 +125,11 @@ func convertRegexpToUtf16(patternStr string) string {
 
 // convert any broken UTF-16 surrogate pairs to \uXXXX
 func escapeInvalidUtf16(s valueString) string {
-	if imported, ok := s.(*importedString); ok {
-		return imported.s
-	}
 	if ascii, ok := s.(asciiString); ok {
 		return ascii.String()
 	}
 	var sb strings.Builder
-	rd := &lenientUtf16Decoder{utf16Reader: s.utf16Reader()}
+	rd := &lenientUtf16Decoder{utf16Reader: s.utf16Reader(0)}
 	pos := 0
 	utf8Size := 0
 	var utf8Buf [utf8.UTFMax]byte
@@ -144,7 +141,7 @@ func escapeInvalidUtf16(s valueString) string {
 		if utf16.IsSurrogate(c) {
 			if sb.Len() == 0 {
 				sb.Grow(utf8Size + 7)
-				hrd := s.reader()
+				hrd := s.reader(0)
 				var c rune
 				for p := 0; p < pos; {
 					var size int
@@ -456,7 +453,7 @@ func (r *regexpObject) writeEscapedSource(sb *valueStringBuilder) bool {
 	}
 	pos := 0
 	lastPos := 0
-	rd := &lenientUtf16Decoder{utf16Reader: r.source.utf16Reader()}
+	rd := &lenientUtf16Decoder{utf16Reader: r.source.utf16Reader(0)}
 L:
 	for {
 		c, size, err := rd.ReadRune()
@@ -789,11 +786,11 @@ func (r *Runtime) createRegExpStringIterator(matcher *Object, s valueString, glo
 		global:      global,
 		fullUnicode: fullUnicode,
 	}
-	ri.class = classObject
+	ri.class = classRegExpStringIterator
 	ri.val = o
 	ri.extensible = true
 	o.self = ri
-	ri.prototype = r.getRegExpStringIteratorPrototype()
+	ri.prototype = r.global.RegExpStringIteratorPrototype
 	ri.init()
 
 	return o
@@ -1212,7 +1209,7 @@ func (r *Runtime) regExpStringIteratorProto_next(call FunctionCall) Value {
 }
 
 func (r *Runtime) createRegExpStringIteratorPrototype(val *Object) objectImpl {
-	o := newBaseObjectObj(val, r.getIteratorPrototype(), classObject)
+	o := newBaseObjectObj(val, r.global.IteratorPrototype, classObject)
 
 	o._putProp("next", r.newNativeFunc(r.regExpStringIteratorProto_next, nil, "next", nil, 0), true, false, true)
 	o._putSym(SymToStringTag, valueProp(asciiString(classRegExpStringIterator), false, false, true))
@@ -1220,20 +1217,11 @@ func (r *Runtime) createRegExpStringIteratorPrototype(val *Object) objectImpl {
 	return o
 }
 
-func (r *Runtime) getRegExpStringIteratorPrototype() *Object {
-	var o *Object
-	if o = r.global.RegExpStringIteratorPrototype; o == nil {
-		o = &Object{runtime: r}
-		r.global.RegExpStringIteratorPrototype = o
-		o.self = r.createRegExpStringIteratorPrototype(o)
-	}
-	return o
-}
-
 func (r *Runtime) initRegExp() {
 	o := r.newGuardedObject(r.global.ObjectPrototype, classObject)
 	r.global.RegExpPrototype = o.val
 	r.global.stdRegexpProto = o
+	r.global.RegExpStringIteratorPrototype = r.newLazyObject(r.createRegExpStringIteratorPrototype)
 
 	o._putProp("compile", r.newNativeFunc(r.regexpproto_compile, nil, "compile", nil, 2), true, false, true)
 	o._putProp("exec", r.newNativeFunc(r.regexpproto_exec, nil, "exec", nil, 1), true, false, true)

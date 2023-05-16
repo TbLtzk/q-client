@@ -26,6 +26,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/core"
@@ -38,7 +39,6 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/tests"
-	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -179,7 +179,7 @@ func Transition(ctx *cli.Context) error {
 
 	vmConfig := vm.Config{
 		Tracer: tracer,
-		Debug:  (tracer != nil),
+		Debug:  tracer != nil,
 	}
 	// Construct the chainconfig
 	var chainConfig *params.ChainConfig
@@ -334,8 +334,9 @@ func (t *txWithKey) UnmarshalJSON(input []byte) error {
 // signUnsignedTransactions converts the input txs to canonical transactions.
 //
 // The transactions can have two forms, either
-//   1. unsigned or
-//   2. signed
+//  1. unsigned or
+//  2. signed
+//
 // For (1), r, s, v, need so be zero, and the `secretKey` needs to be set.
 // If so, we sign it here and now, with the given `secretKey`
 // If the condition above is not met, then it's considered a signed transaction.

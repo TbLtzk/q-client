@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/golang/snappy"
 	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/rlp"
-	"github.com/golang/snappy"
 )
 
 // This is the maximum amount of data that will be buffered in memory

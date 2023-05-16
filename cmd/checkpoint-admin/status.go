@@ -19,8 +19,8 @@ package main
 import (
 	"fmt"
 
-	"gitlab.com/q-dev/q-client/common"
 	"github.com/urfave/cli/v2"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 var commandStatus = &cli.Command{

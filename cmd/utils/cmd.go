@@ -22,7 +22,6 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-	"gitlab.com/q-dev/q-client/sentryMonitor"
 	"io"
 	"os"
 	"os/signal"
@@ -43,6 +42,7 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/q-client/sentryMonitor"
 )
 
 const (

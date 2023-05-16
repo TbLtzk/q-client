@@ -136,7 +136,10 @@ func (a *GovernancePublicAPI) DiffExclusionList(nameA, nameB string) ([]DiffEntr
 }
 
 func (a *GovernanceAPI) AddConstitutionFile(filename string) error {
-	return a.gov.ConstitutionManager.addConstitutionFile(filename)
+	if err := a.gov.ConstitutionManager.addConstitutionFile(filename); err != nil {
+		return err
+	}
+	return nil
 }
 
 // RequestForConstitutionFile creates request for specific constitution file from it's peers.
@@ -161,6 +164,10 @@ func (a *GovernanceAPI) RequestForConstitutionFile(constitutionHash *common.Hash
 
 func (a *GovernanceAPI) ConstitutionFileRequests() ([]common.Hash, error) {
 	return a.gov.ConstitutionManager.db.getConstitutionFileRequests()
+}
+
+func (a *GovernanceAPI) KnownConstitutionFiles() ([]common.Hash, error) {
+	return a.gov.ConstitutionManager.db.getKnownConstitutionFiles()
 }
 
 func (a *GovernanceAPI) ConstitutionFiles() ([]common.ConstitutionFile, error) {

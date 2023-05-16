@@ -22,8 +22,8 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/core/asm"
 	"github.com/urfave/cli/v2"
+	"gitlab.com/q-dev/q-client/core/asm"
 )
 
 var disasmCommand = &cli.Command{

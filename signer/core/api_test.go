@@ -39,7 +39,7 @@ import (
 	"gitlab.com/q-dev/q-client/signer/storage"
 )
 
-//Used for testing
+// Used for testing
 type headlessUi struct {
 	approveCh chan string // to send approve/deny
 	inputCh   chan string // to send password
@@ -70,7 +70,7 @@ func (ui *headlessUi) ApproveTx(request *core.SignTxRequest) (core.SignTxRespons
 }
 
 func (ui *headlessUi) ApproveSignData(request *core.SignDataRequest) (core.SignDataResponse, error) {
-	approved := (<-ui.approveCh == "Y")
+	approved := <-ui.approveCh == "Y"
 	return core.SignDataResponse{approved}, nil
 }
 

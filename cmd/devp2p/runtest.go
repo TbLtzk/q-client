@@ -19,10 +19,10 @@ package main
 import (
 	"os"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/cmd/devp2p/internal/v4test"
 	"gitlab.com/q-dev/q-client/internal/utesting"
 	"gitlab.com/q-dev/q-client/log"
-	"github.com/urfave/cli/v2"
 )
 
 var (

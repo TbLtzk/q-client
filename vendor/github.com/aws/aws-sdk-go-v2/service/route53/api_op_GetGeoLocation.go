@@ -12,10 +12,8 @@ import (
 )
 
 // Gets information about whether a specified geographic location is supported for
-// Amazon Route 53 geolocation resource record sets. Route 53 does not perform
-// authorization for this API because it retrieves information that is already
-// available to the public. Use the following syntax to determine whether a
-// continent is supported for geolocation: GET
+// Amazon Route 53 geolocation resource record sets. Use the following syntax to
+// determine whether a continent is supported for geolocation: GET
 // /2013-04-01/geolocation?continentcode=two-letter abbreviation for a continent
 // Use the following syntax to determine whether a country is supported for
 // geolocation: GET /2013-04-01/geolocation?countrycode=two-character country code
@@ -27,7 +25,7 @@ func (c *Client) GetGeoLocation(ctx context.Context, params *GetGeoLocationInput
 		params = &GetGeoLocationInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "GetGeoLocation", params, optFns, c.addOperationGetGeoLocationMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "GetGeoLocation", params, optFns, addOperationGetGeoLocationMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -65,16 +63,12 @@ type GetGeoLocationInput struct {
 	// standard 3166-1 alpha-2 (https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2).
 	CountryCode *string
 
-	// The code for the subdivision, such as a particular state within the United
-	// States. For a list of US state abbreviations, see Appendix B: Two–Letter State
-	// and Possession Abbreviations (https://pe.usps.com/text/pub28/28apb.htm) on the
-	// United States Postal Service website. For a list of all supported subdivision
-	// codes, use the ListGeoLocations
-	// (https://docs.aws.amazon.com/Route53/latest/APIReference/API_ListGeoLocations.html)
-	// API.
+	// For SubdivisionCode, Amazon Route 53 supports only states of the United States.
+	// For a list of state abbreviations, see Appendix B: Two–Letter State and
+	// Possession Abbreviations (https://pe.usps.com/text/pub28/28apb.htm) on the
+	// United States Postal Service website. If you specify subdivisioncode, you must
+	// also specify US for CountryCode.
 	SubdivisionCode *string
-
-	noSmithyDocumentSerde
 }
 
 // A complex type that contains the response information for the specified
@@ -89,11 +83,9 @@ type GetGeoLocationOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
-
-	noSmithyDocumentSerde
 }
 
-func (c *Client) addOperationGetGeoLocationMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func addOperationGetGeoLocationMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpGetGeoLocation{}, middleware.After)
 	if err != nil {
 		return err

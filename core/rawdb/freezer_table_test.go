@@ -30,8 +30,8 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"gitlab.com/q-dev/q-client/metrics"
 	"github.com/stretchr/testify/require"
+	"gitlab.com/q-dev/q-client/metrics"
 )
 
 func init() {

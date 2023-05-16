@@ -128,7 +128,10 @@ func (RootNodeApprovalList) FillFromArray(arr []RootNodeApproval) *RootNodeAppro
 }
 
 type ConstitutionFilesRequest struct {
-	//TODO do we need to sign the request? Regular node can start client without the unlocking any account
+	Hashes []Hash `json:"hashes"`
+}
+
+type KnownConstitutionFilesMessage struct {
 	Hashes []Hash `json:"hashes"`
 }
 

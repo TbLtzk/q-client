@@ -19,6 +19,7 @@ package main
 import (
 	"strconv"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
@@ -26,10 +27,11 @@ import (
 	"gitlab.com/q-dev/q-client/ethclient"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/urfave/cli/v2"
 )
 
 // newClient creates a client with specified remote URL.
+//
+//nolint:deadcode,unused
 func newClient(ctx *cli.Context) *ethclient.Client {
 	client, err := ethclient.Dial(ctx.String(nodeURLFlag.Name))
 	if err != nil {

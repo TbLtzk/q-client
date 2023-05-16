@@ -1,6 +1,7 @@
 package goja
 
 import (
+	"fmt"
 	"github.com/dop251/goja/ast"
 	"github.com/dop251/goja/file"
 	"github.com/dop251/goja/token"
@@ -47,14 +48,11 @@ func (c *compiler) compileStatement(v ast.Statement, needResult bool) {
 	case *ast.FunctionDeclaration:
 		c.compileStandaloneFunctionDecl(v)
 		// note functions inside blocks are hoisted to the top of the block and are compiled using compileFunctions()
-	case *ast.ClassDeclaration:
-		c.compileClassDeclaration(v)
 	case *ast.WithStatement:
 		c.compileWithStatement(v, needResult)
 	case *ast.DebuggerStatement:
 	default:
-		c.assert(false, int(v.Idx0())-1, "Unknown statement type: %T", v)
-		panic("unreachable")
+		panic(fmt.Errorf("Unknown statement type: %T", v))
 	}
 }
 
@@ -127,10 +125,11 @@ func (c *compiler) compileTryStatement(v *ast.TryStatement, needResult bool) {
 		c.emit(clearResult)
 	}
 	c.compileBlockStatement(v.Body, bodyNeedResult)
+	c.emit(halt)
+	lbl2 := len(c.p.code)
+	c.emit(nil)
 	var catchOffset int
 	if v.Catch != nil {
-		lbl2 := len(c.p.code) // jump over the catch block
-		c.emit(nil)
 		catchOffset = len(c.p.code) - lbl
 		if v.Catch.Parameter != nil {
 			c.block = &block{
@@ -182,21 +181,23 @@ func (c *compiler) compileTryStatement(v *ast.TryStatement, needResult bool) {
 			c.emit(pop)
 			c.compileBlockStatement(v.Catch.Body, bodyNeedResult)
 		}
-		c.p.code[lbl2] = jump(len(c.p.code) - lbl2)
+		c.emit(halt)
 	}
 	var finallyOffset int
 	if v.Finally != nil {
-		c.emit(enterFinally{})
-		finallyOffset = len(c.p.code) - lbl // finallyOffset should not include enterFinally
+		lbl1 := len(c.p.code)
+		c.emit(nil)
+		finallyOffset = len(c.p.code) - lbl
 		if bodyNeedResult && finallyBreaking != nil && lp == -1 {
 			c.emit(clearResult)
 		}
 		c.compileBlockStatement(v.Finally, false)
-		c.emit(leaveFinally{})
-	} else {
-		c.emit(leaveTry{})
+		c.emit(halt, retFinally)
+
+		c.p.code[lbl1] = jump(len(c.p.code) - lbl1)
 	}
 	c.p.code[lbl] = try{catchOffset: int32(catchOffset), finallyOffset: int32(finallyOffset)}
+	c.p.code[lbl2] = jump(len(c.p.code) - lbl2)
 	c.leaveBlock()
 }
 
@@ -271,8 +272,7 @@ func (c *compiler) compileLabeledForStatement(v *ast.ForStatement, needResult bo
 	case *ast.ForLoopInitializerExpression:
 		c.compileExpression(init.Expression).emitGetter(false)
 	default:
-		c.assert(false, int(v.For)-1, "Unsupported for loop initializer: %T", init)
-		panic("unreachable")
+		panic(fmt.Sprintf("Unsupported for loop initializer: %T", init))
 	}
 
 	if needResult {
@@ -386,7 +386,7 @@ func (c *compiler) compileForInto(into ast.ForInto, needResult bool) (enter *ent
 		case *ast.Identifier:
 			b := c.createLexicalIdBinding(target.Name, into.IsConst, int(into.Idx)-1)
 			c.emit(enumGet)
-			b.emitInitP()
+			b.emitInit()
 		case ast.Pattern:
 			c.createLexicalBinding(target, into.IsConst)
 			c.emit(enumGet)
@@ -394,11 +394,10 @@ func (c *compiler) compileForInto(into ast.ForInto, needResult bool) (enter *ent
 				c.emitPatternLexicalAssign(target, init)
 			}, false)
 		default:
-			c.assert(false, int(into.Idx)-1, "Unsupported ForBinding: %T", into.Target)
+			c.throwSyntaxError(int(into.Idx)-1, "Unsupported ForBinding: %T", into.Target)
 		}
 	default:
-		c.assert(false, int(into.Idx0())-1, "Unsupported for-into: %T", into)
-		panic("unreachable")
+		panic(fmt.Sprintf("Unsupported for-into: %T", into))
 	}
 
 	return
@@ -554,8 +553,7 @@ func (c *compiler) compileBranchStatement(v *ast.BranchStatement) {
 	case token.CONTINUE:
 		c.compileContinue(v.Label, v.Idx)
 	default:
-		c.assert(false, int(v.Idx0())-1, "Unknown branch statement token: %s", v.Token.String())
-		panic("unreachable")
+		panic(fmt.Errorf("Unknown branch statement token: %s", v.Token.String()))
 	}
 }
 
@@ -621,14 +619,11 @@ func (c *compiler) emitBlockExitCode(label *ast.Identifier, idx file.Idx, isBrea
 		c.throwSyntaxError(int(idx)-1, "Could not find block")
 		panic("unreachable")
 	}
-	contForLoop := !isBreak && block.typ == blockLoop
 L:
 	for b := c.block; b != block; b = b.outer {
 		switch b.typ {
 		case blockIterScope:
-			// blockIterScope in 'for' loops is shared across iterations, so
-			// continue should not pop it.
-			if contForLoop && b.outer == block {
+			if !isBreak && b.outer == block {
 				break L
 			}
 			fallthrough
@@ -636,7 +631,7 @@ L:
 			b.breaks = append(b.breaks, len(c.p.code))
 			c.emit(nil)
 		case blockTry:
-			c.emit(leaveTry{})
+			c.emit(halt)
 		case blockWith:
 			c.emit(leaveWith)
 		case blockLoopEnum:
@@ -660,7 +655,7 @@ func (c *compiler) compileContinue(label *ast.Identifier, idx file.Idx) {
 
 func (c *compiler) compileIfBody(s ast.Statement, needResult bool) {
 	if !c.scope.strict {
-		if s, ok := s.(*ast.FunctionDeclaration); ok && !s.Function.Async && !s.Function.Generator {
+		if s, ok := s.(*ast.FunctionDeclaration); ok {
 			c.compileFunction(s)
 			if needResult {
 				c.emit(clearResult)
@@ -728,9 +723,6 @@ func (c *compiler) compileIfStatement(v *ast.IfStatement, needResult bool) {
 }
 
 func (c *compiler) compileReturnStatement(v *ast.ReturnStatement) {
-	if s := c.scope.nearestFunction(); s != nil && s.funcType == funcClsInit {
-		c.throwSyntaxError(int(v.Return)-1, "Illegal return statement")
-	}
 	if v.Argument != nil {
 		c.emitExpr(c.compileExpression(v.Argument), true)
 	} else {
@@ -739,15 +731,10 @@ func (c *compiler) compileReturnStatement(v *ast.ReturnStatement) {
 	for b := c.block; b != nil; b = b.outer {
 		switch b.typ {
 		case blockTry:
-			c.emit(leaveTry{})
+			c.emit(halt)
 		case blockLoopEnum:
 			c.emit(enumPopClose)
 		}
-	}
-	if s := c.scope.nearestFunction(); s != nil && s.funcType == funcDerivedCtor {
-		b := s.boundNames[thisBindingName]
-		c.assert(b != nil, int(v.Return)-1, "Derived constructor, but no 'this' binding")
-		b.markAccessPoint()
 	}
 	c.emit(ret)
 }
@@ -757,7 +744,7 @@ func (c *compiler) checkVarConflict(name unistring.String, offset int) {
 		if b, exists := sc.boundNames[name]; exists && !b.isVar && !(b.isArg && sc != c.scope) {
 			c.throwSyntaxError(offset, "Identifier '%s' has already been declared", name)
 		}
-		if sc.isFunction() {
+		if sc.function {
 			break
 		}
 	}
@@ -770,7 +757,7 @@ func (c *compiler) emitVarAssign(name unistring.String, offset int, init compile
 		if noDyn {
 			c.emitNamedOrConst(init, name)
 			c.p.addSrcMap(offset)
-			b.emitInitP()
+			b.emitInit()
 		} else {
 			c.emitVarRef(name, offset, b)
 			c.emitNamedOrConst(init, name)
@@ -794,7 +781,9 @@ func (c *compiler) compileVarBinding(expr *ast.Binding) {
 
 func (c *compiler) emitLexicalAssign(name unistring.String, offset int, init compiledExpr) {
 	b := c.scope.boundNames[name]
-	c.assert(b != nil, offset, "Lexical declaration for an unbound name")
+	if b == nil {
+		panic("Lexical declaration for an unbound name")
+	}
 	if init != nil {
 		c.emitNamedOrConst(init, name)
 		c.p.addSrcMap(offset)
@@ -804,7 +793,11 @@ func (c *compiler) emitLexicalAssign(name unistring.String, offset int, init com
 		}
 		c.emit(loadUndef)
 	}
-	b.emitInitP()
+	if c.scope.outer != nil {
+		b.emitInit()
+	} else {
+		c.emit(initGlobal(name))
+	}
 }
 
 func (c *compiler) emitPatternVarAssign(target, init compiledExpr) {
@@ -864,7 +857,7 @@ func (c *compiler) compileLexicalDeclaration(v *ast.LexicalDeclaration) {
 func (c *compiler) isEmptyResult(st ast.Statement) bool {
 	switch st := st.(type) {
 	case *ast.EmptyStatement, *ast.VariableStatement, *ast.LexicalDeclaration, *ast.FunctionDeclaration,
-		*ast.ClassDeclaration, *ast.BranchStatement, *ast.DebuggerStatement:
+		*ast.BranchStatement, *ast.DebuggerStatement:
 		return true
 	case *ast.LabelledStatement:
 		return c.isEmptyResult(st.Statement)
@@ -1120,8 +1113,4 @@ func (c *compiler) compileSwitchStatement(v *ast.SwitchStatement, needResult boo
 		c.popScope()
 	}
 	c.leaveBlock()
-}
-
-func (c *compiler) compileClassDeclaration(v *ast.ClassDeclaration) {
-	c.emitLexicalAssign(v.Class.Name.Name, int(v.Class.Class)-1, c.compileClassLiteral(v.Class, false))
 }

@@ -1416,5 +1416,5 @@ func (r *Resolver) Syncing() (*SyncState, error) {
 		return nil, nil
 	}
 	// Otherwise gather the block sync stats
-	return &SyncState{ethereum.SyncProgress(progress)}, nil
+	return &SyncState{progress}, nil
 }

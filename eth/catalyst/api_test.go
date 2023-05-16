@@ -519,6 +519,7 @@ func TestExchangeTransitionConfig(t *testing.T) {
 	}
 }
 
+//nolint:goimports
 /*
 TestNewPayloadOnInvalidChain sets up a valid chain and tries to feed blocks
 from an invalid chain to test if latestValidHash (LVH) works correctly.

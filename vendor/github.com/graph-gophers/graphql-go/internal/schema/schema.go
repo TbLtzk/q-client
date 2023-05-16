@@ -161,8 +161,6 @@ func Parse(s *types.Schema, schemaString string, useStringDescriptions bool) err
 		}
 	}
 
-	s.SchemaString = schemaString
-
 	return nil
 }
 
@@ -268,18 +266,8 @@ func resolveNamedType(s *types.Schema, t types.NamedType) error {
 				return err
 			}
 		}
-		if err := resolveDirectives(s, t.Directives, "INTERFACE"); err != nil {
-			return err
-		}
 	case *types.InputObject:
 		if err := resolveInputObject(s, t.Values); err != nil {
-			return err
-		}
-		if err := resolveDirectives(s, t.Directives, "INPUT_OBJECT"); err != nil {
-			return err
-		}
-	case *types.ScalarTypeDefinition:
-		if err := resolveDirectives(s, t.Directives, "SCALAR"); err != nil {
 			return err
 		}
 	}
@@ -299,7 +287,6 @@ func resolveField(s *types.Schema, f *types.FieldDefinition) error {
 }
 
 func resolveDirectives(s *types.Schema, directives types.DirectiveList, loc string) error {
-	alreadySeenNonRepeatable := make(map[string]struct{})
 	for _, d := range directives {
 		dirName := d.Name.Name
 		dd, ok := s.Directives[dirName]
@@ -326,14 +313,6 @@ func resolveDirectives(s *types.Schema, directives types.DirectiveList, loc stri
 				d.Arguments = append(d.Arguments, &types.Argument{Name: arg.Name, Value: arg.Default})
 			}
 		}
-
-		if dd.Repeatable {
-			continue
-		}
-		if _, seen := alreadySeenNonRepeatable[dirName]; seen {
-			return errors.Errorf(`non repeatable directive %q can not be repeated. Consider adding "repeatable".`, dirName)
-		}
-		alreadySeenNonRepeatable[dirName] = struct{}{}
 	}
 	return nil
 }
@@ -345,11 +324,6 @@ func resolveInputObject(s *types.Schema, values types.ArgumentsDefinition) error
 			return err
 		}
 		v.Type = t
-
-		if err := resolveDirectives(s, v.Directives, "ARGUMENT_DEFINITION"); err != nil {
-			return err
-		}
-
 	}
 	return nil
 }
@@ -434,19 +408,19 @@ func parseObjectDef(l *common.Lexer) *types.ObjectTypeDefinition {
 			continue
 		}
 
-		if l.Peek() != scanner.Ident {
-			break
-		}
+		if l.Peek() == scanner.Ident {
+			l.ConsumeKeyword("implements")
 
-		l.ConsumeKeyword("implements")
+			for l.Peek() != '{' && l.Peek() != '@' {
+				if l.Peek() == '&' {
+					l.ConsumeToken('&')
+				}
 
-		for l.Peek() != '{' && l.Peek() != '@' {
-			if l.Peek() == '&' {
-				l.ConsumeToken('&')
+				object.InterfaceNames = append(object.InterfaceNames, l.ConsumeIdent())
 			}
-
-			object.InterfaceNames = append(object.InterfaceNames, l.ConsumeIdent())
+			continue
 		}
+
 	}
 	l.ConsumeToken('{')
 	object.Fields = parseFieldsDef(l)
@@ -537,21 +511,10 @@ func parseDirectiveDef(l *common.Lexer) *types.DirectiveDefinition {
 		l.ConsumeToken(')')
 	}
 
-	switch x := l.ConsumeIdent(); x {
-	case "on":
-		// no-op; Go doesn't fallthrough by default
-	case "repeatable":
-		d.Repeatable = true
-		l.ConsumeKeyword("on")
-	default:
-		l.SyntaxError(fmt.Sprintf(`unexpected %q, expecting "on" or "repeatable"`, x))
-	}
+	l.ConsumeKeyword("on")
 
 	for {
 		loc := l.ConsumeIdent()
-		if _, ok := legalDirectiveLocationNames[loc]; !ok {
-			l.SyntaxError(fmt.Sprintf("%q is not a legal directive location (options: %v)", loc, legalDirectiveLocationNames))
-		}
 		d.Locations = append(d.Locations, loc)
 		if l.Peek() != '|' {
 			break
@@ -620,26 +583,4 @@ func parseFieldsDef(l *common.Lexer) types.FieldsDefinition {
 		fields = append(fields, f)
 	}
 	return fields
-}
-
-var legalDirectiveLocationNames = map[string]struct{}{
-	"SCHEMA":                 {},
-	"SCALAR":                 {},
-	"OBJECT":                 {},
-	"FIELD_DEFINITION":       {},
-	"ARGUMENT_DEFINITION":    {},
-	"INTERFACE":              {},
-	"UNION":                  {},
-	"ENUM":                   {},
-	"ENUM_VALUE":             {},
-	"INPUT_OBJECT":           {},
-	"INPUT_FIELD_DEFINITION": {},
-	"QUERY":                  {},
-	"MUTATION":               {},
-	"SUBSCRIPTION":           {},
-	"FIELD":                  {},
-	"FRAGMENT_DEFINITION":    {},
-	"FRAGMENT_SPREAD":        {},
-	"INLINE_FRAGMENT":        {},
-	"VARIABLE_DEFINITION":    {},
 }

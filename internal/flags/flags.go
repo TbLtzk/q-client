@@ -26,8 +26,8 @@ import (
 	"path"
 	"strings"
 
-	"gitlab.com/q-dev/q-client/common/math"
 	"github.com/urfave/cli/v2"
+	"gitlab.com/q-dev/q-client/common/math"
 )
 
 // DirectoryString is custom type which is registered in the flags library which cli uses for

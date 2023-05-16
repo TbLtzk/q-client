@@ -26,7 +26,6 @@ type Span struct { //nolint: maligned // prefer readability over optimal memory 
 	TraceID      TraceID                `json:"trace_id"`
 	SpanID       SpanID                 `json:"span_id"`
 	ParentSpanID SpanID                 `json:"parent_span_id"`
-	Name         string                 `json:"name,omitempty"`
 	Op           string                 `json:"op,omitempty"`
 	Description  string                 `json:"description,omitempty"`
 	Status       SpanStatus             `json:"status,omitempty"`
@@ -53,8 +52,6 @@ type Span struct { //nolint: maligned // prefer readability over optimal memory 
 	isTransaction bool
 	// recorder stores all spans in a transaction. Guaranteed to be non-nil.
 	recorder *spanRecorder
-	// span context, can only be set on transactions
-	contexts map[string]Context
 }
 
 // TraceParentContext describes the context of a (remote) parent span.
@@ -111,7 +108,6 @@ func StartSpan(ctx context.Context, operation string, options ...SpanOption) *Sp
 		parent:        parent,
 		isTransaction: !hasParent,
 	}
-
 	if hasParent {
 		span.TraceID = parent.TraceID
 	} else {
@@ -203,6 +199,9 @@ func (s *Span) Finish() {
 	// (see https://github.com/getsentry/sentry-python/blob/f6f3525f8812f609/sentry_sdk/tracing.py#L372)
 
 	hub := hubFromContext(s.ctx)
+	if hub.Scope().Transaction() == "" {
+		Logger.Printf("Missing transaction name for span with op = %q", s.Op)
+	}
 	hub.CaptureEvent(event)
 }
 
@@ -235,16 +234,6 @@ func (s *Span) SetData(name, value string) {
 		s.Data = make(map[string]interface{})
 	}
 	s.Data[name] = value
-}
-
-// SetContext sets a context on the span. It is recommended to use SetContext instead of
-// accessing the contexts map directly as SetContext takes care of initializing the map
-// when necessary.
-func (s *Span) SetContext(key string, value Context) {
-	if s.contexts == nil {
-		s.contexts = make(map[string]Context)
-	}
-	s.contexts[key] = value
 }
 
 // IsTransaction checks if the given span is a transaction.
@@ -423,11 +412,7 @@ func (s *Span) sample() Sampled {
 
 	// #3 use TracesSampler from ClientOptions.
 	sampler := clientOptions.TracesSampler
-	samplingContext := SamplingContext{
-		Span:   s,
-		Parent: s.parent,
-	}
-
+	samplingContext := SamplingContext{Span: s, Parent: s.parent}
 	if sampler != nil {
 		tracesSamplerSampleRate := sampler.Sample(samplingContext)
 		s.sampleRate = tracesSamplerSampleRate
@@ -481,6 +466,7 @@ func (s *Span) toEvent() *Event {
 	if !s.isTransaction {
 		return nil // only transactions can be transformed into events
 	}
+	hub := hubFromContext(s.ctx)
 
 	children := s.recorder.children()
 	finished := make([]*Span, 0, len(children))
@@ -498,21 +484,17 @@ func (s *Span) toEvent() *Event {
 		s.dynamicSamplingContext = DynamicSamplingContextFromTransaction(s)
 	}
 
-	contexts := map[string]Context{}
-	for k, v := range s.contexts {
-		contexts[k] = v
-	}
-	contexts["trace"] = s.traceContext().Map()
-
 	return &Event{
 		Type:        transactionType,
-		Transaction: s.Name,
-		Contexts:    contexts,
-		Tags:        s.Tags,
-		Extra:       s.Data,
-		Timestamp:   s.EndTime,
-		StartTime:   s.StartTime,
-		Spans:       finished,
+		Transaction: hub.Scope().Transaction(),
+		Contexts: map[string]Context{
+			"trace": s.traceContext().Map(),
+		},
+		Tags:      s.Tags,
+		Extra:     s.Data,
+		Timestamp: s.EndTime,
+		StartTime: s.StartTime,
+		Spans:     finished,
 		TransactionInfo: &TransactionInfo{
 			Source: s.Source,
 		},
@@ -774,7 +756,7 @@ type SpanOption func(s *Span)
 // name set previously.
 func TransactionName(name string) SpanOption {
 	return func(s *Span) {
-		s.Name = name
+		hubFromContext(s.Context()).Scope().SetTransaction(name)
 	}
 }
 

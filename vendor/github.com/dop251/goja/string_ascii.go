@@ -1,6 +1,7 @@
 package goja
 
 import (
+	"fmt"
 	"hash/maphash"
 	"io"
 	"math"
@@ -29,14 +30,14 @@ func (rr *asciiRuneReader) ReadRune() (r rune, size int, err error) {
 	return
 }
 
-func (s asciiString) reader() io.RuneReader {
+func (s asciiString) reader(start int) io.RuneReader {
 	return &asciiRuneReader{
-		s: s,
+		s: s[start:],
 	}
 }
 
-func (s asciiString) utf16Reader() io.RuneReader {
-	return s.reader()
+func (s asciiString) utf16Reader(start int) io.RuneReader {
+	return s.reader(start)
 }
 
 func (s asciiString) utf16Runes() []rune {
@@ -179,12 +180,15 @@ func (s asciiString) ToObject(r *Runtime) *Object {
 }
 
 func (s asciiString) SameAs(other Value) bool {
-	return s.StrictEquals(other)
+	if otherStr, ok := other.(asciiString); ok {
+		return s == otherStr
+	}
+	return false
 }
 
 func (s asciiString) Equals(other Value) bool {
-	if s.StrictEquals(other) {
-		return true
+	if o, ok := other.(asciiString); ok {
+		return s == o
 	}
 
 	if o, ok := other.(valueInt); ok {
@@ -215,11 +219,6 @@ func (s asciiString) StrictEquals(other Value) bool {
 	if otherStr, ok := other.(asciiString); ok {
 		return s == otherStr
 	}
-	if otherStr, ok := other.(*importedString); ok {
-		if otherStr.u == nil {
-			return string(s) == otherStr.s
-		}
-	}
 	return false
 }
 
@@ -246,17 +245,20 @@ func (s asciiString) length() int {
 }
 
 func (s asciiString) concat(other valueString) valueString {
-	a, u := devirtualizeString(other)
-	if u != nil {
-		b := make([]uint16, len(s)+len(u))
+	switch other := other.(type) {
+	case asciiString:
+		return asciiString(s + other)
+	case unicodeString:
+		b := make([]uint16, len(s)+len(other))
 		b[0] = unistring.BOM
 		for i := 0; i < len(s); i++ {
 			b[i+1] = uint16(s[i])
 		}
-		copy(b[len(s)+1:], u[1:])
+		copy(b[len(s)+1:], other[1:])
 		return unicodeString(b)
+	default:
+		panic(fmt.Errorf("unknown string type: %T", other))
 	}
-	return s + a
 }
 
 func (s asciiString) substring(start, end int) valueString {
@@ -269,17 +271,14 @@ func (s asciiString) compareTo(other valueString) int {
 		return strings.Compare(string(s), string(other))
 	case unicodeString:
 		return strings.Compare(string(s), other.String())
-	case *importedString:
-		return strings.Compare(string(s), other.s)
 	default:
-		panic(newTypeError("Internal bug: unknown string type: %T", other))
+		panic(fmt.Errorf("unknown string type: %T", other))
 	}
 }
 
 func (s asciiString) index(substr valueString, start int) int {
-	a, u := devirtualizeString(substr)
-	if u == nil {
-		p := strings.Index(string(s[start:]), string(a))
+	if substr, ok := substr.(asciiString); ok {
+		p := strings.Index(string(s[start:]), string(substr))
 		if p >= 0 {
 			return p + start
 		}
@@ -288,16 +287,15 @@ func (s asciiString) index(substr valueString, start int) int {
 }
 
 func (s asciiString) lastIndex(substr valueString, pos int) int {
-	a, u := devirtualizeString(substr)
-	if u == nil {
-		end := pos + len(a)
+	if substr, ok := substr.(asciiString); ok {
+		end := pos + len(substr)
 		var ss string
 		if end > len(s) {
 			ss = string(s)
 		} else {
 			ss = string(s[:end])
 		}
-		return strings.LastIndex(ss, string(a))
+		return strings.LastIndex(ss, string(substr))
 	}
 	return -1
 }

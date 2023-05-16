@@ -22,4 +22,4 @@
 //	}
 package cli
 
-//go:generate make -C cmd/urfave-cli-genflags run
+//go:generate go run cmd/urfave-cli-genflags/main.go

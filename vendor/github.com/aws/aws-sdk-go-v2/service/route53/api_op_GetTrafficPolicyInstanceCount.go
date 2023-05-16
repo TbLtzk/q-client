@@ -11,13 +11,13 @@ import (
 )
 
 // Gets the number of traffic policy instances that are associated with the current
-// Amazon Web Services account.
+// AWS account.
 func (c *Client) GetTrafficPolicyInstanceCount(ctx context.Context, params *GetTrafficPolicyInstanceCountInput, optFns ...func(*Options)) (*GetTrafficPolicyInstanceCountOutput, error) {
 	if params == nil {
 		params = &GetTrafficPolicyInstanceCountInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "GetTrafficPolicyInstanceCount", params, optFns, c.addOperationGetTrafficPolicyInstanceCountMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "GetTrafficPolicyInstanceCount", params, optFns, addOperationGetTrafficPolicyInstanceCountMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -28,28 +28,25 @@ func (c *Client) GetTrafficPolicyInstanceCount(ctx context.Context, params *GetT
 }
 
 // Request to get the number of traffic policy instances that are associated with
-// the current Amazon Web Services account.
+// the current AWS account.
 type GetTrafficPolicyInstanceCountInput struct {
-	noSmithyDocumentSerde
 }
 
 // A complex type that contains information about the resource record sets that
 // Amazon Route 53 created based on a specified traffic policy.
 type GetTrafficPolicyInstanceCountOutput struct {
 
-	// The number of traffic policy instances that are associated with the current
-	// Amazon Web Services account.
+	// The number of traffic policy instances that are associated with the current AWS
+	// account.
 	//
 	// This member is required.
 	TrafficPolicyInstanceCount *int32
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
-
-	noSmithyDocumentSerde
 }
 
-func (c *Client) addOperationGetTrafficPolicyInstanceCountMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func addOperationGetTrafficPolicyInstanceCountMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestxml_serializeOpGetTrafficPolicyInstanceCount{}, middleware.After)
 	if err != nil {
 		return err

@@ -75,10 +75,10 @@ func newFetchResult(header *types.Header, fastSync bool) *fetchResult {
 		Header: header,
 	}
 	if !header.EmptyBody() {
-		item.pending |= (1 << bodyType)
+		item.pending |= 1 << bodyType
 	}
 	if fastSync && !header.EmptyReceipts() {
-		item.pending |= (1 << receiptType)
+		item.pending |= 1 << receiptType
 	}
 	return item
 }
@@ -477,9 +477,10 @@ func (q *queue) ReserveReceipts(p *peerConnection, count int) (*fetchRequest, bo
 // to access the queue, so they already need a lock anyway.
 //
 // Returns:
-//   item     - the fetchRequest
-//   progress - whether any progress was made
-//   throttle - if the caller should throttle for a while
+//
+//	item     - the fetchRequest
+//	progress - whether any progress was made
+//	throttle - if the caller should throttle for a while
 func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common.Hash]*types.Header, taskQueue *prque.Prque,
 	pendPool map[string]*fetchRequest, kind uint) (*fetchRequest, bool, bool) {
 	// Short circuit if the pool has been depleted, or if the peer's already

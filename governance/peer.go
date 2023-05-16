@@ -264,7 +264,6 @@ func (p *peer) asyncSendApprovals(approvalList *common.RootNodeApprovalList) {
 func (p *peer) asyncSendConstitutionFiles(cm *ConstitutionManager, files []common.ConstitutionFile) {
 	var res common.ConstitutionFilesResponse
 	for _, file := range files {
-
 		resPath := filepath.Join(cm.baseDir, file.Name)
 
 		if errE := cm.fileExists(resPath); errE != nil {
@@ -309,6 +308,13 @@ func (p *peer) sendApprovalList(approvalList *common.RootNodeApprovalList) error
 func (p *peer) sendConstitutionFileRequest(request *common.ConstitutionFilesRequest) error {
 	if p.version >= qgov4 {
 		return p2p.Send(p.rw, ConstitutionFileRequestMsg, request)
+	}
+	return nil
+}
+
+func (p *peer) sendKnownConstitutionFiles(files *common.KnownConstitutionFilesMessage) error {
+	if p.version >= qgov4 {
+		return p2p.Send(p.rw, KnownConstitutionFilesMsg, files)
 	}
 	return nil
 }

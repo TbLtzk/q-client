@@ -21,10 +21,10 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth/protocols/eth"
 	"gitlab.com/q-dev/q-client/p2p"
-	"github.com/stretchr/testify/assert"
 )
 
 // TestEthProtocolNegotiation tests whether the test suite

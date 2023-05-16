@@ -35,8 +35,8 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/log"
 	"github.com/hashicorp/go-bexpr"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 // Handler is the global debugging handler.

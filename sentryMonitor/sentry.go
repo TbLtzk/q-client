@@ -3,6 +3,7 @@ package sentryMonitor
 import (
 	"errors"
 	"fmt"
+
 	"github.com/getsentry/sentry-go"
 )
 

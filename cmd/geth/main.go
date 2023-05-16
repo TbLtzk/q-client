@@ -19,18 +19,18 @@ package main
 
 import (
 	"fmt"
-	"github.com/getsentry/sentry-go"
-	"gitlab.com/q-dev/q-client/consensus/clique"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/console/prompt"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/eth/downloader"

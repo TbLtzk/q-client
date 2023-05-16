@@ -17,7 +17,7 @@ const (
 var ProtocolVersions = []uint{qgov2, qgov3, qgov4}
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
-var protocolLengths = map[uint]uint64{qgov2: 3, qgov3: 4, qgov4: 6}
+var protocolLengths = map[uint]uint64{qgov2: 3, qgov3: 4, qgov4: 7}
 
 // maximum possible number of root nodes
 const maxNRootNodes = 101
@@ -35,6 +35,7 @@ const (
 	ApprovalMsg                = 0x03
 	ConstitutionFileRequestMsg = 0x04
 	ConstitutionFilesMsg       = 0x05
+	KnownConstitutionFilesMsg  = 0x06
 )
 
 type statusMsgBody struct {

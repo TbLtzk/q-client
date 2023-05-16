@@ -304,7 +304,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		queueTxEventCh:      make(chan *types.Transaction),
 		reorgDoneCh:         make(chan chan struct{}),
 		reorgShutdownCh:     make(chan struct{}),
-		initDoneCh:      make(chan struct{}),
+		initDoneCh:          make(chan struct{}),
 		priceLimit:          priceLimit,
 		isPriceLimitDynamic: isPriceLimitDynamic,
 		priceProvider:       gpProvider,

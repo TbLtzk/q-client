@@ -4,9 +4,8 @@ package types
 //
 // https://spec.graphql.org/draft/#sec-Language.Arguments
 type Argument struct {
-	Name       Ident
-	Value      Value
-	Directives DirectiveList
+	Name  Ident
+	Value Value
 }
 
 // ArgumentList is a collection of GraphQL Arguments.

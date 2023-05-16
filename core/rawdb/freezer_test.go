@@ -27,9 +27,9 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/rlp"
-	"github.com/stretchr/testify/require"
 )
 
 var freezerTestTableDef = map[string]bool{"test": true}

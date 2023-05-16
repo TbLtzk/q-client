@@ -850,6 +850,11 @@ web3._extend({
 			call: 'gov_constitutionFiles',
 			params: 0
 		}),
+	    new web3._extend.Method({
+			name: 'knownConstitutionFiles',
+			call: 'gov_knownConstitutionFiles',
+			params: 0
+		}),
     ],
 	properties: []
 });

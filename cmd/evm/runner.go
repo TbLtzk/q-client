@@ -28,6 +28,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/cmd/evm/internal/compiler"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
@@ -40,7 +41,6 @@ import (
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
-	"github.com/urfave/cli/v2"
 )
 
 var runCommand = &cli.Command{

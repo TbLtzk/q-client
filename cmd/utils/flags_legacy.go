@@ -19,9 +19,9 @@ package utils
 import (
 	"fmt"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/eth/ethconfig"
 	"gitlab.com/q-dev/q-client/internal/flags"
-	"github.com/urfave/cli/v2"
 )
 
 var ShowDeprecated = &cli.Command{

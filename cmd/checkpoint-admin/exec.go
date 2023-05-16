@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
@@ -36,7 +37,6 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rpc"
-	"github.com/urfave/cli/v2"
 )
 
 var commandDeploy = &cli.Command{

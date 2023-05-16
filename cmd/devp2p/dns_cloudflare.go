@@ -22,9 +22,9 @@ import (
 	"strings"
 
 	"github.com/cloudflare/cloudflare-go"
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p/dnsdisc"
-	"github.com/urfave/cli/v2"
 )
 
 var (

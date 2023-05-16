@@ -21,11 +21,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/internal/debug"
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/params"
-	"github.com/urfave/cli/v2"
 )
 
 var (
