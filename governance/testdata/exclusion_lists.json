@@ -1,0 +1,281 @@
+[
+	{
+		"Name": "Active exclusion list",
+		"WantErr": false,
+		"List": {
+			"timestamp": 1680255000,
+			"validators": [
+				{
+					"address": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+					"block": 100
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 100,
+					"endBlock": 1000
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 2000,
+					"endBlock": 3000
+				},
+				{
+					"address": "0xeb3b90fd1862b10d14d71881b32d80e530ad394b",
+					"block": 1000
+				}
+			],
+			"hash": "0xf6cc800a504eadaabe2e7dbd5651fdd546d8769323af8ab50245b61e80795982",
+			"signatures": null
+		}
+	},
+	{
+		"Name": "Correct exclusion list",
+		"WantErr": false,
+		"List": {
+			"timestamp": 1680255617,
+			"validators": [
+				{
+					"address": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+					"block": 100
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 100,
+					"endBlock": 1000
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 2000,
+					"endBlock": 3000
+				},
+				{
+					"address": "0xeb3b90fd1862b10d14d71881b32d80e530ad394b",
+					"block": 1000
+				}
+			],
+			"hash": "0x25c2d75a2ddb2c63342dcec4ae307dca29adf5aefd5b06a4586a4541afddcdf4",
+			"signatures": null
+		}
+	},
+	{
+		"Name": "Obsolete exclusion list",
+		"WantErr": true,
+		"List": {
+			"timestamp": 1680250000,
+			"validators": [
+				{
+					"address": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+					"block": 100
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 100,
+					"endBlock": 1000
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 2000,
+					"endBlock": 3000
+				},
+				{
+					"address": "0xeb3b90fd1862b10d14d71881b32d80e530ad394b",
+					"block": 1000
+				},
+				{
+					"address": "0x3d26Adfd7bf5B328E518F72c4F5f7827cC22A783",
+					"block": 2222
+				}
+			],
+			"hash": "0xc5e608c5fbae81a953ff1e0006f2db4caaaceca3ed37dab556393ecb87f9f858",
+			"signatures": null
+		}
+	},
+	{
+		"Name": "Exclusion list with wrong end block",
+		"WantErr": true,
+		"List": {
+			"timestamp": 1680255617,
+			"validators": [
+				{
+					"address": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+					"block": 100
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 100,
+					"endBlock": 1000
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 9000,
+					"endBlock": 1000
+				},
+				{
+					"address": "0xeb3b90fd1862b10d14d71881b32d80e530ad394b",
+					"block": 1000
+				}
+			],
+			"hash": "0x25c2d75a2ddb2c63342dcec4ae307dca29adf5aefd5b06a4586a4541afddcdf4",
+			"signatures": null
+		}
+	},
+	{
+		"Name": "Exclusion list with incorrect timestamp",
+		"WantErr": true,
+		"List": {
+			"timestamp": 1111111111,
+			"validators": [
+				{
+					"address": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+					"block": 100
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 100,
+					"endBlock": 1000
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 2000,
+					"endBlock": 3000
+				},
+				{
+					"address": "0xeb3b90fd1862b10d14d71881b32d80e530ad394b",
+					"block": 1000
+				}
+			],
+			"hash": "0x2904851afb479ef9dad859182205316617cf4cb99a19fc4df5e4412b5af87b79"
+		}
+	},
+	{
+		"Name": "Exclusion list with new validator in past",
+		"WantErr": true,
+		"List": {
+			"timestamp": 1111111111,
+			"validators": [
+				{
+					"address": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+					"block": 100
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 100,
+					"endBlock": 1000
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 2000,
+					"endBlock": 3000
+				},
+				{
+					"address": "0xeb3b90fd1862b10d14d71881b32d80e530ad394b",
+					"block": 1000
+				},
+				{
+					"address": "0x5Fef995ad05077266EEb6bD125c2044fF089aC57",
+					"block": 1000
+				}
+			],
+			"hash": "0x0b825c20bcd4a99b4b6f541dffea4e0398cbc56b878ab3c53fc530daa8fa465a"
+		}
+	},
+	{
+		"Name": "Exclusion list with validator unbanned in past",
+		"WantErr": true,
+		"List": {
+			"timestamp": 1680250000,
+			"validators": [
+				{
+					"address": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+					"block": 100
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 100,
+					"endBlock": 1000
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 2000,
+					"endBlock": 3000
+				},
+				{
+					"address": "0xeb3b90fd1862b10d14d71881b32d80e530ad394b",
+					"block": 1000,
+					"endBlock": 3000
+				}
+			],
+			"hash": "0x7d32d21a17e09b9d5affd0aa3b28b7f0e767117498a4163323d3f588dae34a99"
+		}
+	},
+	{
+		"Name": "Exclusion list with wrong block range (doesn't contain 2000 - 3000)",
+		"WantErr": true,
+		"List": {
+			"timestamp": 1680250000,
+			"validators": [
+				{
+					"address": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+					"block": 100
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 100,
+					"endBlock": 1000
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 5000,
+					"endBlock": 4000
+				},
+				{
+					"address": "0xeb3b90fd1862b10d14d71881b32d80e530ad394b",
+					"block": 1000
+				}
+			],
+			"hash": "0x7d32d21a17e09b9d5affd0aa3b28b7f0e767117498a4163323d3f588dae34a99"
+		}
+	},
+	{
+		"Name": "Exclusion list with wrong block range (add range 1000-1111 in the past)",
+		"WantErr": true,
+		"List": {
+			"timestamp": 1680250000,
+			"validators": [
+				{
+					"address": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+					"block": 100
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 100,
+					"endBlock": 1000
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 5000,
+					"endBlock": 4000
+				},
+				{
+					"address": "0x01fdcc35858c76c6ecd459da0174116fb5a4bff7",
+					"block": 1000,
+					"endBlock": 1111
+				},
+				{
+					"address": "0xeb3b90fd1862b10d14d71881b32d80e530ad394b",
+					"block": 1000
+				}
+			],
+			"hash": "0xe2e8ab67bb0aa1ad671b4a5c27fb07a3f0bda453a5cf7db58f6954cb21cac1b3"
+		}
+	},
+	{
+		"Name": "Exclusion list is empty",
+		"WantErr": true,
+		"List": {
+			"timestamp": 1680250000,
+			"validators": [],
+			"hash": "0x45550cb2d2fea6ced8383115ee272b109c5cffb86557cb3585bd08ce73897dcf"
+		}
+	}
+]

@@ -2225,7 +2225,7 @@ func RegisterFilterAPI(stack *node.Node, backend ethapi.Backend, ethcfg *ethconf
 }
 
 func RegisterGovernanceService(stack *node.Node, rm *governance.RootManager) *governance.Governance {
-	gov, err := governance.New(stack, rm)
+	gov, err := governance.New(rm, stack.ConstitutionDir())
 	if err != nil {
 		Fatalf("failed to register governance service %v", err)
 	}
