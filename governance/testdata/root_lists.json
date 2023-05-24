@@ -1,0 +1,31 @@
+[
+  {
+    "Name": "Active root list",
+    "WantErr": false,
+    "List": {
+      "timestamp": 1680255000,
+      "nodes": [
+        "0x6a7c4c452b75e12ea4417434ebd7cb9743bfd142",
+        "0x18640e7dc08d5c0090e457383aab9f0837acdf2f",
+        "0xae3cb02aadcbbbc24bceabff7ba552ceba9d86f8",
+        "0x764e55b3e82559f7c52424301e99f9acbcf73f5d"
+      ]
+    }
+  },
+  {
+    "Name": "Correct new root list",
+    "WantErr": false,
+    "List": {
+      "timestamp": 1680255001,
+      "nodes": [
+        "0x6a7c4c452b75e12ea4417434ebd7cb9743bfd142",
+        "0x18640e7dc08d5c0090e457383aab9f0837acdf2f",
+        "0xae3cb02aadcbbbc24bceabff7ba552ceba9d86f8",
+        "0x764e55b3e82559f7c52424301e99f9acbcf73f5d",
+        "0x80b5C2bBed5C9960B5c35311759F84bACe7B4807"
+      ],
+      "hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "signatures": null
+    }
+  }
+]

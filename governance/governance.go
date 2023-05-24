@@ -2,7 +2,6 @@ package governance
 
 import (
 	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rpc"
 )
@@ -17,8 +16,8 @@ type Governance struct {
 }
 
 // New Governance service.
-func New(stack *node.Node, rm *RootManager) (*Governance, error) {
-	cm, errCm := NewConstitutionManager(stack.ConstitutionDir(), rm.db, rm)
+func New(rm *RootManager, cDir string) (*Governance, error) {
+	cm, errCm := NewConstitutionManager(cDir, rm.db, rm)
 	if errCm != nil {
 		log.Error("Can't create ConstitutionManager: %v", errCm)
 	}

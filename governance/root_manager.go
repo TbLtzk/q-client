@@ -544,6 +544,10 @@ func (s *RootManager) acceptProposedExclusionList(lock bool) error {
 		return errProposedExclusionListObsolete
 	}
 
+	if s.activeExSet != nil && s.proposedExSet.timestamp <= s.activeExSet.timestamp {
+		return errProposedExclusionListObsolete
+	}
+
 	err := s.validateExclusionSet(s.proposedExSet)
 	if err != nil {
 		return err
