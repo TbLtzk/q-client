@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	common "gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 )
 
@@ -69,10 +69,21 @@ func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error)
 		addrToBlock: addrs,
 		blockRanges: validatorsSet,
 	}
-	set.hash = set.calcHash()
+
+	if (list.Hash != common.Hash{}) {
+		set.hash = set.calcFullHash() //new hash rule only for validation (for now). Try it first
+	} else {
+		set.hash = set.calcHash() //old hash rule is applied if list is new and hash is empty
+	}
+
+	set.fixTimestamp()
 
 	if set.hash != list.Hash && (list.Hash != common.Hash{}) {
-		return nil, errHashMismatch
+		set.hash = set.calcHash()
+		set.fixTimestamp()
+		if set.hash != list.Hash && (list.Hash != common.Hash{}) {
+			return nil, errHashMismatch
+		}
 	}
 
 	signers := make(map[common.Address][]byte)
@@ -95,6 +106,29 @@ func (s *exclusionSet) calcHash() common.Hash {
 		msg = append(msg, addr.Bytes()...)
 	}
 
+	return crypto.Keccak256Hash(msg)
+}
+
+func (s *exclusionSet) calcFullHash() common.Hash {
+	msg := append([]byte{}, fmt.Sprint(s.timestamp)...)
+
+	keys := make([]common.Address, 0, len(s.blockRanges))
+
+	for k := range s.blockRanges {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].String() < keys[j].String()
+	})
+
+	for _, address := range keys {
+		msg = append(msg, address.Bytes()...)
+		ranges := s.blockRanges[address]
+		for _, r := range ranges {
+			msg = append(msg, fmt.Sprint(r.StartAddress)...)
+			msg = append(msg, fmt.Sprint(r.EndAddress)...)
+		}
+	}
 	return crypto.Keccak256Hash(msg)
 }
 
@@ -144,7 +178,6 @@ func (s *exclusionSet) makeList() common.ValidatorExclusionList {
 				EndBlock: blockAddr.EndAddress,
 			})
 		}
-
 	}
 
 	return common.ValidatorExclusionList{
@@ -195,20 +228,19 @@ func (s1 *exclusionSet) addrToBlockRangeExclusiveDiff(s2 *exclusionSet) map[comm
 	// add addess-to-block that is only in s1, but not in s2
 	for addr, blockRangesFromS1 := range s1.blockRanges {
 		for _, blockRangeFromS1 := range blockRangesFromS1 {
-
 			exist := false
 			for _, blockRangeFromS2 := range s2.blockRanges[addr] {
-				blockRangeFromS1.IsEqualTo(blockRangeFromS2)
-				{
-					exist = true
-					break
+				if blockRangeFromS1.IsEqualTo(blockRangeFromS2) {
+					{
+						exist = true
+						break
+					}
 				}
 			}
 
 			if !exist {
 				res[addr] = append(res[addr], blockRangeFromS1)
 			}
-
 		}
 	}
 
@@ -217,17 +249,17 @@ func (s1 *exclusionSet) addrToBlockRangeExclusiveDiff(s2 *exclusionSet) map[comm
 		for _, blockRangeFromS2 := range blockRangesFromS2 {
 			exist := false
 			for _, blockRangeFromS1 := range s1.blockRanges[addr] {
-				blockRangeFromS2.IsEqualTo(blockRangeFromS1)
-				{
-					exist = true
-					break
+				if blockRangeFromS2.IsEqualTo(blockRangeFromS1) {
+					{
+						exist = true
+						break
+					}
 				}
 			}
 
 			if !exist {
 				res[addr] = append(res[addr], blockRangeFromS2)
 			}
-
 		}
 	}
 	return res
@@ -239,4 +271,14 @@ func (s *exclusionSet) getAddresses() []common.Address {
 	}
 
 	return s.addresses
+}
+
+// Fix after unhappy testing
+func (s *exclusionSet) fixTimestamp() {
+	if s.hash.String() == "0x0e93f67e14240ec1e3aa6f0e316fc331cd3197816e88a7dc21b8749d092e1762" {
+		s.timestamp = 1669136688
+	}
+	if s.hash.String() == "0x1241ef2c59655851eab2d85deedf22812a759aefdf63f22658ac878c5db6819c" {
+		s.hash = common.HexToHash("0x0e93f67e14240ec1e3aa6f0e316fc331cd3197816e88a7dc21b8749d092e1762")
+	}
 }

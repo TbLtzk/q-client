@@ -18,8 +18,6 @@ package eth
 
 import (
 	"math/big"
-	"sync"
-	"time"
 
 	"gitlab.com/q-dev/q-client/eth/protocols/eth"
 	"gitlab.com/q-dev/q-client/eth/protocols/snap"
@@ -37,10 +35,6 @@ type ethPeerInfo struct {
 type ethPeer struct {
 	*eth.Peer
 	snapExt *snapPeer // Satellite `snap` connection
-
-	syncDrop *time.Timer   // Connection dropper if `eth` sync progress isn't validated in time
-	snapWait chan struct{} // Notification channel for snap connections
-	lock     sync.RWMutex  // Mutex protecting the internal fields
 }
 
 // info gathers and returns some `eth` protocol metadata known about a peer.

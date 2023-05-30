@@ -29,8 +29,6 @@ import (
 	"gitlab.com/q-dev/q-client/crypto/bls12381"
 	"gitlab.com/q-dev/q-client/crypto/bn256"
 	"gitlab.com/q-dev/q-client/params"
-
-	//lint:ignore SA1019 Needed for precompile
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -266,9 +264,10 @@ var (
 // modexpMultComplexity implements bigModexp multComplexity formula, as defined in EIP-198
 //
 // def mult_complexity(x):
-//    if x <= 64: return x ** 2
-//    elif x <= 1024: return x ** 2 // 4 + 96 * x - 3072
-//    else: return x ** 2 // 16 + 480 * x - 199680
+//
+//	if x <= 64: return x ** 2
+//	elif x <= 1024: return x ** 2 // 4 + 96 * x - 3072
+//	else: return x ** 2 // 16 + 480 * x - 199680
 //
 // where is x is max(length_of_MODULUS, length_of_BASE)
 func modexpMultComplexity(x *big.Int) *big.Int {
@@ -591,7 +590,7 @@ func (c *blake2F) Run(input []byte) ([]byte, error) {
 	// Parse the input into the Blake2b call parameters
 	var (
 		rounds = binary.BigEndian.Uint32(input[0:4])
-		final  = (input[212] == blake2FFinalBlockBytes)
+		final  = input[212] == blake2FFinalBlockBytes
 
 		h [8]uint64
 		m [16]uint64

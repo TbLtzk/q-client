@@ -2,7 +2,6 @@ package governance
 
 import (
 	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/node"
 	"gitlab.com/q-dev/q-client/p2p"
 	"gitlab.com/q-dev/q-client/rpc"
 )
@@ -10,18 +9,25 @@ import (
 // Governance service is responsible
 // for 2nd layer functionality.
 type Governance struct {
-	RootManager *RootManager
+	RootManager         *RootManager
+	ConstitutionManager *ConstitutionManager
 
 	handler *handler
 }
 
 // New Governance service.
-func New(stack *node.Node, rm *RootManager) (*Governance, error) {
-	handler := newHandler(rm)
+func New(rm *RootManager, cDir string) (*Governance, error) {
+	cm, errCm := NewConstitutionManager(cDir, rm.db, rm)
+	if errCm != nil {
+		log.Error("Can't create ConstitutionManager: %v", errCm)
+	}
+
+	handler := newHandler(rm, cm)
 
 	return &Governance{
-		RootManager: rm,
-		handler:     handler,
+		RootManager:         rm,
+		ConstitutionManager: cm,
+		handler:             handler,
 	}, nil
 }
 
@@ -56,12 +62,7 @@ func (g *Governance) APIs() []rpc.API {
 
 // Start Governance service.
 func (g *Governance) Start() error {
-	if g.RootManager.isRootNode(true) {
-		log.Info("Node belongs to the current root node set")
-	}
-
 	g.handler.run()
-
 	return nil
 }
 

@@ -23,7 +23,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/rawdb"
-	"gitlab.com/q-dev/q-client/eth/downloader"
+	"gitlab.com/q-dev/q-client/les/downloader"
 	"gitlab.com/q-dev/q-client/light"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"

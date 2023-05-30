@@ -1,4 +1,4 @@
-# governance rpc methods reference
+= governance rpc methods reference
 
 In order to control root list and validators exclusion list, there's a new rpc namespace `gov`.
 
@@ -9,25 +9,39 @@ In order to control root list and validators exclusion list, there's a new rpc n
   acceptProposedExclusionList: function(),
   acceptProposedRootList: function(),
   activeExclusionList: function(),
+  activeExclusionListPrettify: function(),
   activeRootList: function(),
+  addConstitutionFile: function(),
+  constitutionFileRequests: function(),
+  constitutionFiles: function(),
   desiredExclusionList: function(),
+  desiredExclusionListPrettify: function(),
   desiredRootList: function(),
   diffExclusionList: function(),
   diffRootList: function(),
+  getLatestTransitionBlocks: function(),
+  getRootNodeApprovals: function(),
+  isInExclusionList: function(),
+  knownConstitutionFiles: function(),
   onchainRootList: function(),
   proposeExclusionListUpdate: function(),
   proposeOnchainRootList: function(),
   proposeRootListUpdate: function(),
   proposedExclusionList: function(),
+  proposedExclusionListPrettify: function(),
   proposedRootList: function(),
-  getRootNodeApprovals: function()
+  requestForConstitutionFile: function()
+
 }
 ----
 
-## Root List Management
-* `gov.activeRootList`
+== Root List Management
 
-Prints current root list. Example:
+==== gov.activeRootList
+
+Prints current root list.
+Example:
+
 [source,bash]
 ----
 > gov.activeRootList()
@@ -41,9 +55,11 @@ Prints current root list. Example:
 
 Here, `hash` - hash of sorted root list and timestamp, `nodes` - addresses of root nodes, `signers` - root nodes that signed the list.
 
-* `gov.desiredRootList`
+==== gov.desiredRootList
 
-Prints root list that is in process of collection signatures in order to replace current root list. Example:
+Prints root list that is in process of collection signatures in order to replace current root list.
+Example:
+
 [source,bash]
 ----
 > gov.desiredRootList()
@@ -55,17 +71,20 @@ Prints root list that is in process of collection signatures in order to replace
 }
 ----
 
-* `gov.proposedRootList`
+==== gov.proposedRootList
 
 Prints root list waiting for your approval.
 
-* `gov.onchainRootList`
+==== gov.onchainRootList
 
 Prints on-chain root list.
 
-* `gov.proposeRootListUpdate`
+==== gov.proposeRootListUpdate
 
-Propose a new version of root list. At least one key from the new list should be unlocked, otherwise method will return the error "not a member of new list". Example:
+Propose a new version of root list.
+At least one key from the new list should be unlocked, otherwise method will return the error "not a member of new list".
+Example:
+
 [source,bash]
 ----
 > gov.proposeRootListUpdate({
@@ -82,21 +101,29 @@ Propose a new version of root list. At least one key from the new list should be
 
 Method accepts a new root list as object, not as a string (note, argument is not quoted in this example).
 
-Required fields are `nodes` and `timestamp`. Output of the method (in the example, `0x263ff519a38305a1a13ff43100f7f2599ac70128b8a92f9c6c4ba2ec93171cda`) is calculated hash of new root list.
+Required fields are `nodes` and `timestamp`.
+Output of the method (in the example, `0x263ff519a38305a1a13ff43100f7f2599ac70128b8a92f9c6c4ba2ec93171cda`) is calculated hash of new root list.
 
-* `gov.proposeRootListUpdate`
+=== `gov.proposeRootListUpdate`
 
-Propose current on-chain root list. At least one key from the new list should be unlocked, otherwise method will return the error "not a member of new list".
+Propose current on-chain root list.
+At least one key from the new list should be unlocked, otherwise method will return the error "not a member of new list".
 
-* `gov.acceptProposedRootList`
-Accept root list returned from `gov.proposedRootList()`. This method will sign and start distributing the proposed root list. Also, the proposed list will replace current `desired list`.
+=== `gov.acceptProposedRootList`
 
-## Validators Exclusion List Management
+Accept root list returned from `gov.proposedRootList()`.
+This method will sign and start distributing the proposed root list.
+Also, the proposed list will replace current `desired list`.
+
+== Validators Exclusion List Management
+
 Methods for exclusion list management have same behaviour as methods for root list management.
 
-* `gov.activeExclusionList`
+=== `gov.activeExclusionList`
 
-Prints current exclusion list (`null` if none). Example:
+Prints current exclusion list (`null` if none).
+Example:
+
 [source,bash]
 ----
 > gov.activeExclusionList()
@@ -119,12 +146,33 @@ Prints current exclusion list (`null` if none). Example:
 ----
 
 Here, `signers` - root nodes that signed the list, `validators` - list of excluded validators (`address` - validator's address and
-`block` is block number since which validator is excluded. If an endBlock non 0 value is set up - validator exclusion ends after that
-block address. There can be several records per one validator: eg first one with the closed end and other on in future)
+`block` is block number since which validator is excluded.
+If an endBlock non 0 value is set up - validator exclusion ends after that block address.
+There can be several records per one validator: eg first one with the closed end and other on in future)
+
+* `gov.activeExclusionListPrettify`
+
+Prints prettified active exclusion list (`null` if none). Example:
+[source,bash]
+----
+Hash: 0x10ddb25b24e7396f4d8ebb3ea46bedfd1fa1361ef84487237dd868793d0e77ae
+Timestamp(created at): 1597927820 (2020-08-20 15:50:20 +0200 EET)
+Signers:
+        0x7c7df968bb4aff69b6f613c713c404f88de394d3
+        0x42b9e4ffa28bc4bd9c8f7207f3a296ce960a365d
+Validators:
+        0xb9f15ab8e22569cd5f46fd011133242f3517ac8b:
+                #200  (active, open-ended)
+        0xbe945ab6371280d7483fe0b5c682b445a7c726d4:
+                #100 - #200     (expired)
+                #500 - #600     (scheduled at block #500)
+----
 
 * `gov.desiredExclusionList`
 
-Prints exclusion list in process of collecting root nodes signatures in order to be accepted as current exclusion list. Example:
+Prints exclusion list in process of collecting root nodes signatures in order to be accepted as current exclusion list.
+Example:
+
 [source,bash]
 ----
 > gov.desiredExclusionList()
@@ -139,7 +187,7 @@ Prints exclusion list in process of collecting root nodes signatures in order to
   }, {
       address: "0xb9f15ab8e22569cd5f46fd011133242f3517ac8b",
       block: 200,
-      endBlock: 200
+      endBlock: 201
   }, {
       address: "0xb9f15ab8e22569cd5f46fd011133242f3517ac8b",
       block: 500
@@ -147,16 +195,39 @@ Prints exclusion list in process of collecting root nodes signatures in order to
 }
 ----
 
+* `gov.desiredExclusionListPrettify`
+
+Prints prettified desired exclusion list (`null` if none). Example:
+[source,bash]
+----
+Hash: 0x10ddb25b24e7396f4d8ebb3ea46bedfd1fa1361ef84487237dd868793d0e77ae
+Timestamp(created at): 1597927820 (2020-08-20 15:50:20 +0200 EET)
+Signers:
+        0x7c7df968bb4aff69b6f613c713c404f88de394d3
+Validators:
+        0xb9f15ab8e22569cd5f46fd011133242f3517ac8b:
+                #200 - #201     (expired)
+                #500            (scheduled at block #500)
+        0xbe945ab6371280d7483fe0b5c682b445a7c726d4:
+                #100 - #200     (expired)
+----
+
 * `gov.proposedExclusionList`
 
 Prints exclusion list waiting for your approval.
 
+* `gov.desiredExclusionListPrettify`
+
+Prints prettified proposed exclusion list.
+
 * `gov.proposeExclusionListUpdate`
 
-Propose new version of exclusion list. `timestamp` must be larger than current exclusion list's `timestamp`. Can be called only on
-q-client with one of root nodes keys unlocked. Submitted exclusion list must contain all previous records. Also, if record is not
-before current block address - it is possible to end open-ended ban (set up endBlock).
+Propose new version of exclusion list. `timestamp` must be larger than current exclusion list's `timestamp`.
+Can be called only on q-client with one of root nodes keys unlocked.
+Submitted exclusion list must contain all previous records.
+Also, if record is not before current block address - it is possible to end open-ended ban (set up endBlock).
 Example:
+
 [source,bash]
 ----
 > gov.proposeExclusionListUpdate({
@@ -179,13 +250,19 @@ Example:
 
 Method prints calculated `hash` of the list.
 
-* `gov.acceptProposedExclusionList`
+==== gov.acceptProposedExclusionList
 
-Accept exlusion list returned from `gov.proposedExclusionList()`. This method will sign and start distributing the proposed exclusion list. Also, the proposed list will replace current `desired list`.
+Accept exlusion list returned from `gov.proposedExclusionList()`.
+This method will sign and start distributing the proposed exclusion list.
+Also, the proposed list will replace current `desired list`.
 
-* `gov.diffRootList`
+==== gov.diffRootList
 
-Show diff between two root node lists. It takes two root node list names as parameters. Available names: `active`, `desired`, `proposed`, `onchain`. Usage example:
+Show diff between two root node lists.
+It takes two root node list names as parameters.
+Available names: `active`, `desired`, `proposed`, `onchain`.
+Usage example:
+
 [source,bash]
 ----
 > gov.diffRootList("active", "onchain")
@@ -198,10 +275,15 @@ Show diff between two root node lists. It takes two root node list names as para
 }]
 ----
 
-* `gov.diffExclusionList`
+==== gov.diffExclusionList
 
-Show diff between two exclusion lists. It takes two exclusion list names as parameters. Available names: `active`, `desired`, `proposed`. Usage example:
+Show diff between two exclusion lists.
+It takes two exclusion list names as parameters.
+Available names: `active`, `desired`, `proposed`.
+Usage example:
+
 [source,bash]
+
 ----
 > gov.diffExclusionList("active", "proposed")
 [{
@@ -213,11 +295,29 @@ Show diff between two exclusion lists. It takes two exclusion list names as para
 }]
 ----
 
-* `gov.getRootNodeApprovals`
+==== gov.isInExclusionList
 
-Prints rootnode approvals for the latest transition block. By default with no params provided - returns signatures of the latest block. If only one parameter specified (`blockNumber`) - returns signatures of specified block. Second parameter - `hash` - hash of the required block. Usage of both `blockNumber` and `hash` is forbidden.
+Check if address is in exclusion list. It takes address as parameter. Usage example:
+
+[source,bash]
+----
+> gov.isInExclusionList("0x9e3c7714c12bbbebacebd5e607afd116ce5790e1")
+Proposed exclusion list, provided address is absent
+Active exclusion list, provided address is absent
+Desired exclusion list, provided address is absent
+
+----
+
+==== gov.getRootNodeApprovals
+
+Prints rootnode approvals for the latest transition block.
+By default with no params provided - returns signatures of the latest block.
+If only one parameter specified (`blockNumber`) - returns signatures of specified block.
+Second parameter - `hash` - hash of the required block.
+Usage of both `blockNumber` and `hash` is forbidden.
 
 Usage example:
+
 [source,bash]
 ----
 > gov.getRootNodeApprovals()
@@ -233,6 +333,7 @@ Usage example:
     signer: "0xe3d50388f8136eac453229d0f88e377a2eb5a80b"
 }]
 ----
+
 ----
 > gov.getRootNodeApprovals(null,"0xba93726efe1681c086f32e242ca39d62b9755599038f80fabe5b56b0b083a3b1")
 [{
@@ -247,6 +348,7 @@ Usage example:
     signer: "0xa713a6d7a695c95eb4eafdd588b170a17bf64a58"
 }]
 ----
+
 ----
 > gov.getRootNodeApprovals(2085246)
 [{
@@ -262,6 +364,7 @@ Usage example:
 }]
 
 ----
+
 ----
 > gov.getRootNodeApprovals(2085347,"0x8d1d9cb767b87bd97e3639e1558921014e0bb67d567c7a3189dc651caa5a0674")
 Error: Block number and hash cannot be specified at the same time
@@ -270,3 +373,84 @@ Error: Block number and hash cannot be specified at the same time
         at <eval>:1:25(5)
 
 ----
+
+== Constitution storage Management
+
+Set of methods to manage your constitution files.
+Constitution storage allows you to store new constitution files and create requests for the required ones.
+By defualt, all constitution files are stored in your  _datadir/constitution-storage_ folder.
+However, you can specify other folder using flag *_--constitution-dir_=your_dir*.
+This directory will contain constitution files and drafts.
+Every file stored in this folder will be validated during node functioning.
+If non-draft file doesn't have valid filename (with the pattern *_Q-Constitution-AB_AABBCCDD_*) - it will be deleted automatically.
+Also, if the hash of this file doesn't correspond to its filename and does not belong to valid constitution hashes - it will be deleted as well.
+You can store any amount of files in the _"./constitution-storage/drafts"_ folder until you decide to publish them.
+All constitution files which you reqested from your peers will be named and placed into the _"./constitution-storage"_ folder automatically.
+
+==== gov.addConstitutionFile
+
+Allows you to add new constitution file.
+File should be placed into the "./constitution-storage/drafts" directory inside the _datadir_.
+Alternatively, as a parameter you can specify the URL of the file. In this case, file will be downloaded and placed into Drafts folder automatically.
+During execution this file will be validated - if hash of the file doesn't belong to blockchain - execution will be reverted.
+
+----
+>gov.addConstitutionFile("5dfd08904f23e0497b291487319f07e32113f3c5bdc9c540adeb113019920c21.adoc")
+Validating constitution storage
+Constitution file with hash 0x5dfd08904f23e0497b291487319f07e32113f3c5bdc9c540adeb113019920c21 added successfully
+----
+----
+gov.addConstitutionFile("https://constitution.q.org/constitution/latest")
+Constitution file with hash 0x25a0ad3b8de911b1745691b83875291c75f424487551ec83f7ef9ae8205ef059 added successfully
+
+Validating constitution storage
+The provided path is a URL. Trying to download a file
+----
+
+==== gov.requestForConstitutionFile
+
+Command creates request for the constitution file.
+If requested hash is valid, request will be added to queue.
+As soon as one of your node's peer has requested file - it will be downloaded and added to the constitution storage.
+
+----
+>gov.requestForConstitutionFile("0x5dfd08904f23e0497b291487319f07e32113f3c5bdc9c540adeb113019920c21")
+
+Validating constitution storage
+Request for the constitution file with hash 0x5dfd08904f23e0497b291487319f07e32113f3c5bdc9c540adeb113019920c21 created. Once one of your peers has file with the required hash - you'll be informed.
+----
+
+==== gov.constitutionFileRequests
+
+Displays a list of your constitution file requests.
+This list will become shorter every time you're getting requested file.
+
+----
+>gov.constitutionFileRequests()
+["0x5dfd08904f23e0497b291487319f07e32113f3c5bdc9c540adeb113019920c21"]
+----
+
+==== gov.constitutionFiles
+
+Displays a list of constitution files which are present in your local constitution storage
+
+----
+>gov.constitutionFiles()
+
+[{
+    CreatedAt: 1677671307,
+    hash: "0x5dfd08904f23e0497b291487319f07e32113f3c5bdc9c540adeb113019920c21",
+    name: "Q-Constitution-AB_0x5dfd08.adoc"
+}]
+----
+
+==== gov.knownConstitutionFiles
+
+Displays a list of constitution files which are known to your node. This list is updated every time you're getting new constitution file. If you're getting constitution file from your peer - it will be added to this list automatically. If you're getting constitution file from the URL - it will be added to this list only if it's valid. If some of your peers have more records in the known files list - you will be informed about it and will be able to request this file from them.
+
+----
+> gov.knownConstitutionFiles()
+["0x25a0ad3b8de911b1745691b83875291c75f424487551ec83f7ef9ae8205ef059"]
+
+----
+If you're interested in getting a specific constitution file from the known files list - you can use the _gov.requestForConstitutionFile_ command.

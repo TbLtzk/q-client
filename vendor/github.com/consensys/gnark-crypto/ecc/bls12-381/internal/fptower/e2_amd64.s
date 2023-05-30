@@ -1,5 +1,3 @@
-// +build !amd64_adx
-
 // Copyright 2020 ConsenSys Software Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -248,12 +246,12 @@ TEXT ·negE2(SB), NOSPLIT, $0-16
 	ORQ   R10, AX
 	TESTQ AX, AX
 	JNE   l1
-	MOVQ  AX, 48(DX)
-	MOVQ  AX, 56(DX)
-	MOVQ  AX, 64(DX)
-	MOVQ  AX, 72(DX)
-	MOVQ  AX, 80(DX)
-	MOVQ  AX, 88(DX)
+	MOVQ  AX, 0(DX)
+	MOVQ  AX, 8(DX)
+	MOVQ  AX, 16(DX)
+	MOVQ  AX, 24(DX)
+	MOVQ  AX, 32(DX)
+	MOVQ  AX, 40(DX)
 	JMP   l3
 
 l1:

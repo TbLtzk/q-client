@@ -17,7 +17,7 @@ func (c *Client) ListAccountRoles(ctx context.Context, params *ListAccountRolesI
 		params = &ListAccountRolesInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListAccountRoles", params, optFns, addOperationListAccountRolesMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListAccountRoles", params, optFns, c.addOperationListAccountRolesMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -48,6 +48,8 @@ type ListAccountRolesInput struct {
 	// The page token from the previous response output when you request subsequent
 	// pages.
 	NextToken *string
+
+	noSmithyDocumentSerde
 }
 
 type ListAccountRolesOutput struct {
@@ -61,9 +63,11 @@ type ListAccountRolesOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationListAccountRolesMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationListAccountRolesMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestjson1_serializeOpListAccountRoles{}, middleware.After)
 	if err != nil {
 		return err
@@ -149,6 +153,10 @@ type ListAccountRolesPaginator struct {
 
 // NewListAccountRolesPaginator returns a new ListAccountRolesPaginator
 func NewListAccountRolesPaginator(client ListAccountRolesAPIClient, params *ListAccountRolesInput, optFns ...func(*ListAccountRolesPaginatorOptions)) *ListAccountRolesPaginator {
+	if params == nil {
+		params = &ListAccountRolesInput{}
+	}
+
 	options := ListAccountRolesPaginatorOptions{}
 	if params.MaxResults != nil {
 		options.Limit = *params.MaxResults
@@ -156,10 +164,6 @@ func NewListAccountRolesPaginator(client ListAccountRolesAPIClient, params *List
 
 	for _, fn := range optFns {
 		fn(&options)
-	}
-
-	if params == nil {
-		params = &ListAccountRolesInput{}
 	}
 
 	return &ListAccountRolesPaginator{

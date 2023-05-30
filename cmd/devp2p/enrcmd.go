@@ -22,46 +22,47 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/p2p/enr"
 	"gitlab.com/q-dev/q-client/rlp"
-	"gopkg.in/urfave/cli.v1"
 )
 
-var enrdumpCommand = cli.Command{
+var fileFlag = &cli.StringFlag{Name: "file"}
+
+var enrdumpCommand = &cli.Command{
 	Name:   "enrdump",
 	Usage:  "Pretty-prints node records",
 	Action: enrdump,
 	Flags: []cli.Flag{
-		cli.StringFlag{Name: "file"},
+		fileFlag,
 	},
 }
 
 func enrdump(ctx *cli.Context) error {
 	var source string
-	if file := ctx.String("file"); file != "" {
+	if file := ctx.String(fileFlag.Name); file != "" {
 		if ctx.NArg() != 0 {
 			return fmt.Errorf("can't dump record from command-line argument in -file mode")
 		}
 		var b []byte
 		var err error
 		if file == "-" {
-			b, err = ioutil.ReadAll(os.Stdin)
+			b, err = io.ReadAll(os.Stdin)
 		} else {
-			b, err = ioutil.ReadFile(file)
+			b, err = os.ReadFile(file)
 		}
 		if err != nil {
 			return err
 		}
 		source = string(b)
 	} else if ctx.NArg() == 1 {
-		source = ctx.Args()[0]
+		source = ctx.Args().First()
 	} else {
 		return fmt.Errorf("need record as argument")
 	}

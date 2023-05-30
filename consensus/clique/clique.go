@@ -19,6 +19,7 @@ package clique
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -27,9 +28,9 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
+	_ "gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus"
@@ -43,11 +44,10 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/sentryMonitor"
 	"gitlab.com/q-dev/q-client/trie"
 	"gitlab.com/q-dev/system-contracts/generated"
 	"golang.org/x/crypto/sha3"
-
-	_ "gitlab.com/q-dev/q-client/accounts/keystore"
 )
 
 const (
@@ -183,12 +183,16 @@ type ExclusionSetProvider interface {
 	ExclusionSetValidators() map[common.Address][]common.BlockRange
 	ExclusionSetTimestamp() uint64
 	HandleTransitionBlockSignature(header *types.Header)
+	ValidatePreviousTransitionBlockSignature()
 }
 
 // NoopExclusionSetProvider is needed for testing.
 type NoopExclusionSetProvider struct{}
 
 func (p *NoopExclusionSetProvider) HandleTransitionBlockSignature(header *types.Header) {
+
+}
+func (p *NoopExclusionSetProvider) ValidatePreviousTransitionBlockSignature() {
 
 }
 
@@ -229,7 +233,7 @@ type Clique struct {
 
 	signer common.Address // Ethereum address of the signing key
 	signFn SignerFn       // Signer function to authorize hashes with
-	lock   sync.RWMutex   // Protects the signer fields
+	lock   sync.RWMutex   // Protects the signer and proposals fields
 
 	// The fields below are for testing only
 	fakeDiff bool // Skip difficulty verifications
@@ -378,9 +382,8 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 		}
 	}
 	// Verify that the gas limit is <= 2^63-1
-	cap := uint64(0x7fffffffffffffff)
-	if header.GasLimit > cap {
-		return fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, cap)
+	if header.GasLimit > params.MaxGasLimit {
+		return fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, params.MaxGasLimit)
 	}
 	// If all checks passed, validate any special fields for hard forks
 	if err := misc.VerifyForkHashes(chain.Config(), header, false); err != nil {
@@ -449,7 +452,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		}
 
 		signers := make([]byte, len(snap.Signers)*common.AddressLength)
-		for i, signer := range snap.signers() {
+		for i, signer := range snap.SignersList() {
 			copy(signers[i*common.AddressLength:], signer[:])
 		}
 		extraSuffix := len(header.Extra) - extraSeal
@@ -470,7 +473,7 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 
 	provider := c.registry.Validators()
 	if provider == nil {
-		snap.Signers = toSet(filterSigners(number, snap.signers(), excludedSigners))
+		snap.Signers = toSet(filterSigners(number, snap.SignersList(), excludedSigners))
 		return nil
 	}
 
@@ -484,7 +487,7 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 
 	// this can happen when 'validators' contract is deployed but is empty
 	if len(signers) == 0 {
-		snap.Signers = toSet(filterSigners(number, snap.signers(), excludedSigners))
+		snap.Signers = toSet(filterSigners(number, snap.SignersList(), excludedSigners))
 		return nil
 	}
 
@@ -543,8 +546,8 @@ func (c *Clique) aliasAccounts(filtered []common.Address, isAthos bool) []common
 	return filteredWithAliases
 }
 
-//TODO remove in production
-func (c *Clique) unAliasAccounts(filtered []common.Address, isAthos bool) []common.Address {
+// TODO remove in production
+func (c *Clique) UnAliasAccounts(filtered []common.Address, isAthos bool) []common.Address {
 	if !isAthos {
 		return filtered
 	}
@@ -713,6 +716,7 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 		return err
 	}
 	if _, ok := snap.Signers[signer]; !ok {
+		sentryMonitor.HandleError(errUnauthorizedSigner)
 		return errUnauthorizedSigner
 	}
 
@@ -728,17 +732,19 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 	if !c.fakeDiff {
 		inturn := snap.inturn(header.Number.Uint64(), signer)
 		if inturn && header.Difficulty.Cmp(diffInTurn) != 0 {
+			sentryMonitor.HandleError(errWrongDifficulty)
 			return errWrongDifficulty
 		}
 		if !inturn && header.Difficulty.Cmp(diffNoTurn) != 0 {
+			sentryMonitor.HandleError(errWrongDifficulty)
 			return errWrongDifficulty
 		}
 	}
-
-	if number%c.config.Epoch == 0 {
-		c.exclusionSetProvider.HandleTransitionBlockSignature(header)
-	}
 	return nil
+}
+
+func (c *Clique) VerifyLastTransitionBlock() {
+	c.exclusionSetProvider.ValidatePreviousTransitionBlockSignature()
 }
 
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
@@ -762,8 +768,8 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	}
 
 	/*if number%c.config.Epoch != 0 {
-		c.lock.RLock()
-
+	c.lock.RLock()
+	if number%c.config.Epoch != 0 {
 		// Gather all the proposals that make sense voting on
 		addresses := make([]common.Address, 0, len(c.proposals))
 		for address, authorize := range c.proposals {
@@ -780,7 +786,11 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 				copy(header.Nonce[:], nonceDropVote)
 			}
 		}
-		c.lock.RUnlock()
+	}
+
+	// Copy signer protected by mutex to avoid race condition
+	signer := c.signer
+	c.lock.RUnlock()
 	}*/
 	// Set the correct difficulty
 	header.Difficulty = calcDifficulty(snap, c.signer)
@@ -792,7 +802,7 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	header.Extra = header.Extra[:extraVanity]
 
 	if number%c.config.Epoch == 0 {
-		for _, signer := range snap.signers() {
+		for _, signer := range snap.SignersList() {
 			header.Extra = append(header.Extra, signer[:]...)
 		}
 	}
@@ -855,8 +865,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 	}
 	// For 0-period chains, refuse to seal empty blocks (no reward but would spin sealing)
 	if c.config.Period == 0 && len(block.Transactions()) == 0 {
-		log.Info("Sealing paused, waiting for transactions")
-		return nil
+		return errors.New("sealing paused while waiting for transactions")
 	}
 	// Don't hold the signer fields for the entire sealing procedure
 	c.lock.RLock()
@@ -882,8 +891,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 		if recent == signer {
 			// Signer is among recents, only wait if the current block doesn't shift it out
 			if limit := uint64(len(snap.Signers)/2 + 1); number < limit || seen > number-limit {
-				log.Info("Signed recently, must wait for others")
-				return nil
+				return errors.New("signed recently, must wait for others")
 			}
 		}
 	}
@@ -936,7 +944,7 @@ func (c *Clique) CalcDifficulty(chain consensus.ChainHeaderReader, time uint64, 
 	}
 	c.lock.RLock()
 	signer := c.signer
-	c.lock.Unlock()
+	c.lock.RUnlock()
 	return calcDifficulty(snap, signer)
 }
 
@@ -962,9 +970,7 @@ func (c *Clique) Close() error {
 func (c *Clique) APIs(chain consensus.ChainHeaderReader) []rpc.API {
 	return []rpc.API{{
 		Namespace: "clique",
-		Version:   "1.0",
 		Service:   &API{chain: chain, clique: c},
-		Public:    false,
 	}}
 }
 

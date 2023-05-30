@@ -126,3 +126,26 @@ func (RootNodeApprovalList) FillFromArray(arr []RootNodeApproval) *RootNodeAppro
 	res.Approvals = append(res.Approvals, arr...)
 	return &res
 }
+
+type ConstitutionFilesRequest struct {
+	Hashes []Hash `json:"hashes"`
+}
+
+type KnownConstitutionFilesMessage struct {
+	Hashes []Hash `json:"hashes"`
+}
+
+type ConstitutionFilesResponse struct {
+	Files []ConstitutionFileContent `json:"files"`
+}
+
+type ConstitutionFile struct {
+	Name      string `json:"name"`
+	Hash      Hash   `json:"hash"`
+	CreatedAt int64
+}
+
+type ConstitutionFileContent struct {
+	Hash Hash   `json:"hash"`
+	Data []byte `json:"data"`
+}

@@ -459,7 +459,7 @@ func (ns *NodeStateMachine) loadFromDb() {
 	for it.Next() {
 		var id enode.ID
 		if len(it.Key()) != len(ns.dbNodeKey)+len(id) {
-			log.Error("Node state db entry with invalid length", "found", len(it.Key()), "expected", len(ns.dbNodeKey)+len(id))
+			log.ErrorAndNotify("Node state db entry with invalid length", "found", len(it.Key()), "expected", len(ns.dbNodeKey)+len(id))
 			continue
 		}
 		copy(id[:], it.Key()[len(ns.dbNodeKey):])
@@ -476,7 +476,7 @@ func (id dummyIdentity) NodeAddr(r *enr.Record) []byte          { return id[:] }
 func (ns *NodeStateMachine) decodeNode(id enode.ID, data []byte) {
 	var enc nodeInfoEnc
 	if err := rlp.DecodeBytes(data, &enc); err != nil {
-		log.Error("Failed to decode node info", "id", id, "error", err)
+		log.ErrorAndNotify("Failed to decode node info", "id", id, "error", err)
 		return
 	}
 	n, _ := enode.New(dummyIdentity(id), &enc.Enr)
@@ -489,7 +489,7 @@ func (ns *NodeStateMachine) decodeNode(id enode.ID, data []byte) {
 		return
 	}
 	if len(enc.Fields) > len(ns.setup.fields) {
-		log.Error("Invalid node field count", "id", id, "stored", len(enc.Fields))
+		log.ErrorAndNotify("Invalid node field count", "id", id, "stored", len(enc.Fields))
 		return
 	}
 	// Resolve persisted node fields
@@ -808,7 +808,14 @@ func (ns *NodeStateMachine) addTimeout(n *enode.Node, mask bitMask, timeout time
 	ns.removeTimeouts(node, mask)
 	t := &nodeStateTimeout{mask: mask}
 	t.timer = ns.clock.AfterFunc(timeout, func() {
-		ns.SetState(n, Flags{}, Flags{mask: t.mask, setup: ns.setup}, 0)
+		ns.lock.Lock()
+		defer ns.lock.Unlock()
+
+		if !ns.opStart() {
+			return
+		}
+		ns.setState(n, Flags{}, Flags{mask: t.mask, setup: ns.setup}, 0)
+		ns.opFinish()
 	})
 	node.timeouts = append(node.timeouts, t)
 	if mask&ns.saveFlags != 0 {

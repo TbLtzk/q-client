@@ -1,6 +1,10 @@
 package governance
 
 import (
+	"bytes"
+	"compress/gzip"
+	"log"
+	"path/filepath"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -78,22 +82,24 @@ type peer struct {
 
 	version int
 
-	rootSetCh      chan *rootSet
-	exclusionSetCh chan *exclusionSet
-	approvalCh     chan *common.RootNodeApprovalList
-	done           chan struct{}
+	rootSetCh           chan *rootSet
+	exclusionSetCh      chan *exclusionSet
+	approvalCh          chan *common.RootNodeApprovalList
+	constitutionFilesCh chan *common.ConstitutionFilesResponse
+	done                chan struct{}
 }
 
 func newPeer(version int, conn *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
-		Peer:           conn,
-		id:             conn.ID().String(),
-		rw:             rw,
-		version:        version,
-		rootSetCh:      make(chan *rootSet),
-		exclusionSetCh: make(chan *exclusionSet),
-		approvalCh:     make(chan *common.RootNodeApprovalList),
-		done:           make(chan struct{}),
+		Peer:                conn,
+		id:                  conn.ID().String(),
+		rw:                  rw,
+		version:             version,
+		rootSetCh:           make(chan *rootSet),
+		exclusionSetCh:      make(chan *exclusionSet),
+		approvalCh:          make(chan *common.RootNodeApprovalList),
+		constitutionFilesCh: make(chan *common.ConstitutionFilesResponse),
+		done:                make(chan struct{}),
 	}
 }
 
@@ -255,10 +261,67 @@ func (p *peer) asyncSendApprovals(approvalList *common.RootNodeApprovalList) {
 	}
 }
 
+func (p *peer) asyncSendConstitutionFiles(cm *ConstitutionManager, files []common.ConstitutionFile) {
+	var res common.ConstitutionFilesResponse
+	for _, file := range files {
+		resPath := filepath.Join(cm.baseDir, file.Name)
+
+		if errE := cm.fileExists(resPath); errE != nil {
+			if errD := cm.fileExists(filepath.Join(cm.baseDir, draftsDir, file.Name)); errD != nil {
+				p.Log().Error("failed to open requested file", "err", errD)
+				continue
+			}
+			resPath = filepath.Join(cm.baseDir, draftsDir, file.Name)
+		}
+
+		content, errC := cm.getFileContents(resPath)
+		if errC != nil {
+			p.Log().Error("failed to open requested file", "err", errC)
+			continue
+		}
+
+		var b bytes.Buffer
+		gz := gzip.NewWriter(&b)
+		if _, err := gz.Write(content); err != nil {
+			log.Fatal(err)
+		}
+		if err := gz.Close(); err != nil {
+			log.Fatal(err)
+		}
+
+		res.Files = append(res.Files, common.ConstitutionFileContent{
+			Hash: file.Hash,
+			Data: b.Bytes(),
+		})
+	}
+	p.sendConstitutionFiles(&res)
+}
+
 func (p *peer) sendExclusionList(set *exclusionSet) error {
 	return p2p.Send(p.rw, ExclusionListMsg, set.makeList())
 }
 
 func (p *peer) sendApprovalList(approvalList *common.RootNodeApprovalList) error {
 	return p2p.Send(p.rw, ApprovalMsg, approvalList)
+}
+
+func (p *peer) sendConstitutionFileRequest(request *common.ConstitutionFilesRequest) error {
+	if p.version >= qgov4 {
+		return p2p.Send(p.rw, ConstitutionFileRequestMsg, request)
+	}
+	return nil
+}
+
+func (p *peer) sendKnownConstitutionFiles(files *common.KnownConstitutionFilesMessage) error {
+	if p.version >= qgov4 {
+		return p2p.Send(p.rw, KnownConstitutionFilesMsg, files)
+	}
+	return nil
+}
+
+func (p *peer) sendConstitutionFiles(files *common.ConstitutionFilesResponse) error {
+	if p.version >= qgov4 {
+		return p2p.Send(p.rw, ConstitutionFilesMsg, files)
+	}
+	return nil
 }

@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"
@@ -91,7 +92,7 @@ func (p *testTxPool) AddRemotes(txs []*types.Transaction) []error {
 }
 
 // Pending returns all the transactions known to the pool
-func (p *testTxPool) Pending(enforceTips bool) (map[common.Address]types.Transactions, error) {
+func (p *testTxPool) Pending(enforceTips bool) map[common.Address]types.Transactions {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
@@ -103,7 +104,7 @@ func (p *testTxPool) Pending(enforceTips bool) (map[common.Address]types.Transac
 	for _, batch := range batches {
 		sort.Sort(types.TxByNonce(batch))
 	}
-	return batches, nil
+	return batches
 }
 
 // SubscribeNewTxsEvent should return an event subscription of NewTxsEvent and
@@ -149,8 +150,9 @@ func newTestHandlerWithBlocks(blocks int) *testHandler {
 		Database:   db,
 		Chain:      chain,
 		TxPool:     txpool,
+		Merger:     consensus.NewMerger(rawdb.NewMemoryDatabase()),
 		Network:    1,
-		Sync:       downloader.FastSync,
+		Sync:       downloader.SnapSync,
 		BloomCache: 1,
 	})
 	handler.Start(1000)

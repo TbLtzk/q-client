@@ -163,7 +163,7 @@ func (s *RootManager) updateAliasesOfRootSets() {
 	}
 }
 
-// ExclusionSet returns set of excluded validators addresses.
+// ExclusionSetValidators returns set of excluded validators addresses.
 func (s *RootManager) ExclusionSetValidators() map[common.Address][]common.BlockRange {
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
@@ -280,7 +280,6 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
 					earliestBlock = bRange.StartAddress
 				}
 			}
-
 		}
 
 		// Revalidate in separate goroutine to prevent possible deadlocks
@@ -390,7 +389,6 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 
 				for _, newBlockRange := range newBanBlockRanges {
 					if exBlockRange.StartsWithTheSameBlock(newBlockRange) {
-
 						if !newBlockRange.IsValid() {
 							return fmt.Errorf("specified block range in proposal is invalid: %d - %d for address %s", newBlockRange.StartAddress,
 								newBlockRange.EndAddress,
@@ -432,13 +430,11 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 	}
 
 	for addr, newBanBlockRanges := range proposedSet.blockRanges {
-
 		if len(newBanBlockRanges) == 0 {
 			return fmt.Errorf("set should contain at least 1 record")
 		}
 
 		for i, newBlockRange := range newBanBlockRanges {
-
 			if !newBlockRange.IsValid() {
 				return fmt.Errorf("invalid block addresses in proposal: %d - %d for address %s", newBlockRange.StartAddress,
 					newBlockRange.EndAddress,
@@ -464,7 +460,6 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 						inValidRanges = true
 						break
 					}
-
 				}
 				if !inValidRanges {
 					return fmt.Errorf("cannot add bans in past: %d - %d for address %s",
@@ -518,7 +513,6 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 
 	if s.signExclusionSet(set) {
 		log.Info("Signed desired exclusion list", "hash", set.hash.Hex())
-
 	}
 	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
 
@@ -547,6 +541,10 @@ func (s *RootManager) acceptProposedExclusionList(lock bool) error {
 	}
 
 	if s.desiredExSet != nil && s.proposedExSet.timestamp <= s.desiredExSet.timestamp {
+		return errProposedExclusionListObsolete
+	}
+
+	if s.activeExSet != nil && s.proposedExSet.timestamp <= s.activeExSet.timestamp {
 		return errProposedExclusionListObsolete
 	}
 
@@ -606,6 +604,7 @@ func (s *RootManager) upgradeRootSet(set *rootSet) {
 	s.db.deleteDesiredRootSet()
 }
 
+//nolint:unused
 func (s *RootManager) validateRootSet(addresses []common.Address, lock bool) error {
 	onChainRootSet := s.getOnchainRootSet(lock)
 	diff := s.addressDiff(onChainRootSet.getAddresses(), addresses)
@@ -618,8 +617,8 @@ func (s *RootManager) validateRootSet(addresses []common.Address, lock bool) err
 }
 
 func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
-	if !s.isMember(set.rootAddresses) {
-		return nil, errors.New("not a member of new list")
+	if !s.isRootNode(false) {
+		return nil, errors.New("not a root node")
 	}
 
 	s.rootLock.Lock()
@@ -648,18 +647,13 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 		return nil, errInvalidExclusionListTimestamp
 	}
 
-	err := s.validateRootSet(set.getAddresses(), false)
-	if err != nil {
-		return nil, err
-	}
-
 	if s.signRootSet(set) {
 		log.Info("Signed desired root list", "hash", set.hash.Hex())
 	}
 
 	s.proposed = set
 	s.db.saveProposedRootSet(set)
-	err = s.acceptProposedRootList(false)
+	err := s.acceptProposedRootList(false)
 	if err != nil {
 		return nil, err
 	}
@@ -668,6 +662,10 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 }
 
 func (s *RootManager) acceptProposedRootList(lock bool) error {
+	if !s.isRootNode(false) {
+		return errors.New("not a root node")
+	}
+
 	if lock {
 		s.rootLock.Lock()
 		defer s.rootLock.Unlock()
@@ -679,11 +677,6 @@ func (s *RootManager) acceptProposedRootList(lock bool) error {
 
 	if s.desired != nil && s.proposed.timestamp <= s.desired.timestamp {
 		return errProposedRootListObsolete
-	}
-
-	err := s.validateRootSet(s.proposed.getAddresses(), false)
-	if err != nil {
-		return err
 	}
 
 	if s.signRootSet(s.proposed) {
@@ -886,7 +879,7 @@ func (s *RootManager) getActiveApprovalList(blockNumber *big.Int, hash *common.H
 		if block == nil {
 			return nil, errors.New("Can't find block by specified hash")
 		}
-		return s.getActiveApprovalListByBlockNumber(block.Number())
+		return s.getActiveApprovalListByBlockNumberAndHash(block.Number(), *hash)
 	default:
 		return s.db.getLastApprovals().Copy(), nil
 	}
@@ -899,6 +892,21 @@ func (s *RootManager) getActiveApprovalListByBlockNumber(blockNumber *big.Int) (
 	}
 	res := &common.RootNodeApprovalList{}
 	return res.FillFromArray(approvals), nil
+}
+
+func (s *RootManager) getActiveApprovalListByBlockNumberAndHash(blockNumber *big.Int, hash common.Hash) (*common.RootNodeApprovalList, error) {
+	approvals, err := s.db.getApprovalRecordsByBlockNumber(blockNumber)
+	if err != nil {
+		return nil, err
+	}
+	res := &common.RootNodeApprovalList{}
+	var tApprovals []common.RootNodeApproval
+	for _, approval := range approvals {
+		if approval.Hash == hash {
+			tApprovals = append(tApprovals, approval)
+		}
+	}
+	return res.FillFromArray(tApprovals), nil
 }
 
 func (s *RootManager) getDesiredExclusionSet() *exclusionSet {
@@ -1043,11 +1051,20 @@ func (s *RootManager) SignHash(a accounts.Account, hash []byte) ([]byte, error) 
 	return nil, errRootManagerCannotSign
 }
 
-func (s *RootManager) formatBlock(block uint64) string {
-	return strconv.FormatUint(block, 10)
+func (s *RootManager) ValidatePreviousTransitionBlockSignature() {
+	if s.bc == nil {
+		return
+	}
+	currentBlock := s.bc.CurrentBlock().Number().Uint64()
+	previousTransitionBlock := currentBlock - currentBlock%s.bc.Config().Clique.Epoch
+	s.HandleTransitionBlockSignature(s.bc.GetBlockByNumber(previousTransitionBlock).Header())
 }
 
 func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
+	if header == nil {
+		return
+	}
+
 	s.approvalLock.Lock()
 	defer s.approvalLock.Unlock()
 
@@ -1105,10 +1122,8 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 				}
 				s.approvalFeed.Send(&resList)
 			}
-
 		}
 	}
-
 }
 
 func (s *RootManager) isAthosReached() bool {

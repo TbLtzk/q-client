@@ -20,7 +20,7 @@ func (c *Client) ListAccounts(ctx context.Context, params *ListAccountsInput, op
 		params = &ListAccountsInput{}
 	}
 
-	result, metadata, err := c.invokeOperation(ctx, "ListAccounts", params, optFns, addOperationListAccountsMiddlewares)
+	result, metadata, err := c.invokeOperation(ctx, "ListAccounts", params, optFns, c.addOperationListAccountsMiddlewares)
 	if err != nil {
 		return nil, err
 	}
@@ -46,6 +46,8 @@ type ListAccountsInput struct {
 	// (Optional) When requesting subsequent pages, this is the page token from the
 	// previous response output.
 	NextToken *string
+
+	noSmithyDocumentSerde
 }
 
 type ListAccountsOutput struct {
@@ -59,9 +61,11 @@ type ListAccountsOutput struct {
 
 	// Metadata pertaining to the operation's result.
 	ResultMetadata middleware.Metadata
+
+	noSmithyDocumentSerde
 }
 
-func addOperationListAccountsMiddlewares(stack *middleware.Stack, options Options) (err error) {
+func (c *Client) addOperationListAccountsMiddlewares(stack *middleware.Stack, options Options) (err error) {
 	err = stack.Serialize.Add(&awsRestjson1_serializeOpListAccounts{}, middleware.After)
 	if err != nil {
 		return err
@@ -146,6 +150,10 @@ type ListAccountsPaginator struct {
 
 // NewListAccountsPaginator returns a new ListAccountsPaginator
 func NewListAccountsPaginator(client ListAccountsAPIClient, params *ListAccountsInput, optFns ...func(*ListAccountsPaginatorOptions)) *ListAccountsPaginator {
+	if params == nil {
+		params = &ListAccountsInput{}
+	}
+
 	options := ListAccountsPaginatorOptions{}
 	if params.MaxResults != nil {
 		options.Limit = *params.MaxResults
@@ -153,10 +161,6 @@ func NewListAccountsPaginator(client ListAccountsAPIClient, params *ListAccounts
 
 	for _, fn := range optFns {
 		fn(&options)
-	}
-
-	if params == nil {
-		params = &ListAccountsInput{}
 	}
 
 	return &ListAccountsPaginator{

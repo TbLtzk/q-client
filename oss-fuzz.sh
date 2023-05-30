@@ -27,7 +27,7 @@
 # $LIB_FUZZING_ENGINE   C++ compiler argument to link fuzz target against the prebuilt engine library (e.g. libFuzzer).
 
 # This sets the -coverpgk for the coverage report when the corpus is executed through go test
-coverpkg="github.com/ethereum/go-ethereum/..."
+coverpkg="gitlab.com/q-dev/q-client/..."
 
 function coverbuild {
   path=$1
@@ -119,6 +119,11 @@ compile_fuzzer tests/fuzzers/bls12381  FuzzCrossG1Add fuzz_cross_g1_add
 compile_fuzzer tests/fuzzers/bls12381  FuzzCrossG1MultiExp fuzz_cross_g1_multiexp
 compile_fuzzer tests/fuzzers/bls12381  FuzzCrossG2Add fuzz_cross_g2_add
 compile_fuzzer tests/fuzzers/bls12381  FuzzCrossPairing fuzz_cross_pairing
+
+compile_fuzzer tests/fuzzers/snap  FuzzARange fuzz_account_range
+compile_fuzzer tests/fuzzers/snap  FuzzSRange fuzz_storage_range
+compile_fuzzer tests/fuzzers/snap  FuzzByteCodes fuzz_byte_codes
+compile_fuzzer tests/fuzzers/snap  FuzzTrieNodes fuzz_trie_nodes
 
 #TODO: move this to tests/fuzzers, if possible
 compile_fuzzer crypto/blake2b  Fuzz      fuzzBlake2b
