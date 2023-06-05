@@ -17,12 +17,13 @@
 package clique
 
 import (
+	"crypto/ecdsa"
 	"math/big"
 	"testing"
 
-	"gitlab.com/q-dev/q-client/contracts"
-
+	"github.com/stretchr/testify/assert"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
@@ -128,4 +129,103 @@ func TestSealHash(t *testing.T) {
 	if have != want {
 		t.Errorf("have %x, want %x", have, want)
 	}
+}
+
+func TestFallbackToDefaultSigners(t *testing.T) {
+	var (
+		db                   = rawdb.NewMemoryDatabase()
+		reg                  = contracts.NewTestModeRegistry()
+		exclusionSetProvider = new(NoopExclusionSetProvider)
+		engine               = New(params.AllCliqueProtocolChanges.Clique, db, exclusionSetProvider, reg)
+		genesisSignersCount  = 3
+		keys                 = make([]*ecdsa.PrivateKey, 0, genesisSignersCount)
+		addrs                = make([]common.Address, 0, genesisSignersCount)
+	)
+	engine.fakeDiff = true
+
+	for len(keys) != genesisSignersCount {
+		key, _ := crypto.GenerateKey()
+		keys = append(keys, key)
+		addrs = append(addrs, crypto.PubkeyToAddress(key.PublicKey))
+	}
+
+	genSpec := &core.Genesis{
+		ExtraData: make([]byte, extraVanity+common.AddressLength*genesisSignersCount+extraSeal),
+		Alloc: map[common.Address]core.GenesisAccount{
+			addrs[0]: {Balance: big.NewInt(10000000000000000)},
+		},
+		BaseFee: big.NewInt(params.InitialBaseFee),
+	}
+	for i := 0; i < genesisSignersCount; i++ {
+		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addrs[i][:])
+	}
+	genesis := genSpec.MustCommit(db)
+
+	blocks, _ := core.GenerateChain(params.AllCliqueProtocolChanges, genesis, engine, db, genesisSignersCount*2, func(i int, block *core.BlockGen) {})
+
+	for i, block := range blocks {
+		header := block.Header()
+		if i > 0 {
+			header.ParentHash = blocks[i-1].Hash()
+		}
+		header.Extra = make([]byte, extraVanity+extraSeal)
+		header.Difficulty = diffInTurn
+		header.Coinbase = reg.RewardReceiver()
+
+		sig, _ := crypto.Sign(SealHash(header).Bytes(), keys[i%genesisSignersCount])
+		copy(header.Extra[len(header.Extra)-extraSeal:], sig)
+		blocks[i] = block.WithSeal(header)
+	}
+
+	chain, _ := core.NewBlockChain(db, nil, params.AllCliqueProtocolChanges, engine, vm.Config{}, nil, nil)
+	defer chain.Stop()
+
+	if _, err := chain.InsertChain(blocks); err != nil {
+		t.Fatalf("failed to insert initial blocks: %v", err)
+	}
+
+	// Exclude signers
+	exclusionSetProvider.set = make(map[common.Address][]common.BlockRange)
+	currentBlock := chain.CurrentBlock()
+	for _, signer := range addrs {
+		exclusionSetProvider.set[signer] = []common.BlockRange{
+			{
+				StartAddress: currentBlock.NumberU64(),
+				EndAddress:   currentBlock.NumberU64() + 1000,
+			},
+		}
+	}
+	excludedSigners := engine.exclusionSetProvider.ExclusionSetValidators()
+	assert.Equal(t, len(excludedSigners), genesisSignersCount)
+
+	snap, err := engine.snapshot(chain, currentBlock.NumberU64(), currentBlock.Hash(), nil, false)
+	if err != nil {
+		t.Fatalf("faield to get snapshot of last block: %v", err)
+	}
+
+	assert.Equal(t, len(filterSigners(currentBlock.NumberU64(), snap.SignersList(), excludedSigners)), 0)
+
+	blocks, _ = core.GenerateChain(params.AllCliqueProtocolChanges, chain.CurrentBlock(), engine, db, 1, func(i int, block *core.BlockGen) {})
+
+	// Try to sign a new block with all validators banned
+	block := blocks[0]
+	header := block.Header()
+	header.ParentHash = chain.CurrentBlock().Hash()
+	header.Extra = make([]byte, extraVanity+extraSeal)
+	header.Difficulty = diffInTurn
+	header.Coinbase = reg.RewardReceiver()
+
+	sig, _ := crypto.Sign(SealHash(header).Bytes(), keys[0])
+	copy(header.Extra[len(header.Extra)-extraSeal:], sig)
+	blocks[0] = block.WithSeal(header)
+
+	if _, err := chain.InsertChain(blocks); err != nil {
+		t.Fatalf("failed to insert the new block: %v", err)
+	}
+
+	snap, err = engine.snapshot(chain, chain.CurrentBlock().NumberU64(), chain.CurrentBlock().Hash(), nil, false)
+	if err != nil {
+		t.Fatalf("faield to get snapshot of last block: %v", err)
+	}
+	assert.Equal(t, len(snap.Signers), genesisSignersCount)
 }

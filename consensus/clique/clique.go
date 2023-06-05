@@ -187,7 +187,10 @@ type ExclusionSetProvider interface {
 }
 
 // NoopExclusionSetProvider is needed for testing.
-type NoopExclusionSetProvider struct{}
+type NoopExclusionSetProvider struct {
+	set       map[common.Address][]common.BlockRange
+	timestamp uint64
+}
 
 func (p *NoopExclusionSetProvider) HandleTransitionBlockSignature(header *types.Header) {
 
@@ -197,11 +200,14 @@ func (p *NoopExclusionSetProvider) ValidatePreviousTransitionBlockSignature() {
 }
 
 func (p *NoopExclusionSetProvider) ExclusionSetValidators() map[common.Address][]common.BlockRange {
+	if p.set != nil {
+		return p.set
+	}
 	return make(map[common.Address][]common.BlockRange)
 }
 
 func (p *NoopExclusionSetProvider) ExclusionSetTimestamp() uint64 {
-	return 0
+	return p.timestamp
 }
 
 type ValidatorsProvider interface {
@@ -445,7 +451,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		exclusionTime = time.Unix(int64(c.exclusionSetProvider.ExclusionSetTimestamp()), 0)
 	}
 	if number%c.config.Epoch == 0 && headerTime.After(exclusionTime) {
-		err = c.updateProposals(number, snap, chain.Config(), false)
+		err = c.updateProposals(chain, number, snap, false)
 		if err != nil {
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return err // todo wrap error
@@ -464,10 +470,12 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 	return c.verifySeal(chain, header, parents)
 }
 
-func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *params.ChainConfig, signerListFromPast bool) error {
+func (c *Clique) updateProposals(chain consensus.ChainHeaderReader, number uint64, snap *Snapshot, signerListFromPast bool) (err error) {
 	if c.exclusionSetProvider == nil {
 		return nil
 	}
+
+	defer c.tryToFallback(chain, snap, err)
 
 	excludedSigners := c.exclusionSetProvider.ExclusionSetValidators()
 
@@ -491,7 +499,6 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 		return nil
 	}
 
-	// todo: handle situation when all signers are banned
 	filtered := filterSigners(number, signers, excludedSigners)
 	if maxNValidators := c.registry.ActiveValidatorsNumber(); maxNValidators != nil {
 		filtered = filtered[:min(*maxNValidators, int64(len(filtered)))]
@@ -499,7 +506,7 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 
 	snap.Signers = toSet(filtered)
 
-	if chainConfig.IsAthos(new(big.Int).SetUint64(number)) {
+	if chain.Config().IsAthos(new(big.Int).SetUint64(number)) {
 		filteredWithAliases := c.aliasAccounts(filtered, true)
 
 		//we need to filter one more time because exclusion list can contain the alias but not the validator itself for some reasons.
@@ -507,6 +514,23 @@ func (c *Clique) updateProposals(number uint64, snap *Snapshot, chainConfig *par
 	}
 
 	return nil
+}
+
+// tryToFallback checks if fallback to default signers is necessary (i.e. current signers list is empty)
+// and then sets signers from the genesis block
+func (c *Clique) tryToFallback(chain consensus.ChainHeaderReader, snap *Snapshot, err error) {
+	if err != nil || len(snap.Signers) != 0 {
+		return
+	}
+
+	log.Warn("all signers are in the excluded list, trying to fallback into the default signers list")
+
+	genesis := chain.GetHeaderByNumber(0)
+	signers := make([]common.Address, (len(genesis.Extra)-extraVanity-extraSeal)/common.AddressLength)
+	for i := 0; i < len(signers); i++ {
+		copy(signers[i][:], genesis.Extra[extraVanity+i*common.AddressLength:])
+	}
+	snap.Signers = toSet(signers)
 }
 
 func (c *Clique) getValidatorList(number *big.Int, provider *generated.Validators) ([]common.Address, error) {
@@ -655,7 +679,7 @@ func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 			}
 			snap = newSnapshot(c.config, c.signatures, number, hash, signers)
 		}
-		err := c.updateProposals(initialNumber, snap, chain.Config(), signerListFromPast)
+		err := c.updateProposals(chain, initialNumber, snap, signerListFromPast)
 		if err != nil {
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return nil, err
@@ -704,7 +728,7 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 		return err
 	}
 
-	err = c.updateProposals(number, snap, chain.Config(), false)
+	err = c.updateProposals(chain, number, snap, false)
 	if err != nil {
 		log.Error("failed to update proposals", "error", err, "step", "prepare")
 		return err // todo wrap error
@@ -761,7 +785,7 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 		return err
 	}
 
-	err = c.updateProposals(number, snap, chain.Config(), false)
+	err = c.updateProposals(chain, number, snap, false)
 	if err != nil {
 		log.Error("failed to update proposals", "error", err, "step", "prepare")
 		return err // todo wrap error
@@ -878,7 +902,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 		return err
 	}
 
-	err = c.updateProposals(number, snap, chain.Config(), false)
+	err = c.updateProposals(chain, number, snap, false)
 	if err != nil {
 		log.Error("failed to update proposals", "error", err, "step", "prepare")
 		return err
