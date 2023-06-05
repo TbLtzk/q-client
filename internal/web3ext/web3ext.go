@@ -721,6 +721,22 @@ web3._extend({
 `
 
 const GovJs = `
+var rootListFormatter = function(rootList) {
+	if (!rootList || typeof rootList.timestamp !== 'number' || !Array.isArray(rootList.nodes)) {
+    	throw new Error('Invalid rootList object');
+	}
+
+	return rootList;
+}
+
+var exclusionListFormatter = function(exclusionList) {
+		if (!exclusionList || typeof exclusionList.timestamp !== 'number' || !Array.isArray(exclusionList.validators)) {
+    	throw new Error('Invalid exclusionList object');
+	}
+
+	return exclusionList;
+}
+
 web3._extend({
 	property: 'gov',
 	methods: [
@@ -747,7 +763,8 @@ web3._extend({
 	    new web3._extend.Method({
 			name: 'proposeRootListUpdate',
 			call: 'gov_proposeRootListUpdate',
-			params: 1
+			params: 2,
+			inputFormatter: [rootListFormatter, null]
 		}),
 	    new web3._extend.Method({
 			name: 'proposeOnchainRootList',
@@ -782,7 +799,8 @@ web3._extend({
 	    new web3._extend.Method({
 			name: 'proposeExclusionListUpdate',
 			call: 'gov_proposeExclusionListUpdate',
-			params: 1
+			params: 2,
+			inputFormatter: [exclusionListFormatter, null]
 		}),
 	    new web3._extend.Method({
 			name: 'acceptProposedExclusionList',
