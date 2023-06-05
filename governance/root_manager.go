@@ -5,21 +5,22 @@ import (
 	"math"
 	"math/big"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/eth/downloader"
-
 	"github.com/pkg/errors"
+
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 )
@@ -473,7 +474,7 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 	return nil
 }
 
-func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, error) {
+func (s *RootManager) proposeExclusionSet(set *exclusionSet, force bool) (*exclusionSet, error) {
 	if !s.isRootNode(true) {
 		return nil, errNotRootNode
 	}
@@ -511,6 +512,17 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 		return nil, err
 	}
 
+	if !force {
+		if s.proposedExSet != nil && areExclusionListsEqual(set, s.proposedExSet) {
+			log.Warn("The proposed list is a duplicate of the current proposed list")
+			return set, nil
+		}
+		if s.activeExSet != nil && areExclusionListsEqual(set, s.activeExSet) {
+			log.Warn("The proposed list is a duplicate of the active list")
+			return set, nil
+		}
+	}
+
 	if s.signExclusionSet(set) {
 		log.Info("Signed desired exclusion list", "hash", set.hash.Hex())
 	}
@@ -528,6 +540,18 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 	}
 
 	return set, nil
+}
+
+func areExclusionListsEqual(a, b *exclusionSet) bool {
+	if a == nil || b == nil {
+		return false
+	}
+
+	if !reflect.DeepEqual(a.addresses, b.addresses) || !reflect.DeepEqual(a.blockRanges, b.blockRanges) {
+		return false
+	}
+
+	return true
 }
 
 func (s *RootManager) acceptProposedExclusionList(lock bool) error {
@@ -616,7 +640,7 @@ func (s *RootManager) validateRootSet(addresses []common.Address, lock bool) err
 	return nil
 }
 
-func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
+func (s *RootManager) proposeRootSet(set *rootSet, force bool) (*rootSet, error) {
 	if !s.isRootNode(false) {
 		return nil, errors.New("not a root node")
 	}
@@ -645,6 +669,17 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 
 	if len(strconv.Itoa(int(set.timestamp))) != len(strconv.Itoa(int(ts[0]))) {
 		return nil, errInvalidExclusionListTimestamp
+	}
+
+	if !force {
+		if s.proposed != nil && reflect.DeepEqual(set.rootAddresses, s.proposed.rootAddresses) {
+			log.Warn("The proposed list is a duplicate of the current proposed list")
+			return set, nil
+		}
+		if s.active != nil && reflect.DeepEqual(set.rootAddresses, s.active.rootAddresses) {
+			log.Warn("The proposed list is a duplicate of the active list")
+			return set, nil
+		}
 	}
 
 	if s.signRootSet(set) {

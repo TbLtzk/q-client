@@ -83,6 +83,9 @@ Prints on-chain root list.
 
 Propose a new version of root list.
 At least one key from the new list should be unlocked, otherwise method will return the error "not a member of new list".
+
+If the new root list is equal to the active or proposed, the user will be prompted with a warning. If a user is aware of their actions, they must pass the optional second parameter `force` as `true`.
+
 Example:
 
 [source,bash]
@@ -104,7 +107,7 @@ Method accepts a new root list as object, not as a string (note, argument is not
 Required fields are `nodes` and `timestamp`.
 Output of the method (in the example, `0x263ff519a38305a1a13ff43100f7f2599ac70128b8a92f9c6c4ba2ec93171cda`) is calculated hash of new root list.
 
-=== `gov.proposeRootListUpdate`
+=== `gov.proposeOnchainRootList`
 
 Propose current on-chain root list.
 At least one key from the new list should be unlocked, otherwise method will return the error "not a member of new list".
@@ -226,6 +229,9 @@ Propose new version of exclusion list. `timestamp` must be larger than current e
 Can be called only on q-client with one of root nodes keys unlocked.
 Submitted exclusion list must contain all previous records.
 Also, if record is not before current block address - it is possible to end open-ended ban (set up endBlock).
+
+If the new exclusion list is equal to the active or proposed, the user will be prompted with a warning. If a user is aware of their actions, they must pass the optional second parameter `force` as `true`.
+
 Example:
 
 [source,bash]

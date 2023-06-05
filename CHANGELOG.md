@@ -2,6 +2,9 @@
 All notable changes to this project will be documented in this file.
 
 ## Unreleased
+
+### Changed
+- Duplicate root/exclusion list requires a confirmation
 - Fallback to the list of signers from the genesis block if all validators are banned
 
 ## [1.2.4] - 2023-04

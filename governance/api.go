@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/log"
 )
@@ -47,14 +48,14 @@ func (a *GovernancePublicAPI) OnchainRootList() *RootList {
 	return newRootList(a.gov.RootManager.getOnchainRootSet(true))
 }
 
-func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList) (common.Hash, error) {
+func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList, force bool) (common.Hash, error) {
 	set, err := newRootSet(&list)
 	if err != nil {
 		return common.Hash{}, errors.Wrap(err, "invalid root list")
 	}
 	set.updateAliases(a.gov.RootManager.getAliasesOfRoots(set.rootAddresses))
 
-	set, err = a.gov.RootManager.proposeRootSet(set)
+	set, err = a.gov.RootManager.proposeRootSet(set, force)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -68,7 +69,7 @@ func (a *GovernanceAPI) ProposeOnchainRootList() (common.Hash, error) {
 		return common.Hash{}, errors.New("can't get on-cain root set")
 	}
 
-	set, err := a.gov.RootManager.proposeRootSet(set)
+	set, err := a.gov.RootManager.proposeRootSet(set, false)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -113,13 +114,13 @@ func (a *GovernancePublicAPI) IsInExclusionList(address string) string {
 		a.gov.RootManager.getDesiredExclusionSet(), a.gov.RootManager.getProposedExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
 }
 
-func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusionList) (common.Hash, error) {
+func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusionList, force bool) (common.Hash, error) {
 	set, err := newExclusionSet(&list)
 	if err != nil {
 		return common.Hash{}, errors.Wrap(err, "invalid exclusion list")
 	}
 
-	set, err = a.gov.RootManager.proposeExclusionSet(set)
+	set, err = a.gov.RootManager.proposeExclusionSet(set, force)
 	if err != nil {
 		return common.Hash{}, err
 	}

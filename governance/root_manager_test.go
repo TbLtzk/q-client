@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gitlab.com/q-dev/system-contracts/generated"
+
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
@@ -19,7 +21,6 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/system-contracts/generated"
 )
 
 var (
@@ -37,12 +38,14 @@ type exclusionListTestData struct {
 	Name    string
 	WantErr bool
 	List    *common.ValidatorExclusionList
+	Force   bool
 }
 
 type rootListTestData struct {
 	Name    string
 	WantErr bool
 	Set     *rootSet
+	Force   bool
 }
 
 func tmpDirName(t *testing.T) string {
@@ -448,7 +451,7 @@ func TestProposeExclusionSet(t *testing.T) {
 			if set.hash == rm.activeExSet.hash {
 				return
 			}
-			_, err = rm.proposeExclusionSet(set)
+			_, err = rm.proposeExclusionSet(set, tt.Force)
 			if err != nil && !tt.WantErr {
 				if tt.Name == "Correct exclusion list" && errors.Is(err, errProposedExclusionListObsolete) {
 					//Special case. Obsolete exclusion list is not an error. List becomes active after proposal, and upgrade fails
@@ -572,7 +575,7 @@ func testProposeRootSetByRN(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			reinitializeRootLists(rm, active)
 
-			_, err := rm.proposeRootSet(tt.Set)
+			_, err := rm.proposeRootSet(tt.Set, tt.Force)
 			if !tt.WantErr && err != nil {
 				t.Errorf("proposeRootSet() error = %v, wantErr %v", err, tt.WantErr)
 			}
@@ -586,7 +589,7 @@ func testProposeRootSetByNonRN(t *testing.T) {
 	rm := newTestRootManager(t, false)
 	//no need to have blockchain instance here, skip creating it
 
-	_, err := rm.proposeRootSet(testData[0].Set)
+	_, err := rm.proposeRootSet(testData[0].Set, testData[0].Force)
 	if err == nil {
 		t.Errorf("propose root set by non RN no error, but want error")
 	}
@@ -607,7 +610,7 @@ func testAcceptProposedRootListByNonRN(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't create new root set: %v", err)
 	}
-	_, err = rm.proposeRootSet(rSet)
+	_, err = rm.proposeRootSet(rSet, testData[0].Force)
 	if err == nil {
 		t.Errorf("accept proposed root set by non RN no error, but want error")
 	}
