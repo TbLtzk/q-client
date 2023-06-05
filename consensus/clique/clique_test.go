@@ -19,6 +19,7 @@ package clique
 import (
 	"crypto/ecdsa"
 	"math/big"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -129,6 +130,103 @@ func TestSealHash(t *testing.T) {
 	if have != want {
 		t.Errorf("have %x, want %x", have, want)
 	}
+}
+
+func TestBlockChoiceRule4(t *testing.T) {
+	var (
+		db           = rawdb.NewMemoryDatabase()
+		reg          = contracts.NewTestModeRegistry()
+		engine       = New(params.AllCliqueProtocolChanges.Clique, db, &NoopExclusionSetProvider{}, reg)
+		signersCount = 3
+		blocksCount  = 7
+		keys         = make(map[common.Address]*ecdsa.PrivateKey)
+		addrs        = make([]common.Address, 0, signersCount)
+		signer       = new(types.HomesteadSigner)
+	)
+
+	for len(addrs) != signersCount {
+		key, _ := crypto.GenerateKey()
+		addr := crypto.PubkeyToAddress(key.PublicKey)
+		keys[addr] = key
+		addrs = append(addrs, addr)
+	}
+
+	sort.Sort(signersAscending(addrs))
+
+	genSpec := &core.Genesis{
+		ExtraData: make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
+		Alloc: map[common.Address]core.GenesisAccount{
+			addrs[0]: {Balance: big.NewInt(10000000000000000)},
+		},
+		BaseFee:    big.NewInt(params.InitialBaseFee),
+		Difficulty: big.NewInt(0),
+	}
+	for i := 0; i < signersCount; i++ {
+		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addrs[i][:])
+	}
+	genesis := genSpec.MustCommit(db)
+
+	chain, _ := core.NewBlockChain(db, nil, params.AllCliqueProtocolChanges, engine, vm.Config{}, nil, nil)
+	defer chain.Stop()
+
+	// Generate two chains. The side chain's last block hash will differ
+	canon, _ := core.GenerateChain(params.AllCliqueProtocolChanges, genesis, engine, db, blocksCount, nil)
+	sideChain, _ := core.GenerateChain(params.AllCliqueProtocolChanges, genesis, engine, db, blocksCount, func(i int, block *core.BlockGen) {
+		if i == blocksCount-1 {
+			addr := addrs[0]
+			tx, err := types.SignTx(types.NewTransaction(block.TxNonce(addr), common.Address{0x00}, new(big.Int), params.TxGas, block.BaseFee(), nil), signer, keys[addr])
+			if err != nil {
+				panic(err)
+			}
+			block.AddTxWithChain(chain, tx)
+		}
+	})
+
+	for i, block := range canon {
+		header := block.Header()
+		if i > 0 {
+			header.ParentHash = canon[i-1].Hash()
+		}
+		header.Extra = make([]byte, extraVanity+extraSeal)
+		header.Difficulty = diffInTurn
+		header.Coinbase = reg.RewardReceiver()
+
+		sig, _ := crypto.Sign(SealHash(header).Bytes(), keys[addrs[block.NumberU64()%uint64(signersCount)]])
+		copy(header.Extra[len(header.Extra)-extraSeal:], sig)
+		canon[i] = block.WithSeal(header)
+	}
+
+	if _, err := chain.InsertChain(canon); err != nil {
+		t.Fatalf("failed to insert initial blocks: %v", err)
+	}
+
+	for i, block := range sideChain {
+		header := block.Header()
+		if i > 0 {
+			header.ParentHash = sideChain[i-1].Hash()
+		}
+		header.Extra = make([]byte, extraVanity+extraSeal)
+		header.Difficulty = diffInTurn
+		header.Coinbase = reg.RewardReceiver()
+
+		sig, _ := crypto.Sign(SealHash(header).Bytes(), keys[addrs[block.NumberU64()%uint64(signersCount)]])
+		copy(header.Extra[len(header.Extra)-extraSeal:], sig)
+		sideChain[i] = block.WithSeal(header)
+	}
+
+	if _, err := chain.InsertChain(sideChain); err != nil {
+		t.Fatalf("failed to insert sidechain: %v", err)
+	}
+
+	// Compare hashes of the last blocks and choose the accepted chain
+	canonHash := canon[len(canon)-1].Hash()
+	sideHash := sideChain[len(sideChain)-1].Hash()
+
+	winnerHash := canonHash
+	if new(big.Int).SetBytes(canonHash.Bytes()).Cmp(new(big.Int).SetBytes(sideHash.Bytes())) > 0 {
+		winnerHash = sideHash
+	}
+	assert.Equal(t, chain.CurrentBlock().Hash(), winnerHash)
 }
 
 func TestFallbackToDefaultSigners(t *testing.T) {

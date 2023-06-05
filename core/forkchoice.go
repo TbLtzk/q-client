@@ -74,10 +74,10 @@ func NewForkChoice(chainReader ChainReader, preserve func(header *types.Header) 
 // In the td mode, the new head is chosen if the corresponding
 // total difficulty is higher. In the extern mode, the trusted
 // header is always selected as the head.
-func (f *ForkChoice) ReorgNeeded(current *types.Header, header *types.Header) (bool, error) {
+func (f *ForkChoice) ReorgNeeded(currentHeader *types.Header, externalHeader *types.Header) (bool, error) {
 	var (
-		localTD  = f.chain.GetTd(current.Hash(), current.Number.Uint64())
-		externTd = f.chain.GetTd(header.Hash(), header.Number.Uint64())
+		localTD  = f.chain.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64())
+		externTd = f.chain.GetTd(externalHeader.Hash(), externalHeader.Number.Uint64())
 	)
 	if localTD == nil || externTd == nil {
 		return false, errors.New("missing td")
@@ -93,15 +93,13 @@ func (f *ForkChoice) ReorgNeeded(current *types.Header, header *types.Header) (b
 	// Please refer to http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf
 	reorg := externTd.Cmp(localTD) > 0
 	if !reorg && externTd.Cmp(localTD) == 0 {
-		number, headNumber := header.Number.Uint64(), current.Number.Uint64()
-		if number < headNumber {
+		externalNum, currentNum := externalHeader.Number.Uint64(), currentHeader.Number.Uint64()
+		if externalNum < currentNum {
 			reorg = true
-		} else if number == headNumber {
-			var currentPreserve, externPreserve bool
-			if f.preserve != nil {
-				currentPreserve, externPreserve = f.preserve(current), f.preserve(header)
-			}
-			reorg = !currentPreserve && (externPreserve || f.rand.Float64() < 0.5)
+		} else if externalNum == currentNum {
+			// EIP-3436 rule #4
+			// Apply external chain if it has the lower hash
+			reorg = new(big.Int).SetBytes(externalHeader.Hash().Bytes()).Cmp(new(big.Int).SetBytes(currentHeader.Hash().Bytes())) < 0
 		}
 	}
 	return reorg, nil
