@@ -1,6 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+- Fallback to the list of signers from the genesis block if all validators are banned
+
 ## [1.2.4] - 2023-04
 ### Changed
 - Updated initial root nodes for Mainnet
