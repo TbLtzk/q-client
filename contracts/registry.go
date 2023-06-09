@@ -351,7 +351,7 @@ func (r *Registry) ContractRegistryUpgradeVoting() *generated.ContractRegistryUp
 }
 
 func (r *Registry) SystemContracts() []generated.ContractRegistryPair {
-	contracts, err := r.reg.GetContracts(nil)
+	contracts, err := r.registry().GetContracts(nil)
 	if err != nil {
 		log.Error("failed to get system contracts from registry")
 		return nil
