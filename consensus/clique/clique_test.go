@@ -30,6 +30,8 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -132,7 +134,122 @@ func TestSealHash(t *testing.T) {
 	}
 }
 
-func TestBlockChoiceRule4(t *testing.T) {
+func TestForkChoice(t *testing.T) {
+	var (
+		db                = rawdb.NewMemoryDatabase()
+		reg               = contracts.NewTestModeRegistry()
+		engine            = New(params.AllCliqueProtocolChanges.Clique, db, &NoopExclusionSetProvider{}, reg)
+		signersCount      = 40
+		commonBlocksCount = 80
+		keys              = make(map[common.Address]*ecdsa.PrivateKey)
+		addresses         = make([]common.Address, 0, signersCount)
+	)
+	engine.fakeDiff = true
+
+	for len(addresses) != signersCount {
+		key, _ := crypto.GenerateKey()
+		addr := crypto.PubkeyToAddress(key.PublicKey)
+		keys[addr] = key
+		addresses = append(addresses, addr)
+	}
+	sort.Sort(signersAscending(addresses))
+
+	genSpec := &core.Genesis{
+		ExtraData: make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
+		Alloc: map[common.Address]core.GenesisAccount{
+			addresses[0]: {Balance: big.NewInt(10000000000000000)},
+		},
+		BaseFee:    big.NewInt(params.InitialBaseFee),
+		Difficulty: big.NewInt(0),
+	}
+	for i := 0; i < signersCount; i++ {
+		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addresses[i][:])
+	}
+	genesis := genSpec.MustCommit(db)
+
+	var chain *core.BlockChain
+
+	shouldPreserve := func(header *types.Header, externalHeader *types.Header) bool {
+		rHeader, err := engine.ChooseBlockWithMostRecentSigner(chain, header, externalHeader)
+		if err != nil {
+			log.Warn("Failed to retrieve recent signer list for preserve check for local header", "number", header.Number.Uint64(), "hash", header.Hash(), "err", err)
+			return false
+		}
+
+		return rHeader == header
+	}
+
+	//Generate chain common for both cases and both subchains
+	commonBlocks := generateChain(t, params.AllCliqueProtocolChanges, genesis, engine, db, commonBlocksCount, addresses, keys, reg, false)
+
+	//foreign chain is canonical
+	chain, _ = core.NewBlockChain(db, nil, params.AllCliqueProtocolChanges, engine, vm.Config{}, shouldPreserve, nil)
+	if _, err := chain.InsertChain(commonBlocks); err != nil {
+		t.Fatalf("failed to insert commonBlocks blocks: %v", err)
+	}
+	localBlocksSigners1 := addresses[10:15]
+	localBlocksCase1 := generateChain(t, params.AllCliqueProtocolChanges, commonBlocks[len(commonBlocks)-1], engine, db, 5, localBlocksSigners1, keys, reg, true)
+	if _, err := chain.InsertChain(localBlocksCase1); err != nil {
+		t.Fatalf("failed to insert local blocks: %v", err)
+	}
+
+	foreignBlocksSigners1 := addresses[10:13]
+	foreignBlocksSigners1 = append(foreignBlocksSigners1, addresses[5])
+	foreignBlocksSigners1 = append(foreignBlocksSigners1, addresses[15]) //same signer as in local chain
+	foreignBlocksCase1 := generateChain(t, params.AllCliqueProtocolChanges, commonBlocks[len(commonBlocks)-1], engine, db, 5, foreignBlocksSigners1, keys, reg, true)
+	if _, err := chain.InsertChain(foreignBlocksCase1); err != nil {
+		t.Fatalf("failed to insert foreign blocks: %v", err)
+	}
+
+	var minHash common.Hash
+	if foreignBlocksCase1[len(foreignBlocksCase1)-1].Hash().Big().Cmp(localBlocksCase1[len(localBlocksCase1)-1].Hash().Big()) < 0 {
+		minHash = foreignBlocksCase1[len(foreignBlocksCase1)-1].Hash()
+	} else {
+		minHash = localBlocksCase1[len(localBlocksCase1)-1].Hash()
+	}
+	if chain.CurrentBlock().Header().Hash() != minHash {
+		t.Errorf("Rule 4 failed")
+	}
+}
+
+// Generates blocks with the required signer and difficulty in the middle
+func generateChain(t *testing.T, config *params.ChainConfig, parent *types.Block, engine *Clique, db ethdb.Database, numBlocks int, addresses []common.Address, keys map[common.Address]*ecdsa.PrivateKey, reg *contracts.Registry, side bool) []*types.Block {
+	current := 1
+	blocks, _ := core.GenerateChain(config, parent, engine, db, numBlocks, nil)
+
+	for i, block := range blocks {
+		header := block.Header()
+		if i > 0 {
+			header.ParentHash = blocks[i-1].Hash()
+		} else {
+			header.ParentHash = parent.Hash()
+		}
+
+		signer := addresses[current]
+		log.Error(signer.String())
+
+		difficulty := diffInTurn
+
+		key := keys[signer]
+		header.Extra = make([]byte, extraVanity+extraSeal)
+		header.Difficulty = difficulty
+		header.Coinbase = reg.RewardReceiver()
+
+		sig, _ := crypto.Sign(SealHash(header).Bytes(), key)
+		copy(header.Extra[len(header.Extra)-extraSeal:], sig)
+		blocks[i] = block.WithSeal(header)
+
+		current++
+		if current == len(addresses) {
+			current = 0
+		}
+	}
+
+	return blocks
+}
+
+// nolint:unused,deadcode
+func testBlockChoiceRule4(t *testing.T) {
 	var (
 		db           = rawdb.NewMemoryDatabase()
 		reg          = contracts.NewTestModeRegistry()

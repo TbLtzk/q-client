@@ -420,7 +420,7 @@ func (s *Ethereum) isLocalBlock(header *types.Header) bool {
 // shouldPreserve checks whether we should preserve the given block
 // during the chain reorg depending on whether the author of block
 // is a local account.
-func (s *Ethereum) shouldPreserve(header *types.Header) bool {
+func (s *Ethereum) shouldPreserve(header *types.Header, externalHeader *types.Header) bool {
 	// The reason we need to disable the self-reorg preserving for clique
 	// is it can be probable to introduce a deadlock.
 	//
@@ -438,9 +438,23 @@ func (s *Ethereum) shouldPreserve(header *types.Header) bool {
 	// and in the round6, the last available signer B is offline, the whole
 	// network is stuck.
 	if _, ok := s.engine.(*clique.Clique); ok {
-		return false
+		return s.ShouldPreserveClique(header, externalHeader)
 	}
 	return s.isLocalBlock(header)
+}
+
+func (s *Ethereum) ShouldPreserveClique(header *types.Header, externalHeader *types.Header) bool {
+	//If we use Clique as engine, we need to check rule #3 of Eip3436: https://eips.ethereum.org/EIPS/eip-3436
+	if c, ok := s.engine.(*clique.Clique); ok {
+		rHeader, err := c.ChooseBlockWithMostRecentSigner(s.blockchain, header, externalHeader)
+		if err != nil {
+			log.Warn("Failed to retrieve recent signer list for preserve check for local header", "number", header.Number.Uint64(), "hash", header.Hash(), "err", err)
+			return false
+		}
+
+		return rHeader == header
+	}
+	return false
 }
 
 // SetEtherbase sets the mining reward address.

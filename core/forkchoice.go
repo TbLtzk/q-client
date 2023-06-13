@@ -53,10 +53,14 @@ type ForkChoice struct {
 	// Miners will prefer to choose the local mined block if the
 	// local td is equal to the extern one. It can be nil for light
 	// client
-	preserve func(header *types.Header) bool
+
+	//As we use Clique as engine, we need to obey rule #3 of Eip3436
+	//Choose the block whose validator had the least recent in-turn block assignment
+	//This function is introduced because original preserve doesn't know anything about the external header
+	preserve func(header *types.Header, externalHeader *types.Header) bool
 }
 
-func NewForkChoice(chainReader ChainReader, preserve func(header *types.Header) bool) *ForkChoice {
+func NewForkChoice(chainReader ChainReader, preserve func(header *types.Header, externalHeader *types.Header) bool) *ForkChoice {
 	// Seed a fast but crypto originating random generator
 	seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
 	if err != nil {
@@ -97,9 +101,20 @@ func (f *ForkChoice) ReorgNeeded(currentHeader *types.Header, externalHeader *ty
 		if externalNum < currentNum {
 			reorg = true
 		} else if externalNum == currentNum {
-			// EIP-3436 rule #4
-			// Apply external chain if it has the lower hash
-			reorg = new(big.Int).SetBytes(externalHeader.Hash().Bytes()).Cmp(new(big.Int).SetBytes(currentHeader.Hash().Bytes())) < 0
+			//Preserve check is modified in order to attempt of applying rule#3 from https://eips.ethereum.org/EIPS/eip-3436
+			//If header numbers are the same, then choose the block whose validator had the least recent in-turn block assignment
+			var currentPreserve, externPreserve bool
+			if f.preserve != nil {
+				currentPreserve, externPreserve = f.preserve(currentHeader, externalHeader), f.preserve(externalHeader, currentHeader)
+			}
+			//If both headers are from the same validator, then choose the block with the lower hash
+			if currentPreserve && externPreserve {
+				// EIP-3436 rule #4
+				// Apply external chain if it has the lower hash
+				reorg = externalHeader.Hash().Big().Cmp(currentHeader.Hash().Big()) < 0
+			} else {
+				reorg = false
+			}
 		}
 	}
 	return reorg, nil
