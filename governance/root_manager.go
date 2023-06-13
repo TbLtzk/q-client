@@ -1,8 +1,8 @@
 package governance
 
 import (
+	"encoding/json"
 	"fmt"
-	"math"
 	"math/big"
 	"path/filepath"
 	"reflect"
@@ -23,6 +23,8 @@ import (
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/sentryMonitor"
 )
 
 var (
@@ -74,6 +76,11 @@ type RootManager struct {
 	bc  *core.BlockChain
 	reg *contracts.Registry
 	dl  *downloader.Downloader
+
+	rewindLimit uint64
+
+	quarantineLock    sync.Mutex
+	quarantineEventCh chan *QuarantineEvent
 }
 
 // Config of root manager
@@ -84,6 +91,10 @@ type Config struct {
 type DiffEntry struct {
 	Name string
 	Diff []common.Address
+}
+
+type QuarantineEvent struct {
+	Set *exclusionSet
 }
 
 type Keystore interface {
@@ -136,7 +147,13 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 		proposedExSet: db.getProposedExclusionSet(),
 
 		approvalFeed: &event.Feed{},
+
+		quarantineEventCh: make(chan *QuarantineEvent),
 	}
+
+	manager.setMaxRewindLimit(uint64(params.FullImmutabilityThreshold))
+
+	go manager.startQuarantineRoutine()
 
 	return manager, nil
 }
@@ -263,28 +280,50 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 	return isSigned
 }
 
+func (s *RootManager) isExclusionSetMeetsQuarantineCriteria(set *exclusionSet, blockNumber uint64) bool {
+	rewindLimit := s.maxRewindLimit() //TODO reconsider this logic
+
+	//Check if set is already in the quarantine or can cause a rewind
+	return s.isExclusionSetInQuarantine(set) || s.bc.CurrentBlock().Number().Uint64()-blockNumber > rewindLimit
+}
+
 // unsafe for concurrent usage
 // lock exLock externally first
-func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
+func (s *RootManager) upgradeExclusionSet(set *exclusionSet, forceUpgrade bool) {
 	if s.activeExSet != nil && s.activeExSet.hash == set.hash {
 		log.Debug("Exclusion list is already active, skipping", "hash", set.hash.Hex(), "timestamp", set.timestamp)
 		return
 	}
 
-	// If exclusion set was changed, revalidate blocks up to earliest affected one
+	// If exclusion set was changed, revalidate blocks up to the earliest affected one
 	addrToBlockRange := set.addrToBlockRangeExclusiveDiff(s.activeExSet)
+
 	if len(addrToBlockRange) > 0 {
-		var earliestBlock uint64 = math.MaxUint64
-		for _, blockRanges := range addrToBlockRange {
-			for _, bRange := range blockRanges {
-				if bRange.StartAddress < earliestBlock {
-					earliestBlock = bRange.StartAddress
+		earliestBlock := set.earliestBlockFromDiff(s.activeExSet)
+
+		//If the exclusion set contains blocks in the past, and applying it can cause the rewind, quarantine it.
+		//Otherwise, revalidate the chain.
+		//If upgrade is forced, we don't care about the age of the exclusion set
+		//Verification goes only here, because we don't want to quarantine exclusion set if there's no need to
+		if !forceUpgrade && s.isExclusionSetMeetsQuarantineCriteria(set, earliestBlock) {
+			//Notification about quarantine is sent in startQuarantineRoutine
+			if err := s.initiateExclusionSetQuarantine(set); err != nil {
+				if err != nil {
+					//Quarantine failed, but we still need to return from here to avoid updating exclusion set
+					log.Error("Failed to quarantine exclusion set", "err", err)
+					return
 				}
 			}
+			return
 		}
 
 		// Revalidate in separate goroutine to prevent possible deadlocks
-		go s.bc.RevalidateChain(earliestBlock)
+		go func() {
+			err := s.bc.RevalidateChain(earliestBlock)
+			if err != nil {
+				log.Error("Failed to revalidate chain after updating the exclusion list", "err", err)
+			}
+		}()
 	}
 
 	s.activeExSet = set
@@ -383,7 +422,7 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 				return fmt.Errorf("couldn't find any blocks in proposal for address %s", addr.String())
 			}
 
-			//TODO Passed range can be increased& its baad
+			//TODO Passed range can be increased& its bad
 
 			for _, exBlockRange := range currentBanBlockRanges {
 				inNewSet := false
@@ -529,7 +568,7 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet, force bool) (*exclu
 	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
 
 	if s.getActiveRootSet(true).isEnoughExSetSignatures(set) {
-		s.upgradeExclusionSet(set)
+		s.upgradeExclusionSet(set, false)
 	}
 
 	s.proposedExSet = set
@@ -586,7 +625,7 @@ func (s *RootManager) acceptProposedExclusionList(lock bool) error {
 	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
 
 	if s.getActiveRootSet(true).isEnoughExSetSignatures(s.proposedExSet) {
-		s.upgradeExclusionSet(s.proposedExSet)
+		s.upgradeExclusionSet(s.proposedExSet, false)
 	} else {
 		s.desiredExSet = s.proposedExSet
 		s.db.saveDesiredExclusionSet(s.desiredExSet)
@@ -1167,4 +1206,123 @@ func (s *RootManager) isAthosReached() bool {
 	}
 	currentBlock := s.bc.CurrentBlock().Number()
 	return s.bc.Config().IsAthos(currentBlock)
+}
+
+// received exclusion set cam cause huge rewind of the blockchain. It is very undesirable
+// instead of updating active exclusion set we will create new one and start quarantining it
+func (s *RootManager) initiateExclusionSetQuarantine(set *exclusionSet) error {
+	if s.isExclusionSetInQuarantine(set) {
+		return nil
+	}
+
+	s.quarantineLock.Lock()
+	defer s.quarantineLock.Unlock()
+
+	s.quarantineEventCh <- &QuarantineEvent{
+		set,
+	}
+
+	err := s.db.addExclusionSetToQuarantine(set)
+	if err != nil {
+		return errors.Wrap(err, "failed to add exclusion set to quarantine")
+	}
+
+	return nil
+}
+
+func (s *RootManager) notifyExclusionSetIsQuarantined(set *exclusionSet, currentBlock uint64, rewindDepth uint64, rewindLimit uint64) {
+	b, err := json.MarshalIndent(set.makeList(), "", "\t")
+	if err != nil {
+		log.Error("Failed to marshal exclusion set", "err", err)
+	}
+	msg := "" +
+		"There is an exclusion set in the quarantine. Accepting this set will cause huge rewind of the blockchain\n" +
+		"		Blockchain will be rewound approx to block #" + fmt.Sprint(rewindDepth) + "). \n" +
+		"		Current block is " + fmt.Sprint(currentBlock) + ".\n" +
+		"		The Current allowed rewind limit:" + fmt.Sprint(rewindLimit) + ".\n" +
+		"		Quarantined exclusion set:\n\n" +
+		"" + string(b) + "\n\n" +
+		"		If you still want to accept this list and do realize potential harm, execute the following command:\n\n" +
+		"\tgov.acceptQuarantinedExclusionList(\"" + set.hash.String() + "\")\n\n"
+	sentryMonitor.HandleMessage(msg)
+}
+
+func (s *RootManager) startQuarantineRoutine() {
+	for {
+		if s.bc == nil {
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		select {
+		case setEvent := <-s.quarantineEventCh:
+			if setEvent.Set != nil {
+				earliestBlock := setEvent.Set.earliestBlockFromDiff(s.activeExSet)
+				s.notifyExclusionSetIsQuarantined(setEvent.Set, s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
+			}
+		case <-time.After(time.Minute):
+			s.quarantineLock.Lock()
+			sets, err := s.db.getExclusionSetsFromQuarantine()
+			if err != nil {
+				log.Error("Failed to get exclusion sets from quarantine", "err", err)
+			}
+			if sets != nil {
+				log.Warn("You have exclusion lists in the quarantine. You can see them with command: gov.quarantinedExclusionLists()")
+				for i := range sets {
+					earliestBlock := sets[i].earliestBlockFromDiff(s.activeExSet)
+					s.notifyExclusionSetIsQuarantined(&sets[i], s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
+				}
+			}
+			s.quarantineLock.Unlock()
+		}
+	}
+}
+
+func (s *RootManager) isExclusionSetInQuarantine(set *exclusionSet) bool {
+	s.quarantineLock.Lock()
+	defer s.quarantineLock.Unlock()
+
+	if set == nil {
+		return false
+	}
+	sets, err := s.db.getExclusionSetsFromQuarantine()
+	if err != nil {
+		log.Error("Failed to get exclusion set from quarantine", "err", err)
+		return false
+	}
+	for _, s := range sets {
+		if s.hash == set.hash {
+			return true
+		}
+	}
+	return false
+}
+
+// TODO rethink this
+func (s *RootManager) maxRewindLimit() uint64 {
+	return s.rewindLimit
+}
+
+func (s *RootManager) setMaxRewindLimit(limit uint64) {
+	s.rewindLimit = limit
+}
+
+func (s *RootManager) acceptQuarantinedExclusionSet(hash *common.Hash) error {
+	s.quarantineLock.Lock()
+	defer s.quarantineLock.Unlock()
+
+	set, err := s.db.getQuarantinedExclusionSetByHash(hash)
+	if err != nil {
+		return errors.Wrap(err, "failed to get exclusion set from quarantine")
+	}
+	if set == nil {
+		return errors.New("exclusion set not found in quarantine")
+	}
+	log.Warn("Accepting exclusion set from the quarantine", "hash", hash)
+	if _, err := s.db.removeExclusionSetFromQuarantine(set); err != nil {
+		return errors.Wrap(err, "failed to remove exclusion set from quarantine")
+	}
+	log.Warn("Exclusion set has been removed from the quarantine", "hash", hash)
+
+	s.upgradeExclusionSet(set, true)
+	return nil
 }

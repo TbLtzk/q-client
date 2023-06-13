@@ -7,10 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/crypto"
-
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p"
@@ -658,7 +657,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			rm.signExclusionSet(received)
 		}
 
-		rm.upgradeExclusionSet(received)
+		rm.upgradeExclusionSet(received, false)
 
 		h.exEventCh <- &exclusionSetEvent{set: received}
 	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
@@ -688,7 +687,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			return nil
 		}
 
-		rm.upgradeExclusionSet(rm.desiredExSet)
+		rm.upgradeExclusionSet(rm.desiredExSet, false)
 		h.exEventCh <- &exclusionSetEvent{set: rm.activeExSet}
 	default:
 		if len(rm.getActiveRootSet(true).knownSigners(received.signers)) == 0 {

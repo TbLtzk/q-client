@@ -717,7 +717,7 @@ func Test_rootSet_knownSigners(t *testing.T) {
 				roots:         tt.fields.roots,
 				signers:       tt.fields.signers,
 			}
-			assert.ElementsMatch(t, s.knownSigners(tt.args.signers), tt.want, "knownSigners() = %v, want %v", s.knownSigners(tt.args.signers), tt.want)
+			assert.ElementsMatch(t, tt.want, s.knownSigners(tt.args.signers))
 		})
 	}
 }
