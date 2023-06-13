@@ -80,7 +80,6 @@ var (
 			},
 		},
 	}
-
 	exclusionListWithWrongHash = &common.ValidatorExclusionList{
 		Timestamp: 1680255617,
 		Hash:      common.HexToHash("0x6662d75a2ddb2c63342dcec4ae307dca29adf5aefd5b06a4586a4541afddcdf4"),

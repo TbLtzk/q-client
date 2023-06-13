@@ -50,7 +50,8 @@
 				},
 				{
 					"address": "0xeb3b90fd1862b10d14d71881b32d80e530ad394b",
-					"block": 1000
+					"block": 1000,
+					"endBlock": 20000
 				}
 			],
 			"hash": "0x25c2d75a2ddb2c63342dcec4ae307dca29adf5aefd5b06a4586a4541afddcdf4",

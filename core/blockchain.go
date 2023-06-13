@@ -742,8 +742,12 @@ func (bc *BlockChain) RevalidateChain(number uint64) error {
 		return err
 	}
 
-	log.Info("Inserting blocks on top of rewinded head", "count", len(blocks))
-	bc.InsertChain(blocks)
+	log.Info("Inserting blocks on top of rewound head", "count", len(blocks))
+	_, err = bc.InsertChain(blocks)
+	if err != nil {
+		log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
+		return err
+	}
 
 	return nil
 }

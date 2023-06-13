@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/p2p"
 )

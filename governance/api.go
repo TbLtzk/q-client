@@ -1,6 +1,7 @@
 package governance
 
 import (
+	"fmt"
 	"math/big"
 	"sort"
 	"strconv"
@@ -126,6 +127,38 @@ func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusio
 	}
 
 	return set.hash, nil
+}
+
+func (a *GovernanceAPI) AcceptQuarantinedExclusionList(hash *common.Hash) error {
+	return a.gov.RootManager.acceptQuarantinedExclusionSet(hash)
+}
+
+func (a *GovernanceAPI) QuarantinedExclusionLists() string {
+	sets, err := a.gov.RootManager.db.getExclusionSetsFromQuarantine()
+	if sets == nil {
+		return ""
+	}
+	var earliestBlock uint64
+	currentBlock := a.gov.RootManager.bc.CurrentBlock().Number().Int64()
+	if err != nil {
+		return errors.Wrap(err, "can't get exclusion sets from quarantine").Error()
+	}
+	res := "" +
+		"\nThere are exclusion sets in the quarantine. Accepting them will cause huge rewind of the blockchain\n" +
+		"Current block is " + fmt.Sprint(currentBlock) + ".\n" +
+		"Current allowed rewind limit:" + fmt.Sprint(a.gov.RootManager.rewindLimit) + ".\n\n"
+
+	for i := range sets {
+		earliestBlock = sets[i].earliestBlockFromDiff(a.gov.RootManager.activeExSet)
+		res += "Exclusion list with hash " + sets[i].hash.String() + ":\n"
+		res += "Blockchain will be rewound approx to block #" + fmt.Sprint(earliestBlock) + "). \n"
+		res += printPrettifiedList(newExclusionListPrettify(&sets[i], a.gov.RootManager.bc.CurrentBlock().Number().Int64())) + "\n"
+		res += "If you still want to accept this list and do realize potential harm, execute the following command:\n\n" +
+			"gov.acceptQuarantinedExclusionList(\"" + sets[i].hash.String() + "\")\n\n"
+	}
+
+	log.Warn(res)
+	return ""
 }
 
 func (a *GovernanceAPI) AcceptProposedExclusionList() error {

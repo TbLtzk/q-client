@@ -873,6 +873,16 @@ web3._extend({
 			call: 'gov_knownConstitutionFiles',
 			params: 0
 		}),
+	    new web3._extend.Method({
+			name: 'quarantinedExclusionLists',
+			call: 'gov_quarantinedExclusionLists',
+			params: 0
+		}),
+	    new web3._extend.Method({
+			name: 'acceptQuarantinedExclusionList',
+			call: 'gov_acceptQuarantinedExclusionList',
+			params: 1
+		}),
     ],
 	properties: []
 });

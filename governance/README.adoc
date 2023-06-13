@@ -155,7 +155,9 @@ There can be several records per one validator: eg first one with the closed end
 
 * `gov.activeExclusionListPrettify`
 
-Prints prettified active exclusion list (`null` if none). Example:
+Prints prettified active exclusion list (`null` if none).
+Example:
+
 [source,bash]
 ----
 Hash: 0x10ddb25b24e7396f4d8ebb3ea46bedfd1fa1361ef84487237dd868793d0e77ae
@@ -200,7 +202,9 @@ Example:
 
 * `gov.desiredExclusionListPrettify`
 
-Prints prettified desired exclusion list (`null` if none). Example:
+Prints prettified desired exclusion list (`null` if none).
+Example:
+
 [source,bash]
 ----
 Hash: 0x10ddb25b24e7396f4d8ebb3ea46bedfd1fa1361ef84487237dd868793d0e77ae
@@ -289,7 +293,6 @@ Available names: `active`, `desired`, `proposed`.
 Usage example:
 
 [source,bash]
-
 ----
 > gov.diffExclusionList("active", "proposed")
 [{
@@ -303,7 +306,9 @@ Usage example:
 
 ==== gov.isInExclusionList
 
-Check if address is in exclusion list. It takes address as parameter. Usage example:
+Check if address is in exclusion list.
+It takes address as parameter.
+Usage example:
 
 [source,bash]
 ----
@@ -397,7 +402,8 @@ All constitution files which you reqested from your peers will be named and plac
 
 Allows you to add new constitution file.
 File should be placed into the "./constitution-storage/drafts" directory inside the _datadir_.
-Alternatively, as a parameter you can specify the URL of the file. In this case, file will be downloaded and placed into Drafts folder automatically.
+Alternatively, as a parameter you can specify the URL of the file.
+In this case, file will be downloaded and placed into Drafts folder automatically.
 During execution this file will be validated - if hash of the file doesn't belong to blockchain - execution will be reverted.
 
 ----
@@ -405,6 +411,7 @@ During execution this file will be validated - if hash of the file doesn't belon
 Validating constitution storage
 Constitution file with hash 0x5dfd08904f23e0497b291487319f07e32113f3c5bdc9c540adeb113019920c21 added successfully
 ----
+
 ----
 gov.addConstitutionFile("https://constitution.q.org/constitution/latest")
 Constitution file with hash 0x25a0ad3b8de911b1745691b83875291c75f424487551ec83f7ef9ae8205ef059 added successfully
@@ -452,11 +459,39 @@ Displays a list of constitution files which are present in your local constituti
 
 ==== gov.knownConstitutionFiles
 
-Displays a list of constitution files which are known to your node. This list is updated every time you're getting new constitution file. If you're getting constitution file from your peer - it will be added to this list automatically. If you're getting constitution file from the URL - it will be added to this list only if it's valid. If some of your peers have more records in the known files list - you will be informed about it and will be able to request this file from them.
+Displays a list of constitution files which are known to your node.
+This list is updated every time you're getting new constitution file.
+If you're getting constitution file from your peer - it will be added to this list automatically.
+If you're getting constitution file from the URL - it will be added to this list only if it's valid.
+If some of your peers have more records in the known files list - you will be informed about it and will be able to request this file from them.
 
 ----
 > gov.knownConstitutionFiles()
 ["0x25a0ad3b8de911b1745691b83875291c75f424487551ec83f7ef9ae8205ef059"]
 
 ----
+
 If you're interested in getting a specific constitution file from the known files list - you can use the _gov.requestForConstitutionFile_ command.
+
+==== gov.quarantinedExclusionLists
+
+Displays a list of quarantined exclusion lists.
+This list is updated every time you're getting new exclusion list and it can cause a rewind of the blockchain.
+If this happens - you will be informed about it.
+
+----
+> gov.quarantinedExclusionLists()
+There are exclusion sets in the quarantine. Accepting them will cause huge rewind of the blockchain
+...
+
+----
+
+==== gov.acceptQuarantinedExclusionList
+
+Allows you to accept the quarantined exclusion list if you're sure that it's valid.
+This command will cause a rewind of the blockchain.
+
+----
+>gov.acceptQuarantinedExclusionList("0xf6cc800a504eadaabe2e7dbd5651fdd546d8769323af8ab50245b61e80795982")
+
+----

@@ -25,9 +25,10 @@ var (
 )
 
 var (
-	activeExclusionKey   = []byte("current-exclusion-set")
-	desiredExclusionKey  = []byte("desired-exclusion-set")
-	proposedExclusionKey = []byte("proposed-exclusion-set")
+	activeExclusionKey      = []byte("current-exclusion-set")
+	desiredExclusionKey     = []byte("desired-exclusion-set")
+	proposedExclusionKey    = []byte("proposed-exclusion-set")
+	quarantinedExclusionKey = []byte("quarantined-exclusion-set")
 )
 
 var (
@@ -432,4 +433,112 @@ func (db *database) saveKnownConstitutionFiles(storage *[]common.Hash) error {
 	}
 
 	return db.store.Put(knownConstitutionFilesKey, raw)
+}
+
+func (db *database) addExclusionSetToQuarantine(set *exclusionSet) error {
+	if set == nil {
+		return nil
+	}
+
+	var resSets []common.ValidatorExclusionList
+
+	exRecords, err := db.getExclusionSetsFromQuarantine()
+	if err != nil {
+		log.Error("Failed to get exclusion sets from quarantine", "err", err)
+	}
+	for _, exSet := range exRecords {
+		if exSet.hash == set.hash {
+			return nil //It's already there
+		}
+		resSets = append(resSets, exSet.makeList())
+	}
+	resSets = append(resSets, set.makeList())
+
+	value, err := json.Marshal(resSets)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to marshal quarantine exclusion sets"))
+	}
+
+	if err := db.store.Put(quarantinedExclusionKey, value); err != nil {
+		panic(errors.Wrap(err, "failed save quarantined exclusion sets"))
+	}
+
+	return nil
+}
+
+func (db *database) removeExclusionSetFromQuarantine(set *exclusionSet) (*[]exclusionSet, error) {
+	if set == nil {
+		return nil, nil
+	}
+
+	var resSets []exclusionSet
+
+	exRecords, err := db.getExclusionSetsFromQuarantine()
+	if err != nil {
+		log.Error("Failed to get exclusion sets from quarantine", "err", err)
+	}
+	for _, exSet := range exRecords {
+		if exSet.hash == set.hash {
+			continue
+		}
+		resSets = append(resSets, exSet)
+	}
+
+	value, err := json.Marshal(resSets)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to marshal quarantine exclusion sets"))
+	}
+
+	if err := db.store.Put(quarantinedExclusionKey, value); err != nil {
+		panic(errors.Wrap(err, "failed save quarantined exclusion sets"))
+	}
+
+	return &resSets, nil
+}
+
+// It is most unlikely, but potentially we can have multiple exclusion sets in the quarantine
+func (db *database) getExclusionSetsFromQuarantine() ([]exclusionSet, error) {
+	ok, err := db.store.Has(quarantinedExclusionKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check if key exists")
+	}
+
+	if !ok {
+		return nil, nil
+	}
+
+	raw, err := db.store.Get(quarantinedExclusionKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get quarantined  from db")
+	}
+
+	var exclusionLists []common.ValidatorExclusionList
+	if err := json.Unmarshal(raw, &exclusionLists); err != nil {
+		panic(errors.Wrap(err, "failed to unmarshal quarantined exclusion lists"))
+	}
+
+	var sets []exclusionSet
+	for i := range exclusionLists {
+		set, err := newExclusionSet(&exclusionLists[i])
+		if err != nil {
+			//don't return error, just skip this list
+			continue
+		}
+		sets = append(sets, *set)
+	}
+
+	return sets, nil
+}
+
+func (db *database) getQuarantinedExclusionSetByHash(hash *common.Hash) (*exclusionSet, error) {
+	sets, err := db.getExclusionSetsFromQuarantine()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get exclusion sets from quarantine")
+	}
+	for _, set := range sets {
+		if set.hash == *hash {
+			return &set, nil
+		}
+	}
+	return nil, nil
 }

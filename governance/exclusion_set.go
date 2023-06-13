@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/crypto"
 )
 
@@ -263,6 +264,25 @@ func (s1 *exclusionSet) addrToBlockRangeExclusiveDiff(s2 *exclusionSet) map[comm
 		}
 	}
 	return res
+}
+
+func (s1 *exclusionSet) earliestBlockFromDiff(s2 *exclusionSet) uint64 {
+	addrToBlockRange := s2.addrToBlockRangeExclusiveDiff(s1)
+
+	if addrToBlockRange != nil {
+		var earliestBlock uint64 = math.MaxUint64
+		if len(addrToBlockRange) > 0 {
+			for _, blockRanges := range addrToBlockRange {
+				for _, bRange := range blockRanges {
+					if bRange.StartAddress < earliestBlock {
+						earliestBlock = bRange.StartAddress
+					}
+				}
+			}
+		}
+		return earliestBlock
+	}
+	return 0
 }
 
 func (s *exclusionSet) getAddresses() []common.Address {
