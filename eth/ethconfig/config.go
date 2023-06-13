@@ -98,7 +98,7 @@ var Defaults = Config{
 	RPCEVMTimeout: 5 * time.Second,
 	GPO:           FullNodeGPO,
 	RPCTxFeeCap:   1, // 1 ether
-
+	GasBuffer:     1,
 }
 
 func init() {
@@ -207,6 +207,9 @@ type Config struct {
 	// RPCTxFeeCap is the global transaction fee(price * gaslimit) cap for
 	// send-transaction variants. The unit is ether.
 	RPCTxFeeCap float64
+
+	//Global gas buffer ratio for estimation
+	GasBuffer float64
 
 	// Checkpoint is a hardcoded checkpoint which can be nil.
 	Checkpoint *params.TrustedCheckpoint `toml:",omitempty"`

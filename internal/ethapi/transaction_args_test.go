@@ -247,6 +247,10 @@ func (b *backendMock) activateLondon() {
 	b.current.Number = big.NewInt(1100)
 }
 
+func (b *backendMock) GasBuffer() float64 {
+	return 1
+}
+
 func (b *backendMock) deactivateLondon() {
 	b.current.Number = big.NewInt(900)
 }

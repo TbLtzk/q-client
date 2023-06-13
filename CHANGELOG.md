@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Duplicate root/exclusion list requires a confirmation
 - Fallback to the list of signers from the genesis block if all validators are banned
+- Added *gasBuffer* flag. If set - estimated gas will be multiplied by the given value
 - Quarantine mechanism for exclusion lists
 
 ## [1.2.4] - 2023-04

@@ -637,6 +637,7 @@ var (
 		Value:    ethconfig.Defaults.RPCTxFeeCap,
 		Category: flags.APICategory,
 	}
+
 	// Authenticated RPC HTTP settings
 	AuthListenFlag = &cli.StringFlag{
 		Name:     "authrpc.addr",
@@ -1042,6 +1043,13 @@ var (
 		Usage:    "Sentry trace sample rate",
 		Value:    sentryMonitor.DefaultConfig.TracesSampleRate,
 		Category: flags.SentryCategory,
+	}
+
+	GlobalGasBufferFlag = &cli.Float64Flag{
+		Name:     "gasBuffer",
+		Usage:    "Factor that sets a buffer for gas estimation",
+		Value:    ethconfig.Defaults.GasBuffer,
+		Category: flags.APICategory,
 	}
 )
 
@@ -2002,6 +2010,10 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		log.Info("Set global gas cap", "cap", cfg.RPCGasCap)
 	} else {
 		log.Info("Global gas cap disabled")
+	}
+	if ctx.IsSet(GlobalGasBufferFlag.Name) {
+		log.Info("Set global gas buffer", "buffer", cfg.GasBuffer)
+		cfg.GasBuffer = ctx.Float64(GlobalGasBufferFlag.Name)
 	}
 	if ctx.IsSet(RPCGlobalEVMTimeoutFlag.Name) {
 		cfg.RPCEVMTimeout = ctx.Duration(RPCGlobalEVMTimeoutFlag.Name)
