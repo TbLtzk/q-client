@@ -525,7 +525,7 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 		}
 	}
 	if len(resHashes) != len(h.constitutionManager.requiredHashes) {
-		if errSave := h.constitutionManager.db.saveConstitutionFileRequests(&resHashes); errSave != nil {
+		if errSave := h.constitutionManager.db.saveConstitutionFileRequests(resHashes); errSave != nil {
 			return errors.Wrap(errSave, "Failed to save constitution file requests to the database")
 		}
 	}
@@ -539,6 +539,20 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 	defer rm.rootLock.Unlock()
 
 	received.aliases = rm.getAliasesOfRoots(received.rootAddresses)
+
+	// Check if the received root set is acceptable (spam protection)
+	// Skip this check if the received root set is the same as the active one
+	if rm.active == nil || rm.active.hash != received.hash {
+		exceeded, err := rm.isSetQuotaExceeded(received)
+		if err != nil {
+			log.Error("Failed to check root set quota", "error", err)
+			return nil
+		}
+		if exceeded {
+			log.Warn("Received root set's author has exceeded quota", "hash", received.hash)
+			return nil
+		}
+	}
 
 	switch {
 	case rm.active.isAcceptable(received) && (rm.desired == nil || rm.desired.hash != received.hash):
@@ -645,6 +659,20 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 	defer rm.exLock.Unlock()
 
 	rm.active.aliases = rm.getAliasesOfRoots(rm.active.rootAddresses)
+
+	// Check if the received exclusion set is acceptable (spam protection)
+	// Skip this check if the received exclusion set is the same as the active one
+	if rm.activeExSet == nil || rm.activeExSet.hash != received.hash {
+		exceeded, err := rm.isSetQuotaExceeded(received)
+		if err != nil {
+			log.Error("Failed to check exclusion set quota", "error", err)
+			return nil
+		}
+		if exceeded {
+			log.Warn("Received exclusion set's author has exceeded quota", "hash", received.hash)
+			return nil
+		}
+	}
 
 	switch true {
 	case rm.isAcceptableExclusionSet(received):

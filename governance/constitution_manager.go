@@ -192,7 +192,7 @@ func (cm *ConstitutionManager) validateStorage() {
 	//Remove wrong records from db
 	if len(resDbFiles) != len(dbFiles) {
 		log.Warn("Updating constitution storage in the database")
-		if err := cm.db.saveConstitutionStorage(&resDbFiles); err != nil {
+		if err := cm.db.saveConstitutionStorage(resDbFiles); err != nil {
 			log.Error("Constitution storage update error", "err", err)
 		}
 	}
@@ -225,7 +225,7 @@ func (cm *ConstitutionManager) validateStorage() {
 	}
 	if len(resRequests) != len(fileRequests) {
 		log.Warn("Updating constitution file request list in the database")
-		if err := cm.db.saveConstitutionFileRequests(&resRequests); err != nil {
+		if err := cm.db.saveConstitutionFileRequests(resRequests); err != nil {
 			log.Error("Constitution file request storage update error", "err", err)
 		}
 	}
@@ -263,7 +263,7 @@ func (cm *ConstitutionManager) updateKnownConstitutionFiles(newFiles []common.Ha
 		res = append(res, file)
 	}
 	if !reflect.DeepEqual(res, knownFiles) {
-		if err := cm.db.saveKnownConstitutionFiles(&res); err != nil {
+		if err := cm.db.saveKnownConstitutionFiles(res); err != nil {
 			return errors.Wrap(err, "Failed to save known constitution files")
 		}
 	}
@@ -502,7 +502,7 @@ func (cm *ConstitutionManager) storeConstitutionFile(contents []byte, cFile comm
 	//We only need add a record to the DB in case if file is not a draft
 	if legit && !hasFile {
 		dbFiles = append(dbFiles, cFile)
-		if errSave := cm.db.saveConstitutionStorage(&dbFiles); errSave != nil {
+		if errSave := cm.db.saveConstitutionStorage(dbFiles); errSave != nil {
 			log.Error("Cannot save new constitution file to the database", "error", errSave)
 			return errSave
 		}
@@ -510,7 +510,7 @@ func (cm *ConstitutionManager) storeConstitutionFile(contents []byte, cFile comm
 	}
 	if !hasKnownFile {
 		knownDbFiles = append(knownDbFiles, cFile.Hash)
-		if errSave := cm.db.saveKnownConstitutionFiles(&knownDbFiles); errSave != nil {
+		if errSave := cm.db.saveKnownConstitutionFiles(knownDbFiles); errSave != nil {
 			log.Error("Cannot save known constitution files to the database", "error", errSave)
 			return errSave
 		}
@@ -551,7 +551,7 @@ func (cm *ConstitutionManager) addConstitutionFileRequest(requiredHash *common.H
 	}
 
 	hashes = append(hashes, *requiredHash)
-	if errSave := cm.db.saveConstitutionFileRequests(&hashes); errSave != nil {
+	if errSave := cm.db.saveConstitutionFileRequests(hashes); errSave != nil {
 		return nil, errors.Wrap(errSave, "Failed to save constitution file requests to the database")
 	}
 
