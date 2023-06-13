@@ -22,6 +22,7 @@ var Modules = map[string]string{
 	"clique":   CliqueJs,
 	"ethash":   EthashJs,
 	"debug":    DebugJs,
+	"trace":    TraceJs,
 	"eth":      EthJs,
 	"miner":    MinerJs,
 	"net":      NetJs,
@@ -592,6 +593,21 @@ web3._extend({
 });
 `
 
+const TraceJs = `
+web3._extend({
+	property: 'trace',
+	methods: [
+		new web3._extend.Method({
+			name: 'filter',
+			call: 'trace_filter',
+			params: 4,
+			inputFormatter: [null, null,null,null]
+		}),
+	],
+	properties: []
+});
+`
+
 const EthJs = `
 web3._extend({
 	property: 'eth',
@@ -887,6 +903,7 @@ web3._extend({
 	properties: []
 });
 `
+
 const GovPublicJs = `
 web3._extend({
 	property: 'govPub',
