@@ -840,7 +840,7 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 
 		//If the requested file is not on the list but node has it, it answers anyway (this will allow for draft constitution to be stored in the file system)
 		if !ok {
-			log.Error("Requested file hash doesn't belong to history")
+			log.Debug("Requested file hash doesn't belong to history")
 		}
 
 		foundInFiles := false

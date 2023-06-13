@@ -1442,18 +1442,19 @@ func (s *RootManager) isSetQuotaExceeded(received interface{}) (bool, error) {
 		return false, errors.Wrap(err, "failed to save quota entries")
 	}
 
-	return false, nil
+	return len(resEntries) > 3, nil
 }
 
 // helper function just to avoid code duplication
 func (s *RootManager) saveQuotas(received interface{}, currentEntries map[common.Address][]common.ListQuotaEntry, prefix []byte) error {
 	if err := s.db.saveQuotaEntries(currentEntries, prefix); err != nil {
+		log.Error("Failed to save quota entries", "err", err)
 		return err
 	}
 	switch received.(type) {
-	case rootSet:
+	case rootSet, *rootSet:
 		s.rootQuotaEntries = currentEntries
-	case exclusionSet:
+	case exclusionSet, *exclusionSet:
 		s.exclusionQuotaEntries = currentEntries
 	}
 	return nil

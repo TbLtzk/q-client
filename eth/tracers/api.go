@@ -43,6 +43,7 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -239,7 +240,10 @@ func (api *API) TraceChain(ctx context.Context, start, end rpc.BlockNumber, conf
 
 // TraceChain returns the structured logs created during the execution of EVM
 // between two blocks (excluding start) and returns them as a JSON object.
-func (api *API) TraceChainWithFilterApplied(ctx context.Context, start, end rpc.BlockNumber, config *TraceConfig, fromAddress, toAddress *common.Address, after, count uint64) ([]interface{}, error) { // Fetch the block interval that we want to trace
+func (api *API) TraceChainWithFilterApplied(ctx context.Context, start, end rpc.BlockNumber, config *TraceConfig, fromAddress []common.Address, toAddress []common.Address, after, count uint64) ([]CallParityFrame, error) { // Fetch the block interval that we want to trace
+	if end == start {
+		start-- //traceChainWithFilter gets the block after start. So if start == end, we need to decrement start by 1
+	}
 	from, err := api.blockByNumber(ctx, start)
 	if err != nil {
 		return nil, err
@@ -248,13 +252,13 @@ func (api *API) TraceChainWithFilterApplied(ctx context.Context, start, end rpc.
 	if err != nil {
 		return nil, err
 	}
-	if from.Number().Cmp(to.Number()) >= 0 {
+	if from.Number().Cmp(to.Number()) > 0 {
 		return nil, fmt.Errorf("end block (#%d) needs to come after start block (#%d)", end, start)
 	}
 	return api.traceChainWithFilter(ctx, from, to, config, fromAddress, toAddress, after, count)
 }
 
-func (api *API) traceChainWithFilter(ctx context.Context, start, end *types.Block, config *TraceConfig, fromAddress, toAddress *common.Address, after, count uint64) ([]interface{}, error) {
+func (api *API) traceChainWithFilter(ctx context.Context, start, end *types.Block, config *TraceConfig, fromAddress, toAddress []common.Address, after, count uint64) ([]CallParityFrame, error) {
 	// Prepare all the states for tracing. Note this procedure can take very
 	// long time. Timeout mechanism is necessary.
 	reexec := defaultTraceReexec
@@ -270,7 +274,6 @@ func (api *API) traceChainWithFilter(ctx context.Context, start, end *types.Bloc
 		pend     = new(sync.WaitGroup)
 		tasks    = make(chan *blockTraceTask, threads)
 		results  = make(chan *blockTraceTask, threads)
-		resCh    = make(chan []*txTraceResult, threads)
 		localctx = context.Background()
 	)
 	for th := 0; th < threads; th++ {
@@ -287,12 +290,14 @@ func (api *API) traceChainWithFilter(ctx context.Context, start, end *types.Bloc
 				for i, tx := range task.block.Transactions() {
 					if fromAddress != nil {
 						from, _ := types.Sender(signer, tx)
-						if from != *fromAddress {
+						if !slices.Contains(fromAddress, from) {
 							continue
 						}
 					}
-					if toAddress != nil && tx.To() != nil && toAddress.Hash() != tx.To().Hash() {
-						continue
+					if toAddress != nil && tx.To() != nil {
+						if !slices.Contains(toAddress, *tx.To()) {
+							continue
+						}
 					}
 
 					msg, _ := tx.AsMessage(signer, task.block.BaseFee())
@@ -347,7 +352,6 @@ func (api *API) traceChainWithFilter(ctx context.Context, start, end *types.Bloc
 				log.Info("Chain tracing finished", "start", start.NumberU64(), "end", end.NumberU64(), "transactions", traced, "elapsed", time.Since(begin))
 			}
 			close(results)
-			close(resCh)
 		}()
 		var preferDisk bool
 		// Feed all the blocks both into the tracer, and fast process concurrently
@@ -407,12 +411,17 @@ func (api *API) traceChainWithFilter(ctx context.Context, start, end *types.Bloc
 		}
 	}()
 
+	resultTraces := []CallParityFrame{}
+
 	// Keep reading the trace results and stream the to the user
+	var (
+		done = make(map[uint64]*blockTraceResult)
+		next = start.NumberU64() + 1
+	)
+
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
 	go func() {
-		var (
-			done = make(map[uint64]*blockTraceResult)
-			next = start.NumberU64() + 1
-		)
 		for res := range results {
 			// Queue up next received result
 			result := &blockTraceResult{
@@ -428,34 +437,31 @@ func (api *API) traceChainWithFilter(ctx context.Context, start, end *types.Bloc
 			// Stream completed traces to the user, aborting on the first error
 			for result, ok := done[next]; ok; result, ok = done[next] {
 				if len(result.Traces) > 0 || next == end.NumberU64() {
-					resCh <- result.Traces
+					for _, r := range result.Traces {
+						if r != nil {
+							raw := r.Result.(json.RawMessage)
+							var traceResult []CallParityFrame
+
+							if err := json.Unmarshal(raw, &traceResult); err != nil {
+								log.Warn("Failed to unmarshal trace result", "err", err)
+								continue
+							}
+
+							for _, frame := range traceResult {
+								resultTraces = append(resultTraces, frame)
+							}
+						}
+					}
 				}
 				delete(done, next)
 				next++
 			}
 		}
+		wg.Done()
 	}()
 
-	var res []interface{}
-	for msg := range resCh {
-		for _, result := range msg {
-			if result != nil {
-				raw := result.Result.(json.RawMessage)
-				var traceResult []CallParityFrame
-
-				if err := json.Unmarshal(raw, &traceResult); err != nil {
-					log.Warn("Failed to unmarshal trace result", "err", err)
-					continue
-				}
-
-				for _, frame := range traceResult {
-					res = append(res, frame)
-				}
-			}
-		}
-	}
-
-	return res, nil
+	wg.Wait()
+	return resultTraces, nil
 }
 
 // traceChain configures a new tracer according to the provided configuration, and

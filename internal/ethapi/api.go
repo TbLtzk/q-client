@@ -1124,7 +1124,7 @@ func DoEstimateGas(ctx context.Context, b Backend, args TransactionArgs, blockNr
 			hi = mid
 		}
 	}
-	if b.GasBuffer() != 1 {
+	if b.GasBuffer() != 1 && args.Value == nil {
 		mHi := uint64(float64(hi) * b.GasBuffer())
 		if mHi < cap {
 			hi = mHi
