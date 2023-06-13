@@ -217,6 +217,8 @@ var (
 	governanceFlags = []cli.Flag{
 		utils.RootTimestampFlag,
 		utils.RootAddressesFlag,
+		utils.ProposalQuotaMaxFlag,
+		utils.ProposalQuotaTimeWindowFlag,
 	}
 
 	sentryFlags = []cli.Flag{

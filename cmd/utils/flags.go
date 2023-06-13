@@ -808,12 +808,26 @@ var (
 
 	// Governance flags
 	RootTimestampFlag = &cli.Uint64Flag{
-		Name:  "root.timestamp",
-		Usage: "timestamp of root nodes list",
+		Name:     "root.timestamp",
+		Usage:    "timestamp of root nodes list",
+		Category: flags.GovernanceCategory,
 	}
 	RootAddressesFlag = &cli.StringFlag{
-		Name:  "root.addresses",
-		Usage: "comma separated address of root nodes list",
+		Name:     "root.addresses",
+		Usage:    "comma separated address of root nodes list",
+		Category: flags.GovernanceCategory,
+	}
+	ProposalQuotaMaxFlag = &cli.UintFlag{
+		Name:     "gov.proposalQuotaMax",
+		Usage:    "Max quota of new root/exclusion lists proposal per one root node",
+		Category: flags.GovernanceCategory,
+		Value:    3,
+	}
+	ProposalQuotaTimeWindowFlag = &cli.IntFlag{
+		Name:     "gov.proposalQuotaTimeWindow",
+		Usage:    "Time window after which proposal quota expires in hours",
+		Category: flags.GovernanceCategory,
+		Value:    24,
 	}
 
 	// Network Settings
@@ -1852,6 +1866,15 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 }
 
 func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
+	cfg.ProposalQuotaMax = ProposalQuotaMaxFlag.Value
+	if ctx.IsSet(ProposalQuotaMaxFlag.Name) {
+		cfg.ProposalQuotaMax = ctx.Uint(ProposalQuotaMaxFlag.Name)
+	}
+	cfg.ProposalQuotaTimeWindow = time.Hour * time.Duration(ProposalQuotaTimeWindowFlag.Value)
+	if ctx.IsSet(ProposalQuotaTimeWindowFlag.Name) {
+		cfg.ProposalQuotaTimeWindow = time.Hour * time.Duration(ProposalQuotaTimeWindowFlag.Value)
+	}
+
 	if !(ctx.IsSet(RootTimestampFlag.Name) || ctx.IsSet(RootAddressesFlag.Name)) {
 		switch true {
 		case ctx.Bool(DevnetFlag.Name):

@@ -44,6 +44,7 @@ var (
 	//errInvalidApprovalList        = errors.New("invalid approval list")
 	errProposedApprovalListEmpty  = errors.New("proposed approval list is empty")
 	errInvalidApprovalBlockNumber = errors.New("proposed approval list contains wrong block number")
+	errExclusionListQuotaExceeded = errors.New("exclusion list quota exceeded")
 )
 
 // RootManager stores root and exclusion lists.
@@ -81,11 +82,21 @@ type RootManager struct {
 
 	quarantineLock    sync.Mutex
 	quarantineEventCh chan *QuarantineEvent
+
+	rootQuotaEntries      map[common.Address][]common.ListQuotaEntry
+	exclusionQuotaEntries map[common.Address][]common.ListQuotaEntry
+
+	ProposalQuotaMax        uint
+	rootQuotaLock           sync.Mutex
+	ProposalQuotaTimeWindow time.Duration
+	exclusionQuotaLock      sync.Mutex
 }
 
 // Config of root manager
 type Config struct {
-	RootList common.RootList `toml:"-"`
+	RootList                common.RootList `toml:"-"`
+	ProposalQuotaMax        uint
+	ProposalQuotaTimeWindow time.Duration
 }
 
 type DiffEntry struct {
@@ -130,6 +141,9 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 	desiredRootSet, _ := db.getDesiredRootSet()
 	proposedRootSet, _ := db.getProposedRootSet()
 
+	rootQuotaEntries, _ := db.getQuotaEntries(rootQuotaKey)
+	exclusionQuotaEntries, _ := db.getQuotaEntries(exclusionQuotaKey)
+
 	manager := &RootManager{
 		manager:   am,
 		networkId: networkId,
@@ -149,6 +163,12 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 		approvalFeed: &event.Feed{},
 
 		quarantineEventCh: make(chan *QuarantineEvent),
+
+		rootQuotaEntries:      rootQuotaEntries,
+		exclusionQuotaEntries: exclusionQuotaEntries,
+
+		ProposalQuotaMax:        cfg.ProposalQuotaMax,
+		ProposalQuotaTimeWindow: cfg.ProposalQuotaTimeWindow,
 	}
 
 	manager.setMaxRewindLimit(uint64(params.FullImmutabilityThreshold))
@@ -518,6 +538,14 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet, force bool) (*exclu
 		return nil, errNotRootNode
 	}
 
+	exceeded, err := s.isSetQuotaExceeded(set)
+	if err != nil {
+		log.Warn("Failed to check quota for the proposed list", "err", err)
+	}
+	if exceeded {
+		return nil, errExclusionListQuotaExceeded
+	}
+
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
 
@@ -546,7 +574,7 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet, force bool) (*exclu
 		return nil, errInvalidExclusionListTimestamp
 	}
 
-	err := s.validateExclusionSet(set)
+	err = s.validateExclusionSet(set)
 	if err != nil {
 		return nil, err
 	}
@@ -1324,5 +1352,109 @@ func (s *RootManager) acceptQuarantinedExclusionSet(hash *common.Hash) error {
 	log.Warn("Exclusion set has been removed from the quarantine", "hash", hash)
 
 	s.upgradeExclusionSet(set, true)
+	return nil
+}
+
+func (s *RootManager) isSetQuotaExceeded(received interface{}) (bool, error) {
+	var (
+		prefix         []byte
+		hash           common.Hash
+		signers        map[common.Address][]byte
+		currentEntries map[common.Address][]common.ListQuotaEntry
+		resEntries     = make(map[common.Address][]common.ListQuotaEntry)
+	)
+	switch set := received.(type) {
+	case *rootSet:
+		hash = set.hash
+		signers = set.signers
+		prefix = rootQuotaKey
+		currentEntries = s.rootQuotaEntries
+		s.rootQuotaLock.Lock()
+		defer s.rootQuotaLock.Unlock()
+	case *exclusionSet:
+		hash = set.hash
+		signers = set.signers
+		prefix = exclusionQuotaKey
+		currentEntries = s.exclusionQuotaEntries
+		s.exclusionQuotaLock.Lock()
+		defer s.exclusionQuotaLock.Unlock()
+	default:
+		return false, errors.New("unknown set type")
+	}
+
+	//First, remove expired entries. No matter who sent them
+	//Also, remove entries if they are already in the list and the list was signed by more than one root node
+	for address, entries := range currentEntries {
+		for _, entry := range entries {
+			entryTime := time.Unix(int64(entry.Timestamp), 0)
+			if entryTime.Add(s.ProposalQuotaTimeWindow).Before(time.Now()) {
+				continue //Record expired, ignore it
+			}
+			//List can be signed by more than one root node, so if it is already in the DB, we need to remove it
+			if len(signers) > 1 && entry.Hash == hash {
+				continue //Record is already in the list, ignore it
+			}
+			//Record is still valid, keep it
+			resEntries[address] = append(resEntries[address], entry)
+		}
+	}
+
+	//Need to save cleaned quotas anyway.
+	if !reflect.DeepEqual(currentEntries, resEntries) {
+		if err := s.saveQuotas(received, resEntries, prefix); err != nil {
+			return false, errors.Wrap(err, "failed to save quota entries")
+		}
+	}
+
+	//No signatures or more than one signature.
+	if len(signers) == 0 || len(signers) > 1 {
+		return false, nil
+	}
+
+	//We have one signature, so we need to check if it is already in the DB
+	//Also, resulting list is cleaned up from expired entries and entries signed by more than one root node
+	keys := reflect.ValueOf(signers).MapKeys()
+	signer := keys[0].Interface().(common.Address)
+
+	//Check if there's already an entry for this signer or if the quota is exceeded
+	if entries, ok := resEntries[signer]; ok {
+		if len(entries) >= int(s.ProposalQuotaMax) {
+			//Quota exceeded
+			return true, nil
+		}
+		for _, entry := range entries {
+			if entry.Hash == hash {
+				//Entry already exists
+				return false, nil
+			}
+		}
+	}
+
+	//We are here, this means that no entry found and quota is not exceeded. Add new entry
+	entry := common.ListQuotaEntry{
+		Hash:      hash,
+		Timestamp: uint64(time.Now().Unix()),
+		Author:    signer,
+	}
+
+	resEntries[signer] = append(resEntries[signer], entry)
+	if err := s.saveQuotas(received, resEntries, prefix); err != nil {
+		return false, errors.Wrap(err, "failed to save quota entries")
+	}
+
+	return false, nil
+}
+
+// helper function just to avoid code duplication
+func (s *RootManager) saveQuotas(received interface{}, currentEntries map[common.Address][]common.ListQuotaEntry, prefix []byte) error {
+	if err := s.db.saveQuotaEntries(currentEntries, prefix); err != nil {
+		return err
+	}
+	switch received.(type) {
+	case rootSet:
+		s.rootQuotaEntries = currentEntries
+	case exclusionSet:
+		s.exclusionQuotaEntries = currentEntries
+	}
 	return nil
 }

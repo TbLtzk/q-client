@@ -149,3 +149,9 @@ type ConstitutionFileContent struct {
 	Hash Hash   `json:"hash"`
 	Data []byte `json:"data"`
 }
+
+type ListQuotaEntry struct {
+	Hash      Hash    `json:"hash"`
+	Timestamp uint64  `json:"timestamp"` //determines when the entry was added, not the timestamp of the list as it can be not correct
+	Author    Address `json:"author"`
+}

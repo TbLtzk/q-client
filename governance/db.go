@@ -42,6 +42,11 @@ var (
 	knownConstitutionFilesKey  = []byte("constitution-known-files")
 )
 
+var (
+	rootQuotaKey      = []byte("root-quota")
+	exclusionQuotaKey = []byte("exclusion-quota")
+)
+
 func newDatabase(path string) (*database, error) {
 	db, err := leveldb.New(path, 0, 0, "gov", false)
 	if err != nil {
@@ -346,7 +351,7 @@ func (db *database) getConstitutionFiles() ([]common.ConstitutionFile, error) {
 		return nil, errors.Wrap(err, "failed to check if constitution storage exists")
 	}
 	if !has {
-		if errC := db.saveConstitutionStorage(&[]common.ConstitutionFile{}); errC != nil {
+		if errC := db.saveConstitutionStorage([]common.ConstitutionFile{}); errC != nil {
 			return nil, errors.Wrap(err, "failed to initialize constitution storage")
 		}
 	}
@@ -369,7 +374,7 @@ func (db *database) getConstitutionFileRequests() ([]common.Hash, error) {
 		return nil, errors.Wrap(err, "failed to check if constitution request storage exists")
 	}
 	if !has {
-		if errC := db.saveConstitutionFileRequests(&[]common.Hash{}); errC != nil {
+		if errC := db.saveConstitutionFileRequests([]common.Hash{}); errC != nil {
 			return nil, errors.Wrap(err, "failed to initialize constitution request storage")
 		}
 	}
@@ -392,7 +397,7 @@ func (db *database) getKnownConstitutionFiles() ([]common.Hash, error) {
 		return nil, errors.Wrap(err, "failed to check if known constitution files storage exists")
 	}
 	if !has {
-		if errC := db.saveKnownConstitutionFiles(&[]common.Hash{}); errC != nil {
+		if errC := db.saveKnownConstitutionFiles([]common.Hash{}); errC != nil {
 			return nil, errors.Wrap(err, "failed to initialize known constitution files storage")
 		}
 	}
@@ -408,7 +413,7 @@ func (db *database) getKnownConstitutionFiles() ([]common.Hash, error) {
 	return hashes, nil
 }
 
-func (db *database) saveConstitutionStorage(storage *[]common.ConstitutionFile) error {
+func (db *database) saveConstitutionStorage(storage []common.ConstitutionFile) error {
 	raw, err := json.Marshal(storage)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to marshal constitution storage"))
@@ -417,7 +422,7 @@ func (db *database) saveConstitutionStorage(storage *[]common.ConstitutionFile) 
 	return db.store.Put(constitutionStorageKey, raw)
 }
 
-func (db *database) saveConstitutionFileRequests(storage *[]common.Hash) error {
+func (db *database) saveConstitutionFileRequests(storage []common.Hash) error {
 	raw, err := json.Marshal(storage)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to marshal constitution file requests"))
@@ -426,12 +431,11 @@ func (db *database) saveConstitutionFileRequests(storage *[]common.Hash) error {
 	return db.store.Put(constitutionFileRequestKey, raw)
 }
 
-func (db *database) saveKnownConstitutionFiles(storage *[]common.Hash) error {
+func (db *database) saveKnownConstitutionFiles(storage []common.Hash) error {
 	raw, err := json.Marshal(storage)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to marshal known constitution files"))
 	}
-
 	return db.store.Put(knownConstitutionFilesKey, raw)
 }
 
@@ -541,4 +545,41 @@ func (db *database) getQuarantinedExclusionSetByHash(hash *common.Hash) (*exclus
 		}
 	}
 	return nil, nil
+}
+
+func (db *database) saveQuotaEntries(entries map[common.Address][]common.ListQuotaEntry, quotaKey []byte) error {
+	var res []common.ListQuotaEntry
+	for _, quotaEntries := range entries {
+		res = append(res, quotaEntries...)
+	}
+	raw, err := json.Marshal(res)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to marshal quota entries"))
+	}
+	return db.store.Put(quotaKey, raw)
+}
+
+func (db *database) getQuotaEntries(prefix []byte) (map[common.Address][]common.ListQuotaEntry, error) {
+	has, err := db.store.Has(prefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check if quota entries storage exists")
+	}
+	if !has {
+		if errC := db.saveQuotaEntries(map[common.Address][]common.ListQuotaEntry{}, prefix); errC != nil {
+			return nil, errors.Wrap(err, "failed to initialize quota entry storage")
+		}
+	}
+	raw, errGet := db.store.Get(prefix)
+	if errGet != nil {
+		return nil, errors.Wrap(errGet, "failed to get quota entries from db")
+	}
+	var entries []common.ListQuotaEntry
+	if err = json.Unmarshal(raw, &entries); err != nil {
+		panic(errors.Wrap(err, "failed to unmarshal quota entries"))
+	}
+	res := make(map[common.Address][]common.ListQuotaEntry)
+	for _, entry := range entries {
+		res[entry.Author] = append(res[entry.Author], entry)
+	}
+	return res, nil
 }

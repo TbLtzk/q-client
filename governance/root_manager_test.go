@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/q-dev/q-client/accounts"
@@ -41,6 +43,8 @@ var (
 	roots []common.Address
 )
 
+const defNumAccounts = 4
+
 type exclusionListTestData struct {
 	Name    string
 	WantErr bool
@@ -64,9 +68,9 @@ func tmpDirName(t *testing.T) string {
 	return d
 }
 
-func createRootAccounts(t *testing.T, ks *keystore.KeyStore) []accounts.Account {
+func createRootAccounts(t *testing.T, ks *keystore.KeyStore, numAccounts int) []accounts.Account {
 	var accs []accounts.Account
-	for i := 0; i <= 3; i++ {
+	for i := 0; i < numAccounts; i++ {
 		a1, err := ks.NewAccount("")
 		if err != nil {
 			t.Fatal(err)
@@ -88,14 +92,14 @@ func rootNodes(t *testing.T, ks *keystore.KeyStore) []common.Address {
 	return addrs
 }
 
-func createKeystore(t *testing.T, dir string, createAccounts bool) *keystore.KeyStore {
+func createKeystore(t *testing.T, dir string, createAccounts bool, numAccounts int) *keystore.KeyStore {
 	var (
 		n, p = keystore.StandardScryptN, keystore.StandardScryptP
 	)
 	ks := keystore.NewKeyStore(dir, n, p)
 
 	if createAccounts {
-		createRootAccounts(t, ks)
+		createRootAccounts(t, ks, numAccounts)
 	}
 
 	return ks
@@ -128,8 +132,12 @@ func createGovConfig(t *testing.T, ks *keystore.KeyStore, isRootNode bool) Confi
 }
 
 func newTestRootManager(t *testing.T, isRootNode bool) *RootManager {
+	return newTestRootManagerWithAccounts(t, isRootNode, defNumAccounts)
+}
+
+func newTestRootManagerWithAccounts(t *testing.T, isRootNode bool, numAccounts int) *RootManager {
 	dataDir := tmpDirName(t)
-	ks := createKeystore(t, dataDir, isRootNode)
+	ks := createKeystore(t, dataDir, isRootNode, numAccounts)
 
 	govCfg := createGovConfig(t, ks, isRootNode)
 	accMgr := createAccountManager(t, ks)
@@ -722,6 +730,76 @@ func newTestChain(t *testing.T, rm *RootManager) *core.BlockChain {
 	}
 
 	return chain
+}
+
+func randomExclusionSet(t *testing.T, add int64) exclusionSet {
+	var set exclusionSet
+
+	set.timestamp = uint64(time.Now().Unix() + add) //This will help to have different exclusion sets
+	set.signers = make(map[common.Address][]byte)
+	for i := 0; i < 10; i++ {
+		set.addresses = append(set.addresses, common.Address{byte(i + int(add))})
+	}
+	set.hash = set.calcHash()
+	return set
+}
+
+func TestSetQuota(t *testing.T) {
+	t.Run("testQuotaExceedsByNumber", func(t *testing.T) {
+		testQuotaExceedsByNumber(t)
+	})
+	t.Run("testQuotaExceedsWithExpiredEntries", func(t *testing.T) {
+		testQuotaExceedsWithExpiredEntries(t)
+	})
+}
+
+func testQuotaExceedsByNumber(t *testing.T) {
+	rm := newTestRootManagerWithAccounts(t, true, 1)
+	rm.ProposalQuotaMax = 3
+	rm.ProposalQuotaTimeWindow = 24 * time.Hour
+
+	//Last set will overflow the quota
+	for i := 0; i < int(rm.ProposalQuotaMax+1); i++ {
+		set := randomExclusionSet(t, int64(rand.Intn(1000)))
+		rm.signExclusionSet(&set)
+
+		is, err := rm.isSetQuotaExceeded(&set)
+		if err != nil {
+			t.Errorf("isSetQuotaExceeded() error = %v", err)
+		}
+		if i > int(rm.ProposalQuotaMax) && !is {
+			t.Errorf("isSetQuotaExceeded() = %v, want %v", is, true)
+		}
+	}
+}
+
+func testQuotaExceedsWithExpiredEntries(t *testing.T) {
+	rm := newTestRootManagerWithAccounts(t, true, 1)
+	rm.ProposalQuotaMax = 3
+	rm.ProposalQuotaTimeWindow = 30 * time.Second
+
+	//Create 3 sets that will be added to the quota storage
+	//Last set will overflow the quota
+	for i := 0; i < 5; i++ {
+		set := randomExclusionSet(t, int64(i))
+		rm.signExclusionSet(&set)
+
+		//Will add set to the quota storage
+		rm.isSetQuotaExceeded(&set)
+	}
+
+	//Need to wait till time window expires
+	time.Sleep(rm.ProposalQuotaTimeWindow + 1)
+
+	//This set shouldn't cause quota overflow
+	set := randomExclusionSet(t, 6)
+	rm.signExclusionSet(&set)
+
+	is, err := rm.isSetQuotaExceeded(&set)
+	if err != nil {
+		t.Errorf("isSetQuotaExceeded() error = %v", err)
+	}
+	assert.False(t, is, "testQuotaExceedsWithExpiredEntries. Set must exceed the quota but it doesn't")
 }
 
 func TestQuarantineExclusionSet(t *testing.T) {
