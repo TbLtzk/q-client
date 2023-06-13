@@ -36,6 +36,7 @@ import (
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/misc"
 	"gitlab.com/q-dev/q-client/contracts"
+	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -1095,4 +1096,56 @@ func toSet(signers []common.Address) map[common.Address]struct{} {
 	}
 
 	return set
+}
+
+func (c *Clique) ChooseBlockWithMostRecentSigner(chain *core.BlockChain, header *types.Header, externalHeader *types.Header) (*types.Header, error) {
+	//In this case, header numbers should be the same, so take it from local header
+	number := header.Number.Uint64()
+	if number == 0 {
+		return nil, errUnknownBlock
+	}
+
+	snap, err := c.snapshot(chain, header.Number.Uint64(), header.ParentHash, nil, false)
+	if err != nil {
+		return nil, err
+	}
+	err = c.updateProposals(chain, header.Number.Uint64(), snap, false)
+	if err != nil {
+		log.Error("failed to update proposals", "error", err, "step", "prepare")
+		return nil, err
+	}
+
+	signer, err := ecrecover(header, c.signatures)
+	if err != nil {
+		return nil, err
+	}
+	exSigner, err := ecrecover(externalHeader, c.signatures)
+	if err != nil {
+		return nil, err
+	}
+
+	var localIndex, externalIndex int
+
+	for i, address := range snap.SignersList() {
+		if address == signer {
+			localIndex = i + 1
+		}
+		if address == exSigner {
+			externalIndex = i + 1
+		}
+	}
+
+	//We have no information about signer, so return local header
+	if externalIndex == 0 {
+		return header, nil
+	}
+
+	localPosition := (number - uint64(localIndex-1)) % uint64(len(snap.SignersList()))
+	externalPosition := (number - uint64(externalIndex-1)) % uint64(len(snap.SignersList()))
+
+	if localPosition < externalPosition {
+		return externalHeader, nil
+	}
+
+	return header, nil
 }
