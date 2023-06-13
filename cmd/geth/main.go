@@ -164,6 +164,7 @@ var (
 		utils.IgnoreLegacyReceiptsFlag,
 		configFileFlag,
 		utils.ConstitutionDirFlag,
+		utils.GlobalGasBufferFlag,
 	}, utils.NetworkFlags, utils.DatabasePathFlags)
 
 	rpcFlags = []cli.Flag{
