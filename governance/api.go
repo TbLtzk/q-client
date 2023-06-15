@@ -179,7 +179,7 @@ func (a *GovernanceAPI) AddConstitutionFile(filename string) error {
 // RequestForConstitutionFile creates request for specific constitution file from it's peers.
 // Once this request created, node will be asking its peers for this file until it succeeded
 func (a *GovernanceAPI) RequestForConstitutionFile(constitutionHash *common.Hash) error {
-	hash, err := a.gov.ConstitutionManager.addConstitutionFileRequest(constitutionHash)
+	hash, err := a.gov.ConstitutionManager.addConstitutionFileRequest(constitutionHash, false)
 
 	if err != nil {
 		return err

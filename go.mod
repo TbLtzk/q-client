@@ -59,6 +59,7 @@ require (
 	github.com/tyler-smith/go-bip39 v1.1.0
 	github.com/urfave/cli/v2 v2.17.2-0.20221006022127-8f469abc00aa
 	golang.org/x/crypto v0.1.0
+	golang.org/x/exp v0.0.0-20220426173459-3bcf042a4bf5
 	golang.org/x/mobile v0.0.0-20230301163155-e0f57694e12c
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.6.0

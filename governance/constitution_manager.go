@@ -20,6 +20,7 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/system-contracts/generated"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -73,21 +74,13 @@ func NewConstitutionManager(datadir string, db *database, rm *RootManager) (*Con
 	knownHashes, _ := db.getKnownConstitutionFiles()
 	manager.knownHashes = knownHashes
 
-	////TODO this is too dirty. Find a better way to wait until registry is initialized
-	//time.AfterFunc(time.Second*5, func() {
-	//	manager.CheckLastConstitutionFileExists()
-	//})
+	manager.addLastConstitutionFileCheckRoutine()
 
 	return manager, nil
 }
 
-// TODO call init
-func (cm *ConstitutionManager) InitRegistry(reg *contracts.Registry) {
-	cm.reg = reg
-}
-
 func (cm *ConstitutionManager) validateStorage() {
-	log.Info("Validating constitution storage")
+	log.Trace("Validating constitution storage")
 	cm.storageLock.Lock()
 	defer cm.storageLock.Unlock()
 
@@ -520,7 +513,7 @@ func (cm *ConstitutionManager) storeConstitutionFile(contents []byte, cFile comm
 	return nil
 }
 
-func (cm *ConstitutionManager) addConstitutionFileRequest(requiredHash *common.Hash) (*common.Hash, error) {
+func (cm *ConstitutionManager) addConstitutionFileRequest(requiredHash *common.Hash, ignoreExists bool) (*common.Hash, error) {
 	cm.validateStorage()
 
 	cm.storageLock.Lock()
@@ -536,6 +529,9 @@ func (cm *ConstitutionManager) addConstitutionFileRequest(requiredHash *common.H
 	}
 	for _, dbHash := range hashes {
 		if dbHash == *requiredHash {
+			if ignoreExists {
+				return requiredHash, nil
+			}
 			return nil, errors.New("File with the requested hash already exists in the request list")
 		}
 	}
@@ -643,16 +639,53 @@ func (cm *ConstitutionManager) getDraftFiles() ([]common.ConstitutionFile, error
 	return resfiles, nil
 }
 
-func (cm *ConstitutionManager) CheckLastConstitutionFileExists() {
-	hash, err := cm.getLastConstitutionHash()
-	if err != nil {
-		return
-	}
-	if hash != nil {
-		_, err := cm.addConstitutionFileRequest(hash)
+func (cm *ConstitutionManager) addLastConstitutionFileCheckRoutine() {
+	check := func() error {
+		cm.storageLock.Lock()
+		defer cm.storageLock.Unlock()
+
+		hash, err := cm.getLastConstitutionHash()
 		if err != nil {
-			log.Error("Cannot add constitution file request", "error", err)
-			return
+			return err
 		}
+
+		files, err := cm.db.getConstitutionFiles()
+		if err != nil {
+			return err
+		}
+		for i := range files {
+			if &files[i].Hash == hash {
+				return nil
+			}
+		}
+		requests, err := cm.db.getConstitutionFileRequests()
+		if err != nil {
+			return err
+		}
+		if slices.Contains(requests, *hash) {
+			return nil
+		}
+
+		if hash != nil {
+			_, err = cm.addConstitutionFileRequest(hash, true)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
 	}
+
+	go func() {
+		//Initial check at startup. Wait for contract registry to be initialized
+		time.Sleep(time.Second * 10)
+		if err := check(); err != nil {
+			log.Error("Check last constitution file failed", "error", err)
+		}
+		for {
+			time.Sleep(time.Hour * 1)
+			if err := check(); err != nil {
+				log.Error("Check last constitution file failed", "error", err)
+			}
+		}
+	}()
 }
