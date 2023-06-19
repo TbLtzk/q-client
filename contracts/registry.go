@@ -350,6 +350,10 @@ func (r *Registry) ContractRegistryUpgradeVoting() *generated.ContractRegistryUp
 	return contractRegistryUpgradeVoting
 }
 
+func (r *Registry) GetSelfAddress() common.Address {
+	return r.addr
+}
+
 func (r *Registry) SystemContracts() []generated.ContractRegistryPair {
 	contracts, err := r.registry().GetContracts(nil)
 	if err != nil {
