@@ -378,7 +378,7 @@ func (h *handler) handleMsg(p *peer) error {
 
 	if msg.Code != ConstitutionFilesMsg {
 		if msg.Size > protocolMaxMsgSize {
-			return errors.Wrap(err, "message too large")
+			return errors.New("message too large")
 		}
 	} else {
 		if msg.Size > maxConstitutionFileSize {

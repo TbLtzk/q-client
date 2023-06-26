@@ -133,7 +133,7 @@ func (p *peer) handshake(msg statusMsgBody, rm *RootManager) (*peerStatus, error
 	}
 
 	if status.Network != msg.Network {
-		return nil, errors.Wrap(err, "invalid network id")
+		return nil, errors.New("invalid network id")
 	}
 
 	currentRootSet, err := newRootSet(&status.CurrentRootList)

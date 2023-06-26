@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus/clique"
@@ -22,7 +21,6 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/system-contracts/generated"
 )
 
 var (
@@ -148,7 +146,7 @@ func newTestRootManagerWithAccounts(t *testing.T, isRootNode bool, numAccounts i
 		roots = rootAddresses
 	}
 
-	rm, err := NewRootManager(accMgr, 35443, dataDir, &govCfg)
+	rm, err := NewRootManager(accMgr, 123456, dataDir, &govCfg)
 	if err != nil {
 		t.Fatalf("Can't create RootManager: %v", err)
 	}
@@ -179,26 +177,7 @@ func newTestRootManagerWithAccounts(t *testing.T, isRootNode bool, numAccounts i
 }
 
 func newTestRegistry() *contracts.Registry {
-	reg := testRegistry{}
-	return (*contracts.Registry)(&reg)
-}
-
-type testRegistry contracts.Registry
-type testRoots generated.Roots
-type testAliases generated.AccountAliases
-
-func (r *testRegistry) Roots() *generated.Roots {
-	var tRoots testRoots
-	return (*generated.Roots)(&tRoots)
-}
-
-func (r *testRegistry) AccountAliases() *generated.AccountAliases {
-	var tAliases testAliases
-	return (*generated.AccountAliases)(&tAliases)
-}
-
-func (testRoots) GetMembers(opts *bind.CallOpts) ([]common.Address, error) {
-	return roots, nil
+	return contracts.NewTestModeRegistry()
 }
 
 func TestNewRootManager(t *testing.T) {
