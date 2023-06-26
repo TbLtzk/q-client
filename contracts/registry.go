@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"gitlab.com/q-dev/system-contracts/generated"
+
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/system-contracts/generated"
 )
 
 // Registry of system contracts.
@@ -347,6 +348,20 @@ func (r *Registry) ContractRegistryUpgradeVoting() *generated.ContractRegistryUp
 	// err is never returned here
 	contractRegistryUpgradeVoting, _ := generated.NewContractRegistryUpgradeVoting(addr, r.Backend)
 	return contractRegistryUpgradeVoting
+}
+
+func (r *Registry) GetSelfAddress() common.Address {
+	return r.addr
+}
+
+func (r *Registry) SystemContracts() []generated.ContractRegistryPair {
+	contracts, err := r.registry().GetContracts(nil)
+	if err != nil {
+		log.Error("failed to get system contracts from registry")
+		return nil
+	}
+
+	return contracts
 }
 
 func (r *Registry) registry() *generated.ContractRegistry {
