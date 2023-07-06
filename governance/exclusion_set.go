@@ -222,6 +222,9 @@ func (s1 *exclusionSet) addrToBlockRangeExclusiveDiff(s2 *exclusionSet) map[comm
 	if s2 == nil {
 		return s1.blockRanges
 	}
+	if s1 == nil {
+		return nil
+	}
 
 	res := make(map[common.Address][]common.BlockRange)
 

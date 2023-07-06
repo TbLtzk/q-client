@@ -43,6 +43,7 @@ var (
 // the chain it belongs to.
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	MainnetGenesisHash: MainnetTrustedCheckpoint,
+	TestnetGenesisHash: TestnetTrustedCheckpoint,
 	RopstenGenesisHash: RopstenTrustedCheckpoint,
 	SepoliaGenesisHash: SepoliaTrustedCheckpoint,
 	RinkebyGenesisHash: RinkebyTrustedCheckpoint,
@@ -85,10 +86,10 @@ var (
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
 	MainnetTrustedCheckpoint = &TrustedCheckpoint{
-		SectionIndex: 451,
-		SectionHead:  common.HexToHash("0xe47f84b9967eb2ad2afff74d59901b63134660011822fdababaf8fdd18a75aa6"),
-		CHTRoot:      common.HexToHash("0xc31e0462ca3d39a46111bb6b63ac4e1cac84089472b7474a319d582f72b3f0c0"),
-		BloomRoot:    common.HexToHash("0x7c9f25ce3577a3ab330d52a7343f801899cf9d4980c69f81de31ccc1a055c809"),
+		SectionIndex: 220,
+		SectionHead:  common.HexToHash("0xc880976a82d670c7140bbf91ad67aeeec28d1f5fd69790b3d341a893516ff20c"),
+		CHTRoot:      common.HexToHash("0x0cd6d5dabacdb762243723270c812c1b8a11cbe45a186662207571f26da76fae"),
+		BloomRoot:    common.HexToHash("0x935501b759621c088631f55bee2d6420b76dcbc19d7f57c4599493742958aeb4"),
 	}
 
 	// MainnetCheckpointOracle contains a set of configs for the main network oracle.
@@ -102,6 +103,14 @@ var (
 			common.HexToAddress("0x0DF8fa387C602AE62559cC4aFa4972A7045d6707"), // Guillaume
 		},
 		Threshold: 2,
+	}
+
+	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
+	TestnetTrustedCheckpoint = &TrustedCheckpoint{
+		SectionIndex: 180,
+		SectionHead:  common.HexToHash("0x918528cddf9551e49b2df05f5fc92226f694691bdc5cc29b10ceba01550a4278"),
+		CHTRoot:      common.HexToHash("0x03848ae7453453fb3ef42c7516fbb2a8ec1861be4fede7205b8913f3e5a46026"),
+		BloomRoot:    common.HexToHash("0x6c9b860041a9b56f9ecd80308eed117b491749996839d0e6a87d82881ec523bb"),
 	}
 
 	// RopstenChainConfig contains the chain parameters to run a node on the Ropsten test network.
@@ -310,6 +319,7 @@ var (
 // NetworkNames are user friendly names to use in the chain spec banner.
 var NetworkNames = map[string]string{
 	MainnetChainConfig.ChainID.String(): "mainnet",
+	TestnetChainConfig.ChainID.String(): "testnet",
 	RopstenChainConfig.ChainID.String(): "ropsten",
 	RinkebyChainConfig.ChainID.String(): "rinkeby",
 	GoerliChainConfig.ChainID.String():  "goerli",
