@@ -48,6 +48,7 @@ Pay attention, that `--whitelist` flag became deprecated, if such flag is set, y
 - Quota for proposed exclusion lists. It implies that if some of root nodes propose root/exclusion lists too
   often - all lists above the quota will be ignored
 - Implemented rules for EIP-3436 (fork choice rules)
+- Trace filters
 
 ### Notes
 Default quota values are set to 3 per Root node/24 hours. If you want to change it, please use the following flags:

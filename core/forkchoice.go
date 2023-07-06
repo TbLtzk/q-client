@@ -17,15 +17,11 @@
 package core
 
 import (
-	crand "crypto/rand"
 	"errors"
 	"math/big"
-	mrand "math/rand"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -47,7 +43,6 @@ type ChainReader interface {
 // for all other proof-of-work networks.
 type ForkChoice struct {
 	chain ChainReader
-	rand  *mrand.Rand
 
 	// preserve is a helper function used in td fork choice.
 	// Miners will prefer to choose the local mined block if the
@@ -61,14 +56,8 @@ type ForkChoice struct {
 }
 
 func NewForkChoice(chainReader ChainReader, preserve func(header *types.Header, externalHeader *types.Header) bool) *ForkChoice {
-	// Seed a fast but crypto originating random generator
-	seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
-	if err != nil {
-		log.Crit("Failed to initialize random seed", "err", err)
-	}
 	return &ForkChoice{
 		chain:    chainReader,
-		rand:     mrand.New(mrand.NewSource(seed.Int64())),
 		preserve: preserve,
 	}
 }
