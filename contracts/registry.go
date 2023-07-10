@@ -364,6 +364,10 @@ func (r *Registry) SystemContracts() []generated.ContractRegistryPair {
 	return contracts
 }
 
+func (r *Registry) GetAddr(key string) common.Address {
+	return r.getAddr(key)
+}
+
 func (r *Registry) registry() *generated.ContractRegistry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
