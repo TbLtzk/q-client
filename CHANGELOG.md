@@ -37,3 +37,11 @@ Please note that some command-line flags became deprecated.
 
 ### Notes
 Pay attention, that `--whitelist` flag became deprecated, if such flag is set, you should consider removing it
+
+## [1.3.1] - 2023-06
+### Added
+- Testnet trusted checkpoint
+
+### Fixed
+- L0 exlusion set issues
+- Mainnet trusted checkpoint
