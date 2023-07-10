@@ -350,6 +350,19 @@ func (r *Registry) ContractRegistryUpgradeVoting() *generated.ContractRegistryUp
 	return contractRegistryUpgradeVoting
 }
 
+// VotingWeightProxy returns VotingWeightProxy contract backend if available.
+func (r *Registry) VotingWeightProxy() *generated.VotingWeightProxy {
+	addr := r.getAddr("governance.votingWeightProxy")
+	if (addr == common.Address{}) {
+		log.Debug("governance.votingWeightProxy is not deployed")
+		return nil
+	}
+
+	// err is never returned here
+	votingWeightProxy, _ := generated.NewVotingWeightProxy(addr, r.Backend)
+	return votingWeightProxy
+}
+
 func (r *Registry) GetSelfAddress() common.Address {
 	return r.addr
 }
