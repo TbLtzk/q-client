@@ -191,6 +191,12 @@ func (ec *Client) ContractRegistryUpgradeVotings(ctx context.Context, proposalCo
 	return result, err
 }
 
+func (ec *Client) GetRootNodeApprovalList(ctx context.Context, blockNumber *big.Int, hash *common.Hash) (*[]common.RootNodeApproval, error) {
+	var result *[]common.RootNodeApproval
+	err := ec.c.CallContext(ctx, &result, "govPub_getRootNodeApprovals", blockNumber, hash)
+	return result, err
+}
+
 // BlockNumber returns the most recent block number
 func (ec *Client) BlockNumber(ctx context.Context) (uint64, error) {
 	var result hexutil.Uint64

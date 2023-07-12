@@ -979,6 +979,12 @@ web3._extend({
 			call: 'govPub_isInExclusionList',
 			params: 1,
 		}),
+	    new web3._extend.Method({
+			name: 'getRootNodeApprovals',
+			call: 'govPub_getRootNodeApprovals',
+			params: 2,
+			inputFormatter: [null, null]
+		}),
     ],
 	properties: []
 });
