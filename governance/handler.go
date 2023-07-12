@@ -7,10 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/crypto"
-
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p"
@@ -526,7 +525,7 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 		}
 	}
 	if len(resHashes) != len(h.constitutionManager.requiredHashes) {
-		if errSave := h.constitutionManager.db.saveConstitutionFileRequests(&resHashes); errSave != nil {
+		if errSave := h.constitutionManager.db.saveConstitutionFileRequests(resHashes); errSave != nil {
 			return errors.Wrap(errSave, "Failed to save constitution file requests to the database")
 		}
 	}
@@ -540,6 +539,20 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 	defer rm.rootLock.Unlock()
 
 	received.aliases = rm.getAliasesOfRoots(received.rootAddresses)
+
+	// Check if the received root set is acceptable (spam protection)
+	// Skip this check if the received root set is the same as the active one
+	if rm.active == nil || rm.active.hash != received.hash {
+		exceeded, err := rm.isSetQuotaExceeded(received)
+		if err != nil {
+			log.Error("Failed to check root set quota", "error", err)
+			return nil
+		}
+		if exceeded {
+			log.Warn("Received root set's author has exceeded quota", "hash", received.hash)
+			return nil
+		}
+	}
 
 	switch {
 	case rm.active.isAcceptable(received) && (rm.desired == nil || rm.desired.hash != received.hash):
@@ -647,6 +660,20 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 
 	rm.active.aliases = rm.getAliasesOfRoots(rm.active.rootAddresses)
 
+	// Check if the received exclusion set is acceptable (spam protection)
+	// Skip this check if the received exclusion set is the same as the active one
+	if rm.activeExSet == nil || rm.activeExSet.hash != received.hash {
+		exceeded, err := rm.isSetQuotaExceeded(received)
+		if err != nil {
+			log.Error("Failed to check exclusion set quota", "error", err)
+			return nil
+		}
+		if exceeded {
+			log.Warn("Received exclusion set's author has exceeded quota", "hash", received.hash)
+			return nil
+		}
+	}
+
 	switch true {
 	case rm.isAcceptableExclusionSet(received):
 		// ensure locally stored signatures are not lost
@@ -658,7 +685,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			rm.signExclusionSet(received)
 		}
 
-		rm.upgradeExclusionSet(received)
+		rm.upgradeExclusionSet(received, false)
 
 		h.exEventCh <- &exclusionSetEvent{set: received}
 	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
@@ -688,7 +715,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			return nil
 		}
 
-		rm.upgradeExclusionSet(rm.desiredExSet)
+		rm.upgradeExclusionSet(rm.desiredExSet, false)
 		h.exEventCh <- &exclusionSetEvent{set: rm.activeExSet}
 	default:
 		if len(rm.getActiveRootSet(true).knownSigners(received.signers)) == 0 {
@@ -813,7 +840,7 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 
 		//If the requested file is not on the list but node has it, it answers anyway (this will allow for draft constitution to be stored in the file system)
 		if !ok {
-			log.Error("Requested file hash doesn't belong to history")
+			log.Debug("Requested file hash doesn't belong to history")
 		}
 
 		foundInFiles := false

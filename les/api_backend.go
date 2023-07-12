@@ -291,6 +291,14 @@ func (b *LesApiBackend) RPCGasCap() uint64 {
 	return b.eth.config.RPCGasCap
 }
 
+func (b *LesApiBackend) GasBuffer() float64 {
+	buffer := b.eth.config.GasBuffer
+	if buffer == 0 {
+		return 1.0
+	}
+	return buffer
+}
+
 func (b *LesApiBackend) RPCEVMTimeout() time.Duration {
 	return b.eth.config.RPCEVMTimeout
 }

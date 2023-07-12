@@ -1,27 +1,30 @@
 package governance
 
 import (
+	"encoding/json"
 	"fmt"
-	"math"
 	"math/big"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/eth/downloader"
-
 	"github.com/pkg/errors"
+
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/sentryMonitor"
 )
 
 var (
@@ -41,6 +44,7 @@ var (
 	//errInvalidApprovalList        = errors.New("invalid approval list")
 	errProposedApprovalListEmpty  = errors.New("proposed approval list is empty")
 	errInvalidApprovalBlockNumber = errors.New("proposed approval list contains wrong block number")
+	errExclusionListQuotaExceeded = errors.New("exclusion list quota exceeded")
 )
 
 // RootManager stores root and exclusion lists.
@@ -73,16 +77,35 @@ type RootManager struct {
 	bc  *core.BlockChain
 	reg *contracts.Registry
 	dl  *downloader.Downloader
+
+	rewindLimit uint64
+
+	quarantineLock    sync.Mutex
+	quarantineEventCh chan *QuarantineEvent
+
+	rootQuotaEntries      map[common.Address][]common.ListQuotaEntry
+	exclusionQuotaEntries map[common.Address][]common.ListQuotaEntry
+
+	ProposalQuotaMax        uint
+	rootQuotaLock           sync.Mutex
+	ProposalQuotaTimeWindow time.Duration
+	exclusionQuotaLock      sync.Mutex
 }
 
 // Config of root manager
 type Config struct {
-	RootList common.RootList `toml:"-"`
+	RootList                common.RootList `toml:"-"`
+	ProposalQuotaMax        uint
+	ProposalQuotaTimeWindow time.Duration
 }
 
 type DiffEntry struct {
 	Name string
 	Diff []common.Address
+}
+
+type QuarantineEvent struct {
+	Set *exclusionSet
 }
 
 type Keystore interface {
@@ -118,6 +141,9 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 	desiredRootSet, _ := db.getDesiredRootSet()
 	proposedRootSet, _ := db.getProposedRootSet()
 
+	rootQuotaEntries, _ := db.getQuotaEntries(rootQuotaKey)
+	exclusionQuotaEntries, _ := db.getQuotaEntries(exclusionQuotaKey)
+
 	manager := &RootManager{
 		manager:   am,
 		networkId: networkId,
@@ -135,7 +161,19 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 		proposedExSet: db.getProposedExclusionSet(),
 
 		approvalFeed: &event.Feed{},
+
+		quarantineEventCh: make(chan *QuarantineEvent),
+
+		rootQuotaEntries:      rootQuotaEntries,
+		exclusionQuotaEntries: exclusionQuotaEntries,
+
+		ProposalQuotaMax:        cfg.ProposalQuotaMax,
+		ProposalQuotaTimeWindow: cfg.ProposalQuotaTimeWindow,
 	}
+
+	manager.setMaxRewindLimit(uint64(params.FullImmutabilityThreshold))
+
+	go manager.startQuarantineRoutine()
 
 	return manager, nil
 }
@@ -262,28 +300,50 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 	return isSigned
 }
 
+func (s *RootManager) isExclusionSetMeetsQuarantineCriteria(set *exclusionSet, blockNumber uint64) bool {
+	rewindLimit := s.maxRewindLimit() //TODO reconsider this logic
+
+	//Check if set is already in the quarantine or can cause a rewind
+	return s.isExclusionSetInQuarantine(set) || s.bc.CurrentBlock().Number().Uint64()-blockNumber > rewindLimit
+}
+
 // unsafe for concurrent usage
 // lock exLock externally first
-func (s *RootManager) upgradeExclusionSet(set *exclusionSet) {
+func (s *RootManager) upgradeExclusionSet(set *exclusionSet, forceUpgrade bool) {
 	if s.activeExSet != nil && s.activeExSet.hash == set.hash {
 		log.Debug("Exclusion list is already active, skipping", "hash", set.hash.Hex(), "timestamp", set.timestamp)
 		return
 	}
 
-	// If exclusion set was changed, revalidate blocks up to earliest affected one
+	// If exclusion set was changed, revalidate blocks up to the earliest affected one
 	addrToBlockRange := set.addrToBlockRangeExclusiveDiff(s.activeExSet)
+
 	if len(addrToBlockRange) > 0 {
-		var earliestBlock uint64 = math.MaxUint64
-		for _, blockRanges := range addrToBlockRange {
-			for _, bRange := range blockRanges {
-				if bRange.StartAddress < earliestBlock {
-					earliestBlock = bRange.StartAddress
+		earliestBlock := set.earliestBlockFromDiff(s.activeExSet)
+
+		//If the exclusion set contains blocks in the past, and applying it can cause the rewind, quarantine it.
+		//Otherwise, revalidate the chain.
+		//If upgrade is forced, we don't care about the age of the exclusion set
+		//Verification goes only here, because we don't want to quarantine exclusion set if there's no need to
+		if !forceUpgrade && s.isExclusionSetMeetsQuarantineCriteria(set, earliestBlock) {
+			//Notification about quarantine is sent in startQuarantineRoutine
+			if err := s.initiateExclusionSetQuarantine(set); err != nil {
+				if err != nil {
+					//Quarantine failed, but we still need to return from here to avoid updating exclusion set
+					log.Error("Failed to quarantine exclusion set", "err", err)
+					return
 				}
 			}
+			return
 		}
 
 		// Revalidate in separate goroutine to prevent possible deadlocks
-		go s.bc.RevalidateChain(earliestBlock)
+		go func() {
+			err := s.bc.RevalidateChain(earliestBlock)
+			if err != nil {
+				log.Error("Failed to revalidate chain after updating the exclusion list", "err", err)
+			}
+		}()
 	}
 
 	s.activeExSet = set
@@ -382,7 +442,7 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 				return fmt.Errorf("couldn't find any blocks in proposal for address %s", addr.String())
 			}
 
-			//TODO Passed range can be increased& its baad
+			//TODO Passed range can be increased& its bad
 
 			for _, exBlockRange := range currentBanBlockRanges {
 				inNewSet := false
@@ -473,9 +533,17 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 	return nil
 }
 
-func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, error) {
+func (s *RootManager) proposeExclusionSet(set *exclusionSet, force bool) (*exclusionSet, error) {
 	if !s.isRootNode(true) {
 		return nil, errNotRootNode
+	}
+
+	exceeded, err := s.isSetQuotaExceeded(set)
+	if err != nil {
+		log.Warn("Failed to check quota for the proposed list", "err", err)
+	}
+	if exceeded {
+		return nil, errExclusionListQuotaExceeded
 	}
 
 	s.exLock.Lock()
@@ -506,9 +574,20 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 		return nil, errInvalidExclusionListTimestamp
 	}
 
-	err := s.validateExclusionSet(set)
+	err = s.validateExclusionSet(set)
 	if err != nil {
 		return nil, err
+	}
+
+	if !force {
+		if s.proposedExSet != nil && areExclusionListsEqual(set, s.proposedExSet) {
+			log.Warn("The proposed list is a duplicate of the current proposed list")
+			return set, nil
+		}
+		if s.activeExSet != nil && areExclusionListsEqual(set, s.activeExSet) {
+			log.Warn("The proposed list is a duplicate of the active list")
+			return set, nil
+		}
 	}
 
 	if s.signExclusionSet(set) {
@@ -517,7 +596,7 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
 
 	if s.getActiveRootSet(true).isEnoughExSetSignatures(set) {
-		s.upgradeExclusionSet(set)
+		s.upgradeExclusionSet(set, false)
 	}
 
 	s.proposedExSet = set
@@ -528,6 +607,18 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet) (*exclusionSet, err
 	}
 
 	return set, nil
+}
+
+func areExclusionListsEqual(a, b *exclusionSet) bool {
+	if a == nil || b == nil {
+		return false
+	}
+
+	if !reflect.DeepEqual(a.addresses, b.addresses) || !reflect.DeepEqual(a.blockRanges, b.blockRanges) {
+		return false
+	}
+
+	return true
 }
 
 func (s *RootManager) acceptProposedExclusionList(lock bool) error {
@@ -562,7 +653,7 @@ func (s *RootManager) acceptProposedExclusionList(lock bool) error {
 	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
 
 	if s.getActiveRootSet(true).isEnoughExSetSignatures(s.proposedExSet) {
-		s.upgradeExclusionSet(s.proposedExSet)
+		s.upgradeExclusionSet(s.proposedExSet, false)
 	} else {
 		s.desiredExSet = s.proposedExSet
 		s.db.saveDesiredExclusionSet(s.desiredExSet)
@@ -616,7 +707,7 @@ func (s *RootManager) validateRootSet(addresses []common.Address, lock bool) err
 	return nil
 }
 
-func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
+func (s *RootManager) proposeRootSet(set *rootSet, force bool) (*rootSet, error) {
 	if !s.isRootNode(false) {
 		return nil, errors.New("not a root node")
 	}
@@ -645,6 +736,17 @@ func (s *RootManager) proposeRootSet(set *rootSet) (*rootSet, error) {
 
 	if len(strconv.Itoa(int(set.timestamp))) != len(strconv.Itoa(int(ts[0]))) {
 		return nil, errInvalidExclusionListTimestamp
+	}
+
+	if !force {
+		if s.proposed != nil && reflect.DeepEqual(set.rootAddresses, s.proposed.rootAddresses) {
+			log.Warn("The proposed list is a duplicate of the current proposed list")
+			return set, nil
+		}
+		if s.active != nil && reflect.DeepEqual(set.rootAddresses, s.active.rootAddresses) {
+			log.Warn("The proposed list is a duplicate of the active list")
+			return set, nil
+		}
 	}
 
 	if s.signRootSet(set) {
@@ -1132,4 +1234,228 @@ func (s *RootManager) isAthosReached() bool {
 	}
 	currentBlock := s.bc.CurrentBlock().Number()
 	return s.bc.Config().IsAthos(currentBlock)
+}
+
+// received exclusion set cam cause huge rewind of the blockchain. It is very undesirable
+// instead of updating active exclusion set we will create new one and start quarantining it
+func (s *RootManager) initiateExclusionSetQuarantine(set *exclusionSet) error {
+	if s.isExclusionSetInQuarantine(set) {
+		return nil
+	}
+
+	s.quarantineLock.Lock()
+	defer s.quarantineLock.Unlock()
+
+	s.quarantineEventCh <- &QuarantineEvent{
+		set,
+	}
+
+	err := s.db.addExclusionSetToQuarantine(set)
+	if err != nil {
+		return errors.Wrap(err, "failed to add exclusion set to quarantine")
+	}
+
+	return nil
+}
+
+func (s *RootManager) notifyExclusionSetIsQuarantined(set *exclusionSet, currentBlock uint64, rewindDepth uint64, rewindLimit uint64) {
+	b, err := json.MarshalIndent(set.makeList(), "", "\t")
+	if err != nil {
+		log.Error("Failed to marshal exclusion set", "err", err)
+	}
+	msg := "" +
+		"There is an exclusion set in the quarantine. Accepting this set will cause huge rewind of the blockchain\n" +
+		"		Blockchain will be rewound approx to block #" + fmt.Sprint(rewindDepth) + "). \n" +
+		"		Current block is " + fmt.Sprint(currentBlock) + ".\n" +
+		"		The Current allowed rewind limit:" + fmt.Sprint(rewindLimit) + ".\n" +
+		"		Quarantined exclusion set:\n\n" +
+		"" + string(b) + "\n\n" +
+		"		If you still want to accept this list and do realize potential harm, execute the following command:\n\n" +
+		"\tgov.acceptQuarantinedExclusionList(\"" + set.hash.String() + "\")\n\n"
+	sentryMonitor.HandleMessage(msg)
+}
+
+func (s *RootManager) startQuarantineRoutine() {
+	for {
+		if s.bc == nil {
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		select {
+		case setEvent := <-s.quarantineEventCh:
+			if setEvent.Set != nil {
+				earliestBlock := setEvent.Set.earliestBlockFromDiff(s.activeExSet)
+				s.notifyExclusionSetIsQuarantined(setEvent.Set, s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
+			}
+		case <-time.After(time.Minute):
+			s.quarantineLock.Lock()
+			sets, err := s.db.getExclusionSetsFromQuarantine()
+			if err != nil {
+				log.Error("Failed to get exclusion sets from quarantine", "err", err)
+			}
+			if sets != nil {
+				log.Warn("You have exclusion lists in the quarantine. You can see them with command: gov.quarantinedExclusionLists()")
+				for i := range sets {
+					earliestBlock := sets[i].earliestBlockFromDiff(s.activeExSet)
+					s.notifyExclusionSetIsQuarantined(&sets[i], s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
+				}
+			}
+			s.quarantineLock.Unlock()
+		}
+	}
+}
+
+func (s *RootManager) isExclusionSetInQuarantine(set *exclusionSet) bool {
+	s.quarantineLock.Lock()
+	defer s.quarantineLock.Unlock()
+
+	if set == nil {
+		return false
+	}
+	sets, err := s.db.getExclusionSetsFromQuarantine()
+	if err != nil {
+		log.Error("Failed to get exclusion set from quarantine", "err", err)
+		return false
+	}
+	for _, s := range sets {
+		if s.hash == set.hash {
+			return true
+		}
+	}
+	return false
+}
+
+// TODO rethink this
+func (s *RootManager) maxRewindLimit() uint64 {
+	return s.rewindLimit
+}
+
+func (s *RootManager) setMaxRewindLimit(limit uint64) {
+	s.rewindLimit = limit
+}
+
+func (s *RootManager) acceptQuarantinedExclusionSet(hash *common.Hash) error {
+	s.quarantineLock.Lock()
+	defer s.quarantineLock.Unlock()
+
+	set, err := s.db.getQuarantinedExclusionSetByHash(hash)
+	if err != nil {
+		return errors.Wrap(err, "failed to get exclusion set from quarantine")
+	}
+	if set == nil {
+		return errors.New("exclusion set not found in quarantine")
+	}
+	log.Warn("Accepting exclusion set from the quarantine", "hash", hash)
+	if _, err := s.db.removeExclusionSetFromQuarantine(set); err != nil {
+		return errors.Wrap(err, "failed to remove exclusion set from quarantine")
+	}
+	log.Warn("Exclusion set has been removed from the quarantine", "hash", hash)
+
+	s.upgradeExclusionSet(set, true)
+	return nil
+}
+
+func (s *RootManager) isSetQuotaExceeded(received interface{}) (bool, error) {
+	var (
+		prefix         []byte
+		hash           common.Hash
+		signers        map[common.Address][]byte
+		currentEntries map[common.Address][]common.ListQuotaEntry
+		resEntries     = make(map[common.Address][]common.ListQuotaEntry)
+	)
+	switch set := received.(type) {
+	case *rootSet:
+		hash = set.hash
+		signers = set.signers
+		prefix = rootQuotaKey
+		currentEntries = s.rootQuotaEntries
+		s.rootQuotaLock.Lock()
+		defer s.rootQuotaLock.Unlock()
+	case *exclusionSet:
+		hash = set.hash
+		signers = set.signers
+		prefix = exclusionQuotaKey
+		currentEntries = s.exclusionQuotaEntries
+		s.exclusionQuotaLock.Lock()
+		defer s.exclusionQuotaLock.Unlock()
+	default:
+		return false, errors.New("unknown set type")
+	}
+
+	//First, remove expired entries. No matter who sent them
+	//Also, remove entries if they are already in the list and the list was signed by more than one root node
+	for address, entries := range currentEntries {
+		for _, entry := range entries {
+			entryTime := time.Unix(int64(entry.Timestamp), 0)
+			if entryTime.Add(s.ProposalQuotaTimeWindow).Before(time.Now()) {
+				continue //Record expired, ignore it
+			}
+			//List can be signed by more than one root node, so if it is already in the DB, we need to remove it
+			if len(signers) > 1 && entry.Hash == hash {
+				continue //Record is already in the list, ignore it
+			}
+			//Record is still valid, keep it
+			resEntries[address] = append(resEntries[address], entry)
+		}
+	}
+
+	//Need to save cleaned quotas anyway.
+	if !reflect.DeepEqual(currentEntries, resEntries) {
+		if err := s.saveQuotas(received, resEntries, prefix); err != nil {
+			return false, errors.Wrap(err, "failed to save quota entries")
+		}
+	}
+
+	//No signatures or more than one signature.
+	if len(signers) == 0 || len(signers) > 1 {
+		return false, nil
+	}
+
+	//We have one signature, so we need to check if it is already in the DB
+	//Also, resulting list is cleaned up from expired entries and entries signed by more than one root node
+	keys := reflect.ValueOf(signers).MapKeys()
+	signer := keys[0].Interface().(common.Address)
+
+	//Check if there's already an entry for this signer or if the quota is exceeded
+	if entries, ok := resEntries[signer]; ok {
+		if len(entries) >= int(s.ProposalQuotaMax) {
+			//Quota exceeded
+			return true, nil
+		}
+		for _, entry := range entries {
+			if entry.Hash == hash {
+				//Entry already exists
+				return false, nil
+			}
+		}
+	}
+
+	//We are here, this means that no entry found and quota is not exceeded. Add new entry
+	entry := common.ListQuotaEntry{
+		Hash:      hash,
+		Timestamp: uint64(time.Now().Unix()),
+		Author:    signer,
+	}
+
+	resEntries[signer] = append(resEntries[signer], entry)
+	if err := s.saveQuotas(received, resEntries, prefix); err != nil {
+		return false, errors.Wrap(err, "failed to save quota entries")
+	}
+
+	return len(resEntries) > 3, nil
+}
+
+// helper function just to avoid code duplication
+func (s *RootManager) saveQuotas(received interface{}, currentEntries map[common.Address][]common.ListQuotaEntry, prefix []byte) error {
+	if err := s.db.saveQuotaEntries(currentEntries, prefix); err != nil {
+		log.Error("Failed to save quota entries", "err", err)
+		return err
+	}
+	switch received.(type) {
+	case rootSet, *rootSet:
+		s.rootQuotaEntries = currentEntries
+	case exclusionSet, *exclusionSet:
+		s.exclusionQuotaEntries = currentEntries
+	}
+	return nil
 }

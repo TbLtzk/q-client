@@ -37,3 +37,19 @@ Pay attention, that `--whitelist` flag became deprecated, if such flag is set, y
 ### Fixed
 - L0 exlusion set issues
 - Mainnet trusted checkpoint
+
+## [1.3.2] - 2023-06
+### Added
+- Duplicate root/exclusion list requires a confirmation
+- Fallback to the list of signers from the genesis block if all validators are banned
+- Added *gasBuffer* flag. If set - estimated gas will be multiplied by the given value
+- Quarantine mechanism for exclusion lists. If the exclusion list can cause a huge rewind of the blockchain - this list
+  will be quarantined until you decide to apply it. See [more detailed description](governance/README.adoc)
+- Quota for proposed exclusion lists. It implies that if some of root nodes propose root/exclusion lists too
+  often - all lists above the quota will be ignored
+- Implemented rules for EIP-3436 (fork choice rules)
+- Trace filters
+
+### Notes
+Default quota values are set to 3 per Root node/24 hours. If you want to change it, please use the following flags:
+*gov.proposalQuotaMax* (max new list from root node) and *gov.proposalQuotaTimeWindow* (in hours)

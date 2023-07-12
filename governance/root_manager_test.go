@@ -4,10 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/stretchr/testify/assert"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
@@ -30,19 +33,30 @@ var (
 		common.HexToAddress("0xae3CB02aADcBBBc24BcEabff7BA552Ceba9d86F8"),
 		common.HexToAddress("0x764e55b3E82559f7C52424301e99f9ACbCF73f5d"),
 	}
+	//nolint:unused,deadcode
+	aliases = []common.Address{
+		common.HexToAddress("0x08eB380042AB0454998416e481E357203aB6CBe9"), // root1 has alias 0x08eB380042AB0454998416e481E357203aB6CBe9
+		common.HexToAddress("0x18640e7DC08D5C0090e457383aab9F0837aCDF2F"),
+		common.HexToAddress("0xae3CB02aADcBBBc24BcEabff7BA552Ceba9d86F8"),
+		common.HexToAddress("0x764e55b3E82559f7C52424301e99f9ACbCF73f5d"),
+	}
 	roots []common.Address
 )
+
+const defNumAccounts = 4
 
 type exclusionListTestData struct {
 	Name    string
 	WantErr bool
 	List    *common.ValidatorExclusionList
+	Force   bool
 }
 
 type rootListTestData struct {
 	Name    string
 	WantErr bool
 	Set     *rootSet
+	Force   bool
 }
 
 func tmpDirName(t *testing.T) string {
@@ -54,9 +68,9 @@ func tmpDirName(t *testing.T) string {
 	return d
 }
 
-func createRootAccounts(t *testing.T, ks *keystore.KeyStore) []accounts.Account {
+func createRootAccounts(t *testing.T, ks *keystore.KeyStore, numAccounts int) []accounts.Account {
 	var accs []accounts.Account
-	for i := 0; i <= 3; i++ {
+	for i := 0; i < numAccounts; i++ {
 		a1, err := ks.NewAccount("")
 		if err != nil {
 			t.Fatal(err)
@@ -78,14 +92,14 @@ func rootNodes(t *testing.T, ks *keystore.KeyStore) []common.Address {
 	return addrs
 }
 
-func createKeystore(t *testing.T, dir string, createAccounts bool) *keystore.KeyStore {
+func createKeystore(t *testing.T, dir string, createAccounts bool, numAccounts int) *keystore.KeyStore {
 	var (
 		n, p = keystore.StandardScryptN, keystore.StandardScryptP
 	)
 	ks := keystore.NewKeyStore(dir, n, p)
 
 	if createAccounts {
-		createRootAccounts(t, ks)
+		createRootAccounts(t, ks, numAccounts)
 	}
 
 	return ks
@@ -118,8 +132,12 @@ func createGovConfig(t *testing.T, ks *keystore.KeyStore, isRootNode bool) Confi
 }
 
 func newTestRootManager(t *testing.T, isRootNode bool) *RootManager {
+	return newTestRootManagerWithAccounts(t, isRootNode, defNumAccounts)
+}
+
+func newTestRootManagerWithAccounts(t *testing.T, isRootNode bool, numAccounts int) *RootManager {
 	dataDir := tmpDirName(t)
-	ks := createKeystore(t, dataDir, isRootNode)
+	ks := createKeystore(t, dataDir, isRootNode, numAccounts)
 
 	govCfg := createGovConfig(t, ks, isRootNode)
 	accMgr := createAccountManager(t, ks)
@@ -361,14 +379,19 @@ func TestUpgradeExclusionSet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rm := newTestRootManager(t, false) //
+			rm := newTestRootManager(t, false)
+
+			bc := newTestChain(t, rm)
+			defer bc.Stop()
+
+			rm.InitBlockChain(bc)
 			set, err := newExclusionSet(tt.args.list)
 			if err != nil {
 				t.Errorf("Can't create exclusion set: %v", err)
 			}
 
 			currentActiveSet := rm.activeExSet
-			rm.upgradeExclusionSet(set)
+			rm.upgradeExclusionSet(set, false)
 			if currentActiveSet == rm.activeExSet && !tt.wantErr {
 				t.Errorf("upgradeExclusionSet() active exclusion set not changed")
 			}
@@ -448,7 +471,7 @@ func TestProposeExclusionSet(t *testing.T) {
 			if set.hash == rm.activeExSet.hash {
 				return
 			}
-			_, err = rm.proposeExclusionSet(set)
+			_, err = rm.proposeExclusionSet(set, tt.Force)
 			if err != nil && !tt.WantErr {
 				if tt.Name == "Correct exclusion list" && errors.Is(err, errProposedExclusionListObsolete) {
 					//Special case. Obsolete exclusion list is not an error. List becomes active after proposal, and upgrade fails
@@ -512,13 +535,9 @@ func TestIsAcceptableExclusionSet(t *testing.T) {
 	if err != nil {
 		t.Errorf("Can't create exclusion set: %v", err)
 	}
-	if rm.isAcceptableExclusionSet(set) {
-		t.Errorf("isAcceptableExclusionSet() must be not acceptable")
-	}
+	assert.Falsef(t, rm.isAcceptableExclusionSet(set), "exclusion set must be not acceptable")
 	rm.signExclusionSet(set)
-	if !rm.isAcceptableExclusionSet(set) {
-		t.Errorf("isAcceptableExclusionSet() must be acceptable")
-	}
+	assert.Truef(t, rm.isAcceptableExclusionSet(set), "isAcceptableExclusionSet() must be acceptable")
 }
 
 func TestProposeRootSet(t *testing.T) {
@@ -572,7 +591,7 @@ func testProposeRootSetByRN(t *testing.T) {
 		t.Run(tt.Name, func(t *testing.T) {
 			reinitializeRootLists(rm, active)
 
-			_, err := rm.proposeRootSet(tt.Set)
+			_, err := rm.proposeRootSet(tt.Set, tt.Force)
 			if !tt.WantErr && err != nil {
 				t.Errorf("proposeRootSet() error = %v, wantErr %v", err, tt.WantErr)
 			}
@@ -586,7 +605,7 @@ func testProposeRootSetByNonRN(t *testing.T) {
 	rm := newTestRootManager(t, false)
 	//no need to have blockchain instance here, skip creating it
 
-	_, err := rm.proposeRootSet(testData[0].Set)
+	_, err := rm.proposeRootSet(testData[0].Set, testData[0].Force)
 	if err == nil {
 		t.Errorf("propose root set by non RN no error, but want error")
 	}
@@ -607,7 +626,7 @@ func testAcceptProposedRootListByNonRN(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't create new root set: %v", err)
 	}
-	_, err = rm.proposeRootSet(rSet)
+	_, err = rm.proposeRootSet(rSet, testData[0].Force)
 	if err == nil {
 		t.Errorf("accept proposed root set by non RN no error, but want error")
 	}
@@ -616,7 +635,7 @@ func testAcceptProposedRootListByNonRN(t *testing.T) {
 func testAcceptProposedRootListByRN(t *testing.T) {
 	rm := newTestRootManager(t, true)
 
-	var active = rm.active.copy()
+	active := rm.active.copy()
 
 	var testData []rootListTestData
 
@@ -711,4 +730,161 @@ func newTestChain(t *testing.T, rm *RootManager) *core.BlockChain {
 	}
 
 	return chain
+}
+
+func randomExclusionSet(t *testing.T, add int64) exclusionSet {
+	var set exclusionSet
+
+	set.timestamp = uint64(time.Now().Unix() + add) //This will help to have different exclusion sets
+	set.signers = make(map[common.Address][]byte)
+	for i := 0; i < 10; i++ {
+		set.addresses = append(set.addresses, common.Address{byte(i + int(add))})
+	}
+	set.hash = set.calcHash()
+	return set
+}
+
+func TestSetQuota(t *testing.T) {
+	t.Run("testQuotaExceedsByNumber", func(t *testing.T) {
+		testQuotaExceedsByNumber(t)
+	})
+	t.Run("testQuotaExceedsWithExpiredEntries", func(t *testing.T) {
+		testQuotaExceedsWithExpiredEntries(t)
+	})
+}
+
+func testQuotaExceedsByNumber(t *testing.T) {
+	rm := newTestRootManagerWithAccounts(t, true, 1)
+	rm.ProposalQuotaMax = 3
+	rm.ProposalQuotaTimeWindow = 24 * time.Hour
+
+	//Last set will overflow the quota
+	for i := 0; i < int(rm.ProposalQuotaMax+1); i++ {
+		set := randomExclusionSet(t, int64(rand.Intn(1000)))
+		rm.signExclusionSet(&set)
+
+		is, err := rm.isSetQuotaExceeded(&set)
+		if err != nil {
+			t.Errorf("isSetQuotaExceeded() error = %v", err)
+		}
+		if i > int(rm.ProposalQuotaMax) && !is {
+			t.Errorf("isSetQuotaExceeded() = %v, want %v", is, true)
+		}
+	}
+}
+
+func testQuotaExceedsWithExpiredEntries(t *testing.T) {
+	rm := newTestRootManagerWithAccounts(t, true, 1)
+	rm.ProposalQuotaMax = 3
+	rm.ProposalQuotaTimeWindow = 30 * time.Second
+
+	//Create 3 sets that will be added to the quota storage
+	//Last set will overflow the quota
+	for i := 0; i < 5; i++ {
+		set := randomExclusionSet(t, int64(i))
+		rm.signExclusionSet(&set)
+
+		//Will add set to the quota storage
+		rm.isSetQuotaExceeded(&set)
+	}
+
+	//Need to wait till time window expires
+	time.Sleep(rm.ProposalQuotaTimeWindow + 1)
+
+	//This set shouldn't cause quota overflow
+	set := randomExclusionSet(t, 6)
+	rm.signExclusionSet(&set)
+
+	is, err := rm.isSetQuotaExceeded(&set)
+	if err != nil {
+		t.Errorf("isSetQuotaExceeded() error = %v", err)
+	}
+	assert.False(t, is, "testQuotaExceedsWithExpiredEntries. Set must exceed the quota but it doesn't")
+}
+
+func TestQuarantineExclusionSet(t *testing.T) {
+	earliestBlock := uint64(2)
+
+	t.Log("Starting root manager with quarantine enabled")
+	rm := newTestRootManager(t, true)
+	t.Log("Initializing blockchain with 5000 blocks size")
+	bc := newTestChain(t, rm)
+	defer bc.Stop()
+	rm.InitBlockChain(bc)
+
+	t.Log("Setting max rewind limit to 100 blocks")
+	rm.setMaxRewindLimit(100)
+
+	t.Log("Creating violating exclusion set")
+
+	list := rm.activeExSet.copy().makeList()
+	list.Timestamp = list.Timestamp + 1
+	list.Signatures = nil
+	list.Hash = common.Hash{}
+	badRecord := common.ExcludedValidator{
+		Address: common.HexToAddress("0x2B01035cDa82a02fb135EBd68676Fa17FdcAD365"),
+		Block:   earliestBlock,
+	}
+	list.Validators = append(list.Validators, badRecord)
+	set, err := newExclusionSet(&list)
+	if err != nil {
+		t.Fatalf("Can't create new test exclusion set: %v", err)
+	}
+
+	t.Log("Signing violating exclusion set")
+	rm.signExclusionSet(set)
+
+	t.Log("Checking if created exclusion set meets quarantine criteria")
+	assert.Truef(t, rm.isExclusionSetMeetsQuarantineCriteria(set, earliestBlock), "Created exclusion set must be quarantined")
+
+	t.Log("Creating test governance engine")
+	gov, err := New(rm, tmpDirName(t))
+	if err != nil {
+		t.Fatalf("Failed to create Governance: %v", err)
+	}
+	err = gov.Start()
+	if err != nil {
+		t.Fatalf("Failed to start Governance: %v", err)
+	}
+	p := peer{
+		id: "test",
+	}
+
+	t.Log("Handling exclusion set")
+	currentExclusionSet := rm.activeExSet.copy()
+	err = gov.handler.handleExclusionSet(&p, set)
+	if err != nil {
+		t.Fatalf("Failed to handle exclusion list: %v", err)
+	}
+	assert.NotEqualf(t, rm.activeExSet.hash, set.hash, "Active exclusion set must be changed!")
+	if currentExclusionSet.hash != rm.activeExSet.hash {
+		t.Fatalf("Active exclusion set must be changed!")
+	}
+
+	t.Log("Checking if incoming exclusion set is in quarantine")
+	qSets, err := rm.db.getExclusionSetsFromQuarantine()
+	if err != nil {
+		t.Fatalf("Failed to get exclusion sets from quarantine: %v", err)
+	}
+	assert.NotNil(t, qSets, "Quarantine must not be empty")
+	assert.Lenf(t, qSets, 1, "Quarantine must contain one exclusion set")
+	if (qSets)[0].hash != set.hash {
+		t.Fatalf("Quarantine must contain incoming exclusion set")
+	}
+
+	t.Log("Accepting exclusion set from quarantine")
+	err = rm.acceptQuarantinedExclusionSet(&set.hash)
+	if err != nil {
+		t.Fatalf("Failed to accept quarantined exclusion list: %v", err)
+	}
+	if rm.activeExSet.hash != set.hash {
+		t.Fatalf("Quarantined exclusion set must be applied")
+	}
+
+	t.Log("Checking if incoming exclusion set is removed from quarantine")
+	qSets, err = rm.db.getExclusionSetsFromQuarantine()
+	if err != nil {
+		t.Fatalf("Failed to get exclusion sets from quarantine: %v", err)
+	}
+	assert.Lenf(t, qSets, 0, "Quarantine must be empty after exclusion set is accepted")
 }

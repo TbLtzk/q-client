@@ -164,6 +164,7 @@ var (
 		utils.IgnoreLegacyReceiptsFlag,
 		configFileFlag,
 		utils.ConstitutionDirFlag,
+		utils.GlobalGasBufferFlag,
 	}, utils.NetworkFlags, utils.DatabasePathFlags)
 
 	rpcFlags = []cli.Flag{
@@ -216,6 +217,8 @@ var (
 	governanceFlags = []cli.Flag{
 		utils.RootTimestampFlag,
 		utils.RootAddressesFlag,
+		utils.ProposalQuotaMaxFlag,
+		utils.ProposalQuotaTimeWindowFlag,
 	}
 
 	sentryFlags = []cli.Flag{

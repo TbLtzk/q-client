@@ -471,6 +471,10 @@ golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
+# golang.org/x/exp v0.0.0-20220426173459-3bcf042a4bf5
+## explicit; go 1.18
+golang.org/x/exp/constraints
+golang.org/x/exp/slices
 # golang.org/x/mobile v0.0.0-20230301163155-e0f57694e12c
 ## explicit; go 1.17
 golang.org/x/mobile/bind

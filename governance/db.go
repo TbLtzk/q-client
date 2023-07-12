@@ -25,9 +25,10 @@ var (
 )
 
 var (
-	activeExclusionKey   = []byte("current-exclusion-set")
-	desiredExclusionKey  = []byte("desired-exclusion-set")
-	proposedExclusionKey = []byte("proposed-exclusion-set")
+	activeExclusionKey      = []byte("current-exclusion-set")
+	desiredExclusionKey     = []byte("desired-exclusion-set")
+	proposedExclusionKey    = []byte("proposed-exclusion-set")
+	quarantinedExclusionKey = []byte("quarantined-exclusion-set")
 )
 
 var (
@@ -39,6 +40,11 @@ var (
 	constitutionStorageKey     = []byte("constitution-storage")
 	constitutionFileRequestKey = []byte("constitution-file-request")
 	knownConstitutionFilesKey  = []byte("constitution-known-files")
+)
+
+var (
+	rootQuotaKey      = []byte("root-quota")
+	exclusionQuotaKey = []byte("exclusion-quota")
 )
 
 func newDatabase(path string) (*database, error) {
@@ -345,7 +351,7 @@ func (db *database) getConstitutionFiles() ([]common.ConstitutionFile, error) {
 		return nil, errors.Wrap(err, "failed to check if constitution storage exists")
 	}
 	if !has {
-		if errC := db.saveConstitutionStorage(&[]common.ConstitutionFile{}); errC != nil {
+		if errC := db.saveConstitutionStorage([]common.ConstitutionFile{}); errC != nil {
 			return nil, errors.Wrap(err, "failed to initialize constitution storage")
 		}
 	}
@@ -368,7 +374,7 @@ func (db *database) getConstitutionFileRequests() ([]common.Hash, error) {
 		return nil, errors.Wrap(err, "failed to check if constitution request storage exists")
 	}
 	if !has {
-		if errC := db.saveConstitutionFileRequests(&[]common.Hash{}); errC != nil {
+		if errC := db.saveConstitutionFileRequests([]common.Hash{}); errC != nil {
 			return nil, errors.Wrap(err, "failed to initialize constitution request storage")
 		}
 	}
@@ -391,7 +397,7 @@ func (db *database) getKnownConstitutionFiles() ([]common.Hash, error) {
 		return nil, errors.Wrap(err, "failed to check if known constitution files storage exists")
 	}
 	if !has {
-		if errC := db.saveKnownConstitutionFiles(&[]common.Hash{}); errC != nil {
+		if errC := db.saveKnownConstitutionFiles([]common.Hash{}); errC != nil {
 			return nil, errors.Wrap(err, "failed to initialize known constitution files storage")
 		}
 	}
@@ -407,7 +413,7 @@ func (db *database) getKnownConstitutionFiles() ([]common.Hash, error) {
 	return hashes, nil
 }
 
-func (db *database) saveConstitutionStorage(storage *[]common.ConstitutionFile) error {
+func (db *database) saveConstitutionStorage(storage []common.ConstitutionFile) error {
 	raw, err := json.Marshal(storage)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to marshal constitution storage"))
@@ -416,7 +422,7 @@ func (db *database) saveConstitutionStorage(storage *[]common.ConstitutionFile) 
 	return db.store.Put(constitutionStorageKey, raw)
 }
 
-func (db *database) saveConstitutionFileRequests(storage *[]common.Hash) error {
+func (db *database) saveConstitutionFileRequests(storage []common.Hash) error {
 	raw, err := json.Marshal(storage)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to marshal constitution file requests"))
@@ -425,11 +431,155 @@ func (db *database) saveConstitutionFileRequests(storage *[]common.Hash) error {
 	return db.store.Put(constitutionFileRequestKey, raw)
 }
 
-func (db *database) saveKnownConstitutionFiles(storage *[]common.Hash) error {
+func (db *database) saveKnownConstitutionFiles(storage []common.Hash) error {
 	raw, err := json.Marshal(storage)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to marshal known constitution files"))
 	}
-
 	return db.store.Put(knownConstitutionFilesKey, raw)
+}
+
+func (db *database) addExclusionSetToQuarantine(set *exclusionSet) error {
+	if set == nil {
+		return nil
+	}
+
+	var resSets []common.ValidatorExclusionList
+
+	exRecords, err := db.getExclusionSetsFromQuarantine()
+	if err != nil {
+		log.Error("Failed to get exclusion sets from quarantine", "err", err)
+	}
+	for _, exSet := range exRecords {
+		if exSet.hash == set.hash {
+			return nil //It's already there
+		}
+		resSets = append(resSets, exSet.makeList())
+	}
+	resSets = append(resSets, set.makeList())
+
+	value, err := json.Marshal(resSets)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to marshal quarantine exclusion sets"))
+	}
+
+	if err := db.store.Put(quarantinedExclusionKey, value); err != nil {
+		panic(errors.Wrap(err, "failed save quarantined exclusion sets"))
+	}
+
+	return nil
+}
+
+func (db *database) removeExclusionSetFromQuarantine(set *exclusionSet) (*[]exclusionSet, error) {
+	if set == nil {
+		return nil, nil
+	}
+
+	var resSets []exclusionSet
+
+	exRecords, err := db.getExclusionSetsFromQuarantine()
+	if err != nil {
+		log.Error("Failed to get exclusion sets from quarantine", "err", err)
+	}
+	for _, exSet := range exRecords {
+		if exSet.hash == set.hash {
+			continue
+		}
+		resSets = append(resSets, exSet)
+	}
+
+	value, err := json.Marshal(resSets)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to marshal quarantine exclusion sets"))
+	}
+
+	if err := db.store.Put(quarantinedExclusionKey, value); err != nil {
+		panic(errors.Wrap(err, "failed save quarantined exclusion sets"))
+	}
+
+	return &resSets, nil
+}
+
+// It is most unlikely, but potentially we can have multiple exclusion sets in the quarantine
+func (db *database) getExclusionSetsFromQuarantine() ([]exclusionSet, error) {
+	ok, err := db.store.Has(quarantinedExclusionKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check if key exists")
+	}
+
+	if !ok {
+		return nil, nil
+	}
+
+	raw, err := db.store.Get(quarantinedExclusionKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get quarantined  from db")
+	}
+
+	var exclusionLists []common.ValidatorExclusionList
+	if err := json.Unmarshal(raw, &exclusionLists); err != nil {
+		panic(errors.Wrap(err, "failed to unmarshal quarantined exclusion lists"))
+	}
+
+	var sets []exclusionSet
+	for i := range exclusionLists {
+		set, err := newExclusionSet(&exclusionLists[i])
+		if err != nil {
+			//don't return error, just skip this list
+			continue
+		}
+		sets = append(sets, *set)
+	}
+
+	return sets, nil
+}
+
+func (db *database) getQuarantinedExclusionSetByHash(hash *common.Hash) (*exclusionSet, error) {
+	sets, err := db.getExclusionSetsFromQuarantine()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get exclusion sets from quarantine")
+	}
+	for _, set := range sets {
+		if set.hash == *hash {
+			return &set, nil
+		}
+	}
+	return nil, nil
+}
+
+func (db *database) saveQuotaEntries(entries map[common.Address][]common.ListQuotaEntry, quotaKey []byte) error {
+	var res []common.ListQuotaEntry
+	for _, quotaEntries := range entries {
+		res = append(res, quotaEntries...)
+	}
+	raw, err := json.Marshal(res)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to marshal quota entries"))
+	}
+	return db.store.Put(quotaKey, raw)
+}
+
+func (db *database) getQuotaEntries(prefix []byte) (map[common.Address][]common.ListQuotaEntry, error) {
+	has, err := db.store.Has(prefix)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check if quota entries storage exists")
+	}
+	if !has {
+		if errC := db.saveQuotaEntries(map[common.Address][]common.ListQuotaEntry{}, prefix); errC != nil {
+			return nil, errors.Wrap(err, "failed to initialize quota entry storage")
+		}
+	}
+	raw, errGet := db.store.Get(prefix)
+	if errGet != nil {
+		return nil, errors.Wrap(errGet, "failed to get quota entries from db")
+	}
+	var entries []common.ListQuotaEntry
+	if err = json.Unmarshal(raw, &entries); err != nil {
+		panic(errors.Wrap(err, "failed to unmarshal quota entries"))
+	}
+	res := make(map[common.Address][]common.ListQuotaEntry)
+	for _, entry := range entries {
+		res[entry.Author] = append(res[entry.Author], entry)
+	}
+	return res, nil
 }

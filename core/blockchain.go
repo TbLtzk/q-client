@@ -219,7 +219,7 @@ type BlockChain struct {
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Ethereum Validator
 // and Processor.
-func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(header *types.Header) bool, txLookupLimit *uint64) (*BlockChain, error) {
+func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(header *types.Header, externalHeader *types.Header) bool, txLookupLimit *uint64) (*BlockChain, error) {
 	if cacheConfig == nil {
 		cacheConfig = defaultCacheConfig
 	}
@@ -742,8 +742,12 @@ func (bc *BlockChain) RevalidateChain(number uint64) error {
 		return err
 	}
 
-	log.Info("Inserting blocks on top of rewinded head", "count", len(blocks))
-	bc.InsertChain(blocks)
+	log.Info("Inserting blocks on top of rewound head", "count", len(blocks))
+	_, err = bc.InsertChain(blocks)
+	if err != nil {
+		log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
+		return err
+	}
 
 	return nil
 }

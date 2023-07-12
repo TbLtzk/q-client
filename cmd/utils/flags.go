@@ -637,6 +637,7 @@ var (
 		Value:    ethconfig.Defaults.RPCTxFeeCap,
 		Category: flags.APICategory,
 	}
+
 	// Authenticated RPC HTTP settings
 	AuthListenFlag = &cli.StringFlag{
 		Name:     "authrpc.addr",
@@ -807,12 +808,26 @@ var (
 
 	// Governance flags
 	RootTimestampFlag = &cli.Uint64Flag{
-		Name:  "root.timestamp",
-		Usage: "timestamp of root nodes list",
+		Name:     "root.timestamp",
+		Usage:    "timestamp of root nodes list",
+		Category: flags.GovernanceCategory,
 	}
 	RootAddressesFlag = &cli.StringFlag{
-		Name:  "root.addresses",
-		Usage: "comma separated address of root nodes list",
+		Name:     "root.addresses",
+		Usage:    "comma separated address of root nodes list",
+		Category: flags.GovernanceCategory,
+	}
+	ProposalQuotaMaxFlag = &cli.UintFlag{
+		Name:     "gov.proposalQuotaMax",
+		Usage:    "Max quota of new root/exclusion lists proposal per one root node",
+		Category: flags.GovernanceCategory,
+		Value:    3,
+	}
+	ProposalQuotaTimeWindowFlag = &cli.IntFlag{
+		Name:     "gov.proposalQuotaTimeWindow",
+		Usage:    "Time window after which proposal quota expires in hours",
+		Category: flags.GovernanceCategory,
+		Value:    24,
 	}
 
 	// Network Settings
@@ -1042,6 +1057,13 @@ var (
 		Usage:    "Sentry trace sample rate",
 		Value:    sentryMonitor.DefaultConfig.TracesSampleRate,
 		Category: flags.SentryCategory,
+	}
+
+	GlobalGasBufferFlag = &cli.Float64Flag{
+		Name:     "gasBuffer",
+		Usage:    "Factor that sets a buffer for gas estimation",
+		Value:    ethconfig.Defaults.GasBuffer,
+		Category: flags.APICategory,
 	}
 )
 
@@ -1844,6 +1866,15 @@ func CheckExclusive(ctx *cli.Context, args ...interface{}) {
 }
 
 func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
+	cfg.ProposalQuotaMax = ProposalQuotaMaxFlag.Value
+	if ctx.IsSet(ProposalQuotaMaxFlag.Name) {
+		cfg.ProposalQuotaMax = ctx.Uint(ProposalQuotaMaxFlag.Name)
+	}
+	cfg.ProposalQuotaTimeWindow = time.Hour * time.Duration(ProposalQuotaTimeWindowFlag.Value)
+	if ctx.IsSet(ProposalQuotaTimeWindowFlag.Name) {
+		cfg.ProposalQuotaTimeWindow = time.Hour * time.Duration(ProposalQuotaTimeWindowFlag.Value)
+	}
+
 	if !(ctx.IsSet(RootTimestampFlag.Name) || ctx.IsSet(RootAddressesFlag.Name)) {
 		switch true {
 		case ctx.Bool(DevnetFlag.Name):
@@ -2003,6 +2034,10 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	} else {
 		log.Info("Global gas cap disabled")
 	}
+	if ctx.IsSet(GlobalGasBufferFlag.Name) {
+		log.Info("Set global gas buffer", "buffer", cfg.GasBuffer)
+		cfg.GasBuffer = ctx.Float64(GlobalGasBufferFlag.Name)
+	}
 	if ctx.IsSet(RPCGlobalEVMTimeoutFlag.Name) {
 		cfg.RPCEVMTimeout = ctx.Duration(RPCGlobalEVMTimeoutFlag.Name)
 	}
@@ -2139,9 +2174,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 			cfg.Miner.GasPrice = big.NewInt(1)
 		}
 	default:
-		if cfg.NetworkId == 35441 {
+		switch cfg.NetworkId {
+		case 35441:
 			cfg.Genesis = core.DefaultMainnetGenesisBlock()
 			SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
+		case 35442:
+			SetDNSDiscoveryDefaults(cfg, params.DevnetGenesisHash)
 		}
 	}
 }

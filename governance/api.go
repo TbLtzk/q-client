@@ -1,12 +1,14 @@
 package governance
 
 import (
+	"fmt"
 	"math/big"
 	"sort"
 	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/log"
 )
@@ -47,14 +49,14 @@ func (a *GovernancePublicAPI) OnchainRootList() *RootList {
 	return newRootList(a.gov.RootManager.getOnchainRootSet(true))
 }
 
-func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList) (common.Hash, error) {
+func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList, force bool) (common.Hash, error) {
 	set, err := newRootSet(&list)
 	if err != nil {
 		return common.Hash{}, errors.Wrap(err, "invalid root list")
 	}
 	set.updateAliases(a.gov.RootManager.getAliasesOfRoots(set.rootAddresses))
 
-	set, err = a.gov.RootManager.proposeRootSet(set)
+	set, err = a.gov.RootManager.proposeRootSet(set, force)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -68,7 +70,7 @@ func (a *GovernanceAPI) ProposeOnchainRootList() (common.Hash, error) {
 		return common.Hash{}, errors.New("can't get on-cain root set")
 	}
 
-	set, err := a.gov.RootManager.proposeRootSet(set)
+	set, err := a.gov.RootManager.proposeRootSet(set, false)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -113,18 +115,50 @@ func (a *GovernancePublicAPI) IsInExclusionList(address string) string {
 		a.gov.RootManager.getDesiredExclusionSet(), a.gov.RootManager.getProposedExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
 }
 
-func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusionList) (common.Hash, error) {
+func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusionList, force bool) (common.Hash, error) {
 	set, err := newExclusionSet(&list)
 	if err != nil {
 		return common.Hash{}, errors.Wrap(err, "invalid exclusion list")
 	}
 
-	set, err = a.gov.RootManager.proposeExclusionSet(set)
+	set, err = a.gov.RootManager.proposeExclusionSet(set, force)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
 	return set.hash, nil
+}
+
+func (a *GovernanceAPI) AcceptQuarantinedExclusionList(hash *common.Hash) error {
+	return a.gov.RootManager.acceptQuarantinedExclusionSet(hash)
+}
+
+func (a *GovernanceAPI) QuarantinedExclusionLists() string {
+	sets, err := a.gov.RootManager.db.getExclusionSetsFromQuarantine()
+	if sets == nil {
+		return ""
+	}
+	var earliestBlock uint64
+	currentBlock := a.gov.RootManager.bc.CurrentBlock().Number().Int64()
+	if err != nil {
+		return errors.Wrap(err, "can't get exclusion sets from quarantine").Error()
+	}
+	res := "" +
+		"\nThere are exclusion sets in the quarantine. Accepting them will cause huge rewind of the blockchain\n" +
+		"Current block is " + fmt.Sprint(currentBlock) + ".\n" +
+		"Current allowed rewind limit:" + fmt.Sprint(a.gov.RootManager.rewindLimit) + ".\n\n"
+
+	for i := range sets {
+		earliestBlock = sets[i].earliestBlockFromDiff(a.gov.RootManager.activeExSet)
+		res += "Exclusion list with hash " + sets[i].hash.String() + ":\n"
+		res += "Blockchain will be rewound approx to block #" + fmt.Sprint(earliestBlock) + "). \n"
+		res += printPrettifiedList(newExclusionListPrettify(&sets[i], a.gov.RootManager.bc.CurrentBlock().Number().Int64())) + "\n"
+		res += "If you still want to accept this list and do realize potential harm, execute the following command:\n\n" +
+			"gov.acceptQuarantinedExclusionList(\"" + sets[i].hash.String() + "\")\n\n"
+	}
+
+	log.Warn(res)
+	return ""
 }
 
 func (a *GovernanceAPI) AcceptProposedExclusionList() error {

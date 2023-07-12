@@ -1124,6 +1124,12 @@ func DoEstimateGas(ctx context.Context, b Backend, args TransactionArgs, blockNr
 			hi = mid
 		}
 	}
+	if b.GasBuffer() != 1 && args.Value == nil {
+		mHi := uint64(float64(hi) * b.GasBuffer())
+		if mHi < cap {
+			hi = mHi
+		}
+	}
 	// Reject the transaction as invalid if it still fails at the highest allowance
 	if hi == cap {
 		failed, result, err := executable(hi)
@@ -1141,6 +1147,7 @@ func DoEstimateGas(ctx context.Context, b Backend, args TransactionArgs, blockNr
 			return 0, fmt.Errorf("gas required exceeds allowance (%d)", cap)
 		}
 	}
+
 	return hexutil.Uint64(hi), nil
 }
 

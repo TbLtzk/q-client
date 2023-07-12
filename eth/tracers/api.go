@@ -28,6 +28,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/exp/slices"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus"
@@ -235,6 +237,230 @@ func (api *API) TraceChain(ctx context.Context, start, end rpc.BlockNumber, conf
 		return nil, fmt.Errorf("end block (#%d) needs to come after start block (#%d)", end, start)
 	}
 	return api.traceChain(ctx, from, to, config)
+}
+
+// TraceChain returns the structured logs created during the execution of EVM
+// between two blocks (excluding start) and returns them as a JSON object.
+func (api *API) TraceChainWithFilterApplied(ctx context.Context, start, end rpc.BlockNumber, config *TraceConfig, fromAddress []common.Address, toAddress []common.Address, after, count uint64) ([]CallParityFrame, error) { // Fetch the block interval that we want to trace
+	if end == start {
+		start-- //traceChainWithFilter gets the block after start. So if start == end, we need to decrement start by 1
+	}
+	from, err := api.blockByNumber(ctx, start)
+	if err != nil {
+		return nil, err
+	}
+	to, err := api.blockByNumber(ctx, end)
+	if err != nil {
+		return nil, err
+	}
+	if from.Number().Cmp(to.Number()) > 0 {
+		return nil, fmt.Errorf("end block (#%d) needs to come after start block (#%d)", end, start)
+	}
+	return api.traceChainWithFilter(ctx, from, to, config, fromAddress, toAddress, after, count)
+}
+
+func (api *API) traceChainWithFilter(ctx context.Context, start, end *types.Block, config *TraceConfig, fromAddress, toAddress []common.Address, after, count uint64) ([]CallParityFrame, error) {
+	// Prepare all the states for tracing. Note this procedure can take very
+	// long time. Timeout mechanism is necessary.
+	reexec := defaultTraceReexec
+	if config != nil && config.Reexec != nil {
+		reexec = *config.Reexec
+	}
+	blocks := int(end.NumberU64() - start.NumberU64())
+	threads := runtime.NumCPU()
+	if threads > blocks {
+		threads = blocks
+	}
+	var (
+		pend     = new(sync.WaitGroup)
+		tasks    = make(chan *blockTraceTask, threads)
+		results  = make(chan *blockTraceTask, threads)
+		localctx = context.Background()
+	)
+	for th := 0; th < threads; th++ {
+		pend.Add(1)
+		go func() {
+			defer pend.Done()
+
+			// Fetch and execute the next block trace tasks
+			for task := range tasks {
+				signer := types.MakeSigner(api.backend.ChainConfig(), task.block.Number())
+				blockCtx := core.NewEVMBlockContext(task.block.Header(), api.chainContext(localctx), nil)
+
+				// Trace all the transactions contained within
+				for i, tx := range task.block.Transactions() {
+					if fromAddress != nil {
+						from, _ := types.Sender(signer, tx)
+						if !slices.Contains(fromAddress, from) {
+							continue
+						}
+					}
+					if toAddress != nil && tx.To() != nil {
+						if !slices.Contains(toAddress, *tx.To()) {
+							continue
+						}
+					}
+
+					msg, _ := tx.AsMessage(signer, task.block.BaseFee())
+					txctx := &Context{
+						BlockHash: task.block.Hash(),
+						TxIndex:   i,
+						TxHash:    tx.Hash(),
+					}
+					res, err := api.traceTx(localctx, msg, txctx, blockCtx, task.statedb, config)
+
+					if err != nil {
+						task.results[i] = &txTraceResult{Error: err.Error()}
+						log.Warn("Tracing failed", "hash", tx.Hash(), "block", task.block.NumberU64(), "err", err)
+						break
+					}
+					// Only delete empty objects if EIP158/161 (a.k.a Spurious Dragon) is in effect
+					task.statedb.Finalise(api.backend.ChainConfig().IsEIP158(task.block.Number()))
+					task.results[i] = &txTraceResult{Result: res}
+				}
+				// Stream the result back to the user or abort on teardown
+				results <- task
+			}
+		}()
+	}
+	// Start a goroutine to feed all the blocks into the tracers
+	var (
+		begin     = time.Now()
+		derefTodo []common.Hash // list of hashes to dereference from the db
+		derefsMu  sync.Mutex    // mutex for the derefs
+	)
+
+	go func() {
+		var (
+			logged  time.Time
+			number  uint64
+			traced  uint64
+			failed  error
+			parent  common.Hash
+			statedb *state.StateDB
+		)
+		// Ensure everything is properly cleaned up on any exit path
+		defer func() {
+			close(tasks)
+			pend.Wait()
+
+			switch {
+			case failed != nil:
+				log.Warn("Chain tracing failed", "start", start.NumberU64(), "end", end.NumberU64(), "transactions", traced, "elapsed", time.Since(begin), "err", failed)
+			case number < end.NumberU64():
+				log.Warn("Chain tracing aborted", "start", start.NumberU64(), "end", end.NumberU64(), "abort", number, "transactions", traced, "elapsed", time.Since(begin))
+			default:
+				log.Info("Chain tracing finished", "start", start.NumberU64(), "end", end.NumberU64(), "transactions", traced, "elapsed", time.Since(begin))
+			}
+			close(results)
+		}()
+		var preferDisk bool
+		// Feed all the blocks both into the tracer, and fast process concurrently
+		for number = start.NumberU64(); number < end.NumberU64(); number++ {
+			// clean out any derefs
+			derefsMu.Lock()
+			for _, h := range derefTodo {
+				statedb.Database().TrieDB().Dereference(h)
+			}
+			derefTodo = derefTodo[:0]
+			derefsMu.Unlock()
+
+			// Print progress logs if long enough time elapsed
+			if time.Since(logged) > 8*time.Second {
+				logged = time.Now()
+				log.Info("Tracing chain segment", "start", start.NumberU64(), "end", end.NumberU64(), "current", number, "transactions", traced, "elapsed", time.Since(begin))
+			}
+			// Retrieve the parent state to trace on top
+			block, err := api.blockByNumber(localctx, rpc.BlockNumber(number))
+			if err != nil {
+				failed = err
+				break
+			}
+			// Prepare the statedb for tracing. Don't use the live database for
+			// tracing to avoid persisting state junks into the database.
+			statedb, err = api.backend.StateAtBlock(localctx, block, reexec, statedb, false, preferDisk)
+			if err != nil {
+				failed = err
+				break
+			}
+			if trieDb := statedb.Database().TrieDB(); trieDb != nil {
+				// Hold the reference for tracer, will be released at the final stage
+				trieDb.Reference(block.Root(), common.Hash{})
+
+				// Release the parent state because it's already held by the tracer
+				if parent != (common.Hash{}) {
+					trieDb.Dereference(parent)
+				}
+				// Prefer disk if the trie db memory grows too much
+				s1, s2 := trieDb.Size()
+				if !preferDisk && (s1+s2) > defaultTracechainMemLimit {
+					log.Info("Switching to prefer-disk mode for tracing", "size", s1+s2)
+					preferDisk = true
+				}
+			}
+			parent = block.Root()
+
+			next, err := api.blockByNumber(localctx, rpc.BlockNumber(number+1))
+			if err != nil {
+				failed = err
+				break
+			}
+			// Send the block over to the concurrent tracers (if not in the fast-forward phase)
+			txs := next.Transactions()
+			tasks <- &blockTraceTask{statedb: statedb.Copy(), block: next, rootref: block.Root(), results: make([]*txTraceResult, len(txs))}
+			traced += uint64(len(txs))
+		}
+	}()
+
+	resultTraces := []CallParityFrame{}
+
+	// Keep reading the trace results and stream the to the user
+	var (
+		done = make(map[uint64]*blockTraceResult)
+		next = start.NumberU64() + 1
+	)
+
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	go func() {
+		for res := range results {
+			// Queue up next received result
+			result := &blockTraceResult{
+				Block:  hexutil.Uint64(res.block.NumberU64()),
+				Hash:   res.block.Hash(),
+				Traces: res.results,
+			}
+			// Schedule any parent tries held in memory by this task for dereferencing
+			done[uint64(result.Block)] = result
+			derefsMu.Lock()
+			derefTodo = append(derefTodo, res.rootref)
+			derefsMu.Unlock()
+			// Stream completed traces to the user, aborting on the first error
+			for result, ok := done[next]; ok; result, ok = done[next] {
+				if len(result.Traces) > 0 || next == end.NumberU64() {
+					for _, r := range result.Traces {
+						if r != nil {
+							raw := r.Result.(json.RawMessage)
+							var traceResult []CallParityFrame
+
+							if err := json.Unmarshal(raw, &traceResult); err != nil {
+								log.Warn("Failed to unmarshal trace result", "err", err)
+								continue
+							}
+
+							resultTraces = append(resultTraces, traceResult...)
+						}
+					}
+				}
+				delete(done, next)
+				next++
+			}
+		}
+		wg.Done()
+	}()
+
+	wg.Wait()
+	return resultTraces, nil
 }
 
 // traceChain configures a new tracer according to the provided configuration, and
@@ -916,10 +1142,14 @@ func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Contex
 // APIs return the collection of RPC services the tracer package offers.
 func APIs(backend Backend) []rpc.API {
 	// Append all the local APIs and return
+	debugAPI := NewAPI(backend)
 	return []rpc.API{
 		{
 			Namespace: "debug",
-			Service:   NewAPI(backend),
+			Service:   debugAPI,
+		}, {
+			Namespace: "trace",
+			Service:   NewTraceAPI(debugAPI),
 		},
 	}
 }
