@@ -28,6 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/governance"
 	"gitlab.com/q-dev/q-client/indexer"
 	"gitlab.com/q-dev/q-client/rpc"
 )
@@ -187,6 +188,12 @@ func (ec *Client) ContractRegistryAddressVotings(ctx context.Context, proposalCo
 func (ec *Client) ContractRegistryUpgradeVotings(ctx context.Context, proposalCounter int64) ([]indexer.ContractRegistryVoting, error) {
 	var result []indexer.ContractRegistryVoting
 	err := ec.c.CallContext(ctx, &result, "indexer_getContractRegistryUpgradeVotings", proposalCounter)
+	return result, err
+}
+
+func (ec *Client) GetRootNodeApprovalList(ctx context.Context, blockNumber *big.Int, hash *common.Hash) (*[]common.RootNodeApproval, error) {
+	var result *[]common.RootNodeApproval
+	err := ec.c.CallContext(ctx, &result, "govPub_getRootNodeApprovals", blockNumber, hash)
 	return result, err
 }
 
@@ -663,6 +670,70 @@ func (ec *Client) SendTransaction(ctx context.Context, tx *types.Transaction) er
 		return err
 	}
 	return ec.c.CallContext(ctx, nil, "eth_sendRawTransaction", hexutil.Encode(data))
+}
+
+func (ec *Client) GetActiveExclusionList(ctx context.Context) (governance.ExclusionList, error) {
+	method := "gov_activeExclusionList"
+
+	var res governance.ExclusionList
+	err := ec.c.CallContext(ctx, &res, method)
+
+	if herr, ok := err.(rpc.Error); ok {
+		if herr.ErrorCode() == -32601 {
+			method = "govPub_activeExclusionList"
+			err = ec.c.CallContext(ctx, &res, method)
+		}
+	}
+
+	return res, err
+}
+
+func (ec *Client) GetProposedExclusionList(ctx context.Context) (governance.ExclusionList, error) {
+	method := "gov_proposedExclusionList"
+
+	var res governance.ExclusionList
+	err := ec.c.CallContext(ctx, &res, method)
+
+	if herr, ok := err.(rpc.Error); ok {
+		if herr.ErrorCode() == -32601 {
+			method = "govPub_proposedExclusionList"
+			err = ec.c.CallContext(ctx, &res, method)
+		}
+	}
+
+	return res, err
+}
+
+func (ec *Client) GetActiveRootList(ctx context.Context) (governance.RootList, error) {
+	method := "gov_activeRootList"
+
+	var res governance.RootList
+	err := ec.c.CallContext(ctx, &res, method)
+
+	if herr, ok := err.(rpc.Error); ok {
+		if herr.ErrorCode() == -32601 {
+			method = "govPub_activeRootList"
+			err = ec.c.CallContext(ctx, &res, method)
+		}
+	}
+
+	return res, err
+}
+
+func (ec *Client) GetProposedRootList(ctx context.Context) (governance.RootList, error) {
+	method := "gov_proposedRootList"
+
+	var res governance.RootList
+	err := ec.c.CallContext(ctx, &res, method)
+
+	if herr, ok := err.(rpc.Error); ok {
+		if herr.ErrorCode() == -32601 {
+			method = "govPub_proposedRootList"
+			err = ec.c.CallContext(ctx, &res, method)
+		}
+	}
+
+	return res, err
 }
 
 func toBlockNumArg(number *big.Int) string {

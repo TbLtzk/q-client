@@ -208,7 +208,7 @@ func (a *GovernanceAPI) ConstitutionFiles() ([]common.ConstitutionFile, error) {
 	return a.gov.ConstitutionManager.db.getConstitutionFiles()
 }
 
-func (a *GovernanceAPI) GetRootNodeApprovals(blockNumber *big.Int, hash *common.Hash) (*[]common.RootNodeApproval, error) {
+func (a *GovernancePublicAPI) GetRootNodeApprovals(blockNumber *big.Int, hash *common.Hash) (*[]common.RootNodeApproval, error) {
 	list, err := a.gov.RootManager.getActiveApprovalList(blockNumber, hash)
 	var res []common.RootNodeApproval
 	if list != nil {
