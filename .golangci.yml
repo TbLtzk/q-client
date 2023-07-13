@@ -13,7 +13,6 @@ run:
 linters:
   disable-all: true
   enable:
-    - deadcode
     - goconst
     - goimports
     - gosimple
@@ -21,7 +20,6 @@ linters:
     - ineffassign
     - misspell
     - unconvert
-    - varcheck
     - typecheck
     - unused
     - staticcheck
@@ -30,6 +28,7 @@ linters:
     - exportloopref
     - gosec
     - whitespace
+    - unused
 
     # - structcheck # lots of false positives
     # - errcheck #lot of false positives

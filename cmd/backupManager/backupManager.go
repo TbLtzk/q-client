@@ -238,7 +238,7 @@ func (mgr *BackupManager) RestoreBackup(backupName *string) error {
 		return errors.Wrap(errRestore, "Failed to restore backup. No backups found")
 	}
 
-	log.Info("Backup manager. Backup restoration job finished successfully.", "Time spent", fmt.Sprintf(time.Since(startTime).String()))
+	log.Info("Backup manager. Backup restoration job finished successfully.", "Time spent", fmt.Sprint(time.Since(startTime).String()))
 
 	return nil
 }
@@ -364,7 +364,7 @@ func (mgr *BackupManager) CreateBackup() error {
 	i := 0
 
 	log.Info("\tScanning data directory")
-	err = filepath.Walk(mgr.config.Datadir, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(mgr.config.Datadir, func(path string, info os.FileInfo, someErr error) error {
 		if info.IsDir() {
 			return nil
 		}
@@ -468,7 +468,7 @@ func (mgr *BackupManager) CreateBackup() error {
 		return errors.Wrap(err, "Failed to write log file")
 	}
 
-	logFile.Close()
+	defer logFile.Close()
 
 	log.Info("\tUploading files to S3")
 	if mgr.config.S3Export {
@@ -483,7 +483,7 @@ func (mgr *BackupManager) CreateBackup() error {
 	}
 
 	log.Info("Backup manager. Job finished successfully:\n" +
-		"\tTime spent: " + fmt.Sprintf("%s", time.Since(startTime)) + "\n" +
+		"\tTime spent: " + time.Since(startTime).String() + "\n" +
 		"\tBackup file: " + backupFileFullName + "\n" +
 		"\tLog file: " + logFilename + "\n")
 
@@ -528,7 +528,7 @@ func (mgr *BackupManager) getDiskFreeSpace(path string) (int64, error) {
 		bavail = 0
 	}
 	//nolint:unconvert
-	return int64(bavail) * int64(stat.Bsize), nil
+	return int64(bavail) * stat.Bsize, nil
 }
 
 func (mgr *BackupManager) getDirectorySize(path string) (int64, error) {
@@ -540,54 +540,6 @@ func (mgr *BackupManager) getDirectorySize(path string) (int64, error) {
 		return nil
 	})
 	return size, err
-}
-
-func (mgr *BackupManager) getLatestBackupNameFromS3() (*string, error) {
-	var latestBackup *string
-	var latestBackupTime time.Time
-
-	// List the objects in the S3 bucket.
-	result, err := mgr.s3Client.ListObjectsV2(context.TODO(), &s3.ListObjectsV2Input{Bucket: aws.String(mgr.config.S3Bucket)})
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to list objects")
-	}
-
-	for _, item := range result.Contents {
-		if strings.Contains(*item.Key, ".tar.gz") {
-			if latestBackupTime.Before(*item.LastModified) {
-				latestBackupTime = *item.LastModified
-				latestBackup = item.Key
-			}
-		}
-	}
-
-	return latestBackup, nil
-}
-
-func (mgr *BackupManager) getLatestBackupNameFromLocal() (*string, error) {
-	var latestBackup *string
-	var latestBackupTime time.Time
-
-	files, err := os.ReadDir(mgr.config.BackupDir)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to list objects")
-	}
-
-	for _, f := range files {
-		if strings.Contains(f.Name(), ".tar.gz") {
-			info, err := f.Info()
-			if err != nil {
-				return nil, errors.Wrap(err, "Failed to get file info")
-			}
-			if latestBackupTime.Before(info.ModTime()) {
-				latestBackupTime = info.ModTime()
-				name := f.Name()
-				latestBackup = &name
-			}
-		}
-	}
-
-	return latestBackup, nil
 }
 
 func (mgr *BackupManager) restoreBackup(s string) error {
@@ -637,13 +589,15 @@ func (mgr *BackupManager) restoreBackupFromS3(filename string) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to get backup file")
 	}
-	defer result.Body.Close()
 
 	//Unpack the backup file
 	if err := mgr.unpackBackup(result.Body); err != nil {
 		return errors.Wrap(err, "Failed to unpack backup file")
 	}
 
+	if err := result.Body.Close(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -653,12 +607,14 @@ func (mgr *BackupManager) restoreBackupFromLocal(s string) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to open backup file")
 	}
-	defer backupFile.Close()
 
 	if err := mgr.unpackBackup(backupFile); err != nil {
 		return errors.Wrap(err, "Failed to unpack backup file")
 	}
 
+	if err := backupFile.Close(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -669,9 +625,9 @@ func (mgr *BackupManager) unpackBackup(file io.Reader) error {
 	if err != nil {
 		return err
 	}
-	defer gzr.Close()
 
 	tarReader := tar.NewReader(gzr)
+	defer gzr.Close()
 
 	// Iterate through the files in the archive.
 	for {
@@ -687,27 +643,63 @@ func (mgr *BackupManager) unpackBackup(file io.Reader) error {
 		switch header.Typeflag {
 		case tar.TypeDir:
 			// Create a directory
-			if err := os.MkdirAll(filepath.Join(targetDir, header.Name), 0755); err != nil {
+			filePath, err := sanitizeFilePath(targetDir, header.Name)
+			if err != nil {
+				return err
+			}
+			if err := os.MkdirAll(filePath, 0755); err != nil {
 				return err
 			}
 		case tar.TypeReg:
 			// Create a file
-			os.MkdirAll(filepath.Join(targetDir, filepath.Dir(header.Name)), 0755)
-
-			outFile, err := os.Create(filepath.Join(targetDir, header.Name))
+			filePath, err := sanitizeFilePath(targetDir, filepath.Dir(header.Name))
 			if err != nil {
 				return err
 			}
-			defer outFile.Close()
+			if err := os.MkdirAll(filePath, 0755); err != nil {
+				return err
+			}
+
+			filePath, err = sanitizeFilePath(targetDir, header.Name)
+			if err != nil {
+				return err
+			}
+			outFile, err := os.Create(filePath)
+			if err != nil {
+				return err
+			}
 
 			// Copy the file data
-			if _, err := io.Copy(outFile, tarReader); err != nil {
+			totalRead := int64(0)
+			for {
+				n, err := io.CopyN(outFile, tarReader, 1024)
+				totalRead += n
+				// print bytes read followed by a carriage return
+				fmt.Printf("Bytes read: %d\r", totalRead)
+				if err != nil {
+					if err == io.EOF {
+						fmt.Println()
+						break
+					}
+					return err
+				}
+			}
+			if err := outFile.Close(); err != nil {
 				return err
 			}
 		}
 	}
 
 	return nil
+}
+
+func sanitizeFilePath(d, t string) (v string, err error) {
+	v = filepath.Join(d, t)
+	if strings.HasPrefix(v, filepath.Clean(d)) {
+		return v, nil
+	}
+
+	return "", fmt.Errorf("%s: %s", "content filepath is tainted", t)
 }
 
 func (mgr *BackupManager) getBackupSizeFromS3(filename string) (int64, error) {
@@ -785,11 +777,11 @@ func (mgr *BackupManager) getIncrementalBackupFilesWithHashes(backupName string)
 	files := make(map[string]string)
 	var lastInfo *BackupInfo
 	//infos are sorted by date ascending. So, if file has been changed - the last one will be the correct one
-	for _, info := range infos {
-		for _, file := range info.Files {
+	for i := range infos {
+		for _, file := range infos[i].Files {
 			files[file.Name] = file.Hash
 		}
-		lastInfo = &info
+		lastInfo = &infos[i]
 	}
 
 	//As a result we will have a map of files with their hashes.
@@ -819,6 +811,9 @@ func (mgr *BackupManager) getIncrementalBackupList(fullBackup string) ([]BackupI
 
 	log.Info("\tValidating incremental backups")
 	backupInfos, err = mgr.validateIncrementalBackups(backupInfos)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to validate incremental backups")
+	}
 	return backupInfos, nil
 }
 
@@ -987,7 +982,6 @@ func (mgr *BackupManager) deleteBackup(candidate string) error {
 		}
 	}
 	return mgr.deleteBackupFromLocal(candidate)
-
 }
 
 func (mgr *BackupManager) deleteBackupFromS3(candidate string) error {
@@ -1015,20 +1009,6 @@ func (mgr *BackupManager) deleteBackupFromLocal(candidate string) error {
 
 func (mgr *BackupManager) IsOnSchedule() bool {
 	return mgr.isOnSchedule
-}
-
-func (mgr *BackupManager) getBackupInfo(backup string) (*BackupInfo, error) {
-	var backupInfo *BackupInfo
-	var err error
-	if mgr.s3Client != nil {
-		backupInfo, err = mgr.getBackupInfoFromS3(backup)
-	} else {
-		backupInfo, err = mgr.getBackupInfoFromLocal(backup)
-	}
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to get backup log")
-	}
-	return backupInfo, nil
 }
 
 func (mgr *BackupManager) getBackupInfoFromS3(backup string) (*BackupInfo, error) {
