@@ -37,6 +37,7 @@ const (
 	DeprecatedCategory = "ALIASED (deprecated)"
 	SentryCategory     = "SENTRY MONITORING"
 	GovernanceCategory = "L0 GOVERNANCE"
+	BackupCategory     = "BACKUP AND RESTORE"
 )
 
 func init() {

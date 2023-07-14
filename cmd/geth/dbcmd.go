@@ -29,6 +29,7 @@ import (
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli/v2"
+	"gitlab.com/q-dev/q-client/cmd/backupManager"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
@@ -206,7 +207,123 @@ WARNING: This is a low-level operation which may cause database corruption!`,
 		Description: `The freezer-migrate command checks your database for receipts in a legacy format and updates those.
 WARNING: please back-up the receipt files in your ancients before running this command.`,
 	}
+	dbBackupCommand = &cli.Command{
+		Action: backupDatabase,
+		Name:   "backup",
+		Usage:  "Backup the database to a directory/S3 bucket.",
+		Flags: flags.Merge([]cli.Flag{
+			utils.BackupDirFlag,
+			utils.DataDirFlag,
+			utils.BackupIncremental,
+			utils.BackupRotationPeriod,
+			utils.BackupEnableS3Flag,
+			utils.BackupS3BucketFlag,
+			utils.BackupS3KeyPrefixFlag,
+			utils.BackupAWSAccessKeyFlag,
+			utils.BackupAWSSecretKeyFlag,
+			utils.BackupAWSTokenFlag,
+			utils.BackupAWSRegionFlag,
+			//There is also a cron flag, but in this case it is not applicable
+		}),
+		Description: "The backup command creates a backup of the database in the specified directory/S3 bucket.",
+	}
+	dbRestoreCommand = &cli.Command{
+		Action: restoreDatabase,
+		Name:   "restore",
+		Usage:  "Restore backup from a directory/S3 bucket.",
+		Flags: flags.Merge([]cli.Flag{
+			utils.BackupDirFlag,
+			utils.DataDirFlag,
+			utils.BackupIncremental,
+			utils.BackupRotationPeriod,
+			utils.BackupEnableS3Flag,
+			utils.BackupS3BucketFlag,
+			utils.BackupS3KeyPrefixFlag,
+			utils.BackupAWSAccessKeyFlag,
+			utils.BackupAWSSecretKeyFlag,
+			utils.BackupAWSTokenFlag,
+			utils.BackupAWSRegionFlag,
+			//There is also a cron flag, but in this case it is not applicable
+		}),
+		Description: "The restore command restores a backup of the database from the specified directory/S3 bucket.",
+	}
 )
+
+func backupDatabase(ctx *cli.Context) error {
+	if !ctx.IsSet(utils.BackupDirFlag.Name) {
+		return fmt.Errorf("required arguments: %v", utils.BackupDirFlag.Name)
+	}
+	if ctx.IsSet(utils.BackupEnableS3Flag.Name) && !ctx.IsSet(utils.BackupDirFlag.Name) {
+		return fmt.Errorf("required arguments: %v", utils.BackupDirFlag.Name)
+	}
+	dataDir := ctx.String(utils.DataDirFlag.Name)
+	backupDir := ctx.String(utils.BackupDirFlag.Name)
+
+	config := backupManager.Config{
+		Datadir:        dataDir,
+		BackupDir:      backupDir,
+		Incremental:    ctx.Bool(utils.BackupIncremental.Name),
+		RotationPeriod: ctx.Int(utils.BackupRotationPeriod.Name),
+		S3Export:       ctx.Bool(utils.BackupEnableS3Flag.Name),
+		S3Bucket:       ctx.String(utils.BackupS3BucketFlag.Name),
+		S3KeyPrefix:    ctx.String(utils.BackupS3KeyPrefixFlag.Name),
+		AWSRegion:      ctx.String(utils.BackupAWSRegionFlag.Name),
+		AWSAccessKey:   ctx.String(utils.BackupAWSAccessKeyFlag.Name),
+		AWSSecretKey:   ctx.String(utils.BackupAWSSecretKeyFlag.Name),
+		AWSToken:       ctx.String(utils.BackupAWSTokenFlag.Name),
+		CronSpec:       nil,
+	}
+	exp, err := backupManager.NewBackupManager(&config, nil, nil)
+	if err != nil {
+		return err
+	}
+	return exp.CreateBackup()
+}
+
+func restoreDatabase(ctx *cli.Context) error {
+	var backupFile *string
+
+	if ctx.NArg() > 1 {
+		return fmt.Errorf("max 1 argument: %v", ctx.Command.ArgsUsage)
+	} else if ctx.NArg() == 1 {
+		arg0 := ctx.Args().Get(0)
+		backupFile = &arg0
+	} else {
+		if ctx.IsSet(utils.BackupEnableS3Flag.Name) && !ctx.IsSet(utils.BackupDirFlag.Name) {
+			return fmt.Errorf("required arguments: %v", utils.BackupDirFlag.Name)
+		}
+		if !ctx.IsSet(utils.BackupDirFlag.Name) {
+			return fmt.Errorf("required arguments: %v", utils.BackupDirFlag.Name)
+		}
+	}
+
+	dataDir := ctx.String(utils.DataDirFlag.Name)
+	backupDir := ctx.String(utils.BackupDirFlag.Name)
+
+	config := backupManager.Config{
+		Datadir:        dataDir,
+		BackupDir:      backupDir,
+		Incremental:    ctx.Bool(utils.BackupIncremental.Name),
+		RotationPeriod: ctx.Int(utils.BackupRotationPeriod.Name),
+		S3Export:       ctx.Bool(utils.BackupEnableS3Flag.Name),
+		S3Bucket:       ctx.String(utils.BackupS3BucketFlag.Name),
+		S3KeyPrefix:    ctx.String(utils.BackupS3KeyPrefixFlag.Name),
+		AWSRegion:      ctx.String(utils.BackupAWSRegionFlag.Name),
+		AWSAccessKey:   ctx.String(utils.BackupAWSAccessKeyFlag.Name),
+		AWSSecretKey:   ctx.String(utils.BackupAWSSecretKeyFlag.Name),
+		AWSToken:       ctx.String(utils.BackupAWSTokenFlag.Name),
+		CronSpec:       nil,
+	}
+	exp, err := backupManager.NewBackupManager(&config, nil, nil)
+	if err != nil {
+		return err
+	}
+	errRestore := exp.RestoreBackup(backupFile)
+	if errRestore != nil {
+		log.Error("Failed to restore database", "err", errRestore)
+	}
+	return nil //error is already logged
+}
 
 func removeDB(ctx *cli.Context) error {
 	stack, config := makeConfigNode(ctx)
