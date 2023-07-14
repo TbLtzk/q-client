@@ -468,7 +468,7 @@ func (mgr *BackupManager) CreateBackup() error {
 		return errors.Wrap(err, "Failed to write log file")
 	}
 
-	defer logFile.Close()
+	logFile.Close()
 
 	log.Info("\tUploading files to S3")
 	if mgr.config.S3Export {
@@ -589,15 +589,13 @@ func (mgr *BackupManager) restoreBackupFromS3(filename string) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to get backup file")
 	}
+	defer result.Body.Close()
 
 	//Unpack the backup file
 	if err := mgr.unpackBackup(result.Body); err != nil {
 		return errors.Wrap(err, "Failed to unpack backup file")
 	}
 
-	if err := result.Body.Close(); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -608,13 +606,12 @@ func (mgr *BackupManager) restoreBackupFromLocal(s string) error {
 		return errors.Wrap(err, "Failed to open backup file")
 	}
 
+	defer backupFile.Close()
+
 	if err := mgr.unpackBackup(backupFile); err != nil {
 		return errors.Wrap(err, "Failed to unpack backup file")
 	}
 
-	if err := backupFile.Close(); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -625,9 +622,9 @@ func (mgr *BackupManager) unpackBackup(file io.Reader) error {
 	if err != nil {
 		return err
 	}
+	defer gzr.Close()
 
 	tarReader := tar.NewReader(gzr)
-	defer gzr.Close()
 
 	// Iterate through the files in the archive.
 	for {
@@ -668,6 +665,7 @@ func (mgr *BackupManager) unpackBackup(file io.Reader) error {
 			if err != nil {
 				return err
 			}
+			defer outFile.Close()
 
 			// Copy the file data
 			totalRead := int64(0)
@@ -683,9 +681,6 @@ func (mgr *BackupManager) unpackBackup(file io.Reader) error {
 					}
 					return err
 				}
-			}
-			if err := outFile.Close(); err != nil {
-				return err
 			}
 		}
 	}
