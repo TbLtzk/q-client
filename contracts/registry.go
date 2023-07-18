@@ -418,6 +418,37 @@ func (r *Registry) IsTestMode() bool {
 	return r.isTestMode
 }
 
+// VotingWeightProxy returns VotingWeightProxy contract backend if available.
+func (r *Registry) VotingWeightProxy() *generated.VotingWeightProxy {
+	addr := r.getAddr("governance.votingWeightProxy")
+	if (addr == common.Address{}) {
+		log.Debug("governance.votingWeightProxy is not deployed")
+		return nil
+	}
+
+	// err is never returned here
+	votingWeightProxy, _ := generated.NewVotingWeightProxy(addr, r.Backend)
+	return votingWeightProxy
+}
+
+func (r *Registry) GetSelfAddress() common.Address {
+	return r.addr
+}
+
+func (r *Registry) SystemContracts() []generated.ContractRegistryPair {
+	contracts, err := r.registry().GetContracts(nil)
+	if err != nil {
+		log.Error("failed to get system contracts from registry")
+		return nil
+	}
+
+	return contracts
+}
+
+func (r *Registry) GetAddr(key string) common.Address {
+	return r.getAddr(key)
+}
+
 func (r *Registry) registry() *generated.ContractRegistry {
 	r.mu.Lock()
 	defer r.mu.Unlock()

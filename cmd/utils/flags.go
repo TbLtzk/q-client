@@ -29,30 +29,16 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/q-dev/q-client/consensus/clique"
-	lescatalyst "gitlab.com/q-dev/q-client/les/catalyst"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/metrics"
-	"gitlab.com/q-dev/q-client/metrics/exp"
-	"gitlab.com/q-dev/q-client/metrics/influxdb"
-	"gitlab.com/q-dev/q-client/miner"
-	"gitlab.com/q-dev/q-client/node"
-	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/p2p/enode"
-	"gitlab.com/q-dev/q-client/p2p/nat"
-	"gitlab.com/q-dev/q-client/p2p/netutil"
-	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/rpc"
-	"gitlab.com/q-dev/q-client/sentryMonitor"
-
 	pcsclite "github.com/gballet/go-libpcsclite"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/cmd/backupManager"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/fdlimit"
 	"gitlab.com/q-dev/q-client/consensus"
+	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
@@ -75,6 +61,20 @@ import (
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/les"
+	lescatalyst "gitlab.com/q-dev/q-client/les/catalyst"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/metrics"
+	"gitlab.com/q-dev/q-client/metrics/exp"
+	"gitlab.com/q-dev/q-client/metrics/influxdb"
+	"gitlab.com/q-dev/q-client/miner"
+	"gitlab.com/q-dev/q-client/node"
+	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/nat"
+	"gitlab.com/q-dev/q-client/p2p/netutil"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/sentryMonitor"
 )
 
 // These are all the command line flags we support.
@@ -1064,6 +1064,86 @@ var (
 		Usage:    "Factor that sets a buffer for gas estimation",
 		Value:    ethconfig.Defaults.GasBuffer,
 		Category: flags.APICategory,
+	}
+
+	//Backup flags
+	BackupEnabledFlag = &cli.BoolFlag{
+		Name:     "backup",
+		Usage:    "Enable backup",
+		Category: flags.BackupCategory,
+	}
+	RestoreBackupFlag = &cli.BoolFlag{
+		Name:     "restore",
+		Usage:    "Restore backup",
+		Category: flags.BackupCategory,
+	}
+	BackupFileFlag = &cli.StringFlag{
+		Name:     "backup.file",
+		Usage:    "Restore backup from specified file", //Otherwise it will restore from the latest backup
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupDirFlag = &flags.DirectoryFlag{
+		Name:     "backup.backupDir",
+		Usage:    "Backup directory",
+		Category: flags.BackupCategory,
+	}
+	BackupIncremental = &cli.BoolFlag{
+		Name:     "backup.incremental",
+		Usage:    "Enable incremental backup",
+		Category: flags.BackupCategory,
+	}
+	BackupRotationPeriod = &cli.IntFlag{
+		Name:     "backup.rotationPeriod",
+		Usage:    "Backup rotation period",
+		Category: flags.BackupCategory,
+	}
+	BackupEnableS3Flag = &cli.BoolFlag{
+		Name:     "backup.s3",
+		Usage:    "Enable backup to S3",
+		Category: flags.BackupCategory,
+	}
+	BackupS3BucketFlag = &cli.StringFlag{
+		Name:     "backup.s3.bucket",
+		Usage:    "S3 bucket name to store backups",
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupS3KeyPrefixFlag = &cli.StringFlag{
+		Name:     "backup.s3.keyPrefix",
+		Usage:    "S3 key prefix to store backups",
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupAWSRegionFlag = &cli.StringFlag{
+		Name:     "backup.s3.region",
+		Usage:    "AWS region to store backups",
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupAWSAccessKeyFlag = &cli.StringFlag{
+		Name:     "backup.s3.accessKey",
+		Usage:    "AWS S3 access key to store backups",
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupAWSSecretKeyFlag = &cli.StringFlag{
+		Name:     "backup.s3.secretKey",
+		Usage:    "AWS S3 secret key to store backups",
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupAWSTokenFlag = &cli.StringFlag{
+		Name:     "backup.s3.token",
+		Usage:    "AWS S3 token to store backups",
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupCronSpecFlag = &cli.StringFlag{
+		Name:     "backup.cronSpec",
+		Usage:    "Cron spec to run backup",
+		Value:    "",
+		Category: flags.BackupCategory,
 	}
 )
 
@@ -2348,6 +2428,48 @@ func SetupSentry(ctx *cli.Context) {
 			log.Error("Sentry enabled flag is set but initialization failed: %s", err)
 		}
 	}
+}
+
+func SetupBackups(ctx *cli.Context, start func() error, end func(results *backupManager.BackupInfo) error) (*backupManager.BackupManager, error) {
+	if !ctx.IsSet(BackupEnabledFlag.Name) {
+		return nil, nil // backups disabled
+	}
+	if !ctx.IsSet(BackupDirFlag.Name) {
+		return nil, fmt.Errorf("required arguments: %v", BackupDirFlag.Name)
+	}
+	if ctx.IsSet(BackupEnableS3Flag.Name) && !ctx.IsSet(BackupDirFlag.Name) {
+		return nil, fmt.Errorf("required arguments: %v", BackupDirFlag.Name)
+	}
+	if !ctx.IsSet(BackupCronSpecFlag.Name) {
+		return nil, fmt.Errorf("required arguments: %v", BackupCronSpecFlag.Name)
+	}
+
+	dataDir := ctx.String(DataDirFlag.Name)
+	backupDir := ctx.String(BackupDirFlag.Name)
+	cronSpec := ctx.String(BackupCronSpecFlag.Name)
+
+	config := backupManager.Config{
+		Datadir:      dataDir,
+		BackupDir:    backupDir,
+		Incremental:  false,
+		S3Export:     ctx.Bool(BackupEnableS3Flag.Name),
+		S3Bucket:     ctx.String(BackupS3BucketFlag.Name),
+		S3KeyPrefix:  ctx.String(BackupS3KeyPrefixFlag.Name),
+		AWSRegion:    ctx.String(BackupAWSRegionFlag.Name),
+		AWSAccessKey: ctx.String(BackupAWSAccessKeyFlag.Name),
+		AWSSecretKey: ctx.String(BackupAWSSecretKeyFlag.Name),
+		AWSToken:     ctx.String(BackupAWSTokenFlag.Name),
+		CronSpec:     &cronSpec,
+	}
+
+	mgr, err := backupManager.NewBackupManager(&config, start, end)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mgr.ScheduleExport()
+
+	return mgr, err
 }
 
 func SplitTagsFlag(tagsFlag string) map[string]string {

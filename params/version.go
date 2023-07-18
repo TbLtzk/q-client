@@ -21,10 +21,10 @@ import (
 )
 
 const (
-	QVersionMajor = 1    // Q-Client major version component of the current release
-	QVersionMinor = 3    // Q-Client minor version component of the current release
-	QVersionPatch = 1    // Q-Client patch version component of the current release
-	QVersionMeta  = "rc" // Q-Client version metadata to append to the version string
+	QVersionMajor = 1        // Q-Client major version component of the current release
+	QVersionMinor = 3        // Q-Client minor version component of the current release
+	QVersionPatch = 2        // Q-Client patch version component of the current release
+	QVersionMeta  = "stable" // Q-Client version metadata to append to the version string
 )
 
 const (
