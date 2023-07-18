@@ -15,11 +15,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"gitlab.com/q-dev/system-contracts/generated"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/system-contracts/generated"
 )
 
 const (
@@ -384,6 +385,10 @@ func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
 		err := errors.New("Contract registry not initialized")
 		log.Error(wrapped, "error", err)
 		return false, err
+	}
+
+	if cm.reg.IsTestMode() {
+		return true, nil
 	}
 
 	cv := cm.reg.ConstitutionVoting()

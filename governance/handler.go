@@ -8,11 +8,17 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p"
+)
+
+var (
+	errUnknownMsgCode = errors.New("unknown msg code")
+	errMsgTooLarge    = errors.New("message too large")
 )
 
 // handler of governance protocol messages.
@@ -378,11 +384,11 @@ func (h *handler) handleMsg(p *peer) error {
 
 	if msg.Code != ConstitutionFilesMsg {
 		if msg.Size > protocolMaxMsgSize {
-			return errors.New("message too large")
+			return errMsgTooLarge
 		}
 	} else {
 		if msg.Size > maxConstitutionFileSize {
-			return errors.Wrap(err, "message too large")
+			return errMsgTooLarge
 		}
 	}
 
@@ -404,7 +410,7 @@ func (h *handler) handleMsg(p *peer) error {
 	case KnownConstitutionFilesMsg:
 		return h.handleKnownFilesMsg(p, msg)
 	default:
-		return errors.New("unknown msg code")
+		return errUnknownMsgCode
 	}
 }
 

@@ -2,14 +2,16 @@ package contracts
 
 import (
 	"context"
+	"math/big"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
+	"gitlab.com/q-dev/system-contracts/generated"
+
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/system-contracts/generated"
 )
 
 // Registry of system contracts.
@@ -140,8 +142,71 @@ func (r *Registry) EpqfiParameters() *generated.EPQFIParameters {
 	return epqfiParams
 }
 
+type AccountAliasesI interface {
+	ResolveBatch(opts *bind.CallOpts, main []common.Address, role []*big.Int) ([]common.Address, error)
+	ResolveBatchReverse(opts *bind.CallOpts, alias []common.Address, role []*big.Int) ([]common.Address, error)
+	Resolve(opts *bind.CallOpts, main common.Address, role *big.Int) (common.Address, error)
+	ResolveReverse(opts *bind.CallOpts, alias common.Address, role *big.Int) (common.Address, error)
+}
+
+type mockAccountAliases struct {
+	aliases        map[common.Address]common.Address
+	reverseAliases map[common.Address]common.Address
+}
+
+var mockAccount *mockAccountAliases
+
+func NewMockAccountAliases(aliases map[common.Address]common.Address) {
+	mockAccount = new(mockAccountAliases)
+
+	mockAccount.aliases = aliases
+	mockAccount.reverseAliases = make(map[common.Address]common.Address)
+
+	for account, alias := range aliases {
+		mockAccount.reverseAliases[alias] = account
+	}
+}
+
+func (m *mockAccountAliases) ResolveBatch(opts *bind.CallOpts, main []common.Address, role []*big.Int) ([]common.Address, error) {
+	aliases := make([]common.Address, 0, len(main))
+	for _, ma := range main {
+		resolved := ma
+		if alias, ok := m.aliases[ma]; ok {
+			resolved = alias
+		}
+		aliases = append(aliases, resolved)
+	}
+
+	return aliases, nil
+}
+
+func (m *mockAccountAliases) ResolveBatchReverse(opts *bind.CallOpts, alias []common.Address, role []*big.Int) ([]common.Address, error) {
+	mains := make([]common.Address, 0, len(alias))
+	for _, a := range alias {
+		resolved := a
+		if main, ok := m.reverseAliases[a]; ok {
+			resolved = main
+		}
+		mains = append(mains, resolved)
+	}
+
+	return mains, nil
+}
+
+func (m *mockAccountAliases) Resolve(opts *bind.CallOpts, main common.Address, role *big.Int) (common.Address, error) {
+	return m.aliases[main], nil
+}
+
+func (m *mockAccountAliases) ResolveReverse(opts *bind.CallOpts, alias common.Address, role *big.Int) (common.Address, error) {
+	return m.reverseAliases[alias], nil
+}
+
 // AccountAliases returns AccountAliases contract backend if available.
-func (r *Registry) AccountAliases() *generated.AccountAliases {
+func (r *Registry) AccountAliases() AccountAliasesI {
+	if r.IsTestMode() {
+		return mockAccount
+	}
+
 	addr := r.AccountAliasesAddress()
 	if addr == nil {
 		return nil
@@ -347,6 +412,10 @@ func (r *Registry) ContractRegistryUpgradeVoting() *generated.ContractRegistryUp
 	// err is never returned here
 	contractRegistryUpgradeVoting, _ := generated.NewContractRegistryUpgradeVoting(addr, r.Backend)
 	return contractRegistryUpgradeVoting
+}
+
+func (r *Registry) IsTestMode() bool {
+	return r.isTestMode
 }
 
 func (r *Registry) registry() *generated.ContractRegistry {

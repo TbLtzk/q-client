@@ -36,13 +36,13 @@ func TestRunPeer(t *testing.T) {
 }
 
 func newGovernance(t *testing.T) *Governance {
-	rm := newTestRootManager(t, true)
+	rm := newTestRootManager(t, true, false)
 
-	bc := newTestChain(t, rm)
+	bc := newTestChain(t, rm.RootManager)
 	defer bc.Stop()
 	rm.InitBlockChain(bc)
 
-	gov, err := New(rm, tmpDirName(t))
+	gov, err := New(rm.RootManager, tmpDirName(t))
 	if err != nil {
 		t.Fatalf("Failed to create Governance: %v", err)
 	}
