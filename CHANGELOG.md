@@ -53,3 +53,11 @@ Pay attention, that `--whitelist` flag became deprecated, if such flag is set, y
 ### Notes
 Default quota values are set to 3 per Root node/24 hours. If you want to change it, please use the following flags:
 *gov.proposalQuotaMax* (max new list from root node) and *gov.proposalQuotaTimeWindow* (in hours)
+
+## [1.3.3] - 2023-08
+### Added
+- S3 backup mananger and command line flags to enable it.
+- Additional governance unit tests
+
+### Changed 
+- Make public root node approvals endpoint in governance API
