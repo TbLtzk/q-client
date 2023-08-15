@@ -28,6 +28,9 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
+	"gitlab.com/q-dev/system-contracts/generated"
+	"golang.org/x/crypto/sha3"
+
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	_ "gitlab.com/q-dev/q-client/accounts/keystore"
@@ -47,8 +50,6 @@ import (
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/sentryMonitor"
 	"gitlab.com/q-dev/q-client/trie"
-	"gitlab.com/q-dev/system-contracts/generated"
-	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -670,7 +671,7 @@ func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 	}
 
 	if signerListFromPast {
-		checkpoint := chain.GetHeaderByNumber(number)
+		checkpoint := chain.GetHeaderByNumber(initialNumber)
 		if checkpoint != nil {
 			hash := checkpoint.Hash()
 
@@ -678,7 +679,7 @@ func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 			for i := 0; i < len(signers); i++ {
 				copy(signers[i][:], checkpoint.Extra[extraVanity+i*common.AddressLength:])
 			}
-			snap = newSnapshot(c.config, c.signatures, number, hash, signers)
+			snap = newSnapshot(c.config, c.signatures, initialNumber, hash, signers)
 		}
 		err := c.updateProposals(chain, initialNumber, snap, signerListFromPast)
 		if err != nil {
