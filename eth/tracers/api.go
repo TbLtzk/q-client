@@ -272,10 +272,10 @@ func (api *API) traceChainWithFilter(ctx context.Context, start, end *types.Bloc
 		threads = blocks
 	}
 	var (
-		pend     = new(sync.WaitGroup)
-		tasks    = make(chan *blockTraceTask, threads)
-		results  = make(chan *blockTraceTask, threads)
-		localctx = context.Background()
+		pend                = new(sync.WaitGroup)
+		tasks               = make(chan *blockTraceTask, threads)
+		results             = make(chan *blockTraceTask, threads)
+		localctx, cancelCtx = context.WithCancel(ctx)
 	)
 	for th := 0; th < threads; th++ {
 		pend.Add(1)
@@ -339,8 +339,9 @@ func (api *API) traceChainWithFilter(ctx context.Context, start, end *types.Bloc
 			parent  common.Hash
 			statedb *state.StateDB
 		)
-		// Ensure everything is properly cleaned up on any exit path
+		// Ensure everything is properly cleaned up on any exit path. maybe move outside the go func
 		defer func() {
+			cancelCtx()
 			close(tasks)
 			pend.Wait()
 
@@ -414,7 +415,7 @@ func (api *API) traceChainWithFilter(ctx context.Context, start, end *types.Bloc
 
 	resultTraces := []CallParityFrame{}
 
-	// Keep reading the trace results and stream the to the user
+	// Keep reading the trace results and stream to the user
 	var (
 		done = make(map[uint64]*blockTraceResult)
 		next = start.NumberU64() + 1
