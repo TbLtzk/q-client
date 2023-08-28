@@ -766,6 +766,11 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 			return errWrongDifficulty
 		}
 	}
+
+	if number%c.config.Epoch == 0 {
+		c.exclusionSetProvider.HandleTransitionBlockSignature(header)
+	}
+
 	return nil
 }
 
