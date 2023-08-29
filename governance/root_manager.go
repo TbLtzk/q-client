@@ -1164,6 +1164,7 @@ func (s *RootManager) ValidatePreviousTransitionBlockSignature() {
 
 func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 	if header == nil {
+		log.Debug("Nil header is passed to HandleTransitionBlockSignature")
 		return
 	}
 
@@ -1178,15 +1179,18 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 		}
 	}
 	if len(unlockedRoots) == 0 {
+		log.Debug("There is no any unlocked root")
 		return
 	}
 	if s.bc == nil && s.dl == nil {
+		log.Debug("Blockchain and downloader are nil in HandleTransitionBlockSignature")
 		return
 	}
 
 	currentBlock := s.bc.CurrentBlock().Number().Uint64()
 	if s.dl != nil && s.dl.Progress().HighestBlock > currentBlock {
 		currentBlock = s.dl.Progress().HighestBlock
+		log.Debug("Co-sign during sync", "block_to_co-sign", header.Number.Uint64(), "latest_block", currentBlock)
 	}
 
 	//No need to sign blocks that are not fresh enough
