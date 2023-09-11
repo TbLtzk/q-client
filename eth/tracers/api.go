@@ -28,6 +28,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/exp/slices"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus"
@@ -249,6 +251,245 @@ func (api *API) TraceChain(ctx context.Context, start, end rpc.BlockNumber, conf
 		}
 	}()
 	return sub, nil
+}
+
+// TraceChainWithFilterApplied returns the filtered and structured logs created during the execution of EVM
+// between two blocks (excluding start) and returns them as a JSON object.
+func (api *API) TraceChainWithFilterApplied(ctx context.Context, start, end rpc.BlockNumber, config *TraceConfig, fromAddress []common.Address, toAddress []common.Address) ([]CallParityFrame, error) { // Fetch the block interval that we want to trace
+	if end == start {
+		start-- //traceChainWithFilter gets the block after start. So if start == end, we need to decrement start by 1
+	}
+	from, err := api.blockByNumber(ctx, start)
+	if err != nil {
+		return nil, err
+	}
+	to, err := api.blockByNumber(ctx, end)
+	if err != nil {
+		return nil, err
+	}
+	if from.Number().Cmp(to.Number()) > 0 {
+		return nil, fmt.Errorf("end block (#%d) needs to come after start block (#%d)", end, start)
+	}
+
+	traces := make([]CallParityFrame, 0)
+	resCh := api.traceChainWithFilter(ctx, from, to, config, fromAddress, toAddress)
+	for result := range resCh {
+		traces = append(traces, result...)
+	}
+
+	return traces, nil
+}
+
+func (api *API) traceChainWithFilter(ctx context.Context, start, end *types.Block, config *TraceConfig, fromAddress, toAddress []common.Address) chan []CallParityFrame {
+	// Prepare all the states for tracing. Note this procedure can take very
+	// long time. Timeout mechanism is necessary.
+	reexec := defaultTraceReexec
+	if config != nil && config.Reexec != nil {
+		reexec = *config.Reexec
+	}
+	blocks := int(end.NumberU64() - start.NumberU64())
+	threads := runtime.NumCPU()
+	if threads > blocks {
+		threads = blocks
+	}
+	var (
+		pend     = new(sync.WaitGroup)
+		tasks    = make(chan *blockTraceTask, threads)
+		results  = make(chan *blockTraceTask, threads)
+		localctx = context.Background()
+		reler    = new(releaser)
+	)
+	for th := 0; th < threads; th++ {
+		pend.Add(1)
+		go func() {
+			defer pend.Done()
+
+			// Fetch and execute the next block trace tasks
+			for task := range tasks {
+				signer := types.MakeSigner(api.backend.ChainConfig(), task.block.Number())
+				blockCtx := core.NewEVMBlockContext(task.block.Header(), api.chainContext(localctx), nil)
+
+				// Trace all the transactions contained within
+				for i, tx := range task.block.Transactions() {
+					if fromAddress != nil {
+						from, _ := types.Sender(signer, tx)
+						if !slices.Contains(fromAddress, from) {
+							continue
+						}
+					}
+					if toAddress != nil && tx.To() != nil {
+						if !slices.Contains(toAddress, *tx.To()) {
+							continue
+						}
+					}
+
+					msg, _ := tx.AsMessage(signer, task.block.BaseFee())
+					txctx := &Context{
+						BlockHash: task.block.Hash(),
+						TxIndex:   i,
+						TxHash:    tx.Hash(),
+					}
+					res, err := api.traceTx(localctx, msg, txctx, blockCtx, task.statedb, config)
+
+					if err != nil {
+						task.results[i] = &txTraceResult{Error: err.Error()}
+						log.Warn("Tracing failed", "hash", tx.Hash(), "block", task.block.NumberU64(), "err", err)
+						break
+					}
+					// Only delete empty objects if EIP158/161 (a.k.a Spurious Dragon) is in effect
+					task.statedb.Finalise(api.backend.ChainConfig().IsEIP158(task.block.Number()))
+					task.results[i] = &txTraceResult{Result: res}
+				}
+
+				reler.add(task.release)
+
+				// Stream the result back to the result catcher or abort on teardown
+				select {
+				case results <- task:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+
+	// Start a goroutine to feed all the blocks into the tracers
+	go func() {
+		var (
+			logged  time.Time
+			begin   = time.Now()
+			number  uint64
+			traced  uint64
+			failed  error
+			statedb *state.StateDB
+			release StateReleaseFunc
+		)
+		// Ensure everything is properly cleaned up on any exit path
+		defer func() {
+			close(tasks)
+			pend.Wait()
+
+			// Clean out any pending derefs.
+			reler.call()
+
+			switch {
+			case failed != nil:
+				log.Warn("Chain tracing failed", "start", start.NumberU64(), "end", end.NumberU64(), "transactions", traced, "elapsed", time.Since(begin), "err", failed)
+			case number < end.NumberU64():
+				log.Warn("Chain tracing aborted", "start", start.NumberU64(), "end", end.NumberU64(), "abort", number, "transactions", traced, "elapsed", time.Since(begin))
+			default:
+				log.Info("Chain tracing finished", "start", start.NumberU64(), "end", end.NumberU64(), "transactions", traced, "elapsed", time.Since(begin))
+			}
+			close(results)
+		}()
+
+		// Feed all the blocks both into the tracer, and fast process concurrently
+		for number = start.NumberU64(); number < end.NumberU64(); number++ {
+			// Stop tracing if interruption was requested
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			// Print progress logs if long enough time elapsed
+			if time.Since(logged) > 8*time.Second {
+				logged = time.Now()
+				log.Info("Tracing chain segment", "start", start.NumberU64(), "end", end.NumberU64(), "current", number, "transactions", traced, "elapsed", time.Since(begin))
+			}
+
+			// Retrieve the parent block and target block for tracing.
+			block, err := api.blockByNumber(localctx, rpc.BlockNumber(number))
+			if err != nil {
+				failed = err
+				break
+			}
+			next, err := api.blockByNumber(ctx, rpc.BlockNumber(number+1))
+			if err != nil {
+				failed = err
+				break
+			}
+
+			// Prepare the statedb for tracing. Don't use the live database for
+			// tracing to avoid persisting state junks into the database. Switch
+			// over to `preferDisk` mode only if the memory usage exceeds the
+			// limit, the trie database will be reconstructed from scratch only
+			// if the relevant state is available in disk.
+			var preferDisk bool
+			if statedb != nil {
+				s1, s2 := statedb.Database().TrieDB().Size()
+				preferDisk = s1+s2 > defaultTracechainMemLimit
+			}
+
+			statedb, release, err = api.backend.StateAtBlock(ctx, block, reexec, statedb, false, preferDisk)
+			if err != nil {
+				failed = err
+				break
+			}
+
+			// Clean out any pending derefs. Note this step must be done after
+			// constructing tracing state, because the tracing state of block
+			// next depends on the parent state and construction may fail if
+			// we release too early.
+			reler.call()
+
+			// Send the block over to the concurrent tracers (if not in the fast-forward phase)
+			txs := next.Transactions()
+			select {
+			case tasks <- &blockTraceTask{statedb: statedb.Copy(), block: next, release: release, results: make([]*txTraceResult, len(txs))}:
+			case <-ctx.Done():
+				reler.add(release)
+				return
+			}
+			traced += uint64(len(txs))
+		}
+	}()
+
+	retCh := make(chan []CallParityFrame)
+
+	// Keep reading the trace results and stream to the user
+	go func() {
+		defer close(retCh)
+
+		var (
+			done = make(map[uint64]*blockTraceResult)
+			next = start.NumberU64() + 1
+		)
+
+		for res := range results {
+			// Queue up next received result
+			result := &blockTraceResult{
+				Block:  hexutil.Uint64(res.block.NumberU64()),
+				Hash:   res.block.Hash(),
+				Traces: res.results,
+			}
+
+			done[uint64(result.Block)] = result
+
+			// Stream completed traces to the result channel
+			for result, ok := done[next]; ok; result, ok = done[next] {
+				if len(result.Traces) > 0 || next == end.NumberU64() {
+					for _, r := range result.Traces {
+						if r != nil {
+							raw := r.Result.(json.RawMessage)
+							var traceResult []CallParityFrame
+
+							if err := json.Unmarshal(raw, &traceResult); err != nil {
+								log.Warn("Failed to unmarshal trace result", "err", err)
+								continue
+							}
+
+							retCh <- traceResult
+						}
+					}
+				}
+				delete(done, next)
+				next++
+			}
+		}
+	}()
+
+	return retCh
 }
 
 // releaser is a helper tool responsible for caching the release

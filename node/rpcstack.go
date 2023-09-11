@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/rs/cors"
+
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/rpc"
 )
@@ -270,7 +271,7 @@ func (h *httpServer) doStop() {
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 	err := h.server.Shutdown(ctx)
-	if err == ctx.Err() {
+	if err != nil && ctx.Err() != nil {
 		h.log.Warn("HTTP server graceful shutdown timed out")
 		h.server.Close()
 	}

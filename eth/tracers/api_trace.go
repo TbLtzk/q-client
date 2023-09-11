@@ -106,5 +106,5 @@ func (api *TraceAPI) Filter(ctx context.Context, args TraceFilterParams, config 
 		toAddresses = t
 	}
 
-	return api.debugAPI.TraceChainWithFilterApplied(ctx, start, end, config, fromAddresses, toAddresses, args.After, args.Count)
+	return api.debugAPI.TraceChainWithFilterApplied(ctx, start, end, config, fromAddresses, toAddresses)
 }
