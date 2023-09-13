@@ -28,6 +28,7 @@ import (
 	"sync/atomic"
 
 	"github.com/golang/snappy"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
@@ -561,21 +562,34 @@ func (t *freezerTable) Close() error {
 	defer t.lock.Unlock()
 
 	var errs []error
-	if err := t.index.Close(); err != nil {
-		errs = append(errs, err)
+	doClose := func(f *os.File, sync bool, close bool) {
+		if sync && !t.readonly {
+			if err := f.Sync(); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		if close {
+			if err := f.Close(); err != nil {
+				errs = append(errs, err)
+			}
+		}
 	}
-	t.index = nil
 
-	if err := t.meta.Close(); err != nil {
-		errs = append(errs, err)
-	}
-	t.meta = nil
-
+	// Trying to fsync a file opened in rdonly causes "Access denied"
+	// error on Windows.
+	doClose(t.index, true, true)
+	doClose(t.meta, true, true)
+	// The preopened non-head data-files are all opened in readonly.
+	// The head is opened in rw-mode, so we sync it here - but since it's also
+	// part of t.files, it will be closed in the loop below.
+	doClose(t.head, true, false) // sync but do not close
 	for _, f := range t.files {
 		if err := f.Close(); err != nil {
 			errs = append(errs, err)
 		}
 	}
+	t.index = nil
+	t.meta = nil
 	t.head = nil
 
 	if errs != nil {
@@ -732,7 +746,7 @@ func (t *freezerTable) retrieveItems(start, count, maxBytes uint64) ([]byte, []i
 	defer t.lock.RUnlock()
 
 	// Ensure the table and the item are accessible
-	if t.index == nil || t.head == nil {
+	if t.index == nil || t.head == nil || t.meta == nil {
 		return nil, nil, errClosed
 	}
 	var (
@@ -875,13 +889,23 @@ func (t *freezerTable) advanceHead() error {
 // Sync pushes any pending data from memory out to disk. This is an expensive
 // operation, so use it with care.
 func (t *freezerTable) Sync() error {
-	if err := t.index.Sync(); err != nil {
-		return err
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	if t.index == nil || t.head == nil || t.meta == nil {
+		return errClosed
 	}
-	if err := t.meta.Sync(); err != nil {
-		return err
+
+	var err error
+	trackError := func(e error) {
+		if e != nil && err == nil {
+			err = e
+		}
 	}
-	return t.head.Sync()
+	trackError(t.index.Sync())
+	trackError(t.meta.Sync())
+	trackError(t.head.Sync())
+	return err
 }
 
 func (t *freezerTable) dumpIndexStdout(start, stop int64) {
