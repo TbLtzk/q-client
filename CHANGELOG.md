@@ -61,3 +61,7 @@ Default quota values are set to 3 per Root node/24 hours. If you want to change 
 
 ### Changed 
 - Make public root node approvals endpoint in governance API
+
+## [1.3.4] - 2023-09
+### Fixed
+- Co-signing transition blocks by root nodes
