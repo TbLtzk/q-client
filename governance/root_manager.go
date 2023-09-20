@@ -1071,7 +1071,7 @@ func (s *RootManager) getAliasByAccount(addr common.Address) common.Address {
 		return addr
 	}
 
-	providerAliases := s.reg.AccountAliases()
+	providerAliases := s.reg.AccountAliases(nil)
 	if providerAliases == nil { //signers are set already
 		log.Warn("failed to get aliases list from smart contract or smart contract not deployed")
 		return addr
@@ -1090,7 +1090,7 @@ func (s *RootManager) getAccountByAlias(addr common.Address) common.Address {
 		return addr
 	}
 
-	providerAliases := s.reg.AccountAliases()
+	providerAliases := s.reg.AccountAliases(nil)
 	if providerAliases == nil { //signers are set already
 		log.Warn("failed to get aliases list from smart contract or smart contract not deployed")
 		return addr
@@ -1114,7 +1114,7 @@ func (s *RootManager) getAliasesOfRoots(addresses []common.Address) map[common.A
 		return res
 	}
 
-	providerAliases := s.reg.AccountAliases()
+	providerAliases := s.reg.AccountAliases(nil)
 	if providerAliases == nil { //signers are set already
 		log.Warn("failed to get aliases list from smart contract or smart contract not deployed")
 		for _, address := range addresses {

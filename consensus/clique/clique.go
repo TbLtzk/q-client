@@ -553,7 +553,7 @@ func (c *Clique) aliasAccounts(filtered []common.Address, isAthos bool) []common
 	if !isAthos {
 		return filtered
 	}
-	providerAliases := c.registry.AccountAliases()
+	providerAliases := c.registry.AccountAliases(nil)
 	if providerAliases == nil { //signers are set already
 		log.Error("failed to get account aliases list from smart contract")
 		return filtered
@@ -577,7 +577,7 @@ func (c *Clique) UnAliasAccounts(filtered []common.Address, isAthos bool) []comm
 	if !isAthos {
 		return filtered
 	}
-	providerAliases := c.registry.AccountAliases()
+	providerAliases := c.registry.AccountAliases(nil)
 	if providerAliases == nil { //signers are set already
 		log.Error("failed to get account aliases list from smart contract")
 		return filtered
