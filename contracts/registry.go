@@ -106,10 +106,6 @@ func (r *Registry) RewardReceiver() common.Address {
 	return addr
 }
 
-func (r *Registry) SetRewardReceiver(receiver common.Address) {
-	r.defaultRewardReceiver = receiver
-}
-
 // ActiveValidatorsNumber.
 func (r *Registry) ActiveValidatorsNumber() *int64 {
 	addr := r.getAddr("governance.constitution.parameters", nil)
