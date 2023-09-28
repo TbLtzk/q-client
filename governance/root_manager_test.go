@@ -18,6 +18,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/contracts"
+	"gitlab.com/q-dev/q-client/contracts/mocks"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/vm"
@@ -179,7 +180,7 @@ func newTestRootManagerWithAccounts(t *testing.T, isRootNode, useAliases bool, n
 	for i := 0; i < len(roots); i++ {
 		accountAliases[roots[i]] = aliases[i]
 	}
-	contracts.NewMockAccountAliases(accountAliases)
+	mocks.NewMockAccountAliases(accountAliases)
 
 	//Active root set
 	rootList := common.RootList{

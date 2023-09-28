@@ -28,7 +28,6 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
-	"gitlab.com/q-dev/system-contracts/generated"
 	"golang.org/x/crypto/sha3"
 
 	"gitlab.com/q-dev/q-client/accounts"
@@ -535,7 +534,7 @@ func (c *Clique) tryToFallback(chain consensus.ChainHeaderReader, snap *Snapshot
 	snap.Signers = toSet(signers)
 }
 
-func (c *Clique) getValidatorList(number *big.Int, provider *generated.Validators) ([]common.Address, error) {
+func (c *Clique) getValidatorList(number *big.Int, provider contracts.ValidatorsListI) ([]common.Address, error) {
 	signers, err := provider.GetValidatorsList(&bind.CallOpts{
 		BlockNumber: number,
 	})
