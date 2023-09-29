@@ -447,6 +447,10 @@ func TestFallbackToDefaultSigners(t *testing.T) {
 	assert.Equal(t, len(snap.Signers), genesisSignersCount)
 }
 
+// TestReorgExclusionSet checks the behavior of a consensus engine during a blockchain reorganization.
+// The test involves two separate blockchain instances with their own databases and exclusion set providers.
+// It simulates a scenario where blocks are added to both chains, and then an attempt is made to insert
+// a sidechain into the primary chain, but the chains have different sets of excluded validators
 func TestReorgExclusionSet(t *testing.T) {
 	var (
 		db1                   = rawdb.NewMemoryDatabase()
@@ -507,6 +511,7 @@ func TestReorgExclusionSet(t *testing.T) {
 	sideChain := generateChain(t, params.AllCliqueProtocolChanges, chain2.CurrentBlock(), engine2, db2,
 		blocksToGenerate, addresses, keys, reg2, true)
 
+	// Modify exclusion set of the first blockchain
 	exclusionSetProvider1.set = map[common.Address][]common.BlockRange{
 		addresses[0]: {
 			{
@@ -526,6 +531,11 @@ func TestReorgExclusionSet(t *testing.T) {
 	}
 }
 
+// TestReorgRegistry examines the behavior of a consensus engine in a scenario involving blockchain
+// reorganization due to changes in the validator registry. This test case creates two blockchain
+// instances with separate databases and exclusion set providers.
+// It simulates a situation where both chains share common blocks but then diverge as new addresses
+// are added to one of the chains' validator registries.
 func TestReorgRegistry(t *testing.T) {
 	var (
 		db1                   = rawdb.NewMemoryDatabase()
@@ -606,6 +616,7 @@ func TestReorgRegistry(t *testing.T) {
 
 	engine2 = New(params.AllCliqueProtocolChanges.Clique, db2, exclusionSetProvider2, reg2)
 
+	// Generate side chain with different validators list
 	blocksToGenerate := signersCount * 3
 	sideChain := generateChain(t, params.AllCliqueProtocolChanges, chain2.CurrentBlock(), engine2, db2,
 		blocksToGenerate, addresses2, keys, reg2, true)
