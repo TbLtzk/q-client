@@ -19,6 +19,9 @@ import (
 type Registry struct {
 	Backend bind.ContractBackend
 
+	ValidatorsMock ValidatorsI
+	AliasesMock    AccountAliasesI
+
 	mu  sync.Mutex
 	reg *generated.ContractRegistry
 
@@ -41,8 +44,30 @@ func NewTestModeRegistry() *Registry {
 	}
 }
 
+func NewTestModeRegistryWithMocks(validators ValidatorsI, aliases AccountAliasesI) *Registry {
+	return &Registry{
+		defaultRewardReceiver: common.HexToAddress("0x92C35a964624D9cbF90c2A0525e116093FAF867E"),
+		isTestMode:            true,
+		ValidatorsMock:        validators,
+		AliasesMock:           aliases,
+	}
+}
+
+type ValidatorsListI interface {
+	GetValidatorsList(opts *bind.CallOpts) ([]common.Address, error)
+}
+
+type ValidatorsI interface {
+	ValidatorsListI
+	ValidatorsAddress() *common.Address
+}
+
 // Validators returns Validators contract backend if available.
-func (r *Registry) Validators() *generated.Validators {
+func (r *Registry) Validators() ValidatorsListI {
+	if r.isTestMode {
+		return r.ValidatorsMock
+	}
+
 	addr := r.ValidatorsAddress()
 	if addr == nil {
 		return nil
@@ -149,62 +174,10 @@ type AccountAliasesI interface {
 	ResolveReverse(opts *bind.CallOpts, alias common.Address, role *big.Int) (common.Address, error)
 }
 
-type mockAccountAliases struct {
-	aliases        map[common.Address]common.Address
-	reverseAliases map[common.Address]common.Address
-}
-
-var mockAccount *mockAccountAliases
-
-func NewMockAccountAliases(aliases map[common.Address]common.Address) {
-	mockAccount = new(mockAccountAliases)
-
-	mockAccount.aliases = aliases
-	mockAccount.reverseAliases = make(map[common.Address]common.Address)
-
-	for account, alias := range aliases {
-		mockAccount.reverseAliases[alias] = account
-	}
-}
-
-func (m *mockAccountAliases) ResolveBatch(opts *bind.CallOpts, main []common.Address, role []*big.Int) ([]common.Address, error) {
-	aliases := make([]common.Address, 0, len(main))
-	for _, ma := range main {
-		resolved := ma
-		if alias, ok := m.aliases[ma]; ok {
-			resolved = alias
-		}
-		aliases = append(aliases, resolved)
-	}
-
-	return aliases, nil
-}
-
-func (m *mockAccountAliases) ResolveBatchReverse(opts *bind.CallOpts, alias []common.Address, role []*big.Int) ([]common.Address, error) {
-	mains := make([]common.Address, 0, len(alias))
-	for _, a := range alias {
-		resolved := a
-		if main, ok := m.reverseAliases[a]; ok {
-			resolved = main
-		}
-		mains = append(mains, resolved)
-	}
-
-	return mains, nil
-}
-
-func (m *mockAccountAliases) Resolve(opts *bind.CallOpts, main common.Address, role *big.Int) (common.Address, error) {
-	return m.aliases[main], nil
-}
-
-func (m *mockAccountAliases) ResolveReverse(opts *bind.CallOpts, alias common.Address, role *big.Int) (common.Address, error) {
-	return m.reverseAliases[alias], nil
-}
-
 // AccountAliases returns AccountAliases contract backend if available.
 func (r *Registry) AccountAliases(opts *bind.CallOpts) AccountAliasesI {
 	if r.IsTestMode() {
-		return mockAccount
+		return r.AliasesMock
 	}
 
 	addr := r.AccountAliasesAddress(opts)

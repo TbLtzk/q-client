@@ -18,13 +18,16 @@ package clique
 
 import (
 	"crypto/ecdsa"
+	"errors"
 	"math/big"
 	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/contracts"
+	"gitlab.com/q-dev/q-client/contracts/mocks"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
@@ -226,7 +229,6 @@ func generateChain(t *testing.T, config *params.ChainConfig, parent *types.Block
 		}
 
 		signer := addresses[current]
-		log.Error(signer.String())
 
 		difficulty := diffInTurn
 
@@ -443,4 +445,187 @@ func TestFallbackToDefaultSigners(t *testing.T) {
 		t.Fatalf("faield to get snapshot of last block: %v", err)
 	}
 	assert.Equal(t, len(snap.Signers), genesisSignersCount)
+}
+
+// TestReorgExclusionSet checks the behavior of a consensus engine during a blockchain reorganization.
+// The test involves two separate blockchain instances with their own databases and exclusion set providers.
+// It simulates a scenario where blocks are added to both chains, and then an attempt is made to insert
+// a sidechain into the primary chain, but the chains have different sets of excluded validators
+func TestReorgExclusionSet(t *testing.T) {
+	var (
+		db1                   = rawdb.NewMemoryDatabase()
+		db2                   = rawdb.NewMemoryDatabase()
+		exclusionSetProvider1 = new(NoopExclusionSetProvider)
+		exclusionSetProvider2 = new(NoopExclusionSetProvider)
+		reg1                  = contracts.NewTestModeRegistry()
+		reg2                  = contracts.NewTestModeRegistry()
+		engine1               = New(params.AllCliqueProtocolChanges.Clique, db1, exclusionSetProvider1, reg1)
+		engine2               = New(params.AllCliqueProtocolChanges.Clique, db2, exclusionSetProvider2, reg2)
+		signersCount          = 3
+		keys                  = make(map[common.Address]*ecdsa.PrivateKey)
+		addresses             = make([]common.Address, 0, signersCount)
+		commonBlocksCount     = 80
+	)
+
+	for len(addresses) != signersCount {
+		key, _ := crypto.GenerateKey()
+		addr := crypto.PubkeyToAddress(key.PublicKey)
+		keys[addr] = key
+		addresses = append(addresses, addr)
+	}
+	sort.Sort(signersAscending(addresses))
+
+	genSpec := &core.Genesis{
+		ExtraData:  make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
+		Alloc:      map[common.Address]core.GenesisAccount{},
+		BaseFee:    big.NewInt(params.InitialBaseFee),
+		Difficulty: big.NewInt(0),
+	}
+	for i := 0; i < signersCount; i++ {
+		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addresses[i][:])
+	}
+
+	genesis1 := genSpec.MustCommit(db1)
+	genesis2 := genSpec.MustCommit(db2)
+
+	commonBlocks1 := generateChain(t, params.AllCliqueProtocolChanges, genesis1, engine1, db1, commonBlocksCount,
+		addresses, keys, reg1, false)
+	commonBlocks2 := generateChain(t, params.AllCliqueProtocolChanges, genesis2, engine2, db2, commonBlocksCount,
+		addresses, keys, reg2, false)
+
+	// Insert common blocks
+	chain1, _ := core.NewBlockChain(db1, nil, params.AllCliqueProtocolChanges, engine1, vm.Config{},
+		nil, nil)
+	defer chain1.Stop()
+	if _, err := chain1.InsertChain(commonBlocks1); err != nil {
+		t.Fatalf("failed to insert commonBlocks blocks: %v", err)
+	}
+	chain2, _ := core.NewBlockChain(db2, nil, params.AllCliqueProtocolChanges, engine2, vm.Config{},
+		nil, nil)
+	defer chain2.Stop()
+	if _, err := chain2.InsertChain(commonBlocks2); err != nil {
+		t.Fatalf("failed to insert commonBlocks blocks: %v", err)
+	}
+
+	blocksToGenerate := signersCount * 3
+	sideChain := generateChain(t, params.AllCliqueProtocolChanges, chain2.CurrentBlock(), engine2, db2,
+		blocksToGenerate, addresses, keys, reg2, true)
+
+	// Modify exclusion set of the first blockchain
+	exclusionSetProvider1.set = map[common.Address][]common.BlockRange{
+		addresses[0]: {
+			{
+				StartAddress: uint64(commonBlocksCount + 1),
+				EndAddress:   uint64(commonBlocksCount + blocksToGenerate + 1),
+			},
+		},
+	}
+	engine1.exclusionSetProvider = exclusionSetProvider1
+
+	_, err := chain1.InsertChain(sideChain)
+	if err == nil {
+		t.Fatalf("shouldn't validate blocks")
+	}
+	if !errors.Is(err, errUnauthorizedSigner) && !errors.Is(err, errWrongDifficulty) {
+		t.Fatalf("failed to insert sidechain: %v", err)
+	}
+}
+
+// TestReorgRegistry examines the behavior of a consensus engine in a scenario involving blockchain
+// reorganization due to changes in the validator registry. This test case creates two blockchain
+// instances with separate databases and exclusion set providers.
+// It simulates a situation where both chains share common blocks but then diverge as new addresses
+// are added to one of the chains' validator registries.
+func TestReorgRegistry(t *testing.T) {
+	var (
+		db1                   = rawdb.NewMemoryDatabase()
+		db2                   = rawdb.NewMemoryDatabase()
+		exclusionSetProvider1 = new(NoopExclusionSetProvider)
+		exclusionSetProvider2 = new(NoopExclusionSetProvider)
+		signersCount          = 5
+		keys                  = make(map[common.Address]*ecdsa.PrivateKey)
+		addresses1            = make([]common.Address, 0, signersCount)
+		addresses2            = make([]common.Address, 0, signersCount)
+		commonBlocksCount     = 99
+	)
+
+	for len(addresses1) != signersCount {
+		key, _ := crypto.GenerateKey()
+		addr := crypto.PubkeyToAddress(key.PublicKey)
+		keys[addr] = key
+		addresses1 = append(addresses1, addr)
+		addresses2 = append(addresses2, addr)
+	}
+	sort.Sort(signersAscending(addresses1))
+	sort.Sort(signersAscending(addresses2))
+
+	reg1 := contracts.NewTestModeRegistryWithMocks(
+		mocks.NewMockValidators(common.HexToAddress("0x1"), addresses1, nil),
+		nil,
+	)
+	reg2 := contracts.NewTestModeRegistryWithMocks(
+		mocks.NewMockValidators(common.HexToAddress("0x1"), addresses2, nil),
+		nil,
+	)
+	engine1 := New(params.AllCliqueProtocolChanges.Clique, db1, exclusionSetProvider1, reg1)
+	engine2 := New(params.AllCliqueProtocolChanges.Clique, db2, exclusionSetProvider2, reg2)
+
+	genSpec := &core.Genesis{
+		ExtraData:  make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
+		Alloc:      map[common.Address]core.GenesisAccount{},
+		BaseFee:    big.NewInt(params.InitialBaseFee),
+		Difficulty: big.NewInt(0),
+	}
+	for i := 0; i < signersCount; i++ {
+		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addresses1[i][:])
+	}
+
+	genesis1 := genSpec.MustCommit(db1)
+	genesis2 := genSpec.MustCommit(db2)
+
+	commonBlocks1 := generateChain(t, params.AllCliqueProtocolChanges, genesis1, engine1, db1, commonBlocksCount,
+		addresses1, keys, reg1, false)
+	commonBlocks2 := generateChain(t, params.AllCliqueProtocolChanges, genesis2, engine2, db2, commonBlocksCount,
+		addresses2, keys, reg2, false)
+
+	// Insert common blocks
+	chain1, _ := core.NewBlockChain(db1, nil, params.AllCliqueProtocolChanges, engine1, vm.Config{},
+		nil, nil)
+	defer chain1.Stop()
+	if _, err := chain1.InsertChain(commonBlocks1); err != nil {
+		t.Fatalf("failed to insert commonBlocks blocks: %v", err)
+	}
+	chain2, _ := core.NewBlockChain(db2, nil, params.AllCliqueProtocolChanges, engine2, vm.Config{},
+		nil, nil)
+	defer chain2.Stop()
+	if _, err := chain2.InsertChain(commonBlocks2); err != nil {
+		t.Fatalf("failed to insert commonBlocks blocks: %v", err)
+	}
+
+	// Add new address to the validators list of the second node
+	key, _ := crypto.GenerateKey()
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+	keys[addr] = key
+	addresses2 = append(addresses2, addr)
+	sort.Sort(signersAscending(addresses2))
+
+	reg2 = contracts.NewTestModeRegistryWithMocks(
+		mocks.NewMockValidators(common.HexToAddress("0x1"), addresses2, nil),
+		nil,
+	)
+
+	engine2 = New(params.AllCliqueProtocolChanges.Clique, db2, exclusionSetProvider2, reg2)
+
+	// Generate side chain with different validators list
+	blocksToGenerate := signersCount * 3
+	sideChain := generateChain(t, params.AllCliqueProtocolChanges, chain2.CurrentBlock(), engine2, db2,
+		blocksToGenerate, addresses2, keys, reg2, true)
+
+	_, err := chain1.InsertChain(sideChain)
+	if err == nil {
+		t.Fatalf("shouldn't validate blocks")
+	}
+	if !errors.Is(err, errUnauthorizedSigner) && !errors.Is(err, errWrongDifficulty) {
+		t.Fatalf("failed to insert sidechain: %v", err)
+	}
 }
