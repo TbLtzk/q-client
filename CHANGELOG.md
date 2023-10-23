@@ -65,3 +65,14 @@ Default quota values are set to 3 per Root node/24 hours. If you want to change 
 ## [1.3.4] - 2023-09
 ### Fixed
 - Co-signing transition blocks by root nodes
+
+## [1.3.5] - 2023-10
+### Fixed
+- DB freezing and graceful shutdown 
+
+### Changed
+- Improve sync speed
+- Update mainnet root node list
+
+### Added
+- Ability to get account aliases proxy address at given block height
