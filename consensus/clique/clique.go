@@ -452,12 +452,6 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		exclusionTime = time.Unix(int64(c.exclusionSetProvider.ExclusionSetTimestamp()), 0)
 	}
 	if number%c.config.Epoch == 0 && headerTime.After(exclusionTime) {
-		err = c.updateProposals(chain, number, snap, false)
-		if err != nil {
-			log.Error("failed to update proposals", "error", err, "step", "prepare")
-			return err // todo wrap error
-		}
-
 		signers := make([]byte, len(snap.Signers)*common.AddressLength)
 		for i, signer := range snap.SignersList() {
 			copy(signers[i*common.AddressLength:], signer[:])
@@ -692,6 +686,13 @@ func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 	if err != nil {
 		return nil, err
 	}
+
+	err = c.updateProposals(chain, number, snap, false)
+	if err != nil {
+		log.Error("failed to update proposals in snapshot", "error", err)
+		return nil, err // todo wrap error
+	}
+
 	c.recents.Add(snap.Hash, snap)
 
 	// If we've generated a new checkpoint snapshot, save to disk
@@ -727,12 +728,6 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 	snap, err := c.snapshot(chain, number-1, header.ParentHash, parents, false)
 	if err != nil {
 		return err
-	}
-
-	err = c.updateProposals(chain, number, snap, false)
-	if err != nil {
-		log.Error("failed to update proposals", "error", err, "step", "prepare")
-		return err // todo wrap error
 	}
 
 	// Resolve the authorization key and check against signers
@@ -789,12 +784,6 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil, false)
 	if err != nil {
 		return err
-	}
-
-	err = c.updateProposals(chain, number, snap, false)
-	if err != nil {
-		log.Error("failed to update proposals", "error", err, "step", "prepare")
-		return err // todo wrap error
 	}
 
 	/*if number%c.config.Epoch != 0 {
@@ -908,11 +897,6 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 		return err
 	}
 
-	err = c.updateProposals(chain, number, snap, false)
-	if err != nil {
-		log.Error("failed to update proposals", "error", err, "step", "prepare")
-		return err
-	}
 	if _, authorized := snap.Signers[signer]; !authorized {
 		return errUnauthorizedSigner
 	}
@@ -1112,11 +1096,6 @@ func (c *Clique) ChooseBlockWithMostRecentSigner(chain *core.BlockChain, header 
 
 	snap, err := c.snapshot(chain, header.Number.Uint64(), header.ParentHash, nil, false)
 	if err != nil {
-		return nil, err
-	}
-	err = c.updateProposals(chain, header.Number.Uint64(), snap, false)
-	if err != nil {
-		log.Error("failed to update proposals", "error", err, "step", "prepare")
 		return nil, err
 	}
 
