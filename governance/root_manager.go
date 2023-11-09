@@ -1202,11 +1202,9 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 
 	//No need to sign blocks that are not fresh enough
 	if (currentBlock-s.bc.Config().Clique.Epoch) < header.Number.Uint64() && (currentBlock+s.bc.Config().Clique.Epoch) > header.Number.Uint64() {
-		log.Info("INTO HandleTransitionBlockSignature")
 		if !s.readyForApproval.Load() {
 			return
 		}
-		log.Info("PASSED CHECK HandleTransitionBlockSignature")
 
 		log.Info("Handling new transition block", "block number", header.Number.Uint64())
 
@@ -1244,7 +1242,6 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 		}
 
 		s.readyForApproval.Store(false)
-		log.Info("CLOSED HandleTransitionBlockSignature")
 	}
 }
 
