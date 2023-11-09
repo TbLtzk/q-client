@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -90,6 +91,9 @@ type RootManager struct {
 	rootQuotaLock           sync.Mutex
 	ProposalQuotaTimeWindow time.Duration
 	exclusionQuotaLock      sync.Mutex
+
+	ApprovalMaxFailures uint64
+	readyForApproval    atomic.Bool
 }
 
 // Config of root manager
@@ -97,6 +101,7 @@ type Config struct {
 	RootList                common.RootList `toml:"-"`
 	ProposalQuotaMax        uint
 	ProposalQuotaTimeWindow time.Duration
+	ApprovalMaxFailures     uint64
 }
 
 type DiffEntry struct {
@@ -169,6 +174,8 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 
 		ProposalQuotaMax:        cfg.ProposalQuotaMax,
 		ProposalQuotaTimeWindow: cfg.ProposalQuotaTimeWindow,
+
+		ApprovalMaxFailures: cfg.ApprovalMaxFailures,
 	}
 
 	manager.setMaxRewindLimit(uint64(params.FullImmutabilityThreshold))
@@ -1195,6 +1202,12 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 
 	//No need to sign blocks that are not fresh enough
 	if (currentBlock-s.bc.Config().Clique.Epoch) < header.Number.Uint64() && (currentBlock+s.bc.Config().Clique.Epoch) > header.Number.Uint64() {
+		log.Info("INTO HandleTransitionBlockSignature")
+		if !s.readyForApproval.Load() {
+			return
+		}
+		log.Info("PASSED CHECK HandleTransitionBlockSignature")
+
 		log.Info("Handling new transition block", "block number", header.Number.Uint64())
 
 		prevBlockAddress := new(big.Int).SetUint64(header.Number.Uint64() - s.bc.Config().Clique.Epoch)
@@ -1229,6 +1242,9 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 				s.approvalFeed.Send(&resList)
 			}
 		}
+
+		s.readyForApproval.Store(false)
+		log.Info("CLOSED HandleTransitionBlockSignature")
 	}
 }
 
@@ -1462,4 +1478,8 @@ func (s *RootManager) saveQuotas(received interface{}, currentEntries map[common
 		s.exclusionQuotaEntries = currentEntries
 	}
 	return nil
+}
+
+func (s *RootManager) MakeReadyForApproval(ready bool) {
+	s.readyForApproval.Store(ready)
 }

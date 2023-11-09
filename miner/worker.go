@@ -28,6 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/internal/utils"
 
 	mapset "github.com/deckarep/golang-set"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/misc"
@@ -1190,6 +1191,11 @@ func (w *worker) commit(env *environment, interval func(), update bool, start ti
 			select {
 			case w.taskCh <- &task{receipts: env.receipts, state: env.state, block: block, createdAt: time.Now()}:
 				w.unconfirmed.Shift(block.NumberU64() - 1)
+
+				if w.engine.ExclusionSetProvider() != nil {
+					w.engine.ExclusionSetProvider().MakeReadyForApproval(true)
+				}
+
 				log.Info("Commit new sealing work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),
 					"uncles", len(env.uncles), "txs", env.tcount,
 					"gas", block.GasUsed(), "fees", totalFees(block, env.receipts),

@@ -42,6 +42,9 @@ type handler struct {
 
 	peerWG sync.WaitGroup
 	peers  *peerSet
+
+	failureCounts map[string]map[uint64]uint64 // peer id => msg code => failures count
+	maxFailures   uint64
 }
 
 func newHandler(rootManager *RootManager, cm *ConstitutionManager) *handler {
@@ -75,6 +78,9 @@ func newHandler(rootManager *RootManager, cm *ConstitutionManager) *handler {
 
 		peerWG: sync.WaitGroup{},
 		peers:  newPeerSet(),
+
+		failureCounts: make(map[string]map[uint64]uint64),
+		maxFailures:   rootManager.ApprovalMaxFailures,
 	}
 }
 
@@ -402,7 +408,7 @@ func (h *handler) handleMsg(p *peer) error {
 	case ExclusionListMsg:
 		return h.handleExclusionList(p, msg)
 	case ApprovalMsg:
-		return h.handleApprovalMsg(p, msg)
+		return h.handleWithRetry(p, msg, h.handleApprovalMsg)
 	case ConstitutionFileRequestMsg:
 		return h.handleConstitutionRequestMsg(p, msg)
 	case ConstitutionFilesMsg:
@@ -412,6 +418,27 @@ func (h *handler) handleMsg(p *peer) error {
 	default:
 		return errUnknownMsgCode
 	}
+}
+
+func (h *handler) handleWithRetry(p *peer, msg p2p.Msg, handlerFunc func(p *peer, msg p2p.Msg) error) error {
+	if _, ok := h.failureCounts[p.id]; !ok {
+		h.failureCounts[p.id] = make(map[uint64]uint64)
+	}
+
+	err := handlerFunc(p, msg)
+	if err != nil {
+		h.failureCounts[p.id][msg.Code]++
+		p.Log().Error("Failed to handle governance message", "err", err)
+	} else {
+		h.failureCounts[p.id][msg.Code] = 0
+	}
+
+	if h.failureCounts[p.id][msg.Code] >= h.maxFailures {
+		h.failureCounts[p.id][msg.Code] = 0
+		return err
+	}
+
+	return nil
 }
 
 func (h *handler) handleRootListMsg(p *peer, msg p2p.Msg) error {

@@ -32,6 +32,7 @@ import (
 	pcsclite "github.com/gballet/go-libpcsclite"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	"github.com/urfave/cli/v2"
+
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/backupManager"
@@ -828,6 +829,12 @@ var (
 		Usage:    "Time window after which proposal quota expires in hours",
 		Category: flags.GovernanceCategory,
 		Value:    24,
+	}
+	ApprovalMaxFailures = &cli.Uint64Flag{
+		Name:     "gov.approvalMaxFailures",
+		Usage:    "The number of allowed attempts of block approval before peer reset",
+		Category: flags.GovernanceCategory,
+		Value:    10,
 	}
 
 	// Network Settings
@@ -1955,6 +1962,8 @@ func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
 		cfg.ProposalQuotaTimeWindow = time.Hour * time.Duration(ProposalQuotaTimeWindowFlag.Value)
 	}
 
+	cfg.ApprovalMaxFailures = ApprovalMaxFailures.Value
+
 	if !(ctx.IsSet(RootTimestampFlag.Name) || ctx.IsSet(RootAddressesFlag.Name)) {
 		switch true {
 		case ctx.Bool(DevnetFlag.Name):
@@ -2549,7 +2558,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 
 	var engine consensus.Engine
 	if config.Clique != nil {
-		engine = clique.New(config.Clique, chainDb, &clique.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry())
+		engine = clique.New(config.Clique, chainDb, &consensus.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry())
 	} else {
 		ethashConf := ethconfig.Defaults.Ethash
 		if ctx.Bool(FakePoWFlag.Name) {

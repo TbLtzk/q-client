@@ -27,6 +27,7 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/urfave/cli/v2"
+
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/utils"
@@ -218,6 +219,7 @@ var (
 		utils.RootAddressesFlag,
 		utils.ProposalQuotaMaxFlag,
 		utils.ProposalQuotaTimeWindowFlag,
+		utils.ApprovalMaxFailures,
 	}
 
 	sentryFlags = []cli.Flag{

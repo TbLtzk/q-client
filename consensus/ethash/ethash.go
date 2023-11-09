@@ -35,6 +35,7 @@ import (
 
 	"github.com/edsrzf/mmap-go"
 	"github.com/hashicorp/golang-lru/simplelru"
+
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
@@ -694,4 +695,8 @@ func (ethash *Ethash) APIs(chain consensus.ChainHeaderReader) []rpc.API {
 // dataset.
 func SeedHash(block uint64) []byte {
 	return seedHash(block)
+}
+
+func (c *Ethash) ExclusionSetProvider() consensus.ExclusionSetProvider {
+	return &consensus.NoopExclusionSetProvider{}
 }

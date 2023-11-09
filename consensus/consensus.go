@@ -121,6 +121,8 @@ type Engine interface {
 
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
+
+	ExclusionSetProvider() ExclusionSetProvider
 }
 
 // PoW is a consensus engine based on proof-of-work.
@@ -130,3 +132,38 @@ type PoW interface {
 	// Hashrate returns the current mining hashrate of a PoW consensus engine.
 	Hashrate() float64
 }
+
+// ExclusionSetProvider should provide validators exclusion set.
+type ExclusionSetProvider interface {
+	ExclusionSetValidators() map[common.Address][]common.BlockRange
+	ExclusionSetTimestamp() uint64
+	HandleTransitionBlockSignature(header *types.Header)
+	ValidatePreviousTransitionBlockSignature()
+	MakeReadyForApproval(ready bool)
+}
+
+// NoopExclusionSetProvider is needed for testing.
+type NoopExclusionSetProvider struct {
+	Set       map[common.Address][]common.BlockRange
+	Timestamp uint64
+}
+
+func (p *NoopExclusionSetProvider) HandleTransitionBlockSignature(header *types.Header) {
+
+}
+func (p *NoopExclusionSetProvider) ValidatePreviousTransitionBlockSignature() {
+
+}
+
+func (p *NoopExclusionSetProvider) ExclusionSetValidators() map[common.Address][]common.BlockRange {
+	if p.Set != nil {
+		return p.Set
+	}
+	return make(map[common.Address][]common.BlockRange)
+}
+
+func (p *NoopExclusionSetProvider) ExclusionSetTimestamp() uint64 {
+	return p.Timestamp
+}
+
+func (p *NoopExclusionSetProvider) MakeReadyForApproval(bool) {}

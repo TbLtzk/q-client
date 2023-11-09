@@ -76,3 +76,11 @@ Default quota values are set to 3 per Root node/24 hours. If you want to change 
 
 ### Added
 - Ability to get account aliases proxy address at given block height
+
+## Unreleased
+### Changed
+- Transition block approval now fails after defined unsuccessful attempts in a row (default is 10)
+- The transition block is approved only after the chain is in a canonical state
+
+### Added
+- Max approval failures can be changed using *gov.approvalMaxFailures* flag
