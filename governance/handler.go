@@ -435,6 +435,10 @@ func (h *handler) handleWithRetry(p *peer, msg p2p.Msg, handlerFunc func(p *peer
 
 	if h.failureCounts[p.id][msg.Code] >= h.maxFailures {
 		h.failureCounts[p.id][msg.Code] = 0
+
+		// The error will reset a peer, so release the memory
+		delete(h.failureCounts, p.id)
+
 		return err
 	}
 
