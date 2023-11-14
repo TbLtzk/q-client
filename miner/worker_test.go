@@ -231,7 +231,7 @@ func testGenerateBlockAndImport(t *testing.T, isClique bool) {
 		chainConfig = params.AllCliqueProtocolChanges
 		chainConfig.Clique = &params.CliqueConfig{Period: 1, Epoch: 101}
 		chainConfig.Clique.RewardReceiver = common.HexToAddress("92C35a964624D9cbF90c2A0525e116093FAF867E")
-		engine = clique.New(chainConfig.Clique, db, &clique.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry())
+		engine = clique.New(chainConfig.Clique, db, &consensus.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry())
 	} else {
 		chainConfig = params.AllEthashProtocolChanges
 		engine = ethash.NewFaker()
@@ -544,7 +544,7 @@ func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine co
 //}
 
 func TestGetSealingWorkClique(t *testing.T) {
-	testGetSealingWork(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase(), &clique.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry()), false)
+	testGetSealingWork(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase(), &consensus.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry()), false)
 }
 
 //func TestGetSealingWorkPostMerge(t *testing.T) {

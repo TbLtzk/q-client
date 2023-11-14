@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/contracts/mocks"
 	"gitlab.com/q-dev/q-client/core"
@@ -51,7 +52,7 @@ func TestReimportMirroredState(t *testing.T) {
 		key, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		addr   = crypto.PubkeyToAddress(key.PublicKey)
 		reg    = contracts.NewTestModeRegistry()
-		engine = New(params.AllCliqueProtocolChanges.Clique, db, &NoopExclusionSetProvider{}, reg)
+		engine = New(params.AllCliqueProtocolChanges.Clique, db, &consensus.NoopExclusionSetProvider{}, reg)
 		signer = new(types.HomesteadSigner)
 	)
 	genspec := &core.Genesis{
@@ -141,7 +142,7 @@ func TestForkChoice(t *testing.T) {
 	var (
 		db                = rawdb.NewMemoryDatabase()
 		reg               = contracts.NewTestModeRegistry()
-		engine            = New(params.AllCliqueProtocolChanges.Clique, db, &NoopExclusionSetProvider{}, reg)
+		engine            = New(params.AllCliqueProtocolChanges.Clique, db, &consensus.NoopExclusionSetProvider{}, reg)
 		signersCount      = 40
 		commonBlocksCount = 80
 		keys              = make(map[common.Address]*ecdsa.PrivateKey)
@@ -255,7 +256,7 @@ func testBlockChoiceRule4(t *testing.T) {
 	var (
 		db           = rawdb.NewMemoryDatabase()
 		reg          = contracts.NewTestModeRegistry()
-		engine       = New(params.AllCliqueProtocolChanges.Clique, db, &NoopExclusionSetProvider{}, reg)
+		engine       = New(params.AllCliqueProtocolChanges.Clique, db, &consensus.NoopExclusionSetProvider{}, reg)
 		signersCount = 3
 		blocksCount  = 7
 		keys         = make(map[common.Address]*ecdsa.PrivateKey)
@@ -352,7 +353,7 @@ func TestFallbackToDefaultSigners(t *testing.T) {
 	var (
 		db                   = rawdb.NewMemoryDatabase()
 		reg                  = contracts.NewTestModeRegistry()
-		exclusionSetProvider = new(NoopExclusionSetProvider)
+		exclusionSetProvider = new(consensus.NoopExclusionSetProvider)
 		engine               = New(params.AllCliqueProtocolChanges.Clique, db, exclusionSetProvider, reg)
 		genesisSignersCount  = 3
 		keys                 = make([]*ecdsa.PrivateKey, 0, genesisSignersCount)
@@ -402,10 +403,10 @@ func TestFallbackToDefaultSigners(t *testing.T) {
 	}
 
 	// Exclude signers
-	exclusionSetProvider.set = make(map[common.Address][]common.BlockRange)
+	exclusionSetProvider.Set = make(map[common.Address][]common.BlockRange)
 	currentBlock := chain.CurrentBlock()
 	for _, signer := range addrs {
-		exclusionSetProvider.set[signer] = []common.BlockRange{
+		exclusionSetProvider.Set[signer] = []common.BlockRange{
 			{
 				StartAddress: currentBlock.NumberU64(),
 				EndAddress:   currentBlock.NumberU64() + 1000,
@@ -455,8 +456,8 @@ func TestReorgExclusionSet(t *testing.T) {
 	var (
 		db1                   = rawdb.NewMemoryDatabase()
 		db2                   = rawdb.NewMemoryDatabase()
-		exclusionSetProvider1 = new(NoopExclusionSetProvider)
-		exclusionSetProvider2 = new(NoopExclusionSetProvider)
+		exclusionSetProvider1 = new(consensus.NoopExclusionSetProvider)
+		exclusionSetProvider2 = new(consensus.NoopExclusionSetProvider)
 		reg1                  = contracts.NewTestModeRegistry()
 		reg2                  = contracts.NewTestModeRegistry()
 		engine1               = New(params.AllCliqueProtocolChanges.Clique, db1, exclusionSetProvider1, reg1)
@@ -512,7 +513,7 @@ func TestReorgExclusionSet(t *testing.T) {
 		blocksToGenerate, addresses, keys, reg2, true)
 
 	// Modify exclusion set of the first blockchain
-	exclusionSetProvider1.set = map[common.Address][]common.BlockRange{
+	exclusionSetProvider1.Set = map[common.Address][]common.BlockRange{
 		addresses[0]: {
 			{
 				StartAddress: uint64(commonBlocksCount + 1),
@@ -540,8 +541,8 @@ func TestReorgRegistry(t *testing.T) {
 	var (
 		db1                   = rawdb.NewMemoryDatabase()
 		db2                   = rawdb.NewMemoryDatabase()
-		exclusionSetProvider1 = new(NoopExclusionSetProvider)
-		exclusionSetProvider2 = new(NoopExclusionSetProvider)
+		exclusionSetProvider1 = new(consensus.NoopExclusionSetProvider)
+		exclusionSetProvider2 = new(consensus.NoopExclusionSetProvider)
 		signersCount          = 5
 		keys                  = make(map[common.Address]*ecdsa.PrivateKey)
 		addresses1            = make([]common.Address, 0, signersCount)
