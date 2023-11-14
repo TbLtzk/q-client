@@ -139,7 +139,6 @@ type ExclusionSetProvider interface {
 	ExclusionSetTimestamp() uint64
 	HandleTransitionBlockSignature(header *types.Header)
 	ValidatePreviousTransitionBlockSignature()
-	MakeReadyForApproval(ready bool)
 }
 
 // NoopExclusionSetProvider is needed for testing.
@@ -165,5 +164,3 @@ func (p *NoopExclusionSetProvider) ExclusionSetValidators() map[common.Address][
 func (p *NoopExclusionSetProvider) ExclusionSetTimestamp() uint64 {
 	return p.Timestamp
 }
-
-func (p *NoopExclusionSetProvider) MakeReadyForApproval(bool) {}

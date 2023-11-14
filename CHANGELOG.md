@@ -80,7 +80,8 @@ Default quota values are set to 3 per Root node/24 hours. If you want to change 
 ## Unreleased
 ### Changed
 - Transition block approval now fails after defined unsuccessful attempts in a row (default is 10)
-- The transition block is approved only after the chain is in a canonical state
+- The transition block is approved only after the transition block is in a canonical state
 
 ### Added
 - Max approval failures can be changed using *gov.approvalMaxFailures* flag
+- Number of verified blocks after the transition block needed for the approval can be changed using *gov.transitionBlockVerifiedBlocks* flag

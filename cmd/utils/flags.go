@@ -836,6 +836,12 @@ var (
 		Category: flags.GovernanceCategory,
 		Value:    10,
 	}
+	TransitionBlockVerifiedBlocks = &cli.Uint64Flag{
+		Name:     "gov.transitionBlockVerifiedBlocks",
+		Usage:    "The number of blocks that must be validated before signing a transition block",
+		Category: flags.GovernanceCategory,
+		Value:    10,
+	}
 
 	// Network Settings
 	MaxPeersFlag = &cli.IntFlag{
@@ -1963,6 +1969,7 @@ func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
 	}
 
 	cfg.ApprovalMaxFailures = ApprovalMaxFailures.Value
+	cfg.TransitionBlockVerifiedBlocks = TransitionBlockVerifiedBlocks.Value
 
 	if !(ctx.IsSet(RootTimestampFlag.Name) || ctx.IsSet(RootAddressesFlag.Name)) {
 		switch true {

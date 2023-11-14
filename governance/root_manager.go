@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -92,16 +91,17 @@ type RootManager struct {
 	ProposalQuotaTimeWindow time.Duration
 	exclusionQuotaLock      sync.Mutex
 
-	ApprovalMaxFailures uint64
-	readyForApproval    atomic.Bool
+	ApprovalMaxFailures    uint64
+	transitionBlockChecker *transitionBlockChecker
 }
 
 // Config of root manager
 type Config struct {
-	RootList                common.RootList `toml:"-"`
-	ProposalQuotaMax        uint
-	ProposalQuotaTimeWindow time.Duration
-	ApprovalMaxFailures     uint64
+	RootList                      common.RootList `toml:"-"`
+	ProposalQuotaMax              uint
+	ProposalQuotaTimeWindow       time.Duration
+	ApprovalMaxFailures           uint64
+	TransitionBlockVerifiedBlocks uint64
 }
 
 type DiffEntry struct {
@@ -178,6 +178,11 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 		ApprovalMaxFailures: cfg.ApprovalMaxFailures,
 	}
 
+	manager.transitionBlockChecker = newTransitionBlockChecker(
+		int64(cfg.TransitionBlockVerifiedBlocks),
+		manager.HandleTransitionBlockSignature,
+	)
+
 	manager.setMaxRewindLimit(uint64(params.FullImmutabilityThreshold))
 
 	go manager.startQuarantineRoutine()
@@ -191,6 +196,7 @@ func (s *RootManager) InitDownloader(dl *downloader.Downloader) {
 
 func (s *RootManager) InitBlockChain(bc *core.BlockChain) {
 	s.bc = bc
+	s.transitionBlockChecker.initBlockChain(bc)
 }
 
 func (s *RootManager) InitRegistry(reg *contracts.Registry) {
@@ -1170,6 +1176,15 @@ func (s *RootManager) ValidatePreviousTransitionBlockSignature() {
 }
 
 func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
+	checkLater, err := s.transitionBlockChecker.checkTransitionBlockLater(header)
+	if err != nil {
+		log.Error("Failed to check transition block", "err", err)
+		return
+	}
+	if checkLater {
+		return
+	}
+
 	if header == nil {
 		log.Debug("Nil header is passed to HandleTransitionBlockSignature")
 		return
@@ -1202,10 +1217,6 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 
 	//No need to sign blocks that are not fresh enough
 	if (currentBlock-s.bc.Config().Clique.Epoch) < header.Number.Uint64() && (currentBlock+s.bc.Config().Clique.Epoch) > header.Number.Uint64() {
-		if !s.readyForApproval.Load() {
-			return
-		}
-
 		log.Info("Handling new transition block", "block number", header.Number.Uint64())
 
 		prevBlockAddress := new(big.Int).SetUint64(header.Number.Uint64() - s.bc.Config().Clique.Epoch)
@@ -1240,8 +1251,6 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 				s.approvalFeed.Send(&resList)
 			}
 		}
-
-		s.readyForApproval.Store(false)
 	}
 }
 
@@ -1475,8 +1484,4 @@ func (s *RootManager) saveQuotas(received interface{}, currentEntries map[common
 		s.exclusionQuotaEntries = currentEntries
 	}
 	return nil
-}
-
-func (s *RootManager) MakeReadyForApproval(ready bool) {
-	s.readyForApproval.Store(ready)
 }

@@ -220,6 +220,7 @@ var (
 		utils.ProposalQuotaMaxFlag,
 		utils.ProposalQuotaTimeWindowFlag,
 		utils.ApprovalMaxFailures,
+		utils.TransitionBlockVerifiedBlocks,
 	}
 
 	sentryFlags = []cli.Flag{
