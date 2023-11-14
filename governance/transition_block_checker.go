@@ -54,9 +54,9 @@ func (c *transitionBlockChecker) checkTransitionBlockLater(header *types.Header)
 		return false, errors.New("blockchain is not initialized")
 	}
 
-	// if current block number - header number < cfg.transitionBlockVerifiedBlocks
+	// if header number + cfg.transitionBlockVerifiedBlocks < current block number
 	// check the header later to make sure it is in canonical chain
-	if new(big.Int).Sub(c.bc.CurrentBlock().Number(), header.Number).Cmp(big.NewInt(c.transitionBlockVerifiedBlocks)) > 0 {
+	if new(big.Int).Add(big.NewInt(c.transitionBlockVerifiedBlocks), header.Number).Cmp(c.bc.CurrentBlock().Number()) > 0 {
 		return false, nil
 	}
 
@@ -76,22 +76,23 @@ func (c *transitionBlockChecker) run() {
 	for {
 		select {
 		case header := <-c.unverifiedCh:
-			c.mu.RLock()
+			c.mu.Lock()
 			c.unverified[header.Hash()] = header
-			c.mu.RUnlock()
+			c.mu.Unlock()
 
 			log.Debug("Transition block added for future verification",
 				"header hash", header.Hash(),
 				"block number", header.Number.Uint64(),
 			)
 		case <-ticker.C:
-			c.mu.Lock()
+			c.mu.RLock()
 
 			for _, header := range c.unverified {
-				go c.checkTransitionBlock(header)
+				unverified := header
+				go c.checkTransitionBlock(unverified)
 			}
 
-			c.mu.Unlock()
+			c.mu.RUnlock()
 		}
 	}
 }
@@ -103,7 +104,7 @@ func (c *transitionBlockChecker) checkTransitionBlock(header *types.Header) {
 	}
 
 	// Skip if canonical chain isn't mature enough
-	if new(big.Int).Sub(c.bc.CurrentBlock().Number(), header.Number).Cmp(big.NewInt(c.transitionBlockVerifiedBlocks)) < 0 {
+	if new(big.Int).Add(big.NewInt(c.transitionBlockVerifiedBlocks), header.Number).Cmp(c.bc.CurrentBlock().Number()) < 0 {
 		return
 	}
 
@@ -128,13 +129,10 @@ func (c *transitionBlockChecker) checkTransitionBlock(header *types.Header) {
 }
 
 func (c *transitionBlockChecker) isCanonical(header *types.Header) bool {
-	transitionBlockHash := header.Hash()
-	c.removeByHash(transitionBlockHash)
-
 	canonicalBlockHash := c.bc.GetCanonicalHash(header.Number.Uint64())
 	canonicalBlock := c.bc.GetBlock(canonicalBlockHash, header.Number.Uint64())
 
-	return canonicalBlock.Header().Hash() == transitionBlockHash
+	return canonicalBlock.Header().Hash() == header.Hash()
 }
 
 func (c *transitionBlockChecker) removeByHash(hash common.Hash) {
