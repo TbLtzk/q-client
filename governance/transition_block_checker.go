@@ -134,11 +134,7 @@ func (c *transitionBlockChecker) isCanonical(header *types.Header) bool {
 	canonicalBlockHash := c.bc.GetCanonicalHash(header.Number.Uint64())
 	canonicalBlock := c.bc.GetBlock(canonicalBlockHash, header.Number.Uint64())
 
-	if canonicalBlock.Header().Hash() != transitionBlockHash {
-		return false
-	}
-
-	return true
+	return canonicalBlock.Header().Hash() == transitionBlockHash
 }
 
 func (c *transitionBlockChecker) removeByHash(hash common.Hash) {
