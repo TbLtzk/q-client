@@ -90,13 +90,18 @@ type RootManager struct {
 	rootQuotaLock           sync.Mutex
 	ProposalQuotaTimeWindow time.Duration
 	exclusionQuotaLock      sync.Mutex
+
+	ApprovalMaxFailures    uint64
+	transitionBlockChecker *transitionBlockChecker
 }
 
 // Config of root manager
 type Config struct {
-	RootList                common.RootList `toml:"-"`
-	ProposalQuotaMax        uint
-	ProposalQuotaTimeWindow time.Duration
+	RootList                      common.RootList `toml:"-"`
+	ProposalQuotaMax              uint
+	ProposalQuotaTimeWindow       time.Duration
+	ApprovalMaxFailures           uint64
+	TransitionBlockVerifiedBlocks uint64
 }
 
 type DiffEntry struct {
@@ -169,7 +174,14 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 
 		ProposalQuotaMax:        cfg.ProposalQuotaMax,
 		ProposalQuotaTimeWindow: cfg.ProposalQuotaTimeWindow,
+
+		ApprovalMaxFailures: cfg.ApprovalMaxFailures,
 	}
+
+	manager.transitionBlockChecker = newTransitionBlockChecker(
+		int64(cfg.TransitionBlockVerifiedBlocks),
+		manager.HandleTransitionBlockSignature,
+	)
 
 	manager.setMaxRewindLimit(uint64(params.FullImmutabilityThreshold))
 
@@ -184,6 +196,7 @@ func (s *RootManager) InitDownloader(dl *downloader.Downloader) {
 
 func (s *RootManager) InitBlockChain(bc *core.BlockChain) {
 	s.bc = bc
+	s.transitionBlockChecker.initBlockChain(bc)
 }
 
 func (s *RootManager) InitRegistry(reg *contracts.Registry) {
@@ -1071,7 +1084,7 @@ func (s *RootManager) getAliasByAccount(addr common.Address) common.Address {
 		return addr
 	}
 
-	providerAliases := s.reg.AccountAliases()
+	providerAliases := s.reg.AccountAliases(nil)
 	if providerAliases == nil { //signers are set already
 		log.Warn("failed to get aliases list from smart contract or smart contract not deployed")
 		return addr
@@ -1090,7 +1103,7 @@ func (s *RootManager) getAccountByAlias(addr common.Address) common.Address {
 		return addr
 	}
 
-	providerAliases := s.reg.AccountAliases()
+	providerAliases := s.reg.AccountAliases(nil)
 	if providerAliases == nil { //signers are set already
 		log.Warn("failed to get aliases list from smart contract or smart contract not deployed")
 		return addr
@@ -1114,7 +1127,7 @@ func (s *RootManager) getAliasesOfRoots(addresses []common.Address) map[common.A
 		return res
 	}
 
-	providerAliases := s.reg.AccountAliases()
+	providerAliases := s.reg.AccountAliases(nil)
 	if providerAliases == nil { //signers are set already
 		log.Warn("failed to get aliases list from smart contract or smart contract not deployed")
 		for _, address := range addresses {
@@ -1163,7 +1176,17 @@ func (s *RootManager) ValidatePreviousTransitionBlockSignature() {
 }
 
 func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
+	checkLater, err := s.transitionBlockChecker.checkTransitionBlockLater(header)
+	if err != nil {
+		log.Error("Failed to check transition block", "err", err)
+		return
+	}
+	if checkLater {
+		return
+	}
+
 	if header == nil {
+		log.Debug("Nil header is passed to HandleTransitionBlockSignature")
 		return
 	}
 
@@ -1178,15 +1201,18 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 		}
 	}
 	if len(unlockedRoots) == 0 {
+		log.Debug("There is no any unlocked root")
 		return
 	}
 	if s.bc == nil && s.dl == nil {
+		log.Debug("Blockchain and downloader are nil in HandleTransitionBlockSignature")
 		return
 	}
 
 	currentBlock := s.bc.CurrentBlock().Number().Uint64()
 	if s.dl != nil && s.dl.Progress().HighestBlock > currentBlock {
 		currentBlock = s.dl.Progress().HighestBlock
+		log.Debug("Co-sign during sync", "block_to_co-sign", header.Number.Uint64(), "latest_block", currentBlock)
 	}
 
 	//No need to sign blocks that are not fresh enough
@@ -1442,18 +1468,19 @@ func (s *RootManager) isSetQuotaExceeded(received interface{}) (bool, error) {
 		return false, errors.Wrap(err, "failed to save quota entries")
 	}
 
-	return false, nil
+	return len(resEntries) > 3, nil
 }
 
 // helper function just to avoid code duplication
 func (s *RootManager) saveQuotas(received interface{}, currentEntries map[common.Address][]common.ListQuotaEntry, prefix []byte) error {
 	if err := s.db.saveQuotaEntries(currentEntries, prefix); err != nil {
+		log.Error("Failed to save quota entries", "err", err)
 		return err
 	}
 	switch received.(type) {
-	case rootSet:
+	case rootSet, *rootSet:
 		s.rootQuotaEntries = currentEntries
-	case exclusionSet:
+	case exclusionSet, *exclusionSet:
 		s.exclusionQuotaEntries = currentEntries
 	}
 	return nil

@@ -26,6 +26,8 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/urfave/cli/v2"
+
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/utils"
@@ -45,8 +47,6 @@ import (
 	// Force-load the tracer engines to trigger registration
 	_ "gitlab.com/q-dev/q-client/eth/tracers/js"
 	_ "gitlab.com/q-dev/q-client/eth/tracers/native"
-
-	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -219,12 +219,30 @@ var (
 		utils.RootAddressesFlag,
 		utils.ProposalQuotaMaxFlag,
 		utils.ProposalQuotaTimeWindowFlag,
+		utils.ApprovalMaxFailures,
+		utils.TransitionBlockVerifiedBlocks,
 	}
 
 	sentryFlags = []cli.Flag{
 		utils.SentryEnabledFlag,
 		utils.SentryDsnFlag,
 		utils.SentryTracesSampleRateFlag,
+	}
+
+	backupFlags = []cli.Flag{
+		utils.BackupEnabledFlag,
+		utils.RestoreBackupFlag,
+		utils.BackupFileFlag,
+		utils.BackupDirFlag,
+		utils.BackupS3KeyPrefixFlag,
+		utils.BackupS3BucketFlag,
+		utils.BackupIncremental,
+		utils.BackupEnableS3Flag,
+		utils.BackupAWSRegionFlag,
+		utils.BackupAWSAccessKeyFlag,
+		utils.BackupAWSTokenFlag,
+		utils.BackupAWSSecretKeyFlag,
+		utils.BackupCronSpecFlag,
 	}
 )
 
@@ -265,6 +283,8 @@ func init() {
 		utils.ShowDeprecated,
 		// See snapshot.go
 		snapshotCommand,
+		dbBackupCommand,
+		dbRestoreCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
@@ -276,6 +296,7 @@ func init() {
 		metricsFlags,
 		governanceFlags,
 		sentryFlags,
+		backupFlags,
 	)
 
 	app.Before = func(ctx *cli.Context) error {

@@ -24,11 +24,13 @@ var TestnetRootNodes = common.RootList{
 
 // MainnetRootNodes - initial root nodes list on mainnet.
 var MainnetRootNodes = common.RootList{
-	Timestamp: 0x642c167c,
+	Timestamp: 0x64a417dd,
 	Nodes: []common.Address{
-		common.HexToAddress("0xBADA551878e60B7D9173452695c1b3D190c3a3DC"),
-		common.HexToAddress("0xFd3ba4c7EbDa55C038316C776F2479b2909da7a5"),
-		common.HexToAddress("0xfc1cc7f5c16e2f11880e61945996af4065be25e5"),
+		common.HexToAddress("0x87252d4c5831779af285fb657627216e05a4d7b2"),
+		common.HexToAddress("0x7c2d7f8eec1d0884da541143b1db888009aa9fd5"),
+		common.HexToAddress("0x764b072ef6363f4fea8c313c74d701952e30a14e"),
+		common.HexToAddress("0x16ad35f8c92d9a4dd41d98aa6d68d4f6a35aa3d4"),
+		common.HexToAddress("0x08cc588a4d445f5883dc6157ab366d240c3f5236"),
 		common.HexToAddress("0xf6ce519a81a94138266c85866b351925bdda2aac"),
 		common.HexToAddress("0xbe45d0967d9e05bb46c08a7d8635fe7595e454ce"),
 		common.HexToAddress("0xb255fd9bef1b225f63e81f891c5ac861c1699edf"),
@@ -42,7 +44,6 @@ var MainnetRootNodes = common.RootList{
 		common.HexToAddress("0x35ac9eca581dd7ede69d6a56ec7b793e2fe293dc"),
 		common.HexToAddress("0x2ea7677ee90480ab62e968a473f40a614c05cb99"),
 		common.HexToAddress("0x1f96984571abe475cde8699791bf8244707a4021"),
-		common.HexToAddress("0x0ab8d42796bc11a0c028a25a79cf31d8eabc65cd"),
 		common.HexToAddress("0x083af739c6c4bafb22a9c154925d761ce603b657"),
 		common.HexToAddress("0x02ba6f1246fdb2296a539472ad5d7861eeb08f3a"),
 	},

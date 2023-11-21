@@ -125,6 +125,7 @@ var MainnetBootnodes = []string{
 // Q devnet network.
 var DevnetBootnodes = []string{
 	"enode://3dc52b0fefeda02972816dfae089c266ed4cba79c6a153cc5676da26a3122215e1d3865ef27b3391f88272d2fee1f36e238cebce5deb00c5a2fea763d8ebd99b@bootnode.qdevnet.org:30301",
+	"enode://70b402c7e1b6f13c8cb61c980acc13745b961b6862124ec674d14dbf93bbdd8a74e9086c8a0e2b7807060a83c6481dca34eadf9425cdc98ca7f1fddbfc0bb37c@54.73.188.73:30311",
 }
 
 // TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the

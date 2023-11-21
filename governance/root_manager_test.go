@@ -1,6 +1,7 @@
 package governance
 
 import (
+	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"math/big"
@@ -11,18 +12,18 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
 	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/contracts"
+	"gitlab.com/q-dev/q-client/contracts/mocks"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/system-contracts/generated"
 )
 
 var (
@@ -33,14 +34,8 @@ var (
 		common.HexToAddress("0xae3CB02aADcBBBc24BcEabff7BA552Ceba9d86F8"),
 		common.HexToAddress("0x764e55b3E82559f7C52424301e99f9ACbCF73f5d"),
 	}
-	//nolint:unused,deadcode
-	aliases = []common.Address{
-		common.HexToAddress("0x08eB380042AB0454998416e481E357203aB6CBe9"), // root1 has alias 0x08eB380042AB0454998416e481E357203aB6CBe9
-		common.HexToAddress("0x18640e7DC08D5C0090e457383aab9F0837aCDF2F"),
-		common.HexToAddress("0xae3CB02aADcBBBc24BcEabff7BA552Ceba9d86F8"),
-		common.HexToAddress("0x764e55b3E82559f7C52424301e99f9ACbCF73f5d"),
-	}
-	roots []common.Address
+	aliases []common.Address
+	roots   []common.Address
 )
 
 const defNumAccounts = 4
@@ -131,24 +126,69 @@ func createGovConfig(t *testing.T, ks *keystore.KeyStore, isRootNode bool) Confi
 	return cfg
 }
 
-func newTestRootManager(t *testing.T, isRootNode bool) *RootManager {
-	return newTestRootManagerWithAccounts(t, isRootNode, defNumAccounts)
+type TestRootManager struct {
+	*RootManager
+	rootPrivateKeys  []*ecdsa.PrivateKey
+	aliasPrivateKeys []*ecdsa.PrivateKey
 }
 
-func newTestRootManagerWithAccounts(t *testing.T, isRootNode bool, numAccounts int) *RootManager {
+func newTestRootManager(t *testing.T, isRootNode, useAliases bool) *TestRootManager {
+	return newTestRootManagerWithAccounts(t, isRootNode, useAliases, defNumAccounts)
+}
+
+func newTestRootManagerWithAccounts(t *testing.T, isRootNode, useAliases bool, numAccounts int) *TestRootManager {
+	aliases = aliases[:0]
+	roots = roots[:0]
+
 	dataDir := tmpDirName(t)
 	ks := createKeystore(t, dataDir, isRootNode, numAccounts)
 
 	govCfg := createGovConfig(t, ks, isRootNode)
 	accMgr := createAccountManager(t, ks)
 
+	var rootKeys []*ecdsa.PrivateKey
+	var aliasKeys []*ecdsa.PrivateKey
+
 	if isRootNode {
 		roots = rootNodes(t, ks)
 	} else {
-		roots = rootAddresses
+		rootKeys = make([]*ecdsa.PrivateKey, 0, numAccounts)
+		for i := 0; i < numAccounts; i++ {
+			rootPrivateKey, err := crypto.GenerateKey()
+			if err != nil {
+				t.Fatalf("Failed to generate random private key: %v", err)
+			}
+			rootKeys = append(rootKeys, rootPrivateKey)
+			roots = append(roots, crypto.PubkeyToAddress(rootPrivateKey.PublicKey))
+		}
 	}
 
-	rm, err := NewRootManager(accMgr, 35443, dataDir, &govCfg)
+	aliases = roots
+	if useAliases {
+		aliases = aliases[:0]
+		for i := 0; i < len(roots); i++ {
+			aliasPrivateKey, err := crypto.GenerateKey()
+			if err != nil {
+				t.Fatalf("Failed to generate random private key: %v", err)
+			}
+			aliasKeys = append(aliasKeys, aliasPrivateKey)
+			aliases = append(aliases, crypto.PubkeyToAddress(aliasPrivateKey.PublicKey))
+		}
+	}
+
+	accountAliases := make(map[common.Address]common.Address)
+	for i := 0; i < len(roots); i++ {
+		accountAliases[roots[i]] = aliases[i]
+	}
+	mocks.NewMockAccountAliases(accountAliases)
+
+	//Active root set
+	rootList := common.RootList{
+		Timestamp: 1680255000,
+		Nodes:     roots,
+	}
+	govCfg.RootList = rootList
+	rm, err := NewRootManager(accMgr, 123456, dataDir, &govCfg)
 	if err != nil {
 		t.Fatalf("Can't create RootManager: %v", err)
 	}
@@ -159,46 +199,22 @@ func newTestRootManagerWithAccounts(t *testing.T, isRootNode bool, numAccounts i
 	rm.db.saveActiveExclusionSet(exSet)
 	rm.activeExSet = exSet
 
-	//Active root set
-	rootList := common.RootList{
-		Timestamp: 1680255000,
-		Nodes:     roots,
-	}
-	rSet, err := newRootSet(&rootList)
-	if err != nil {
-		t.Fatalf("Can't create RootManager: %v", err)
-	}
-	rm.db.saveActiveRootSet(rSet)
-
 	reg := newTestRegistry()
 	rm.InitRegistry(reg)
 
+	rm.active.updateAliases(accountAliases)
+
 	//InitBlockchain should be also present here, but it's not necessary for all tests, so init it manually
 
-	return rm
+	return &TestRootManager{
+		RootManager:      rm,
+		rootPrivateKeys:  rootKeys,
+		aliasPrivateKeys: aliasKeys,
+	}
 }
 
 func newTestRegistry() *contracts.Registry {
-	reg := testRegistry{}
-	return (*contracts.Registry)(&reg)
-}
-
-type testRegistry contracts.Registry
-type testRoots generated.Roots
-type testAliases generated.AccountAliases
-
-func (r *testRegistry) Roots() *generated.Roots {
-	var tRoots testRoots
-	return (*generated.Roots)(&tRoots)
-}
-
-func (r *testRegistry) AccountAliases() *generated.AccountAliases {
-	var tAliases testAliases
-	return (*generated.AccountAliases)(&tAliases)
-}
-
-func (testRoots) GetMembers(opts *bind.CallOpts) ([]common.Address, error) {
-	return roots, nil
+	return contracts.NewTestModeRegistry()
 }
 
 func TestNewRootManager(t *testing.T) {
@@ -223,7 +239,7 @@ func TestNewRootManager(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rm := newTestRootManager(t, tt.args.isRootNode)
+			rm := newTestRootManager(t, tt.args.isRootNode, false)
 			if rm == nil && !tt.wantErr {
 				t.Errorf("NewRootManager() wantErr %v", tt.wantErr)
 			}
@@ -253,7 +269,7 @@ func TestSignRootSet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rm := newTestRootManager(t, tt.args.isRootNode)
+			rm := newTestRootManager(t, tt.args.isRootNode, false)
 
 			rootList := common.RootList{
 				Timestamp:  timestamp,
@@ -295,7 +311,7 @@ func TestIsRootNode(t *testing.T) {
 	t.Parallel()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rm := newTestRootManager(t, tt.args.isRootNode)
+			rm := newTestRootManager(t, tt.args.isRootNode, false)
 			isRn := rm.isRootNode(tt.args.isRootNode)
 			if isRn == tt.wantErr {
 				t.Errorf("isRootNode() isRootNode = %v, wantErr %v", isRn, tt.wantErr)
@@ -334,7 +350,7 @@ func TestSignExclusionSet(t *testing.T) {
 	t.Parallel()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rm := newTestRootManager(t, tt.args.isRootNode)
+			rm := newTestRootManager(t, tt.args.isRootNode, false)
 			set, err := newExclusionSet(tt.args.list)
 			if err != nil {
 				t.Errorf("Can't create exclusion set: %v", err)
@@ -379,9 +395,9 @@ func TestUpgradeExclusionSet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rm := newTestRootManager(t, false)
+			rm := newTestRootManager(t, false, false)
 
-			bc := newTestChain(t, rm)
+			bc := newTestChain(t, rm.RootManager)
 			defer bc.Stop()
 
 			rm.InitBlockChain(bc)
@@ -428,9 +444,9 @@ func loadTestRootSetsData(t *testing.T) []rootListTestData {
 func TestValidateExclusionSet(t *testing.T) {
 	testData := loadTestExclusionSetsData(t)
 
-	rm := newTestRootManager(t, false)
+	rm := newTestRootManager(t, false, false)
 
-	bc := newTestChain(t, rm)
+	bc := newTestChain(t, rm.RootManager)
 	defer bc.Stop()
 
 	rm.InitBlockChain(bc)
@@ -455,9 +471,9 @@ func TestValidateExclusionSet(t *testing.T) {
 func TestProposeExclusionSet(t *testing.T) {
 	testData := loadTestExclusionSetsData(t)
 
-	rm := newTestRootManager(t, true)
+	rm := newTestRootManager(t, true, false)
 
-	bc := newTestChain(t, rm)
+	bc := newTestChain(t, rm.RootManager)
 	defer bc.Stop()
 
 	rm.InitBlockChain(bc)
@@ -487,9 +503,9 @@ func TestProposeExclusionSet(t *testing.T) {
 func TestAcceptProposedExclusionSet(t *testing.T) {
 	testData := loadTestExclusionSetsData(t)
 
-	rm := newTestRootManager(t, true)
+	rm := newTestRootManager(t, true, false)
 
-	bc := newTestChain(t, rm)
+	bc := newTestChain(t, rm.RootManager)
 	defer bc.Stop()
 
 	rm.InitBlockChain(bc)
@@ -529,7 +545,7 @@ func TestAcceptProposedExclusionSet(t *testing.T) {
 func TestIsAcceptableExclusionSet(t *testing.T) {
 	//testData := loadTestExclusionSetsData(t)
 
-	rm := newTestRootManager(t, true)
+	rm := newTestRootManager(t, true, false)
 
 	set, err := newExclusionSet(correctExclusionList)
 	if err != nil {
@@ -548,7 +564,7 @@ func TestProposeRootSet(t *testing.T) {
 
 func testProposeRootSetByRN(t *testing.T) {
 	var testData []rootListTestData
-	rm := newTestRootManager(t, true)
+	rm := newTestRootManager(t, true, false)
 	active := rm.active
 
 	//Following test cases are synthetic, as RM must have root account unlocked to propose root set
@@ -589,7 +605,7 @@ func testProposeRootSetByRN(t *testing.T) {
 
 	for _, tt := range testData {
 		t.Run(tt.Name, func(t *testing.T) {
-			reinitializeRootLists(rm, active)
+			reinitializeRootLists(rm.RootManager, active)
 
 			_, err := rm.proposeRootSet(tt.Set, tt.Force)
 			if !tt.WantErr && err != nil {
@@ -602,7 +618,7 @@ func testProposeRootSetByRN(t *testing.T) {
 // should not be able to propose root set by non RN
 func testProposeRootSetByNonRN(t *testing.T) {
 	testData := loadTestRootSetsData(t)
-	rm := newTestRootManager(t, false)
+	rm := newTestRootManager(t, false, false)
 	//no need to have blockchain instance here, skip creating it
 
 	_, err := rm.proposeRootSet(testData[0].Set, testData[0].Force)
@@ -619,7 +635,7 @@ func TestAcceptProposedRootSet(t *testing.T) {
 // should not be able to propose root set by non RN
 func testAcceptProposedRootListByNonRN(t *testing.T) {
 	testData := loadTestRootSetsData(t)
-	rm := newTestRootManager(t, false)
+	rm := newTestRootManager(t, false, false)
 
 	list := testData[0].Set.makeList()
 	rSet, err := newRootSet(&list)
@@ -633,7 +649,7 @@ func testAcceptProposedRootListByNonRN(t *testing.T) {
 }
 
 func testAcceptProposedRootListByRN(t *testing.T) {
-	rm := newTestRootManager(t, true)
+	rm := newTestRootManager(t, true, false)
 
 	active := rm.active.copy()
 
@@ -663,7 +679,7 @@ func testAcceptProposedRootListByRN(t *testing.T) {
 
 	for _, tt := range testData {
 		t.Run(tt.Name, func(t *testing.T) {
-			reinitializeRootLists(rm, active)
+			reinitializeRootLists(rm.RootManager, active)
 
 			rm.proposed = tt.Set
 
@@ -754,7 +770,7 @@ func TestSetQuota(t *testing.T) {
 }
 
 func testQuotaExceedsByNumber(t *testing.T) {
-	rm := newTestRootManagerWithAccounts(t, true, 1)
+	rm := newTestRootManagerWithAccounts(t, true, false, 1)
 	rm.ProposalQuotaMax = 3
 	rm.ProposalQuotaTimeWindow = 24 * time.Hour
 
@@ -774,7 +790,7 @@ func testQuotaExceedsByNumber(t *testing.T) {
 }
 
 func testQuotaExceedsWithExpiredEntries(t *testing.T) {
-	rm := newTestRootManagerWithAccounts(t, true, 1)
+	rm := newTestRootManagerWithAccounts(t, true, false, 1)
 	rm.ProposalQuotaMax = 3
 	rm.ProposalQuotaTimeWindow = 30 * time.Second
 
@@ -806,9 +822,9 @@ func TestQuarantineExclusionSet(t *testing.T) {
 	earliestBlock := uint64(2)
 
 	t.Log("Starting root manager with quarantine enabled")
-	rm := newTestRootManager(t, true)
+	rm := newTestRootManager(t, true, false)
 	t.Log("Initializing blockchain with 5000 blocks size")
-	bc := newTestChain(t, rm)
+	bc := newTestChain(t, rm.RootManager)
 	defer bc.Stop()
 	rm.InitBlockChain(bc)
 
@@ -838,7 +854,7 @@ func TestQuarantineExclusionSet(t *testing.T) {
 	assert.Truef(t, rm.isExclusionSetMeetsQuarantineCriteria(set, earliestBlock), "Created exclusion set must be quarantined")
 
 	t.Log("Creating test governance engine")
-	gov, err := New(rm, tmpDirName(t))
+	gov, err := New(rm.RootManager, tmpDirName(t))
 	if err != nil {
 		t.Fatalf("Failed to create Governance: %v", err)
 	}

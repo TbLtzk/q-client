@@ -8,8 +8,13 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/p2p"
+)
+
+var (
+	errInvalidNetworkId = errors.New("invalid network id")
 )
 
 type peerSet struct {
@@ -133,7 +138,7 @@ func (p *peer) handshake(msg statusMsgBody, rm *RootManager) (*peerStatus, error
 	}
 
 	if status.Network != msg.Network {
-		return nil, errors.Wrap(err, "invalid network id")
+		return nil, errInvalidNetworkId
 	}
 
 	currentRootSet, err := newRootSet(&status.CurrentRootList)

@@ -1,14 +1,6 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## Unreleased
-
-### Changed
-- Duplicate root/exclusion list requires a confirmation
-- Fallback to the list of signers from the genesis block if all validators are banned
-- Added *gasBuffer* flag. If set - estimated gas will be multiplied by the given value
-- Quarantine mechanism for exclusion lists
-
 ## [1.2.4] - 2023-04
 ### Changed
 - Updated initial root nodes for Mainnet
@@ -37,3 +29,59 @@ Please note that some command-line flags became deprecated.
 
 ### Notes
 Pay attention, that `--whitelist` flag became deprecated, if such flag is set, you should consider removing it
+
+## [1.3.1] - 2023-06
+### Added
+- Testnet trusted checkpoint
+
+### Fixed
+- L0 exlusion set issues
+- Mainnet trusted checkpoint
+
+## [1.3.2] - 2023-06
+### Added
+- Duplicate root/exclusion list requires a confirmation
+- Fallback to the list of signers from the genesis block if all validators are banned
+- Added *gasBuffer* flag. If set - estimated gas will be multiplied by the given value
+- Quarantine mechanism for exclusion lists. If the exclusion list can cause a huge rewind of the blockchain - this list
+  will be quarantined until you decide to apply it. See [more detailed description](governance/README.adoc)
+- Quota for proposed exclusion lists. It implies that if some of root nodes propose root/exclusion lists too
+  often - all lists above the quota will be ignored
+- Implemented rules for EIP-3436 (fork choice rules)
+- Trace filters
+
+### Notes
+Default quota values are set to 3 per Root node/24 hours. If you want to change it, please use the following flags:
+*gov.proposalQuotaMax* (max new list from root node) and *gov.proposalQuotaTimeWindow* (in hours)
+
+## [1.3.3] - 2023-08
+### Added
+- S3 backup mananger and command line flags to enable it.
+- Additional governance unit tests
+
+### Changed 
+- Make public root node approvals endpoint in governance API
+
+## [1.3.4] - 2023-09
+### Fixed
+- Co-signing transition blocks by root nodes
+
+## [1.3.5] - 2023-10
+### Fixed
+- DB freezing and graceful shutdown 
+
+### Changed
+- Improve sync speed
+- Update mainnet root node list
+
+### Added
+- Ability to get account aliases proxy address at given block height
+
+## Unreleased
+### Changed
+- Transition block approval now fails after defined unsuccessful attempts in a row (default is 10)
+- The transition block is approved only after the transition block is in a canonical state
+
+### Added
+- Max approval failures can be changed using *gov.approvalMaxFailures* flag
+- Number of verified blocks after the transition block needed for the approval can be changed using *gov.transitionBlockVerifiedBlocks* flag

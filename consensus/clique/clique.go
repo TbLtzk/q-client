@@ -28,6 +28,8 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
+	"golang.org/x/crypto/sha3"
+
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	_ "gitlab.com/q-dev/q-client/accounts/keystore"
@@ -47,8 +49,6 @@ import (
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/sentryMonitor"
 	"gitlab.com/q-dev/q-client/trie"
-	"gitlab.com/q-dev/system-contracts/generated"
-	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -179,38 +179,6 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	return signer, nil
 }
 
-// ExclusionSetProvider should provide validators exclusion set.
-type ExclusionSetProvider interface {
-	ExclusionSetValidators() map[common.Address][]common.BlockRange
-	ExclusionSetTimestamp() uint64
-	HandleTransitionBlockSignature(header *types.Header)
-	ValidatePreviousTransitionBlockSignature()
-}
-
-// NoopExclusionSetProvider is needed for testing.
-type NoopExclusionSetProvider struct {
-	set       map[common.Address][]common.BlockRange
-	timestamp uint64
-}
-
-func (p *NoopExclusionSetProvider) HandleTransitionBlockSignature(header *types.Header) {
-
-}
-func (p *NoopExclusionSetProvider) ValidatePreviousTransitionBlockSignature() {
-
-}
-
-func (p *NoopExclusionSetProvider) ExclusionSetValidators() map[common.Address][]common.BlockRange {
-	if p.set != nil {
-		return p.set
-	}
-	return make(map[common.Address][]common.BlockRange)
-}
-
-func (p *NoopExclusionSetProvider) ExclusionSetTimestamp() uint64 {
-	return p.timestamp
-}
-
 type ValidatorsProvider interface {
 	GetValidatorsList() ([]common.Address, error)
 }
@@ -249,7 +217,7 @@ type Clique struct {
 	latestRewardReceiver common.Address
 	registry             *contracts.Registry
 
-	exclusionSetProvider ExclusionSetProvider
+	exclusionSetProvider consensus.ExclusionSetProvider
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
@@ -257,7 +225,7 @@ type Clique struct {
 func New(
 	config *params.CliqueConfig,
 	db ethdb.Database,
-	exSetProvider ExclusionSetProvider,
+	exSetProvider consensus.ExclusionSetProvider,
 	registry *contracts.Registry,
 ) *Clique {
 	// Set any missing consensus parameters to their defaults
@@ -534,7 +502,7 @@ func (c *Clique) tryToFallback(chain consensus.ChainHeaderReader, snap *Snapshot
 	snap.Signers = toSet(signers)
 }
 
-func (c *Clique) getValidatorList(number *big.Int, provider *generated.Validators) ([]common.Address, error) {
+func (c *Clique) getValidatorList(number *big.Int, provider contracts.ValidatorsListI) ([]common.Address, error) {
 	signers, err := provider.GetValidatorsList(&bind.CallOpts{
 		BlockNumber: number,
 	})
@@ -552,7 +520,7 @@ func (c *Clique) aliasAccounts(filtered []common.Address, isAthos bool) []common
 	if !isAthos {
 		return filtered
 	}
-	providerAliases := c.registry.AccountAliases()
+	providerAliases := c.registry.AccountAliases(nil)
 	if providerAliases == nil { //signers are set already
 		log.Error("failed to get account aliases list from smart contract")
 		return filtered
@@ -576,7 +544,7 @@ func (c *Clique) UnAliasAccounts(filtered []common.Address, isAthos bool) []comm
 	if !isAthos {
 		return filtered
 	}
-	providerAliases := c.registry.AccountAliases()
+	providerAliases := c.registry.AccountAliases(nil)
 	if providerAliases == nil { //signers are set already
 		log.Error("failed to get account aliases list from smart contract")
 		return filtered
@@ -670,7 +638,7 @@ func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 	}
 
 	if signerListFromPast {
-		checkpoint := chain.GetHeaderByNumber(number)
+		checkpoint := chain.GetHeaderByNumber(initialNumber)
 		if checkpoint != nil {
 			hash := checkpoint.Hash()
 
@@ -678,7 +646,7 @@ func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 			for i := 0; i < len(signers); i++ {
 				copy(signers[i][:], checkpoint.Extra[extraVanity+i*common.AddressLength:])
 			}
-			snap = newSnapshot(c.config, c.signatures, number, hash, signers)
+			snap = newSnapshot(c.config, c.signatures, initialNumber, hash, signers)
 		}
 		err := c.updateProposals(chain, initialNumber, snap, signerListFromPast)
 		if err != nil {
@@ -765,6 +733,11 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 			return errWrongDifficulty
 		}
 	}
+
+	if number%c.config.Epoch == 0 {
+		c.exclusionSetProvider.HandleTransitionBlockSignature(header)
+	}
+
 	return nil
 }
 
@@ -1148,4 +1121,8 @@ func (c *Clique) ChooseBlockWithMostRecentSigner(chain *core.BlockChain, header 
 	}
 
 	return header, nil
+}
+
+func (c *Clique) ExclusionSetProvider() consensus.ExclusionSetProvider {
+	return c.exclusionSetProvider
 }

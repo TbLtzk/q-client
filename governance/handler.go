@@ -8,11 +8,17 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p"
+)
+
+var (
+	errUnknownMsgCode = errors.New("unknown msg code")
+	errMsgTooLarge    = errors.New("message too large")
 )
 
 // handler of governance protocol messages.
@@ -36,6 +42,9 @@ type handler struct {
 
 	peerWG sync.WaitGroup
 	peers  *peerSet
+
+	failureCounts map[string]map[uint64]uint64 // peer id => msg code => failures count
+	maxFailures   uint64
 }
 
 func newHandler(rootManager *RootManager, cm *ConstitutionManager) *handler {
@@ -69,6 +78,9 @@ func newHandler(rootManager *RootManager, cm *ConstitutionManager) *handler {
 
 		peerWG: sync.WaitGroup{},
 		peers:  newPeerSet(),
+
+		failureCounts: make(map[string]map[uint64]uint64),
+		maxFailures:   rootManager.ApprovalMaxFailures,
 	}
 }
 
@@ -378,11 +390,11 @@ func (h *handler) handleMsg(p *peer) error {
 
 	if msg.Code != ConstitutionFilesMsg {
 		if msg.Size > protocolMaxMsgSize {
-			return errors.Wrap(err, "message too large")
+			return errMsgTooLarge
 		}
 	} else {
 		if msg.Size > maxConstitutionFileSize {
-			return errors.Wrap(err, "message too large")
+			return errMsgTooLarge
 		}
 	}
 
@@ -396,7 +408,7 @@ func (h *handler) handleMsg(p *peer) error {
 	case ExclusionListMsg:
 		return h.handleExclusionList(p, msg)
 	case ApprovalMsg:
-		return h.handleApprovalMsg(p, msg)
+		return h.handleWithRetry(p, msg, h.handleApprovalMsg)
 	case ConstitutionFileRequestMsg:
 		return h.handleConstitutionRequestMsg(p, msg)
 	case ConstitutionFilesMsg:
@@ -404,8 +416,33 @@ func (h *handler) handleMsg(p *peer) error {
 	case KnownConstitutionFilesMsg:
 		return h.handleKnownFilesMsg(p, msg)
 	default:
-		return errors.New("unknown msg code")
+		return errUnknownMsgCode
 	}
+}
+
+func (h *handler) handleWithRetry(p *peer, msg p2p.Msg, handlerFunc func(p *peer, msg p2p.Msg) error) error {
+	if _, ok := h.failureCounts[p.id]; !ok {
+		h.failureCounts[p.id] = make(map[uint64]uint64)
+	}
+
+	err := handlerFunc(p, msg)
+	if err != nil {
+		h.failureCounts[p.id][msg.Code]++
+		p.Log().Error("Failed to handle governance message", "err", err)
+	} else {
+		h.failureCounts[p.id][msg.Code] = 0
+	}
+
+	if h.failureCounts[p.id][msg.Code] >= h.maxFailures {
+		h.failureCounts[p.id][msg.Code] = 0
+
+		// The error will reset a peer, so release the memory
+		delete(h.failureCounts, p.id)
+
+		return err
+	}
+
+	return nil
 }
 
 func (h *handler) handleRootListMsg(p *peer, msg p2p.Msg) error {
@@ -840,7 +877,7 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 
 		//If the requested file is not on the list but node has it, it answers anyway (this will allow for draft constitution to be stored in the file system)
 		if !ok {
-			log.Error("Requested file hash doesn't belong to history")
+			log.Debug("Requested file hash doesn't belong to history")
 		}
 
 		foundInFiles := false

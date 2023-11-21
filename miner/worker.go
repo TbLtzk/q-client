@@ -28,6 +28,7 @@ import (
 	"gitlab.com/q-dev/q-client/internal/utils"
 
 	mapset "github.com/deckarep/golang-set"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/misc"

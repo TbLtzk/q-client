@@ -265,12 +265,6 @@ func (t *callParityTracer) Finalize(call CallParityFrame, traceAddress []int) ([
 		t.formatCallResult(&call)
 	}
 
-	// for _, errorContains := range paritySkipTracesForErrors {
-	// 	if strings.Contains(call.Error, errorContains) {
-	// 		return
-	// 	}
-	// }
-
 	t.convertErrorToParity(&call)
 
 	if subtraces := len(call.Calls); subtraces > 0 {

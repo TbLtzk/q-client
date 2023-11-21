@@ -2,20 +2,25 @@ package contracts
 
 import (
 	"context"
+	"math/big"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
+	"gitlab.com/q-dev/system-contracts/generated"
+
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/system-contracts/generated"
 )
 
 // Registry of system contracts.
 // current implementation is rather proof of concept
 type Registry struct {
 	Backend bind.ContractBackend
+
+	ValidatorsMock ValidatorsI
+	AliasesMock    AccountAliasesI
 
 	mu  sync.Mutex
 	reg *generated.ContractRegistry
@@ -39,8 +44,30 @@ func NewTestModeRegistry() *Registry {
 	}
 }
 
+func NewTestModeRegistryWithMocks(validators ValidatorsI, aliases AccountAliasesI) *Registry {
+	return &Registry{
+		defaultRewardReceiver: common.HexToAddress("0x92C35a964624D9cbF90c2A0525e116093FAF867E"),
+		isTestMode:            true,
+		ValidatorsMock:        validators,
+		AliasesMock:           aliases,
+	}
+}
+
+type ValidatorsListI interface {
+	GetValidatorsList(opts *bind.CallOpts) ([]common.Address, error)
+}
+
+type ValidatorsI interface {
+	ValidatorsListI
+	ValidatorsAddress() *common.Address
+}
+
 // Validators returns Validators contract backend if available.
-func (r *Registry) Validators() *generated.Validators {
+func (r *Registry) Validators() ValidatorsListI {
+	if r.isTestMode {
+		return r.ValidatorsMock
+	}
+
 	addr := r.ValidatorsAddress()
 	if addr == nil {
 		return nil
@@ -70,7 +97,7 @@ func (r *Registry) Roots() *generated.Roots {
 }
 
 func (r *Registry) ValidatorsAddress() *common.Address {
-	addr := r.getAddr("governance.validators")
+	addr := r.getAddr("governance.validators", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.validators contract is not deployed")
 		return nil
@@ -80,7 +107,7 @@ func (r *Registry) ValidatorsAddress() *common.Address {
 }
 
 func (r *Registry) RootNodesAddress() *common.Address {
-	addr := r.getAddr("governance.rootNodes")
+	addr := r.getAddr("governance.rootNodes", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.rootNodes contract is not deployed")
 		return nil
@@ -95,7 +122,7 @@ func (r *Registry) RewardReceiver() common.Address {
 		return r.defaultRewardReceiver
 	}
 
-	addr := r.getAddr("tokeneconomics.defaultAllocationProxy")
+	addr := r.getAddr("tokeneconomics.defaultAllocationProxy", nil)
 	if (addr == common.Address{}) {
 		log.Debug("tokeneconomics.defaultAllocationProxy is not deployed")
 		return r.defaultRewardReceiver
@@ -106,7 +133,7 @@ func (r *Registry) RewardReceiver() common.Address {
 
 // ActiveValidatorsNumber.
 func (r *Registry) ActiveValidatorsNumber() *int64 {
-	addr := r.getAddr("governance.constitution.parameters")
+	addr := r.getAddr("governance.constitution.parameters", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.constitution.parameters is not deployed")
 		return nil
@@ -129,7 +156,7 @@ func (r *Registry) ActiveValidatorsNumber() *int64 {
 
 // EpqfiParameters returns EpqfiParameters contract backend if available.
 func (r *Registry) EpqfiParameters() *generated.EPQFIParameters {
-	addr := r.getAddr("governance.experts.EPQFI.parameters")
+	addr := r.getAddr("governance.experts.EPQFI.parameters", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.experts.EPQFI.parameters is not deployed")
 		return nil
@@ -140,9 +167,20 @@ func (r *Registry) EpqfiParameters() *generated.EPQFIParameters {
 	return epqfiParams
 }
 
+type AccountAliasesI interface {
+	ResolveBatch(opts *bind.CallOpts, main []common.Address, role []*big.Int) ([]common.Address, error)
+	ResolveBatchReverse(opts *bind.CallOpts, alias []common.Address, role []*big.Int) ([]common.Address, error)
+	Resolve(opts *bind.CallOpts, main common.Address, role *big.Int) (common.Address, error)
+	ResolveReverse(opts *bind.CallOpts, alias common.Address, role *big.Int) (common.Address, error)
+}
+
 // AccountAliases returns AccountAliases contract backend if available.
-func (r *Registry) AccountAliases() *generated.AccountAliases {
-	addr := r.AccountAliasesAddress()
+func (r *Registry) AccountAliases(opts *bind.CallOpts) AccountAliasesI {
+	if r.IsTestMode() {
+		return r.AliasesMock
+	}
+
+	addr := r.AccountAliasesAddress(opts)
 	if addr == nil {
 		return nil
 	}
@@ -155,8 +193,8 @@ func (r *Registry) AccountAliases() *generated.AccountAliases {
 	return val
 }
 
-func (r *Registry) AccountAliasesAddress() *common.Address {
-	addr := r.getAddr("governance.accountAliases")
+func (r *Registry) AccountAliasesAddress(opts *bind.CallOpts) *common.Address {
+	addr := r.getAddr("governance.accountAliases", opts)
 	if (addr == common.Address{}) {
 		log.Debug("governance.accountAliases contract is not deployed")
 		return nil
@@ -169,7 +207,7 @@ func (r *Registry) AccountAliasesAddress() *common.Address {
 
 // ConstitutionVoting returns ConstitutionVoting contract backend if available.
 func (r *Registry) ConstitutionVoting() *generated.ConstitutionVoting {
-	addr := r.getAddr("governance.constitution.parametersVoting")
+	addr := r.getAddr("governance.constitution.parametersVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.constitution.parametersVoting is not deployed")
 		return nil
@@ -182,7 +220,7 @@ func (r *Registry) ConstitutionVoting() *generated.ConstitutionVoting {
 
 // GeneralUpdateVoting returns GeneralUpdateVoting contract backend if available.
 func (r *Registry) GeneralUpdateVoting() *generated.GeneralUpdateVoting {
-	addr := r.getAddr("governance.generalUpdateVoting")
+	addr := r.getAddr("governance.generalUpdateVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.generalUpdateVoting is not deployed")
 		return nil
@@ -195,7 +233,7 @@ func (r *Registry) GeneralUpdateVoting() *generated.GeneralUpdateVoting {
 
 // EmergencyUpdateVoting returns EmergencyUpdateVoting contract backend if available.
 func (r *Registry) EmergencyUpdateVoting() *generated.EmergencyUpdateVoting {
-	addr := r.getAddr("governance.emergencyUpdateVoting")
+	addr := r.getAddr("governance.emergencyUpdateVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.generalUpdateVoting is not deployed")
 		return nil
@@ -208,7 +246,7 @@ func (r *Registry) EmergencyUpdateVoting() *generated.EmergencyUpdateVoting {
 
 // RootsVoting returns RootsVoting contract backend if available.
 func (r *Registry) RootsVoting() *generated.RootsVoting {
-	addr := r.getAddr("governance.rootNodes.membershipVoting")
+	addr := r.getAddr("governance.rootNodes.membershipVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.rootNodes.membershipVoting is not deployed")
 		return nil
@@ -221,7 +259,7 @@ func (r *Registry) RootsVoting() *generated.RootsVoting {
 
 // RootNodesSlashingVoting returns RootNodesSlashingVoting contract backend if available.
 func (r *Registry) RootNodesSlashingVoting() *generated.RootNodesSlashingVoting {
-	addr := r.getAddr("governance.rootNodes.slashingVoting")
+	addr := r.getAddr("governance.rootNodes.slashingVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.rootNodes.slashingVoting is not deployed")
 		return nil
@@ -234,7 +272,7 @@ func (r *Registry) RootNodesSlashingVoting() *generated.RootNodesSlashingVoting 
 
 // ValidatorsSlashingVoting returns ValidatorsSlashingVoting contract backend if available.
 func (r *Registry) ValidatorsSlashingVoting() *generated.ValidatorsSlashingVoting {
-	addr := r.getAddr("governance.validators.slashingVoting")
+	addr := r.getAddr("governance.validators.slashingVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.validators.slashingVoting is not deployed")
 		return nil
@@ -247,7 +285,7 @@ func (r *Registry) ValidatorsSlashingVoting() *generated.ValidatorsSlashingVotin
 
 // EpqfiMembershipVoting returns EpqfiMembershipVoting contract backend if available.
 func (r *Registry) EpqfiMembershipVoting() *generated.EPQFIMembershipVoting {
-	addr := r.getAddr("governance.experts.EPQFI.membershipVoting")
+	addr := r.getAddr("governance.experts.EPQFI.membershipVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.experts.EPQFI.membershipVoting is not deployed")
 		return nil
@@ -260,7 +298,7 @@ func (r *Registry) EpqfiMembershipVoting() *generated.EPQFIMembershipVoting {
 
 // EpqfiParametersVoting returns EpqfiParametersVoting contract backend if available.
 func (r *Registry) EpqfiParametersVoting() *generated.EPQFIParametersVoting {
-	addr := r.getAddr("governance.experts.EPQFI.parametersVoting")
+	addr := r.getAddr("governance.experts.EPQFI.parametersVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.experts.EPQFI.parametersVoting is not deployed")
 		return nil
@@ -273,7 +311,7 @@ func (r *Registry) EpqfiParametersVoting() *generated.EPQFIParametersVoting {
 
 // EpdrMembershipVoting returns EpdrMembershipVoting contract backend if available.
 func (r *Registry) EpdrMembershipVoting() *generated.EPDRMembershipVoting {
-	addr := r.getAddr("governance.experts.EPDR.membershipVoting")
+	addr := r.getAddr("governance.experts.EPDR.membershipVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.experts.EPDR.membershipVoting is not deployed")
 		return nil
@@ -286,7 +324,7 @@ func (r *Registry) EpdrMembershipVoting() *generated.EPDRMembershipVoting {
 
 // EpdrParametersVoting returns EpdrParametersVoting contract backend if available.
 func (r *Registry) EpdrParametersVoting() *generated.EPDRParametersVoting {
-	addr := r.getAddr("governance.experts.EPDR.parametersVoting")
+	addr := r.getAddr("governance.experts.EPDR.parametersVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.experts.EPDR.parametersVoting is not deployed")
 		return nil
@@ -299,7 +337,7 @@ func (r *Registry) EpdrParametersVoting() *generated.EPDRParametersVoting {
 
 // EprsMembershipVoting returns EprsMembershipVoting contract backend if available.
 func (r *Registry) EprsMembershipVoting() *generated.EPRSMembershipVoting {
-	addr := r.getAddr("governance.experts.EPRS.membershipVoting")
+	addr := r.getAddr("governance.experts.EPRS.membershipVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.experts.EPRS.membershipVoting is not deployed")
 		return nil
@@ -312,7 +350,7 @@ func (r *Registry) EprsMembershipVoting() *generated.EPRSMembershipVoting {
 
 // EprsParametersVoting returns EprsParametersVoting contract backend if available.
 func (r *Registry) EprsParametersVoting() *generated.EPRSParametersVoting {
-	addr := r.getAddr("governance.experts.EPRS.parametersVoting")
+	addr := r.getAddr("governance.experts.EPRS.parametersVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.experts.EPRS.parametersVoting is not deployed")
 		return nil
@@ -325,7 +363,7 @@ func (r *Registry) EprsParametersVoting() *generated.EPRSParametersVoting {
 
 // ContractRegistryAddressVoting returns ContractRegistryAddressVoting contract backend if available.
 func (r *Registry) ContractRegistryAddressVoting() *generated.ContractRegistryAddressVoting {
-	addr := r.getAddr("governance.address.contractRegistryVoting")
+	addr := r.getAddr("governance.address.contractRegistryVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.address.contractRegistryVoting is not deployed")
 		return nil
@@ -338,7 +376,7 @@ func (r *Registry) ContractRegistryAddressVoting() *generated.ContractRegistryAd
 
 // ContractRegistryUpgradeVoting returns ContractRegistryUpgradeVoting contract backend if available.
 func (r *Registry) ContractRegistryUpgradeVoting() *generated.ContractRegistryUpgradeVoting {
-	addr := r.getAddr("governance.upgrade.contractRegistryVoting")
+	addr := r.getAddr("governance.upgrade.contractRegistryVoting", nil)
 	if (addr == common.Address{}) {
 		log.Debug("governance.upgrade.contractRegistryVoting is not deployed")
 		return nil
@@ -347,6 +385,41 @@ func (r *Registry) ContractRegistryUpgradeVoting() *generated.ContractRegistryUp
 	// err is never returned here
 	contractRegistryUpgradeVoting, _ := generated.NewContractRegistryUpgradeVoting(addr, r.Backend)
 	return contractRegistryUpgradeVoting
+}
+
+func (r *Registry) IsTestMode() bool {
+	return r.isTestMode
+}
+
+// VotingWeightProxy returns VotingWeightProxy contract backend if available.
+func (r *Registry) VotingWeightProxy() *generated.VotingWeightProxy {
+	addr := r.getAddr("governance.votingWeightProxy", nil)
+	if (addr == common.Address{}) {
+		log.Debug("governance.votingWeightProxy is not deployed")
+		return nil
+	}
+
+	// err is never returned here
+	votingWeightProxy, _ := generated.NewVotingWeightProxy(addr, r.Backend)
+	return votingWeightProxy
+}
+
+func (r *Registry) GetSelfAddress() common.Address {
+	return r.addr
+}
+
+func (r *Registry) SystemContracts() []generated.ContractRegistryPair {
+	contracts, err := r.registry().GetContracts(nil)
+	if err != nil {
+		log.Error("failed to get system contracts from registry")
+		return nil
+	}
+
+	return contracts
+}
+
+func (r *Registry) GetAddr(key string) common.Address {
+	return r.getAddr(key, nil)
 }
 
 func (r *Registry) registry() *generated.ContractRegistry {
@@ -383,13 +456,13 @@ func (r *Registry) registry() *generated.ContractRegistry {
 	return r.reg
 }
 
-func (r *Registry) getAddr(key string) common.Address {
+func (r *Registry) getAddr(key string, opts *bind.CallOpts) common.Address {
 	reg := r.registry()
 	if reg == nil {
 		return common.Address{}
 	}
 
-	addr, err := reg.GetAddress(nil, key)
+	addr, err := reg.GetAddress(opts, key)
 	if err != nil {
 		log.Error("failed to get address from registry", "err", err, "key", key)
 	}

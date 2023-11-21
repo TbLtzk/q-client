@@ -62,7 +62,7 @@ func TestConsoleWelcome(t *testing.T) {
 	geth.SetTemplateFunc("goarch", func() string { return runtime.GOARCH })
 	geth.SetTemplateFunc("gover", runtime.Version)
 	geth.SetTemplateFunc("gethver", func() string { return params.VersionWithCommit("", "") })
-	geth.SetTemplateFunc("qver", func() string { return params.QVersion })
+	geth.SetTemplateFunc("qver", func() string { return params.QVersionWithMeta })
 	geth.SetTemplateFunc("niltime", func() string {
 		return time.Unix(int64(core.DefaultGenesisBlock().Timestamp), 0).
 			Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
@@ -73,7 +73,7 @@ func TestConsoleWelcome(t *testing.T) {
 	geth.Expect(`
 Welcome to the Geth JavaScript console!
 
-instance: Q-Client/v{{qver}}-stable/Geth/v{{gethver}}/{{goos}}-{{goarch}}/{{gover}}
+instance: Q-Client/v{{qver}}/Geth/v{{gethver}}/{{goos}}-{{goarch}}/{{gover}}
 coinbase: {{.Etherbase}}
 at block: 0 ({{niltime}})
  datadir: {{.Datadir}}
@@ -134,7 +134,7 @@ func testAttachWelcome(t *testing.T, geth *testgeth, endpoint, apis string) {
 	attach.SetTemplateFunc("goarch", func() string { return runtime.GOARCH })
 	attach.SetTemplateFunc("gover", runtime.Version)
 	attach.SetTemplateFunc("gethver", func() string { return params.VersionWithCommit("", "") })
-	attach.SetTemplateFunc("qver", func() string { return params.QVersion })
+	attach.SetTemplateFunc("qver", func() string { return params.QVersionWithMeta })
 	attach.SetTemplateFunc("etherbase", func() string { return geth.Etherbase })
 	attach.SetTemplateFunc("niltime", func() string {
 		return time.Unix(int64(core.DefaultGenesisBlock().Timestamp), 0).
@@ -148,7 +148,7 @@ func testAttachWelcome(t *testing.T, geth *testgeth, endpoint, apis string) {
 	attach.Expect(`
 Welcome to the Geth JavaScript console!
 
-instance: Q-Client/v{{qver}}-stable/Geth/v{{gethver}}/{{goos}}-{{goarch}}/{{gover}}
+instance: Q-Client/v{{qver}}/Geth/v{{gethver}}/{{goos}}-{{goarch}}/{{gover}}
 coinbase: {{etherbase}}
 at block: 0 ({{niltime}}){{if ipc}}
  datadir: {{datadir}}{{end}}

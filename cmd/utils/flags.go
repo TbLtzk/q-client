@@ -29,30 +29,17 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/q-dev/q-client/consensus/clique"
-	lescatalyst "gitlab.com/q-dev/q-client/les/catalyst"
-	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/metrics"
-	"gitlab.com/q-dev/q-client/metrics/exp"
-	"gitlab.com/q-dev/q-client/metrics/influxdb"
-	"gitlab.com/q-dev/q-client/miner"
-	"gitlab.com/q-dev/q-client/node"
-	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/p2p/enode"
-	"gitlab.com/q-dev/q-client/p2p/nat"
-	"gitlab.com/q-dev/q-client/p2p/netutil"
-	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/rpc"
-	"gitlab.com/q-dev/q-client/sentryMonitor"
-
 	pcsclite "github.com/gballet/go-libpcsclite"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	"github.com/urfave/cli/v2"
+
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/cmd/backupManager"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/fdlimit"
 	"gitlab.com/q-dev/q-client/consensus"
+	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
@@ -75,6 +62,20 @@ import (
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/les"
+	lescatalyst "gitlab.com/q-dev/q-client/les/catalyst"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/metrics"
+	"gitlab.com/q-dev/q-client/metrics/exp"
+	"gitlab.com/q-dev/q-client/metrics/influxdb"
+	"gitlab.com/q-dev/q-client/miner"
+	"gitlab.com/q-dev/q-client/node"
+	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/nat"
+	"gitlab.com/q-dev/q-client/p2p/netutil"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/sentryMonitor"
 )
 
 // These are all the command line flags we support.
@@ -829,6 +830,18 @@ var (
 		Category: flags.GovernanceCategory,
 		Value:    24,
 	}
+	ApprovalMaxFailures = &cli.Uint64Flag{
+		Name:     "gov.approvalMaxFailures",
+		Usage:    "The number of allowed attempts of block approval before peer reset",
+		Category: flags.GovernanceCategory,
+		Value:    10,
+	}
+	TransitionBlockVerifiedBlocks = &cli.Uint64Flag{
+		Name:     "gov.transitionBlockVerifiedBlocks",
+		Usage:    "The number of blocks that must be validated before signing a transition block",
+		Category: flags.GovernanceCategory,
+		Value:    10,
+	}
 
 	// Network Settings
 	MaxPeersFlag = &cli.IntFlag{
@@ -1064,6 +1077,86 @@ var (
 		Usage:    "Factor that sets a buffer for gas estimation",
 		Value:    ethconfig.Defaults.GasBuffer,
 		Category: flags.APICategory,
+	}
+
+	//Backup flags
+	BackupEnabledFlag = &cli.BoolFlag{
+		Name:     "backup",
+		Usage:    "Enable backup",
+		Category: flags.BackupCategory,
+	}
+	RestoreBackupFlag = &cli.BoolFlag{
+		Name:     "restore",
+		Usage:    "Restore backup",
+		Category: flags.BackupCategory,
+	}
+	BackupFileFlag = &cli.StringFlag{
+		Name:     "backup.file",
+		Usage:    "Restore backup from specified file", //Otherwise it will restore from the latest backup
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupDirFlag = &flags.DirectoryFlag{
+		Name:     "backup.backupDir",
+		Usage:    "Backup directory",
+		Category: flags.BackupCategory,
+	}
+	BackupIncremental = &cli.BoolFlag{
+		Name:     "backup.incremental",
+		Usage:    "Enable incremental backup",
+		Category: flags.BackupCategory,
+	}
+	BackupRotationPeriod = &cli.IntFlag{
+		Name:     "backup.rotationPeriod",
+		Usage:    "Backup rotation period",
+		Category: flags.BackupCategory,
+	}
+	BackupEnableS3Flag = &cli.BoolFlag{
+		Name:     "backup.s3",
+		Usage:    "Enable backup to S3",
+		Category: flags.BackupCategory,
+	}
+	BackupS3BucketFlag = &cli.StringFlag{
+		Name:     "backup.s3.bucket",
+		Usage:    "S3 bucket name to store backups",
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupS3KeyPrefixFlag = &cli.StringFlag{
+		Name:     "backup.s3.keyPrefix",
+		Usage:    "S3 key prefix to store backups",
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupAWSRegionFlag = &cli.StringFlag{
+		Name:     "backup.s3.region",
+		Usage:    "AWS region to store backups",
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupAWSAccessKeyFlag = &cli.StringFlag{
+		Name:     "backup.s3.accessKey",
+		Usage:    "AWS S3 access key to store backups",
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupAWSSecretKeyFlag = &cli.StringFlag{
+		Name:     "backup.s3.secretKey",
+		Usage:    "AWS S3 secret key to store backups",
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupAWSTokenFlag = &cli.StringFlag{
+		Name:     "backup.s3.token",
+		Usage:    "AWS S3 token to store backups",
+		Value:    "",
+		Category: flags.BackupCategory,
+	}
+	BackupCronSpecFlag = &cli.StringFlag{
+		Name:     "backup.cronSpec",
+		Usage:    "Cron spec to run backup",
+		Value:    "",
+		Category: flags.BackupCategory,
 	}
 )
 
@@ -1875,6 +1968,9 @@ func SetGovConfig(ctx *cli.Context, stack *node.Node, cfg *governance.Config) {
 		cfg.ProposalQuotaTimeWindow = time.Hour * time.Duration(ProposalQuotaTimeWindowFlag.Value)
 	}
 
+	cfg.ApprovalMaxFailures = ApprovalMaxFailures.Value
+	cfg.TransitionBlockVerifiedBlocks = TransitionBlockVerifiedBlocks.Value
+
 	if !(ctx.IsSet(RootTimestampFlag.Name) || ctx.IsSet(RootAddressesFlag.Name)) {
 		switch true {
 		case ctx.Bool(DevnetFlag.Name):
@@ -2174,9 +2270,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 			cfg.Miner.GasPrice = big.NewInt(1)
 		}
 	default:
-		if cfg.NetworkId == 35441 {
+		switch cfg.NetworkId {
+		case 35441:
 			cfg.Genesis = core.DefaultMainnetGenesisBlock()
 			SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
+		case 35442:
+			SetDNSDiscoveryDefaults(cfg, params.DevnetGenesisHash)
 		}
 	}
 }
@@ -2347,6 +2446,48 @@ func SetupSentry(ctx *cli.Context) {
 	}
 }
 
+func SetupBackups(ctx *cli.Context, start func() error, end func(results *backupManager.BackupInfo) error) (*backupManager.BackupManager, error) {
+	if !ctx.IsSet(BackupEnabledFlag.Name) {
+		return nil, nil // backups disabled
+	}
+	if !ctx.IsSet(BackupDirFlag.Name) {
+		return nil, fmt.Errorf("required arguments: %v", BackupDirFlag.Name)
+	}
+	if ctx.IsSet(BackupEnableS3Flag.Name) && !ctx.IsSet(BackupDirFlag.Name) {
+		return nil, fmt.Errorf("required arguments: %v", BackupDirFlag.Name)
+	}
+	if !ctx.IsSet(BackupCronSpecFlag.Name) {
+		return nil, fmt.Errorf("required arguments: %v", BackupCronSpecFlag.Name)
+	}
+
+	dataDir := ctx.String(DataDirFlag.Name)
+	backupDir := ctx.String(BackupDirFlag.Name)
+	cronSpec := ctx.String(BackupCronSpecFlag.Name)
+
+	config := backupManager.Config{
+		Datadir:      dataDir,
+		BackupDir:    backupDir,
+		Incremental:  false,
+		S3Export:     ctx.Bool(BackupEnableS3Flag.Name),
+		S3Bucket:     ctx.String(BackupS3BucketFlag.Name),
+		S3KeyPrefix:  ctx.String(BackupS3KeyPrefixFlag.Name),
+		AWSRegion:    ctx.String(BackupAWSRegionFlag.Name),
+		AWSAccessKey: ctx.String(BackupAWSAccessKeyFlag.Name),
+		AWSSecretKey: ctx.String(BackupAWSSecretKeyFlag.Name),
+		AWSToken:     ctx.String(BackupAWSTokenFlag.Name),
+		CronSpec:     &cronSpec,
+	}
+
+	mgr, err := backupManager.NewBackupManager(&config, start, end)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mgr.ScheduleExport()
+
+	return mgr, err
+}
+
 func SplitTagsFlag(tagsFlag string) map[string]string {
 	tags := strings.Split(tagsFlag, ",")
 	tagsMap := map[string]string{}
@@ -2424,7 +2565,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 
 	var engine consensus.Engine
 	if config.Clique != nil {
-		engine = clique.New(config.Clique, chainDb, &clique.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry())
+		engine = clique.New(config.Clique, chainDb, &consensus.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry())
 	} else {
 		ethashConf := ethconfig.Defaults.Ethash
 		if ctx.Bool(FakePoWFlag.Name) {

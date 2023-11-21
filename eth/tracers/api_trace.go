@@ -10,12 +10,12 @@ import (
 )
 
 type TraceFilterParams struct {
-	FromBlock   hexutil.Uint64  `json:"fromBlock,omitempty"`
-	ToBlock     hexutil.Uint64  `json:"toBlock,omitempty"`
-	FromAddress *common.Address `json:"fromAddress,omitempty"`
-	ToAddress   *common.Address `json:"toAddress,omitempty"`
-	After       uint64          `json:"after,omitempty"`
-	Count       uint64          `json:"count,omitempty"`
+	FromBlock   hexutil.Uint64 `json:"fromBlock,omitempty"`
+	ToBlock     hexutil.Uint64 `json:"toBlock,omitempty"`
+	FromAddress interface{}    `json:"fromAddress,omitempty"`
+	ToAddress   interface{}    `json:"toAddress,omitempty"`
+	After       uint64         `json:"after,omitempty"`
+	Count       uint64         `json:"count,omitempty"`
 }
 
 // Duplicates, but cycle import is not allowed
@@ -82,12 +82,29 @@ func setTraceConfigDefaultTracer(config *TraceConfig) *TraceConfig {
 	return config
 }
 
-func (api *TraceAPI) Filter(ctx context.Context, args TraceFilterParams, config *TraceConfig) ([]interface{}, error) {
+func (api *TraceAPI) Filter(ctx context.Context, args TraceFilterParams, config *TraceConfig) ([]CallParityFrame, error) {
 	config = setTraceConfigDefaultTracer(config)
 
 	// Fetch the block interval that we want to trace
 	start := rpc.BlockNumber(args.FromBlock)
 	end := rpc.BlockNumber(args.ToBlock)
 
-	return api.debugAPI.TraceChainWithFilterApplied(ctx, start, end, config, args.FromAddress, args.ToAddress, args.After, args.Count)
+	var fromAddresses []common.Address
+	var toAddresses []common.Address
+
+	switch t := args.FromAddress.(type) {
+	case *common.Address:
+		fromAddresses = append(fromAddresses, *t)
+	case []common.Address:
+		fromAddresses = t
+	}
+
+	switch t := args.ToAddress.(type) {
+	case *common.Address:
+		toAddresses = append(toAddresses, *t)
+	case []common.Address:
+		toAddresses = t
+	}
+
+	return api.debugAPI.TraceChainWithFilterApplied(ctx, start, end, config, fromAddresses, toAddresses)
 }
