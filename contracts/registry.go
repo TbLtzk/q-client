@@ -408,7 +408,7 @@ func (r *Registry) GetSelfAddress() common.Address {
 	return r.addr
 }
 
-func (r *Registry) SystemContracts() []generated.ContractRegistryPair {
+func (r *Registry) SystemContracts() []generated.IContractRegistryPair {
 	contracts, err := r.registry().GetContracts(nil)
 	if err != nil {
 		log.Error("failed to get system contracts from registry")

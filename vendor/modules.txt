@@ -492,7 +492,7 @@ github.com/urfave/cli/v2
 # github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673
 ## explicit
 github.com/xrash/smetrics
-# gitlab.com/q-dev/system-contracts v1.0.0-rc.5.0.20220603095006-aacc5f400f99
+# gitlab.com/q-dev/system-contracts v1.3.0-rc.1 => gitlab.com/q-dev/system-contract-bindings-go v0.1.1-rc.2
 ## explicit; go 1.16
 gitlab.com/q-dev/system-contracts/generated
 # golang.org/x/crypto v0.1.0

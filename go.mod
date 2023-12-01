@@ -121,7 +121,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	gitlab.com/q-dev/system-contracts v1.0.0-rc.5.0.20220603095006-aacc5f400f99
+	gitlab.com/q-dev/system-contracts v1.3.0-rc.1
 	golang.org/x/mod v0.9.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect
@@ -132,3 +132,5 @@ require (
 )
 
 exclude gitlab.com/q-dev/q-client v1.9.22-0.20211124080536-fe063185527d
+
+replace gitlab.com/q-dev/system-contracts v1.3.0-rc.1 => gitlab.com/q-dev/system-contract-bindings-go v0.1.1-rc.2
