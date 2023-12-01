@@ -387,6 +387,22 @@ func (r *Registry) ContractRegistryUpgradeVoting() *generated.ContractRegistryUp
 	return contractRegistryUpgradeVoting
 }
 
+// ContractRegistryVoting returns GenericContractRegistryVoting contract binding if available.
+func (r *Registry) ContractRegistryVoting() *generated.GenericContractRegistryVoting {
+	addr := r.getAddr("governance.contractRegistryVoting", nil)
+	if (addr == common.Address{}) {
+		log.Debug("governance.contractRegistryVoting is not added to registry")
+		return nil
+	}
+
+	contractRegistryVoting, err := generated.NewGenericContractRegistryVoting(addr, r.Backend)
+	if err != nil {
+		log.Error("failed to prepare binding of governance.contractRegistryVoting contract")
+		return nil
+	}
+	return contractRegistryVoting
+}
+
 func (r *Registry) IsTestMode() bool {
 	return r.isTestMode
 }
