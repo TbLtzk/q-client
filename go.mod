@@ -133,4 +133,4 @@ require (
 
 exclude gitlab.com/q-dev/q-client v1.9.22-0.20211124080536-fe063185527d
 
-replace gitlab.com/q-dev/system-contracts v1.3.0-rc.1 => gitlab.com/q-dev/system-contract-bindings-go v0.1.1-rc.2
+replace gitlab.com/q-dev/system-contracts => gitlab.com/q-dev/system-contract-bindings-go v0.1.1-rc.2

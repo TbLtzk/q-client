@@ -2109,6 +2109,12 @@ func TestGolangBindings(t *testing.T) {
 	if out, err := replacer.CombinedOutput(); err != nil {
 		t.Fatalf("failed to replace binding test dependency to current source tree: %v\n%s", err, out)
 	}
+	// system contracts bindings were moved to separate repo
+	replacer = exec.Command(gocmd, "mod", "edit", "-x", "-require", "gitlab.com/q-dev/system-contracts@v1.3.0-rc.1", "-replace", "gitlab.com/q-dev/system-contracts=gitlab.com/q-dev/system-contract-bindings-go@v0.1.1-rc.2")
+	replacer.Dir = pkg
+	if out, err := replacer.CombinedOutput(); err != nil {
+		t.Fatalf("failed to replace binding test dependency of system contract bindings: %v\n%s", err, out)
+	}
 	tidier := exec.Command(gocmd, "mod", "tidy")
 	tidier.Dir = pkg
 	if out, err := tidier.CombinedOutput(); err != nil {
