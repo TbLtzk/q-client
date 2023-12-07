@@ -617,8 +617,8 @@ github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 h1:bAn7/zixMGCfxrRT
 github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673/go.mod h1:N3UwUGtsrSj3ccvlPHLoLsHnpR27oXr4ZE984MbSER8=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
-gitlab.com/q-dev/system-contracts v1.0.0-rc.5.0.20220603095006-aacc5f400f99 h1:p/phIe5sbihf2rWL5/uEXH+A1kkiHpzHDJlHMLnfIng=
-gitlab.com/q-dev/system-contracts v1.0.0-rc.5.0.20220603095006-aacc5f400f99/go.mod h1:qV29ajFhjkcTqliiJLvvNo6Jv4LV68cE6eI/uVTAWxg=
+gitlab.com/q-dev/system-contract-bindings-go v0.1.1-rc.2 h1:1gMU2ijqfIBb6qgI+dNlL7GndjRHn+J7gcj5LzJguAw=
+gitlab.com/q-dev/system-contract-bindings-go v0.1.1-rc.2/go.mod h1:qV29ajFhjkcTqliiJLvvNo6Jv4LV68cE6eI/uVTAWxg=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738/go.mod h1:dnLIgRNXwCJa5e+c6mIZCrds/GIG4ncV9HhK5PX7jPg=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
