@@ -14,6 +14,8 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 )
 
+const ContractRegistryVotingKey = "governance.contractRegistryVoting"
+
 // Registry of system contracts.
 // current implementation is rather proof of concept
 type Registry struct {
@@ -387,6 +389,22 @@ func (r *Registry) ContractRegistryUpgradeVoting() *generated.ContractRegistryUp
 	return contractRegistryUpgradeVoting
 }
 
+// ContractRegistryVoting returns GenericContractRegistryVoting contract binding if available.
+func (r *Registry) ContractRegistryVoting() *generated.GenericContractRegistryVoting {
+	addr := r.getAddr(ContractRegistryVotingKey, nil)
+	if (addr == common.Address{}) {
+		log.Debug("Contract is not added to registry", "key", ContractRegistryVotingKey)
+		return nil
+	}
+
+	contractRegistryVoting, err := generated.NewGenericContractRegistryVoting(addr, r.Backend)
+	if err != nil {
+		log.Error("Failed to prepare binding of the contract", "key", ContractRegistryVotingKey)
+		return nil
+	}
+	return contractRegistryVoting
+}
+
 func (r *Registry) IsTestMode() bool {
 	return r.isTestMode
 }
@@ -408,7 +426,7 @@ func (r *Registry) GetSelfAddress() common.Address {
 	return r.addr
 }
 
-func (r *Registry) SystemContracts() []generated.ContractRegistryPair {
+func (r *Registry) SystemContracts() []generated.IContractRegistryPair {
 	contracts, err := r.registry().GetContracts(nil)
 	if err != nil {
 		log.Error("failed to get system contracts from registry")

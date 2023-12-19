@@ -231,7 +231,7 @@ func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, co
 	if chainConfig.Clique != nil {
 		if rm == nil {
 			log.Warn("creating clique in test mode; exclusion set will always be empty!")
-			return clique.New(chainConfig.Clique, db, &clique.NoopExclusionSetProvider{}, reg)
+			return clique.New(chainConfig.Clique, db, &consensus.NoopExclusionSetProvider{}, reg)
 		}
 
 		return clique.New(chainConfig.Clique, db, rm, reg)

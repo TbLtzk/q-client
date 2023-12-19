@@ -179,38 +179,6 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	return signer, nil
 }
 
-// ExclusionSetProvider should provide validators exclusion set.
-type ExclusionSetProvider interface {
-	ExclusionSetValidators() map[common.Address][]common.BlockRange
-	ExclusionSetTimestamp() uint64
-	HandleTransitionBlockSignature(header *types.Header)
-	ValidatePreviousTransitionBlockSignature()
-}
-
-// NoopExclusionSetProvider is needed for testing.
-type NoopExclusionSetProvider struct {
-	set       map[common.Address][]common.BlockRange
-	timestamp uint64
-}
-
-func (p *NoopExclusionSetProvider) HandleTransitionBlockSignature(header *types.Header) {
-
-}
-func (p *NoopExclusionSetProvider) ValidatePreviousTransitionBlockSignature() {
-
-}
-
-func (p *NoopExclusionSetProvider) ExclusionSetValidators() map[common.Address][]common.BlockRange {
-	if p.set != nil {
-		return p.set
-	}
-	return make(map[common.Address][]common.BlockRange)
-}
-
-func (p *NoopExclusionSetProvider) ExclusionSetTimestamp() uint64 {
-	return p.timestamp
-}
-
 type ValidatorsProvider interface {
 	GetValidatorsList() ([]common.Address, error)
 }
@@ -249,7 +217,7 @@ type Clique struct {
 	latestRewardReceiver common.Address
 	registry             *contracts.Registry
 
-	exclusionSetProvider ExclusionSetProvider
+	exclusionSetProvider consensus.ExclusionSetProvider
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
@@ -257,7 +225,7 @@ type Clique struct {
 func New(
 	config *params.CliqueConfig,
 	db ethdb.Database,
-	exSetProvider ExclusionSetProvider,
+	exSetProvider consensus.ExclusionSetProvider,
 	registry *contracts.Registry,
 ) *Clique {
 	// Set any missing consensus parameters to their defaults
@@ -1132,4 +1100,8 @@ func (c *Clique) ChooseBlockWithMostRecentSigner(chain *core.BlockChain, header 
 	}
 
 	return header, nil
+}
+
+func (c *Clique) ExclusionSetProvider() consensus.ExclusionSetProvider {
+	return c.exclusionSetProvider
 }
