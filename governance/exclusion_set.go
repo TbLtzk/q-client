@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -20,6 +21,11 @@ type exclusionSet struct {
 	blockRanges map[common.Address][]common.BlockRange //Several address ranges can be assigned to one validator
 
 	signers map[common.Address][]byte
+}
+
+func (s *exclusionSet) String() string {
+	return fmt.Sprintf("timestamp: %d, hash: %s, addresses: %v, addrToBlock: %v, blockRanges: %v, signers: %v",
+		s.timestamp, s.hash, s.addresses, s.addrToBlock, s.blockRanges, s.signers)
 }
 
 func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error) {
