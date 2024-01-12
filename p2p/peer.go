@@ -267,22 +267,30 @@ loop:
 			// A write finished. Allow the next write to start if
 			// there was no error.
 			if err != nil {
+				p.Log().Info("p2p err: write err", "err", err)
 				reason = DiscNetworkError
 				break loop
 			}
 			writeStart <- struct{}{}
 		case err = <-readErr:
 			if r, ok := err.(DiscReason); ok {
+				p.Log().Info("p2p err: read err (remote requested disconnect)", "err", err)
 				remoteRequested = true
 				reason = r
 			} else {
+				p.Log().Info("p2p err: read err", "err", err)
+
 				reason = DiscNetworkError
 			}
 			break loop
 		case err = <-p.protoErr:
+			p.Log().Info("p2p err: proto err", "err", err)
+
 			reason = discReasonForError(err)
 			break loop
 		case err = <-p.disc:
+			p.Log().Info("p2p err: disc", "err", err)
+
 			reason = discReasonForError(err)
 			break loop
 		}
