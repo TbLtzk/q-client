@@ -24,8 +24,8 @@ type exclusionSet struct {
 }
 
 func (s *exclusionSet) String() string {
-	return fmt.Sprintf("timestamp: %d, hash: %s, addresses: %v, addrToBlock: %v, blockRanges: %v, signers: %v",
-		s.timestamp, s.hash, s.addresses, s.addrToBlock, s.blockRanges, s.signers)
+	return fmt.Sprintf("timestamp: %d, hash: %s, addresses: %v",
+		s.timestamp, s.hash, s.addresses)
 }
 
 func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error) {

@@ -22,6 +22,7 @@ import (
 	"io"
 	"net"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -278,7 +279,9 @@ loop:
 				remoteRequested = true
 				reason = r
 			} else {
-				p.Log().Info("p2p err: read err", "err", err)
+				if !strings.Contains(err.Error(), "network ID mismatch") {
+					p.Log().Info("p2p err: read err", "err", err)
+				}
 
 				reason = DiscNetworkError
 			}

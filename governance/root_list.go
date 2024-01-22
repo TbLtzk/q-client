@@ -27,8 +27,8 @@ type rootSet struct {
 }
 
 func (s *rootSet) String() string {
-	return fmt.Sprintf("timestamp: %d, hash: %s, rootAddresses: %v, aliases: %v, roots: %v, signers: %v",
-		s.timestamp, s.hash, s.rootAddresses, s.aliases, s.roots, s.signers)
+	return fmt.Sprintf("timestamp: %d, hash: %s, rootAddresses: %v",
+		s.timestamp, s.hash, s.rootAddresses)
 }
 
 func (s *rootSet) addSignature(signer common.Address, signature []byte) bool {
