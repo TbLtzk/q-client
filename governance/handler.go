@@ -606,7 +606,7 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 			signatureAdded = rm.signRootSet(rm.active)
 		}
 		newSignatures := rm.active.mergeSignatures(received.hash, received.signers)
-		if len(newSignatures) == 0 && !signatureAdded {
+		if len(newSignatures) == 0 || !signatureAdded {
 			return nil
 		}
 
