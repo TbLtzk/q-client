@@ -287,7 +287,9 @@ loop:
 			}
 			break loop
 		case err = <-p.protoErr:
-			p.Log().Info("p2p err: proto err", "err", err)
+			if !strings.Contains(err.Error(), "network ID mismatch") {
+				p.Log().Info("p2p err: proto err", "err", err)
+			}
 
 			reason = discReasonForError(err)
 			break loop
