@@ -2,6 +2,7 @@ package common
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 )
 
@@ -86,6 +87,10 @@ type RootNodeApproval struct {
 	Hash        Hash     `json:"hash"`
 	Signer      Address  `json:"signer"`
 	Signature   []byte   `json:"signature"`
+}
+
+func (a *RootNodeApproval) String() string {
+	return fmt.Sprintf("block number: %d, hash: %d, signer: %s", a.BlockNumber, a.Hash, a.Signer)
 }
 
 func (approval RootNodeApproval) GetApprovalDbKey(prefix []byte) (key []byte) {
