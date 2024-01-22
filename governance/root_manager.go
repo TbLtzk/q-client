@@ -262,12 +262,12 @@ func (s *RootManager) isMember(set []common.Address) bool {
 
 func (s *RootManager) signRootSet(set *rootSet) bool {
 	var isMember bool
+	aliases := s.getAliasesOfRoots(s.active.rootAddresses)
 
 	for _, addr := range s.active.rootAddresses {
-		roots := []common.Address{addr}
-		aliasedAddr := s.getAliasesOfRoots(roots)[addr]
+		aliasedAddr := aliases[addr]
 
-		if !s.IsUnlocked(addr) {
+		if !s.IsUnlocked(aliasedAddr) {
 			continue
 		}
 
@@ -281,7 +281,7 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 		}
 
 		if set.addSignature(aliasedAddr, signature) {
-			log.Info("Signed root list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex())
+			log.Info("Signed root list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex(), "root", addr.Hex())
 		}
 	}
 
@@ -290,9 +290,10 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 
 func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 	var isSigned bool
-	for _, addr := range s.getActiveRootSet(true).rootAddresses {
-		roots := []common.Address{addr}
-		aliasedAddr := s.getAliasesOfRoots(roots)[addr]
+	rootsWithAliases := s.getActiveRootSet(true)
+
+	for _, addr := range rootsWithAliases.rootAddresses {
+		aliasedAddr := rootsWithAliases.aliases[addr]
 
 		if !s.IsUnlocked(aliasedAddr) {
 			continue
@@ -306,7 +307,7 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 
 		isSigned = set.addSignature(aliasedAddr, signature)
 		if isSigned {
-			log.Info("Signed exclusion list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex())
+			log.Info("Signed exclusion list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex(), "root", addr.Hex())
 		}
 	}
 

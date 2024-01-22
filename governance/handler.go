@@ -601,12 +601,11 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 
 		h.rootEventCh <- &rootSetEvent{set: received}
 	case rm.active.hash == received.hash:
-		signatureAdded := false //In case when alias changed
 		if rm.isRootNode(false) {
-			signatureAdded = rm.signRootSet(rm.active)
+			rm.signRootSet(rm.active)
 		}
 		newSignatures := rm.active.mergeSignatures(received.hash, received.signers)
-		if len(newSignatures) == 0 || !signatureAdded {
+		if len(newSignatures) == 0 {
 			return nil
 		}
 
