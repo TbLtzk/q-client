@@ -794,12 +794,16 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 	if received.BlockNumber.Uint64() == 0 {
 		return nil
 	}
+	if received.Approvals == nil {
+		return nil
+	}
 
 	exApprovals, errEx := rm.db.getApprovalRecordsByBlockNumber(received.BlockNumber)
 	if errEx != nil {
 		return errEx
 	}
 
+	toPropagate := false
 	for _, approval := range received.Approvals {
 		pubkey, err := crypto.SigToPub(approval.Hash.Bytes(), approval.Signature)
 		if err != nil {
@@ -836,9 +840,13 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 		if errSave := rm.db.saveApprovalRecord(approval); errSave != nil {
 			return errSave
 		}
+
+		toPropagate = true
 	}
 
-	h.approvalEventCh <- &approvalEvent{fromID: p.id, approval: received}
+	if toPropagate {
+		h.approvalEventCh <- &approvalEvent{fromID: p.id, approval: received}
+	}
 
 	return nil
 }
