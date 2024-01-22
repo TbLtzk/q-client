@@ -306,6 +306,12 @@ func (h *handler) handleCallMsg(ctx *callProc, msg *jsonrpcMessage) *jsonrpcMess
 				h.log.Warn("Served "+msg.Method, ctx...)
 			}
 		} else {
+			// TODO remove
+			var paramsInfo map[string]interface{}
+			_ = json.Unmarshal(msg.Params, &paramsInfo)
+
+			ctx = append(ctx, "params", paramsInfo)
+
 			h.log.Debug("Served "+msg.Method, ctx...)
 		}
 		return resp
