@@ -836,9 +836,9 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 		if errSave := rm.db.saveApprovalRecord(approval); errSave != nil {
 			return errSave
 		}
-
-		h.approvalEventCh <- &approvalEvent{fromID: p.id, approval: received}
 	}
+
+	h.approvalEventCh <- &approvalEvent{fromID: p.id, approval: received}
 
 	return nil
 }
