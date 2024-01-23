@@ -308,14 +308,32 @@ func (h *handler) runPeer(p *peer) error {
 	}
 
 	// Propagate current root set to newly connected peers
-	h.propagateRootSet(status.desiredRootSet)
-	h.propagateRootSet(status.proposedRootSet)
-	h.propagateRootSet(status.currentRootSet)
+	if rm.desired == nil || status.desiredRootSet == nil ||
+		!areListsEqual(rm.desired.hash, status.desiredRootSet.hash, rm.desired.signers, status.desiredRootSet.signers) {
+		h.propagateRootSet(status.desiredRootSet)
+	}
+	if rm.proposed == nil || status.proposedRootSet == nil ||
+		!areListsEqual(rm.proposed.hash, status.proposedRootSet.hash, rm.proposed.signers, status.proposedRootSet.signers) {
+		h.propagateRootSet(status.proposedRootSet)
+	}
+	if rm.active == nil || status.currentRootSet == nil ||
+		!areListsEqual(rm.active.hash, status.currentRootSet.hash, rm.active.signers, status.currentRootSet.signers) {
+		h.propagateRootSet(status.currentRootSet)
+	}
 
 	// Propagate current exclusion set to newly connected peers
-	h.propagateExclusionSet(status.desiredExSet)
-	h.propagateExclusionSet(status.proposedExSet)
-	h.propagateExclusionSet(status.currentExSet)
+	if rm.desiredExSet == nil || status.desiredExSet == nil ||
+		!areListsEqual(rm.desiredExSet.hash, status.desiredExSet.hash, rm.desiredExSet.signers, status.desiredExSet.signers) {
+		h.propagateExclusionSet(status.desiredExSet)
+	}
+	if rm.proposedExSet == nil || status.proposedExSet == nil ||
+		!areListsEqual(rm.proposedExSet.hash, status.proposedExSet.hash, rm.proposedExSet.signers, status.proposedExSet.signers) {
+		h.propagateExclusionSet(status.proposedExSet)
+	}
+	if rm.activeExSet == nil || status.currentExSet == nil ||
+		!areListsEqual(rm.activeExSet.hash, status.currentExSet.hash, rm.activeExSet.signers, status.currentExSet.signers) {
+		h.propagateExclusionSet(status.currentExSet)
+	}
 
 	if p.version >= qgov3 {
 		h.propagateApprovals(rm.db.getLastApprovals())
@@ -325,23 +343,35 @@ func (h *handler) runPeer(p *peer) error {
 	defer h.peers.unregister(p)
 
 	//Status nil check goes higher
-	for _, set := range []*rootSet{status.currentRootSet, status.desiredRootSet, status.proposedRootSet} {
-		if set == nil {
+	for our, their := range map[*rootSet]*rootSet{
+		rm.active:   status.currentRootSet,
+		rm.desired:  status.desiredRootSet,
+		rm.proposed: status.proposedRootSet,
+	} {
+		if their == nil {
 			continue
 		}
 
-		if err := h.handleRootSet(p, set); err != nil {
-			return err
+		if our == nil || !areListsEqual(our.hash, their.hash, our.signers, their.signers) {
+			if err := h.handleRootSet(p, their); err != nil {
+				return err
+			}
 		}
 	}
 
-	for _, set := range []*exclusionSet{status.currentExSet, status.desiredExSet, status.proposedExSet} {
-		if set == nil {
+	for our, their := range map[*exclusionSet]*exclusionSet{
+		rm.activeExSet:   status.currentExSet,
+		rm.desiredExSet:  status.desiredExSet,
+		rm.proposedExSet: status.proposedExSet,
+	} {
+		if their == nil {
 			continue
 		}
 
-		if err := h.handleExclusionSet(p, set); err != nil {
-			return err
+		if our == nil || !areListsEqual(our.hash, their.hash, our.signers, their.signers) {
+			if err := h.handleExclusionSet(p, their); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -362,6 +392,22 @@ func (h *handler) runPeer(p *peer) error {
 			return err
 		}
 	}
+}
+
+func areListsEqual(ourHash, theirHash common.Hash, ourSigners, theirSigners map[common.Address][]byte) bool {
+	if ourHash != theirHash || len(ourSigners) != len(theirSigners) {
+		return false
+	}
+
+	for addr := range theirSigners {
+		if _, ok := ourSigners[addr]; ok {
+			continue
+		}
+
+		return false
+	}
+
+	return true
 }
 
 func (h *handler) propagateRootSet(set *rootSet) {
