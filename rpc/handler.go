@@ -307,10 +307,7 @@ func (h *handler) handleCallMsg(ctx *callProc, msg *jsonrpcMessage) *jsonrpcMess
 			}
 		} else {
 			// TODO remove
-			var paramsInfo map[string]interface{}
-			_ = json.Unmarshal(msg.Params, &paramsInfo)
-
-			ctx = append(ctx, "params", paramsInfo)
+			ctx = append(ctx, "params", string(msg.Params))
 
 			h.log.Debug("Served "+msg.Method, ctx...)
 		}
