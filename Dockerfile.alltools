@@ -15,7 +15,6 @@ ARG USERNAME=oauth2
 ADD vendor /q-client/vendor
 COPY go.mod /q-client
 COPY go.mod /q-client
-RUN go build -C /q-client -mod vendor
 
 ADD . /q-client
 ARG BUILD_TOKEN
