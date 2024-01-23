@@ -24,7 +24,7 @@ const (
 	QVersionMajor = 1      // Q-Client major version component of the current release
 	QVersionMinor = 3      // Q-Client minor version component of the current release
 	QVersionPatch = 7      // Q-Client patch version component of the current release
-	QVersionMeta  = "x.13" // Q-Client version metadata to append to the version string
+	QVersionMeta  = "x.14" // Q-Client version metadata to append to the version string
 )
 
 const (
