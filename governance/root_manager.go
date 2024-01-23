@@ -248,7 +248,12 @@ func (s *RootManager) isRootNode(lock bool) bool {
 		defer s.rootLock.Unlock()
 	}
 
-	return s.isMember(s.active.rootAddresses)
+	aliases := make([]common.Address, 0, len(s.active.rootAddresses))
+	for _, alias := range s.active.aliases {
+		aliases = append(aliases, alias)
+	}
+
+	return s.isMember(aliases)
 }
 
 func (s *RootManager) isMember(set []common.Address) bool {
@@ -1075,7 +1080,7 @@ func (s *RootManager) addressContains(arr []common.Address, addr common.Address)
 func (s *RootManager) IsUnlocked(addr common.Address) bool {
 	if _ks := s.manager.Backends(keystore.KeyStoreType); len(_ks) > 0 {
 		ks := _ks[0].(*keystore.KeyStore)
-		return ks.IsUnlocked(s.getAliasByAccount(addr)) || ks.IsUnlocked(s.getAccountByAlias(addr))
+		return ks.IsUnlocked(addr)
 	}
 	return false
 }
