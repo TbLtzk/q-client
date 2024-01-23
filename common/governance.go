@@ -100,7 +100,7 @@ type RootNodeApproval struct {
 }
 
 func (a *RootNodeApproval) String() string {
-	return fmt.Sprintf("block number: %s, hash: %d, signer: %s", a.BlockNumber.String(), a.Hash, a.Signer)
+	return fmt.Sprintf("block number: %s, hash: %s, signer: %s", a.BlockNumber.String(), a.Hash.String(), a.Signer)
 }
 
 func (approval RootNodeApproval) GetApprovalDbKey(prefix []byte) (key []byte) {
