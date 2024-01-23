@@ -834,13 +834,13 @@ var (
 		Name:     "gov.approvalMaxFailures",
 		Usage:    "The number of allowed attempts of block approval before peer reset",
 		Category: flags.GovernanceCategory,
-		Value:    10,
+		Value:    7,
 	}
 	TransitionBlockVerifiedBlocks = &cli.Uint64Flag{
 		Name:     "gov.transitionBlockVerifiedBlocks",
 		Usage:    "The number of blocks that must be validated before signing a transition block",
 		Category: flags.GovernanceCategory,
-		Value:    10,
+		Value:    7,
 	}
 
 	// Network Settings

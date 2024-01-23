@@ -331,9 +331,8 @@ func (h *handler) runPeer(p *peer) error {
 
 	if p.version >= qgov3 {
 		approvals := rm.db.getLastApprovals()
-		p.Log().Info("sending approval after handshake", "root-set", approvals)
-		if err := p.sendApprovalList(approvals); err != nil {
-			p.Log().Warn("failed to send approval", "err", err)
+		if err = p.sendApprovalList(approvals); err != nil {
+			p.Log().Warn("failed to send approval", "err", err, "root-set", approvals)
 		}
 	}
 
@@ -347,7 +346,7 @@ func (h *handler) runPeer(p *peer) error {
 		rm.proposed: status.proposedRootSet,
 	} {
 		if shouldPropagateRoots(our, their, rm.active) {
-			if err := h.handleRootSet(p, their); err != nil {
+			if err = h.handleRootSet(p, their); err != nil {
 				return err
 			}
 		}
@@ -359,7 +358,7 @@ func (h *handler) runPeer(p *peer) error {
 		rm.proposedExSet: status.proposedExSet,
 	} {
 		if shouldPropagateExcl(our, their, rm.active) {
-			if err := h.handleExclusionSet(p, their); err != nil {
+			if err = h.handleExclusionSet(p, their); err != nil {
 				return err
 			}
 		}
@@ -377,7 +376,7 @@ func (h *handler) runPeer(p *peer) error {
 	defer h.peerWG.Done()
 
 	for {
-		if err := h.handleMsg(p); err != nil {
+		if err = h.handleMsg(p); err != nil {
 			p.Log().Debug("Governance message handling failed", "err", err)
 			return err
 		}
