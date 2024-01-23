@@ -330,7 +330,11 @@ func (h *handler) runPeer(p *peer) error {
 	}
 
 	if p.version >= qgov3 {
-		h.propagateApprovals(rm.db.getLastApprovals())
+		approvals := rm.db.getLastApprovals()
+		p.Log().Info("sending approval after handshake", "root-set", approvals)
+		if err := p.sendApprovalList(approvals); err != nil {
+			p.Log().Warn("failed to send approval", "err", err)
+		}
 	}
 
 	h.peers.register(p)
