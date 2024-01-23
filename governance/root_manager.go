@@ -1085,44 +1085,6 @@ func (s *RootManager) IsUnlocked(addr common.Address) bool {
 	return false
 }
 
-func (s *RootManager) getAliasByAccount(addr common.Address) common.Address {
-	if !s.isAthosReached() {
-		return addr
-	}
-
-	providerAliases := s.reg.AccountAliases(nil)
-	if providerAliases == nil { //signers are set already
-		log.Warn("failed to get aliases list from smart contract or smart contract not deployed")
-		return addr
-	}
-	rnOperationPurpose, _ := new(big.Int).SetString("33a9d3006f267399569cda2996bb19776f92c98b990053176d19c710ed251a5d", 16) //crypto.Keccak256([]byte("ROOT_NODE_OPERATION")
-	alias, errAlias := providerAliases.Resolve(nil, addr, rnOperationPurpose)
-	if errAlias != nil {
-		log.Error("failed to get account by alias from smart contract", "error", errAlias)
-		return addr
-	}
-	return alias
-}
-
-func (s *RootManager) getAccountByAlias(addr common.Address) common.Address {
-	if !s.isAthosReached() {
-		return addr
-	}
-
-	providerAliases := s.reg.AccountAliases(nil)
-	if providerAliases == nil { //signers are set already
-		log.Warn("failed to get aliases list from smart contract or smart contract not deployed")
-		return addr
-	}
-	rnOperationPurpose, _ := new(big.Int).SetString("33a9d3006f267399569cda2996bb19776f92c98b990053176d19c710ed251a5d", 16) //crypto.Keccak256([]byte("ROOT_NODE_OPERATION")
-	alias, errAlias := providerAliases.ResolveReverse(nil, addr, rnOperationPurpose)
-	if errAlias != nil {
-		log.Error("failed to get account by alias from smart contract", "error", errAlias)
-		return addr
-	}
-	return alias
-}
-
 func (s *RootManager) getAliasesOfRoots(addresses []common.Address) map[common.Address]common.Address {
 	res := make(map[common.Address]common.Address)
 

@@ -450,12 +450,6 @@ func (h *handler) propagateExclusionSet(set *exclusionSet) {
 	}
 }
 
-func (h *handler) propagateApprovals(approvals *common.RootNodeApprovalList) {
-	if approvals != nil {
-		h.approvalEventCh <- &approvalEvent{approval: approvals}
-	}
-}
-
 func (h *handler) handleMsg(p *peer) error {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
