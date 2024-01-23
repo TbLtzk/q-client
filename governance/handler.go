@@ -308,24 +308,24 @@ func (h *handler) runPeer(p *peer) error {
 	}
 
 	// Propagate current root set to newly connected peers
-	if !areRootSetsEqual(rm.desired, status.desiredRootSet) {
+	if shouldPropagateRoots(rm.desired, status.desiredRootSet, rm.active) {
 		h.propagateRootSet(status.desiredRootSet)
 	}
-	if !areRootSetsEqual(rm.proposed, status.proposedRootSet) {
+	if shouldPropagateRoots(rm.proposed, status.proposedRootSet, rm.active) {
 		h.propagateRootSet(status.proposedRootSet)
 	}
-	if !areRootSetsEqual(rm.active, status.currentRootSet) {
+	if shouldPropagateRoots(rm.active, status.currentRootSet, rm.active) {
 		h.propagateRootSet(status.currentRootSet)
 	}
 
 	// Propagate current exclusion set to newly connected peers
-	if !areExclSetsEqual(rm.desiredExSet, status.desiredExSet) {
+	if shouldPropagateExcl(rm.desiredExSet, status.desiredExSet, rm.active) {
 		h.propagateExclusionSet(status.desiredExSet)
 	}
-	if !areExclSetsEqual(rm.proposedExSet, status.proposedExSet) {
+	if shouldPropagateExcl(rm.proposedExSet, status.proposedExSet, rm.active) {
 		h.propagateExclusionSet(status.proposedExSet)
 	}
-	if !areExclSetsEqual(rm.activeExSet, status.currentExSet) {
+	if shouldPropagateExcl(rm.activeExSet, status.currentExSet, rm.active) {
 		h.propagateExclusionSet(status.currentExSet)
 	}
 
@@ -342,11 +342,7 @@ func (h *handler) runPeer(p *peer) error {
 		rm.desired:  status.desiredRootSet,
 		rm.proposed: status.proposedRootSet,
 	} {
-		if their == nil {
-			continue
-		}
-
-		if !areRootSetsEqual(our, their) {
+		if shouldPropagateRoots(our, their, rm.active) {
 			if err := h.handleRootSet(p, their); err != nil {
 				return err
 			}
@@ -358,11 +354,7 @@ func (h *handler) runPeer(p *peer) error {
 		rm.desiredExSet:  status.desiredExSet,
 		rm.proposedExSet: status.proposedExSet,
 	} {
-		if their == nil {
-			continue
-		}
-
-		if !areExclSetsEqual(our, their) {
+		if shouldPropagateExcl(our, their, rm.active) {
 			if err := h.handleExclusionSet(p, their); err != nil {
 				return err
 			}
@@ -388,28 +380,43 @@ func (h *handler) runPeer(p *peer) error {
 	}
 }
 
-func areExclSetsEqual(our, their *exclusionSet) bool {
-	if our == nil && their == nil {
-		return true
-	}
-
-	if our.hash != their.hash {
+func shouldPropagateExcl(our, their *exclusionSet, active *rootSet) bool {
+	if their == nil {
 		return false
 	}
+	if our == nil {
+		return len(active.knownSigners(their.signers)) != 0 // signatures were checked in handshake func
+	}
 
-	return areSignersEqual(our.signers, their.signers)
+	if our.hash == their.hash {
+		return !areSignersEqual(our.signers, their.signers)
+	}
+
+	if their.timestamp > our.timestamp {
+		return len(active.knownSigners(their.signers)) != 0 // signatures were checked in handshake func
+	}
+
+	return false
 }
 
-func areRootSetsEqual(our, their *rootSet) bool {
-	if our == nil && their == nil {
-		return true
-	}
-
-	if our.hash != their.hash {
+func shouldPropagateRoots(our, their, active *rootSet) bool {
+	if their == nil {
 		return false
 	}
 
-	return areSignersEqual(our.signers, their.signers)
+	if our == nil {
+		return len(active.knownSigners(their.signers)) != 0 // signatures were checked in handshake func
+	}
+
+	if our.hash == their.hash {
+		return !areSignersEqual(our.signers, their.signers)
+	}
+
+	if their.timestamp > our.timestamp {
+		return len(active.knownSigners(their.signers)) != 0 // signatures were checked in handshake func
+	}
+
+	return false
 }
 
 func areSignersEqual(ourSigners, theirSigners map[common.Address][]byte) bool {
