@@ -79,6 +79,7 @@ build-arm:
     name: "gcr.io/kaniko-project/executor:v1.9.2-debug"
     entrypoint: [""]
   stage: "build"
+  when: manual
   tags:
     - "gitlab-org-docker-arm"
   before_script:
@@ -127,6 +128,7 @@ publish-arm:
     name: "gcr.io/go-containerregistry/crane/debug:v0.11.0"
     entrypoint: [""]
   stage: "release"
+  when: manual
   tags:
     - "gitlab-org-docker-arm"
   only:
