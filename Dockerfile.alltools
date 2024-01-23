@@ -13,6 +13,8 @@ RUN go env -w GOPRIVATE=gitlab.com/q-dev/*
 ARG USERNAME=oauth2
 
 ADD vendor /q-client/vendor
+RUN go build -mod vendor
+
 ADD . /q-client
 ARG BUILD_TOKEN
 RUN git config --global url."https://${USERNAME}:${BUILD_TOKEN}@gitlab.com/".insteadOf https://gitlab.com/
