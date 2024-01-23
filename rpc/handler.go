@@ -306,9 +306,6 @@ func (h *handler) handleCallMsg(ctx *callProc, msg *jsonrpcMessage) *jsonrpcMess
 				h.log.Warn("Served "+msg.Method, ctx...)
 			}
 		} else {
-			// TODO remove
-			ctx = append(ctx, "params", string(msg.Params))
-
 			h.log.Debug("Served "+msg.Method, ctx...)
 		}
 		return resp

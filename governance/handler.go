@@ -650,8 +650,6 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 	rm.rootLock.Lock()
 	defer rm.rootLock.Unlock()
 
-	received.aliases = rm.getAliasesOfRoots(received.rootAddresses)
-
 	// Check if the received root set is acceptable (spam protection)
 	// Skip this check if the received root set is the same as the active one
 	if rm.active == nil || rm.active.hash != received.hash {
