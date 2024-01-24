@@ -2,7 +2,9 @@ package common
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
+	"strings"
 )
 
 // RootList.
@@ -81,11 +83,24 @@ type RootNodeApprovalList struct {
 	Approvals   []RootNodeApproval
 }
 
+func (l *RootNodeApprovalList) String() string {
+	var approvalsString []string
+	for _, approval := range l.Approvals {
+		approvalsString = append(approvalsString, approval.String())
+	}
+
+	return fmt.Sprintf("block number: %s, approvals: [%s]", l.BlockNumber.String(), strings.Join(approvalsString, ", "))
+}
+
 type RootNodeApproval struct {
 	BlockNumber *big.Int `json:"blockNumber"`
 	Hash        Hash     `json:"hash"`
 	Signer      Address  `json:"signer"`
 	Signature   []byte   `json:"signature"`
+}
+
+func (a *RootNodeApproval) String() string {
+	return fmt.Sprintf("block number: %s, hash: %s, signer: %s", a.BlockNumber.String(), a.Hash.String(), a.Signer)
 }
 
 func (approval RootNodeApproval) GetApprovalDbKey(prefix []byte) (key []byte) {

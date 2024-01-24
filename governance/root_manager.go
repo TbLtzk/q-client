@@ -248,7 +248,12 @@ func (s *RootManager) isRootNode(lock bool) bool {
 		defer s.rootLock.Unlock()
 	}
 
-	return s.isMember(s.active.rootAddresses)
+	aliases := make([]common.Address, 0, len(s.active.rootAddresses))
+	for _, alias := range s.active.aliases {
+		aliases = append(aliases, alias)
+	}
+
+	return s.isMember(aliases)
 }
 
 func (s *RootManager) isMember(set []common.Address) bool {
@@ -262,12 +267,12 @@ func (s *RootManager) isMember(set []common.Address) bool {
 
 func (s *RootManager) signRootSet(set *rootSet) bool {
 	var isMember bool
+	aliases := s.getAliasesOfRoots(s.active.rootAddresses)
 
 	for _, addr := range s.active.rootAddresses {
-		roots := []common.Address{addr}
-		aliasedAddr := s.getAliasesOfRoots(roots)[addr]
+		aliasedAddr := aliases[addr]
 
-		if !s.IsUnlocked(addr) {
+		if !s.IsUnlocked(aliasedAddr) {
 			continue
 		}
 
@@ -281,7 +286,7 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 		}
 
 		if set.addSignature(aliasedAddr, signature) {
-			log.Info("Signed root list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex())
+			log.Info("Signed root list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex(), "root", addr.Hex())
 		}
 	}
 
@@ -290,9 +295,10 @@ func (s *RootManager) signRootSet(set *rootSet) bool {
 
 func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 	var isSigned bool
-	for _, addr := range s.getActiveRootSet(true).rootAddresses {
-		roots := []common.Address{addr}
-		aliasedAddr := s.getAliasesOfRoots(roots)[addr]
+	rootsWithAliases := s.getActiveRootSet(true)
+
+	for _, addr := range rootsWithAliases.rootAddresses {
+		aliasedAddr := rootsWithAliases.aliases[addr]
 
 		if !s.IsUnlocked(aliasedAddr) {
 			continue
@@ -306,7 +312,7 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 
 		isSigned = set.addSignature(aliasedAddr, signature)
 		if isSigned {
-			log.Info("Signed exclusion list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex())
+			log.Info("Signed exclusion list", "hash", set.hash.Hex(), "signer", aliasedAddr.Hex(), "root", addr.Hex())
 		}
 	}
 
@@ -1074,47 +1080,9 @@ func (s *RootManager) addressContains(arr []common.Address, addr common.Address)
 func (s *RootManager) IsUnlocked(addr common.Address) bool {
 	if _ks := s.manager.Backends(keystore.KeyStoreType); len(_ks) > 0 {
 		ks := _ks[0].(*keystore.KeyStore)
-		return ks.IsUnlocked(s.getAliasByAccount(addr)) || ks.IsUnlocked(s.getAccountByAlias(addr))
+		return ks.IsUnlocked(addr)
 	}
 	return false
-}
-
-func (s *RootManager) getAliasByAccount(addr common.Address) common.Address {
-	if !s.isAthosReached() {
-		return addr
-	}
-
-	providerAliases := s.reg.AccountAliases(nil)
-	if providerAliases == nil { //signers are set already
-		log.Warn("failed to get aliases list from smart contract or smart contract not deployed")
-		return addr
-	}
-	rnOperationPurpose, _ := new(big.Int).SetString("33a9d3006f267399569cda2996bb19776f92c98b990053176d19c710ed251a5d", 16) //crypto.Keccak256([]byte("ROOT_NODE_OPERATION")
-	alias, errAlias := providerAliases.Resolve(nil, addr, rnOperationPurpose)
-	if errAlias != nil {
-		log.Error("failed to get account by alias from smart contract", "error", errAlias)
-		return addr
-	}
-	return alias
-}
-
-func (s *RootManager) getAccountByAlias(addr common.Address) common.Address {
-	if !s.isAthosReached() {
-		return addr
-	}
-
-	providerAliases := s.reg.AccountAliases(nil)
-	if providerAliases == nil { //signers are set already
-		log.Warn("failed to get aliases list from smart contract or smart contract not deployed")
-		return addr
-	}
-	rnOperationPurpose, _ := new(big.Int).SetString("33a9d3006f267399569cda2996bb19776f92c98b990053176d19c710ed251a5d", 16) //crypto.Keccak256([]byte("ROOT_NODE_OPERATION")
-	alias, errAlias := providerAliases.ResolveReverse(nil, addr, rnOperationPurpose)
-	if errAlias != nil {
-		log.Error("failed to get account by alias from smart contract", "error", errAlias)
-		return addr
-	}
-	return alias
 }
 
 func (s *RootManager) getAliasesOfRoots(addresses []common.Address) map[common.Address]common.Address {

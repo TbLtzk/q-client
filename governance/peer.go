@@ -201,7 +201,7 @@ func (p *peer) listenForRootSets() {
 		select {
 		case set := <-p.rootSetCh:
 			if err := p.sendRootList(set); err != nil {
-				p.Log().Debug("failed to send target root set", "err", err)
+				p.Log().Warn("failed to send target root set", "err", err, "root-set", set)
 			}
 		case <-p.done:
 			return
@@ -214,7 +214,7 @@ func (p *peer) listenForExclusionSets() {
 		select {
 		case set := <-p.exclusionSetCh:
 			if err := p.sendExclusionList(set); err != nil {
-				p.Log().Debug("failed to send exclusion set", "err", err)
+				p.Log().Warn("failed to send exclusion set", "err", err, "exclusion-set", set)
 			}
 		case <-p.done:
 			return
@@ -228,7 +228,7 @@ func (p *peer) listenApprovals() {
 		case approval := <-p.approvalCh:
 			if p.version >= qgov3 {
 				if err := p.sendApprovalList(approval); err != nil {
-					p.Log().Warn("failed to send approval", "err", err)
+					p.Log().Warn("failed to send approval", "err", err, "root-set", approval)
 				}
 			}
 		case <-p.done:

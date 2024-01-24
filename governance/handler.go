@@ -308,40 +308,59 @@ func (h *handler) runPeer(p *peer) error {
 	}
 
 	// Propagate current root set to newly connected peers
-	h.propagateRootSet(status.desiredRootSet)
-	h.propagateRootSet(status.proposedRootSet)
-	h.propagateRootSet(status.currentRootSet)
+	if shouldPropagateRoots(rm.desired, status.desiredRootSet, rm.active) {
+		h.propagateRootSet(status.desiredRootSet)
+	}
+	if shouldPropagateRoots(rm.proposed, status.proposedRootSet, rm.active) {
+		h.propagateRootSet(status.proposedRootSet)
+	}
+	if shouldPropagateRoots(rm.active, status.currentRootSet, rm.active) {
+		h.propagateRootSet(status.currentRootSet)
+	}
 
 	// Propagate current exclusion set to newly connected peers
-	h.propagateExclusionSet(status.desiredExSet)
-	h.propagateExclusionSet(status.proposedExSet)
-	h.propagateExclusionSet(status.currentExSet)
+	if shouldPropagateExcl(rm.desiredExSet, status.desiredExSet, rm.active) {
+		h.propagateExclusionSet(status.desiredExSet)
+	}
+	if shouldPropagateExcl(rm.proposedExSet, status.proposedExSet, rm.active) {
+		h.propagateExclusionSet(status.proposedExSet)
+	}
+	if shouldPropagateExcl(rm.activeExSet, status.currentExSet, rm.active) {
+		h.propagateExclusionSet(status.currentExSet)
+	}
 
 	if p.version >= qgov3 {
-		h.propagateApprovals(rm.db.getLastApprovals())
+		approvals := rm.db.getLastApprovals()
+		if err = p.sendApprovalList(approvals); err != nil {
+			p.Log().Warn("failed to send approval", "err", err, "root-set", approvals)
+		}
 	}
 
 	h.peers.register(p)
 	defer h.peers.unregister(p)
 
 	//Status nil check goes higher
-	for _, set := range []*rootSet{status.currentRootSet, status.desiredRootSet, status.proposedRootSet} {
-		if set == nil {
-			continue
-		}
-
-		if err := h.handleRootSet(p, set); err != nil {
-			return err
+	for our, their := range map[*rootSet]*rootSet{
+		rm.active:   status.currentRootSet,
+		rm.desired:  status.desiredRootSet,
+		rm.proposed: status.proposedRootSet,
+	} {
+		if shouldPropagateRoots(our, their, rm.active) {
+			if err = h.handleRootSet(p, their); err != nil {
+				return err
+			}
 		}
 	}
 
-	for _, set := range []*exclusionSet{status.currentExSet, status.desiredExSet, status.proposedExSet} {
-		if set == nil {
-			continue
-		}
-
-		if err := h.handleExclusionSet(p, set); err != nil {
-			return err
+	for our, their := range map[*exclusionSet]*exclusionSet{
+		rm.activeExSet:   status.currentExSet,
+		rm.desiredExSet:  status.desiredExSet,
+		rm.proposedExSet: status.proposedExSet,
+	} {
+		if shouldPropagateExcl(our, their, rm.active) {
+			if err = h.handleExclusionSet(p, their); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -357,11 +376,66 @@ func (h *handler) runPeer(p *peer) error {
 	defer h.peerWG.Done()
 
 	for {
-		if err := h.handleMsg(p); err != nil {
+		if err = h.handleMsg(p); err != nil {
 			p.Log().Debug("Governance message handling failed", "err", err)
 			return err
 		}
 	}
+}
+
+func shouldPropagateExcl(our, their *exclusionSet, active *rootSet) bool {
+	if their == nil {
+		return false
+	}
+	if our == nil {
+		return len(active.knownSigners(their.signers)) != 0 // signatures were checked in handshake func
+	}
+
+	if our.hash == their.hash {
+		return !areSignersEqual(our.signers, their.signers)
+	}
+
+	if their.timestamp > our.timestamp {
+		return len(active.knownSigners(their.signers)) != 0 // signatures were checked in handshake func
+	}
+
+	return false
+}
+
+func shouldPropagateRoots(our, their, active *rootSet) bool {
+	if their == nil {
+		return false
+	}
+
+	if our == nil {
+		return len(active.knownSigners(their.signers)) != 0 // signatures were checked in handshake func
+	}
+
+	if our.hash == their.hash {
+		return !areSignersEqual(our.signers, their.signers)
+	}
+
+	if their.timestamp > our.timestamp {
+		return len(active.knownSigners(their.signers)) != 0 // signatures were checked in handshake func
+	}
+
+	return false
+}
+
+func areSignersEqual(ourSigners, theirSigners map[common.Address][]byte) bool {
+	if len(ourSigners) != len(theirSigners) {
+		return false
+	}
+
+	for addr := range theirSigners {
+		if _, ok := ourSigners[addr]; ok {
+			continue
+		}
+
+		return false
+	}
+
+	return true
 }
 
 func (h *handler) propagateRootSet(set *rootSet) {
@@ -373,12 +447,6 @@ func (h *handler) propagateRootSet(set *rootSet) {
 func (h *handler) propagateExclusionSet(set *exclusionSet) {
 	if set != nil {
 		h.exEventCh <- &exclusionSetEvent{set: set}
-	}
-}
-
-func (h *handler) propagateApprovals(approvals *common.RootNodeApprovalList) {
-	if approvals != nil {
-		h.approvalEventCh <- &approvalEvent{approval: approvals}
 	}
 }
 
@@ -575,8 +643,6 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 	rm.rootLock.Lock()
 	defer rm.rootLock.Unlock()
 
-	received.aliases = rm.getAliasesOfRoots(received.rootAddresses)
-
 	// Check if the received root set is acceptable (spam protection)
 	// Skip this check if the received root set is the same as the active one
 	if rm.active == nil || rm.active.hash != received.hash {
@@ -593,7 +659,7 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 
 	switch {
 	case rm.active.isAcceptable(received) && (rm.desired == nil || rm.desired.hash != received.hash):
-		if rm.isMember(rm.active.rootAddresses) {
+		if rm.isRootNode(false) {
 			rm.signRootSet(received)
 		}
 
@@ -601,12 +667,11 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 
 		h.rootEventCh <- &rootSetEvent{set: received}
 	case rm.active.hash == received.hash:
-		signatureAdded := false //In case when alias changed
 		if rm.isRootNode(false) {
-			signatureAdded = rm.signRootSet(rm.active)
+			rm.signRootSet(rm.active)
 		}
 		newSignatures := rm.active.mergeSignatures(received.hash, received.signers)
-		if len(newSignatures) == 0 && !signatureAdded {
+		if len(newSignatures) == 0 {
 			return nil
 		}
 
@@ -795,12 +860,16 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 	if received.BlockNumber.Uint64() == 0 {
 		return nil
 	}
+	if received.Approvals == nil {
+		return nil
+	}
 
 	exApprovals, errEx := rm.db.getApprovalRecordsByBlockNumber(received.BlockNumber)
 	if errEx != nil {
 		return errEx
 	}
 
+	toPropagate := false
 	for _, approval := range received.Approvals {
 		pubkey, err := crypto.SigToPub(approval.Hash.Bytes(), approval.Signature)
 		if err != nil {
@@ -838,6 +907,10 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 			return errSave
 		}
 
+		toPropagate = true
+	}
+
+	if toPropagate {
 		h.approvalEventCh <- &approvalEvent{fromID: p.id, approval: received}
 	}
 
