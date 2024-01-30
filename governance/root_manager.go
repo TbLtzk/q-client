@@ -248,20 +248,16 @@ func (s *RootManager) isRootNode(lock bool) bool {
 		defer s.rootLock.Unlock()
 	}
 
-	aliases := make([]common.Address, 0, len(s.active.rootAddresses))
+	log.Debug("isRootNode", "active root node aliases", s.active.aliases)
+
 	for _, alias := range s.active.aliases {
-		aliases = append(aliases, alias)
-	}
-
-	return s.isMember(aliases)
-}
-
-func (s *RootManager) isMember(set []common.Address) bool {
-	for _, addr := range set {
-		if s.IsUnlocked(addr) {
+		if s.IsUnlocked(alias) {
 			return true
 		}
 	}
+
+	log.Debug("no unlocked root nodes found")
+
 	return false
 }
 
