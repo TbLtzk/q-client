@@ -828,7 +828,11 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		obsoleteByActive := rm.activeExSet != nil && received.timestamp <= rm.activeExSet.timestamp
 		obsoleteByProposed := rm.proposedExSet != nil && received.timestamp <= rm.proposedExSet.timestamp
 		if obsoleteByActive || obsoleteByProposed {
-			log.Debug("Ignoring proposed exclusion list: obsolete")
+			log.Debug("Ignoring proposed exclusion list: obsolete",
+				"active", rm.activeExSet,
+				"proposed", rm.proposedExSet,
+				"received", received,
+			)
 			return nil
 		}
 
