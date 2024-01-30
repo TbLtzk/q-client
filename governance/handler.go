@@ -791,6 +791,13 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 
 		h.exEventCh <- &exclusionSetEvent{set: received}
 	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
+		log.Debug("Exclusion list: rm.activeExSet.hash == received.hash",
+			"active",
+			rm.activeExSet,
+			"received",
+			received,
+		)
+
 		//On very start of the node account can be not unlocked, so isRootNode can return false
 		signatureAdded := false //In case when alias changed
 		if rm.isRootNode(false) {
@@ -798,6 +805,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		}
 		newSignatures := rm.activeExSet.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 && !signatureAdded {
+			log.Debug("Exclusion list: rm.activeExSet.hash == received.hash; no new signatures")
 			return nil
 		}
 
@@ -805,8 +813,16 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		h.exEventCh <- &exclusionSetEvent{fromID: p.id, set: rm.activeExSet.copy()}
 		rm.db.saveActiveExclusionSet(rm.activeExSet)
 	case rm.desiredExSet != nil && rm.desiredExSet.hash == received.hash:
+		log.Debug("Exclusion list: rm.desiredExSet.hash == received.hash",
+			"desired",
+			rm.desiredExSet,
+			"received",
+			received,
+		)
+
 		newSignatures := rm.desiredExSet.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
+			log.Debug("Exclusion list: rm.desiredExSet.hash == received.hash; no new signatures")
 			return nil
 		}
 
