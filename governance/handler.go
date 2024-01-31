@@ -778,7 +778,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 
 	switch true {
 	case rm.isAcceptableExclusionSet(received):
-		log.Info("received an acceptable exclusion list", "received", received)
+		//log.Info("received an acceptable exclusion list", "received", received)
 
 		// ensure locally stored signatures are not lost
 		if rm.desiredExSet != nil && rm.desiredExSet.hash == received.hash {
