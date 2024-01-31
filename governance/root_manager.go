@@ -527,7 +527,7 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 				}
 			}
 
-			if !newBlockRange.StartsInFuture(currentBlock.Uint64()) {
+			if !newBlockRange.StartsInFuture(currentBlock.Uint64()) && s.activeExSet.blockRanges != nil {
 				inValidRanges := false
 
 				for _, exBlockRange := range s.activeExSet.blockRanges[addr] {
