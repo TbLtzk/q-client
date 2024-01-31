@@ -835,6 +835,21 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 
 		rm.upgradeExclusionSet(rm.desiredExSet, false)
 		h.exEventCh <- &exclusionSetEvent{set: rm.activeExSet}
+
+	case rm.proposedExSet != nil && rm.proposedExSet.hash == received.hash:
+		newSignatures := rm.proposedExSet.mergeSignatures(received.hash, received.signers)
+		if len(newSignatures) == 0 {
+			return nil
+		}
+
+		if !rm.isAcceptableExclusionSet(rm.proposedExSet) {
+			h.exEventCh <- &exclusionSetEvent{fromID: p.id, set: rm.proposedExSet.copy()}
+			rm.db.saveProposedExclusionSet(rm.proposedExSet)
+			return nil
+		}
+
+		rm.upgradeExclusionSet(rm.proposedExSet, false)
+		h.exEventCh <- &exclusionSetEvent{set: rm.activeExSet.copy()}
 	default:
 		if len(rm.getActiveRootSet(true).knownSigners(received.signers)) == 0 {
 			log.Debug("Ignoring proposed exclusion list: no active root node signatures")
