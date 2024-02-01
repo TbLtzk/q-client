@@ -315,11 +315,12 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 	return isSigned
 }
 
-func (s *RootManager) isExclusionSetMeetsQuarantineCriteria(set *exclusionSet, blockNumber uint64) bool {
+func (s *RootManager) isExclusionSetMeetsQuarantineCriteria(blockNumber uint64) bool {
+	currentBlock := s.bc.CurrentBlock().Number().Uint64()
 	rewindLimit := s.maxRewindLimit() //TODO reconsider this logic
 
-	//Check if set is already in the quarantine or can cause a rewind
-	return s.isExclusionSetInQuarantine(set) || s.bc.CurrentBlock().Number().Uint64()-blockNumber > rewindLimit
+	// Check if set can cause a rewind
+	return blockNumber < currentBlock && currentBlock-blockNumber > rewindLimit
 }
 
 // unsafe for concurrent usage
@@ -340,7 +341,7 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet, forceUpgrade bool) 
 		//Otherwise, revalidate the chain.
 		//If upgrade is forced, we don't care about the age of the exclusion set
 		//Verification goes only here, because we don't want to quarantine exclusion set if there's no need to
-		if !forceUpgrade && s.isExclusionSetMeetsQuarantineCriteria(set, earliestBlock) {
+		if !forceUpgrade && s.isExclusionSetMeetsQuarantineCriteria(earliestBlock) {
 			//Notification about quarantine is sent in startQuarantineRoutine
 			if err := s.initiateExclusionSetQuarantine(set); err != nil {
 				if err != nil {
