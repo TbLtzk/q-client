@@ -777,9 +777,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 	}
 
 	switch true {
-	case rm.isAcceptableExclusionSet(received):
-		//log.Info("received an acceptable exclusion list", "received", received)
-
+	case rm.isAcceptableExclusionSet(received) && !rm.isExclusionSetInQuarantine(received):
 		// ensure locally stored signatures are not lost
 		if rm.desiredExSet != nil && rm.desiredExSet.hash == received.hash {
 			received.mergeSignatures(rm.desiredExSet.hash, rm.desiredExSet.signers)
@@ -789,6 +787,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			rm.signExclusionSet(received)
 		}
 
+		// TODO: try to force
 		rm.upgradeExclusionSet(received, false)
 
 		h.exEventCh <- &exclusionSetEvent{set: received}
@@ -815,13 +814,6 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		h.exEventCh <- &exclusionSetEvent{fromID: p.id, set: rm.activeExSet.copy()}
 		rm.db.saveActiveExclusionSet(rm.activeExSet)
 	case rm.desiredExSet != nil && rm.desiredExSet.hash == received.hash:
-		log.Debug("Exclusion list: rm.desiredExSet.hash == received.hash",
-			"desired",
-			rm.desiredExSet,
-			"received",
-			received,
-		)
-
 		newSignatures := rm.desiredExSet.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
 			log.Debug("Exclusion list: rm.desiredExSet.hash == received.hash; no new signatures")

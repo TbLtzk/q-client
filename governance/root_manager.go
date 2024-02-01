@@ -327,7 +327,6 @@ func (s *RootManager) isExclusionSetMeetsQuarantineCriteria(set *exclusionSet, b
 func (s *RootManager) upgradeExclusionSet(set *exclusionSet, forceUpgrade bool) {
 	if s.activeExSet != nil && s.activeExSet.hash == set.hash {
 		log.Debug("Exclusion list is already active, skipping", "hash", set.hash.Hex(), "timestamp", set.timestamp)
-		log.Info("Exclusion list is already active, skipping", "hash", set.hash.Hex(), "timestamp", set.timestamp)
 		return
 	}
 
