@@ -340,11 +340,15 @@ func (h *handler) runPeer(p *peer) error {
 	defer h.peers.unregister(p)
 
 	//Status nil check goes higher
-	for our, their := range map[*rootSet]*rootSet{
-		rm.active:   status.currentRootSet,
-		rm.desired:  status.desiredRootSet,
-		rm.proposed: status.proposedRootSet,
+	for _, set := range []struct {
+		our   *rootSet
+		their *rootSet
+	}{
+		{rm.active, status.currentRootSet},
+		{rm.desired, status.desiredRootSet},
+		{rm.proposed, status.proposedRootSet},
 	} {
+		our, their := set.our, set.their
 		if shouldPropagateRoots(our, their, rm.active) {
 			if err = h.handleRootSet(p, their); err != nil {
 				return err
@@ -352,11 +356,15 @@ func (h *handler) runPeer(p *peer) error {
 		}
 	}
 
-	for our, their := range map[*exclusionSet]*exclusionSet{
-		rm.activeExSet:   status.currentExSet,
-		rm.desiredExSet:  status.desiredExSet,
-		rm.proposedExSet: status.proposedExSet,
+	for _, set := range []struct {
+		our   *exclusionSet
+		their *exclusionSet
+	}{
+		{rm.activeExSet, status.currentExSet},
+		{rm.desiredExSet, status.desiredExSet},
+		{rm.proposedExSet, status.proposedExSet},
 	} {
+		our, their := set.our, set.their
 		if shouldPropagateExcl(our, their, rm.active) {
 			if err = h.handleExclusionSet(p, their); err != nil {
 				return err
@@ -787,8 +795,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			rm.signExclusionSet(received)
 		}
 
-		// TODO: try to force
-		rm.upgradeExclusionSet(received, false)
+		rm.upgradeExclusionSet(received, rm.activeExSet == nil)
 
 		h.exEventCh <- &exclusionSetEvent{set: received}
 	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
