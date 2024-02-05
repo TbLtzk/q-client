@@ -248,15 +248,11 @@ func (s *RootManager) isRootNode(lock bool) bool {
 		defer s.rootLock.Unlock()
 	}
 
-	log.Debug("isRootNode", "active root node aliases", s.active.aliases)
-
 	for _, alias := range s.active.aliases {
 		if s.IsUnlocked(alias) {
 			return true
 		}
 	}
-
-	log.Debug("no unlocked root nodes found")
 
 	return false
 }
@@ -350,7 +346,6 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet, forceUpgrade bool) 
 					return
 				}
 			}
-			log.Info("Exclusion list upgrade failed (!forceUpgrade)", "set", set)
 			return
 		}
 

@@ -799,13 +799,6 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 
 		h.exEventCh <- &exclusionSetEvent{set: received}
 	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
-		log.Debug("Exclusion list: rm.activeExSet.hash == received.hash",
-			"active",
-			rm.activeExSet,
-			"received",
-			received,
-		)
-
 		//On very start of the node account can be not unlocked, so isRootNode can return false
 		signatureAdded := false //In case when alias changed
 		if rm.isRootNode(false) {
@@ -813,7 +806,6 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		}
 		newSignatures := rm.activeExSet.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 && !signatureAdded {
-			log.Debug("Exclusion list: rm.activeExSet.hash == received.hash; no new signatures")
 			return nil
 		}
 
@@ -823,7 +815,6 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 	case rm.desiredExSet != nil && rm.desiredExSet.hash == received.hash:
 		newSignatures := rm.desiredExSet.mergeSignatures(received.hash, received.signers)
 		if len(newSignatures) == 0 {
-			log.Debug("Exclusion list: rm.desiredExSet.hash == received.hash; no new signatures")
 			return nil
 		}
 
@@ -860,11 +851,6 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		obsoleteByActive := rm.activeExSet != nil && received.timestamp <= rm.activeExSet.timestamp
 		obsoleteByProposed := rm.proposedExSet != nil && received.timestamp <= rm.proposedExSet.timestamp
 		if obsoleteByActive || obsoleteByProposed {
-			log.Debug("Ignoring proposed exclusion list: obsolete",
-				"active", rm.activeExSet,
-				"proposed", rm.proposedExSet,
-				"received", received,
-			)
 			return nil
 		}
 
