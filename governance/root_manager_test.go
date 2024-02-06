@@ -851,7 +851,7 @@ func TestQuarantineExclusionSet(t *testing.T) {
 	rm.signExclusionSet(set)
 
 	t.Log("Checking if created exclusion set meets quarantine criteria")
-	assert.Truef(t, rm.isExclusionSetMeetsQuarantineCriteria(set, earliestBlock), "Created exclusion set must be quarantined")
+	assert.Truef(t, rm.isExclusionSetMeetsQuarantineCriteria(earliestBlock), "Created exclusion set must be quarantined")
 
 	t.Log("Creating test governance engine")
 	gov, err := New(rm.RootManager, tmpDirName(t))

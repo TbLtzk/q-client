@@ -248,20 +248,12 @@ func (s *RootManager) isRootNode(lock bool) bool {
 		defer s.rootLock.Unlock()
 	}
 
-	aliases := make([]common.Address, 0, len(s.active.rootAddresses))
 	for _, alias := range s.active.aliases {
-		aliases = append(aliases, alias)
-	}
-
-	return s.isMember(aliases)
-}
-
-func (s *RootManager) isMember(set []common.Address) bool {
-	for _, addr := range set {
-		if s.IsUnlocked(addr) {
+		if s.IsUnlocked(alias) {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -319,11 +311,12 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 	return isSigned
 }
 
-func (s *RootManager) isExclusionSetMeetsQuarantineCriteria(set *exclusionSet, blockNumber uint64) bool {
+func (s *RootManager) isExclusionSetMeetsQuarantineCriteria(blockNumber uint64) bool {
+	currentBlock := s.bc.CurrentBlock().Number().Uint64()
 	rewindLimit := s.maxRewindLimit() //TODO reconsider this logic
 
-	//Check if set is already in the quarantine or can cause a rewind
-	return s.isExclusionSetInQuarantine(set) || s.bc.CurrentBlock().Number().Uint64()-blockNumber > rewindLimit
+	// Check if set can cause a rewind
+	return blockNumber < currentBlock && currentBlock-blockNumber > rewindLimit
 }
 
 // unsafe for concurrent usage
@@ -344,7 +337,7 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet, forceUpgrade bool) 
 		//Otherwise, revalidate the chain.
 		//If upgrade is forced, we don't care about the age of the exclusion set
 		//Verification goes only here, because we don't want to quarantine exclusion set if there's no need to
-		if !forceUpgrade && s.isExclusionSetMeetsQuarantineCriteria(set, earliestBlock) {
+		if !forceUpgrade && s.isExclusionSetMeetsQuarantineCriteria(earliestBlock) {
 			//Notification about quarantine is sent in startQuarantineRoutine
 			if err := s.initiateExclusionSetQuarantine(set); err != nil {
 				if err != nil {
@@ -531,7 +524,7 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 				}
 			}
 
-			if !newBlockRange.StartsInFuture(currentBlock.Uint64()) {
+			if !newBlockRange.StartsInFuture(currentBlock.Uint64()) && s.activeExSet.blockRanges != nil {
 				inValidRanges := false
 
 				for _, exBlockRange := range s.activeExSet.blockRanges[addr] {

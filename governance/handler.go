@@ -340,11 +340,15 @@ func (h *handler) runPeer(p *peer) error {
 	defer h.peers.unregister(p)
 
 	//Status nil check goes higher
-	for our, their := range map[*rootSet]*rootSet{
-		rm.active:   status.currentRootSet,
-		rm.desired:  status.desiredRootSet,
-		rm.proposed: status.proposedRootSet,
+	for _, set := range []struct {
+		our   *rootSet
+		their *rootSet
+	}{
+		{rm.active, status.currentRootSet},
+		{rm.desired, status.desiredRootSet},
+		{rm.proposed, status.proposedRootSet},
 	} {
+		our, their := set.our, set.their
 		if shouldPropagateRoots(our, their, rm.active) {
 			if err = h.handleRootSet(p, their); err != nil {
 				return err
@@ -352,11 +356,15 @@ func (h *handler) runPeer(p *peer) error {
 		}
 	}
 
-	for our, their := range map[*exclusionSet]*exclusionSet{
-		rm.activeExSet:   status.currentExSet,
-		rm.desiredExSet:  status.desiredExSet,
-		rm.proposedExSet: status.proposedExSet,
+	for _, set := range []struct {
+		our   *exclusionSet
+		their *exclusionSet
+	}{
+		{rm.activeExSet, status.currentExSet},
+		{rm.desiredExSet, status.desiredExSet},
+		{rm.proposedExSet, status.proposedExSet},
 	} {
+		our, their := set.our, set.their
 		if shouldPropagateExcl(our, their, rm.active) {
 			if err = h.handleExclusionSet(p, their); err != nil {
 				return err
@@ -777,7 +785,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 	}
 
 	switch true {
-	case rm.isAcceptableExclusionSet(received):
+	case rm.isAcceptableExclusionSet(received) && !rm.isExclusionSetInQuarantine(received):
 		// ensure locally stored signatures are not lost
 		if rm.desiredExSet != nil && rm.desiredExSet.hash == received.hash {
 			received.mergeSignatures(rm.desiredExSet.hash, rm.desiredExSet.signers)
@@ -787,7 +795,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			rm.signExclusionSet(received)
 		}
 
-		rm.upgradeExclusionSet(received, false)
+		rm.upgradeExclusionSet(received, rm.activeExSet == nil)
 
 		h.exEventCh <- &exclusionSetEvent{set: received}
 	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
@@ -819,6 +827,21 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 
 		rm.upgradeExclusionSet(rm.desiredExSet, false)
 		h.exEventCh <- &exclusionSetEvent{set: rm.activeExSet}
+
+	case rm.proposedExSet != nil && rm.proposedExSet.hash == received.hash:
+		newSignatures := rm.proposedExSet.mergeSignatures(received.hash, received.signers)
+		if len(newSignatures) == 0 {
+			return nil
+		}
+
+		if !rm.isAcceptableExclusionSet(rm.proposedExSet) {
+			h.exEventCh <- &exclusionSetEvent{fromID: p.id, set: rm.proposedExSet.copy()}
+			rm.db.saveProposedExclusionSet(rm.proposedExSet)
+			return nil
+		}
+
+		rm.upgradeExclusionSet(rm.proposedExSet, false)
+		h.exEventCh <- &exclusionSetEvent{set: rm.activeExSet.copy()}
 	default:
 		if len(rm.getActiveRootSet(true).knownSigners(received.signers)) == 0 {
 			log.Debug("Ignoring proposed exclusion list: no active root node signatures")
@@ -828,7 +851,6 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		obsoleteByActive := rm.activeExSet != nil && received.timestamp <= rm.activeExSet.timestamp
 		obsoleteByProposed := rm.proposedExSet != nil && received.timestamp <= rm.proposedExSet.timestamp
 		if obsoleteByActive || obsoleteByProposed {
-			log.Debug("Ignoring proposed exclusion list: obsolete")
 			return nil
 		}
 
