@@ -38,7 +38,7 @@ Pay attention, that `--whitelist` flag became deprecated, if such flag is set, y
 - L0 exlusion set issues
 - Mainnet trusted checkpoint
 
-## [1.3.2] - 2023-06
+## [1.3.2] - 2023-07
 ### Added
 - Duplicate root/exclusion list requires a confirmation
 - Fallback to the list of signers from the genesis block if all validators are banned
@@ -86,3 +86,18 @@ Default quota values are set to 3 per Root node/24 hours. If you want to change 
 - Max approval failures can be changed using *gov.approvalMaxFailures* flag
 - Number of verified blocks after the transition block needed for the approval can be changed using *gov.transitionBlockVerifiedBlocks* flag
 - Generic contract registry voting contract to contract registry wrapper
+
+## [1.3.7] - 2024-01
+### Fixed
+- L0 lists propagation after handshake with a new peer
+- Redundant calls to aliases smart contract
+- Signing root set with alias
+
+### Changed
+- Default value of attempts to handle incoming transition block approval - 7
+- Default value of gov.transitionBlockVerifiedBlocks flag
+
+## [1.3.8] - 2024-02
+### Fixed 
+- Handling incoming proposed exclusion list
+- Quarantine Criteria for exclusion lists
