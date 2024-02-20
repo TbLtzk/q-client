@@ -373,6 +373,18 @@ func (h *handler) runPeer(p *peer) error {
 	}
 
 	if p.version >= qgov4 {
+		latestHash, err := h.constitutionManager.getLastConstitutionHash()
+		if err != nil {
+			p.Log().Warn("failed to get latest constitution hash", "err", err)
+		} else {
+			if latestHash != nil && !contains(h.constitutionManager.knownHashes, *latestHash) {
+				err = p.sendConstitutionFileRequest(&common.ConstitutionFilesRequest{Hashes: []common.Hash{*latestHash}})
+				if err != nil {
+					p.Log().Warn("failed to send constitution file request", "err", err, "hash", *latestHash)
+				}
+			}
+		}
+
 		newReq := common.ConstitutionFilesRequest{Hashes: h.constitutionManager.requiredHashes}
 		p.sendConstitutionFileRequest(&newReq)
 
@@ -389,6 +401,16 @@ func (h *handler) runPeer(p *peer) error {
 			return err
 		}
 	}
+}
+
+func contains(list []common.Hash, hash common.Hash) bool {
+	for _, item := range list {
+		if item == hash {
+			return true
+		}
+	}
+
+	return false
 }
 
 func shouldPropagateExcl(our, their *exclusionSet, active *rootSet) bool {
