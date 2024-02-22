@@ -648,6 +648,33 @@ func (cm *ConstitutionManager) getDraftFiles() ([]common.ConstitutionFile, error
 	return resfiles, nil
 }
 
+func (cm *ConstitutionManager) insureLatestHashIsHandled() {
+	latestHash, err := cm.getLastConstitutionHash()
+	if err != nil {
+		log.Warn("failed to get latest constitution hash", "err", err)
+		return
+	}
+	if latestHash == nil || latestHash.String() == "" {
+		return
+	}
+
+	if contains(cm.knownHashes, *latestHash) || contains(cm.requiredHashes, *latestHash) {
+		return
+	}
+
+	cm.requiredHashes = append(cm.requiredHashes, *latestHash)
+}
+
+func contains(list []common.Hash, hash common.Hash) bool {
+	for _, item := range list {
+		if item == hash {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (cm *ConstitutionManager) CheckLastConstitutionFileExists() {
 	hash, err := cm.getLastConstitutionHash()
 	if err != nil {
