@@ -363,7 +363,7 @@ func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 		return errV
 	}
 	if !ok {
-		return errors.New("The hash of the provided file is invalid")
+		log.Warn("The hash of the provided file is invalid", "hash", hash)
 	}
 
 	cFile := common.ConstitutionFile{
