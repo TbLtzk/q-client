@@ -609,7 +609,7 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 					if errV != nil {
 						// If we receive a constitution, and our registry is not initialized, most likely
 						// we haven't synced the state yet
-						if errors.Is(errV, crIsNotInitializedErr) {
+						if errors.Is(errV, vcHasntDeployedErr) {
 							break
 						}
 
