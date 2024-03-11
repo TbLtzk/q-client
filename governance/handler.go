@@ -607,6 +607,12 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 					//Received file can be the draft (if was requested previously)
 					legit, errV := h.constitutionManager.isHashValid(hash)
 					if errV != nil {
+						// If we receive a constitution, and our registry is not initialized, most likely
+						// we haven't synced the state yet
+						if errors.Is(errV, crIsNotInitializedErr) {
+							break
+						}
+
 						return errV
 					}
 
@@ -969,6 +975,12 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 	for _, hash := range received.Hashes {
 		ok, errV := h.constitutionManager.isHashValid(hash)
 		if errV != nil {
+			// If we receive a constitution, and our registry is not initialized, most likely
+			// we haven't synced the state yet
+			if errors.Is(errV, crIsNotInitializedErr) {
+				break
+			}
+
 			return errV
 		}
 
@@ -1033,7 +1045,14 @@ func (h *handler) handleKnownConstitutionFiles(p *peer, received *common.KnownCo
 	}
 	if len(resNewFiles) > 0 {
 		//p.asyncSendConstitutionFilesRequest(cm, resNewFiles)
-		return cm.updateKnownConstitutionFiles(resNewFiles)
+		err = cm.updateKnownConstitutionFiles(resNewFiles)
+		if err != nil {
+			if errors.Is(err, vcHasntDeployedErr) {
+				return nil
+			}
+
+			return err
+		}
 	}
 
 	return nil
