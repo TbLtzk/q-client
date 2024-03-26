@@ -570,83 +570,79 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 		return err
 	}
 
+	for _, file := range response.Files {
+		if len(file.Data) == 0 {
+			log.Debug("Received file with zero length", "hash", file.Hash)
+			return errors.New("Received file with zero length")
+		}
+	}
+
 	h.constitutionManager.storageLock.Lock()
 	defer h.constitutionManager.storageLock.Unlock()
 
-	var fulFilledRequests []common.Hash
+	var fulFilledRequests map[common.Hash]struct{}
+	var requiredHashes map[common.Hash]struct{}
+	for _, hash := range h.constitutionManager.requiredHashes {
+		requiredHashes[hash] = struct{}{}
+	}
 
 	for _, file := range response.Files {
-		wasRequested := false
-		for _, hash := range h.constitutionManager.requiredHashes {
-			if file.Hash == hash {
-				wasRequested = true
-				if len(file.Data) > 0 {
-					reader := bytes.NewReader(file.Data)
-					gzreader, e1 := gzip.NewReader(reader)
-					if e1 != nil {
-						return e1
-					}
-					output, e2 := io.ReadAll(gzreader)
-					if e2 != nil {
-						return e2
-					}
+		if _, ok := requiredHashes[file.Hash]; !ok {
+			log.Error("Received constitution file with non-requested hash", "hash", file.Hash)
+			continue
+		}
 
-					receivedHash := h.constitutionManager.getHashByFileContent(output)
+		reader := bytes.NewReader(file.Data)
+		gzreader, e1 := gzip.NewReader(reader)
+		if e1 != nil {
+			return e1
+		}
+		output, e2 := io.ReadAll(gzreader)
+		if e2 != nil {
+			return e2
+		}
 
-					if receivedHash != hash || receivedHash != file.Hash {
-						log.Error("Received file hash doesn't match the requested one", "requested", hash, "got", receivedHash)
-						return errors.New("Received file hash doesn't match the requested one")
-					}
+		receivedHash := h.constitutionManager.getHashByFileContent(output)
 
-					cFile := common.ConstitutionFile{
-						Name:      h.constitutionManager.filenameFromHash(hash),
-						Hash:      hash,
-						CreatedAt: time.Now().Unix(),
-					}
+		if receivedHash != file.Hash {
+			log.Error("Received file hash doesn't match the requested one", "requested", file.Hash, "got", receivedHash)
+			return errors.New("Received file hash doesn't match the requested one")
+		}
 
-					//Received file can be the draft (if was requested previously)
-					legit, errV := h.constitutionManager.isHashValid(hash)
-					if errV != nil {
-						// If we receive a constitution, and our registry is not initialized, most likely
-						// we haven't synced the state yet
-						if errors.Is(errV, vcHasntDeployedErr) {
-							break
-						}
+		cFile := common.ConstitutionFile{
+			Name:      h.constitutionManager.filenameFromHash(file.Hash),
+			Hash:      file.Hash,
+			CreatedAt: time.Now().Unix(),
+		}
 
-						return errV
-					}
-
-					errStore := h.constitutionManager.storeConstitutionFile(output, cFile, legit)
-					if errStore != nil {
-						return errStore
-					}
-					fulFilledRequests = append(fulFilledRequests, hash)
-				} else {
-					return errors.New("Received file with zero length")
-				}
-
+		//Received file can be the draft (if was requested previously)
+		legit, errV := h.constitutionManager.isHashValid(file.Hash)
+		if errV != nil {
+			// If we receive a constitution, and our registry is not initialized, most likely
+			// we haven't synced the state yet
+			if errors.Is(errV, vcHasntDeployedErr) {
 				break
 			}
+
+			return errV
 		}
-		if !wasRequested {
-			log.Error("Received constitfile with non-requested hash", "hash", file.Hash)
+
+		errStore := h.constitutionManager.storeConstitutionFile(output, cFile, legit)
+		if errStore != nil {
+			return errStore
 		}
+		fulFilledRequests[file.Hash] = struct{}{}
 	}
 
-	var resHashes []common.Hash
+	// Store missing hashes to ask new peers about them
+	var missingHashes []common.Hash
 	for _, hash := range h.constitutionManager.requiredHashes {
-		fulfilled := false
-		for _, request := range fulFilledRequests {
-			if request == hash {
-				fulfilled = true
-			}
-		}
-		if !fulfilled {
-			resHashes = append(resHashes, hash)
+		if _, ok := fulFilledRequests[hash]; !ok {
+			missingHashes = append(missingHashes, hash)
 		}
 	}
-	if len(resHashes) != len(h.constitutionManager.requiredHashes) {
-		if errSave := h.constitutionManager.db.saveConstitutionFileRequests(resHashes); errSave != nil {
+	if len(missingHashes) != len(h.constitutionManager.requiredHashes) {
+		if errSave := h.constitutionManager.db.saveConstitutionFileRequests(missingHashes); errSave != nil {
 			return errors.Wrap(errSave, "Failed to save constitution file requests to the database")
 		}
 	}
@@ -954,8 +950,8 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 		log.Error("Constitution manager is not initialized")
 		return nil
 	}
-	//cm.storageLock.Lock()
-	//defer cm.storageLock.Unlock()
+	cm.storageLock.Lock()
+	defer cm.storageLock.Unlock()
 
 	if received == nil || len(received.Hashes) == 0 {
 		return nil
@@ -1007,7 +1003,7 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 	}
 
 	if len(presentFiles) > 0 {
-		p.asyncSendConstitutionFiles(cm, presentFiles)
+		p.asyncSendConstitutionFiles(cm, presentFiles) // TODO check constitution drafts
 	}
 
 	return nil
@@ -1016,8 +1012,8 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 func (h *handler) handleKnownConstitutionFiles(p *peer, received *common.KnownConstitutionFilesMessage) error {
 	cm := h.constitutionManager
 
-	//cm.storageLock.Lock()
-	//defer cm.storageLock.Unlock()
+	cm.storageLock.Lock()
+	defer cm.storageLock.Unlock()
 
 	if received == nil || len(received.Hashes) == 0 {
 		return nil
@@ -1027,24 +1023,23 @@ func (h *handler) handleKnownConstitutionFiles(p *peer, received *common.KnownCo
 	if err != nil {
 		return err
 	}
+	if len(exFiles) == 0 {
+		return nil
+	}
+
+	var exFilesSet map[common.Hash]struct{}
+	for _, file := range exFiles {
+		exFilesSet[file] = struct{}{}
+	}
 
 	resNewFiles := make([]common.Hash, 0)
 	for _, hash := range received.Hashes {
-		found := false
-		for _, exFile := range exFiles {
-			if exFile == hash {
-				found = true
-				break
-			}
-		}
-
-		if !found {
+		if _, ok := exFilesSet[hash]; !ok {
 			resNewFiles = append(resNewFiles, hash)
 			log.Info("New constitution file found. You can request it by using command: gov.requestForConstitutionFile(\"" + hash.String() + "\")")
 		}
 	}
 	if len(resNewFiles) > 0 {
-		//p.asyncSendConstitutionFilesRequest(cm, resNewFiles)
 		err = cm.updateKnownConstitutionFiles(resNewFiles)
 		if err != nil {
 			if errors.Is(err, vcHasntDeployedErr) {
