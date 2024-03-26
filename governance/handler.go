@@ -580,8 +580,8 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 	h.constitutionManager.storageLock.Lock()
 	defer h.constitutionManager.storageLock.Unlock()
 
-	var fulFilledRequests map[common.Hash]struct{}
-	var requiredHashes map[common.Hash]struct{}
+	var fulFilledRequests = make(map[common.Hash]struct{})
+	var requiredHashes = make(map[common.Hash]struct{})
 	for _, hash := range h.constitutionManager.requiredHashes {
 		requiredHashes[hash] = struct{}{}
 	}
@@ -1027,7 +1027,7 @@ func (h *handler) handleKnownConstitutionFiles(p *peer, received *common.KnownCo
 		return nil
 	}
 
-	var exFilesSet map[common.Hash]struct{}
+	var exFilesSet = make(map[common.Hash]struct{})
 	for _, file := range exFiles {
 		exFilesSet[file] = struct{}{}
 	}
