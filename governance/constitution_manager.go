@@ -29,6 +29,11 @@ const (
 	filePattern            = constitutionFilePrefix + `_0x[A-Fa-f0-9]{6}\.adoc`
 )
 
+var (
+	crIsNotInitializedErr = errors.New("Contract registry not initialized")
+	vcHasntDeployedErr    = errors.New("Voting contract hasn't deployed yet")
+)
+
 type ConstitutionManager struct {
 	baseDir        string
 	db             *database
@@ -382,9 +387,8 @@ func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
 	wrapped := "Cannot check hash validity"
 	if cm.reg == nil {
-		err := errors.New("Contract registry not initialized")
-		log.Error(wrapped, "error", err)
-		return false, err
+		log.Error(wrapped, "error", crIsNotInitializedErr)
+		return false, crIsNotInitializedErr
 	}
 
 	if cm.reg.IsTestMode() {
@@ -393,7 +397,7 @@ func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
 
 	cv := cm.reg.ConstitutionVoting()
 	if cv == nil {
-		return false, errors.New("Contract registry not initialized or voting contract hasn't deployed yet")
+		return false, vcHasntDeployedErr
 	}
 
 	cvE, err := cv.ConstitutionVotingFilterer.FilterProposalExecuted(nil, nil)
@@ -421,14 +425,13 @@ func (cm *ConstitutionManager) isHashValid(hash common.Hash) (bool, error) {
 func (cm *ConstitutionManager) getLastConstitutionHash() (*common.Hash, error) {
 	wrapped := "Cannot check hash validity"
 	if cm.reg == nil {
-		err := errors.New("Contract registry not initialized")
-		log.Error(wrapped, "error", err)
-		return nil, err
+		log.Error(wrapped, "error", crIsNotInitializedErr)
+		return nil, crIsNotInitializedErr
 	}
 
 	cv := cm.reg.ConstitutionVoting()
 	if cv == nil {
-		log.Warn("Contract registry not initialized or voting contract hasn't deployed yet")
+		log.Warn(vcHasntDeployedErr.Error())
 		return nil, nil
 	}
 
@@ -673,18 +676,4 @@ func contains(list []common.Hash, hash common.Hash) bool {
 	}
 
 	return false
-}
-
-func (cm *ConstitutionManager) CheckLastConstitutionFileExists() {
-	hash, err := cm.getLastConstitutionHash()
-	if err != nil {
-		return
-	}
-	if hash != nil {
-		_, err := cm.addConstitutionFileRequest(hash)
-		if err != nil {
-			log.Error("Cannot add constitution file request", "error", err)
-			return
-		}
-	}
 }
