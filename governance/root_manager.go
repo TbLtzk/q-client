@@ -1263,6 +1263,30 @@ func (s *RootManager) notifyExclusionSetIsQuarantined(set *exclusionSet, current
 }
 
 func (s *RootManager) startQuarantineRoutine() {
+	go func() {
+		checkOldTicker := time.NewTicker(time.Minute)
+		for {
+			if s.bc == nil {
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			select {
+			case <-checkOldTicker.C:
+				if s.proposedExSet != nil {
+					if s.isExclusionSetMeetsQuarantineCriteria(s.proposedExSet.earliestBlock()) {
+						if err := s.initiateExclusionSetQuarantine(s.proposedExSet); err != nil {
+							log.Error("Failed to quarantine exclusion set", "err", err)
+						}
+						hashStr := s.proposedExSet.hash.String()
+						s.proposedExSet = nil
+						s.db.deleteProposedExclusionSet()
+						log.Info("Put the exclusion list to the quarantine", "hash", hashStr)
+					}
+				}
+			}
+		}
+	}()
+
 	for {
 		if s.bc == nil {
 			time.Sleep(5 * time.Second)
@@ -1286,16 +1310,6 @@ func (s *RootManager) startQuarantineRoutine() {
 					earliestBlock := sets[i].earliestBlockFromDiff(s.activeExSet)
 					s.notifyExclusionSetIsQuarantined(&sets[i], s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
 				}
-			}
-			s.quarantineLock.Unlock()
-		case <-time.Tick(time.Minute):
-			s.quarantineLock.Lock()
-			if s.isExclusionSetMeetsQuarantineCriteria(s.proposedExSet.earliestBlock()) {
-				if err := s.initiateExclusionSetQuarantine(s.proposedExSet); err != nil {
-					log.Error("Failed to quarantine exclusion set", "err", err)
-				}
-				s.proposedExSet = nil
-				s.db.deleteProposedExclusionSet()
 			}
 			s.quarantineLock.Unlock()
 		}
