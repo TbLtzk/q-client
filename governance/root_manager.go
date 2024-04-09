@@ -1288,6 +1288,16 @@ func (s *RootManager) startQuarantineRoutine() {
 				}
 			}
 			s.quarantineLock.Unlock()
+		case <-time.Tick(time.Minute):
+			s.quarantineLock.Lock()
+			if s.isExclusionSetMeetsQuarantineCriteria(s.proposedExSet.earliestBlock()) {
+				if err := s.initiateExclusionSetQuarantine(s.proposedExSet); err != nil {
+					log.Error("Failed to quarantine exclusion set", "err", err)
+				}
+				s.proposedExSet = nil
+				s.db.deleteProposedExclusionSet()
+			}
+			s.quarantineLock.Unlock()
 		}
 	}
 }

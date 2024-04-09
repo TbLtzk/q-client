@@ -280,6 +280,19 @@ func (s1 *exclusionSet) addrToBlockRangeExclusiveDiff(s2 *exclusionSet) map[comm
 	return res
 }
 
+func (s *exclusionSet) earliestBlock() uint64 {
+	earliest := uint64(math.MaxUint64)
+	for _, e := range s.blockRanges {
+		for _, r := range e {
+			if r.StartAddress < earliest {
+				earliest = r.StartAddress
+			}
+		}
+	}
+
+	return earliest
+}
+
 func (s1 *exclusionSet) earliestBlockFromDiff(s2 *exclusionSet) uint64 {
 	addrToBlockRange := s2.addrToBlockRangeExclusiveDiff(s1)
 

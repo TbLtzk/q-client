@@ -46,5 +46,12 @@ var MainnetRootNodes = common.RootList{
 		common.HexToAddress("0x1f96984571abe475cde8699791bf8244707a4021"),
 		common.HexToAddress("0x083af739c6c4bafb22a9c154925d761ce603b657"),
 		common.HexToAddress("0x02ba6f1246fdb2296a539472ad5d7861eeb08f3a"),
+		common.HexToAddress("0xcdbb36e2F844823a5EEffbc91A324b59fd40Fae4"),
+		common.HexToAddress("0x48cC8D45859f578BC6A8E76B2FD719be80eDf4C5"),
+		common.HexToAddress("0xB1FEDcC8BCA3f07702D3F92538f281a5095b0537"),
+		common.HexToAddress("0xCb630e36DA08328d80FEFed490457c674B7a76B5"),
+		common.HexToAddress("0x5C4acBD71879BFeD7322f0FdceF3CF86D9709543"),
+		common.HexToAddress("0x6003e395038934fcac143c440d000ae204688d71"),
+		common.HexToAddress("0xE0BbB63fDA7f1EbbEE2DAEd6BFD69E0313C15bfb"),
 	},
 }
