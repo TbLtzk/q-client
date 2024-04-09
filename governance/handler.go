@@ -858,6 +858,11 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			return nil
 		}
 
+		if h.rootManager.isExclusionSetInQuarantine(received) {
+			log.Debug("Received proposed exclusion list already quarantined", "hash", received.hash.String())
+			return nil
+		}
+
 		rm.proposedExSet = received
 		rm.db.saveProposedExclusionSet(rm.proposedExSet)
 
