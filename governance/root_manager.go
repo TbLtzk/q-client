@@ -1286,6 +1286,7 @@ func (s *RootManager) startQuarantineRoutine() {
 		}
 	}()
 
+	notificatorTicker := time.NewTicker(time.Minute)
 	for {
 		if s.bc == nil {
 			time.Sleep(5 * time.Second)
@@ -1297,7 +1298,7 @@ func (s *RootManager) startQuarantineRoutine() {
 				earliestBlock := setEvent.Set.earliestBlockFromDiff(s.activeExSet)
 				s.notifyExclusionSetIsQuarantined(setEvent.Set, s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
 			}
-		case <-time.After(time.Minute):
+		case <-notificatorTicker.C:
 			s.quarantineLock.Lock()
 			sets, err := s.db.getExclusionSetsFromQuarantine()
 			if err != nil {
