@@ -1263,6 +1263,30 @@ func (s *RootManager) notifyExclusionSetIsQuarantined(set *exclusionSet, current
 }
 
 func (s *RootManager) startQuarantineRoutine() {
+	go func() {
+		checkOldTicker := time.NewTicker(time.Minute)
+		for {
+			if s.bc == nil {
+				time.Sleep(5 * time.Second)
+				continue
+			}
+
+			<-checkOldTicker.C
+			if s.proposedExSet != nil {
+				earliestBlock := s.proposedExSet.earliestBlock()
+				if s.isExclusionSetMeetsQuarantineCriteria(earliestBlock) {
+					if err := s.initiateExclusionSetQuarantine(s.proposedExSet); err != nil {
+						log.Error("Failed to quarantine exclusion set", "err", err)
+					}
+					s.notifyExclusionSetIsQuarantined(s.proposedExSet, s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
+					s.proposedExSet = nil
+					s.db.deleteProposedExclusionSet()
+				}
+			}
+		}
+	}()
+
+	notificatorTicker := time.NewTicker(time.Minute)
 	for {
 		if s.bc == nil {
 			time.Sleep(5 * time.Second)
@@ -1274,7 +1298,7 @@ func (s *RootManager) startQuarantineRoutine() {
 				earliestBlock := setEvent.Set.earliestBlockFromDiff(s.activeExSet)
 				s.notifyExclusionSetIsQuarantined(setEvent.Set, s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
 			}
-		case <-time.After(time.Minute):
+		case <-notificatorTicker.C:
 			s.quarantineLock.Lock()
 			sets, err := s.db.getExclusionSetsFromQuarantine()
 			if err != nil {
