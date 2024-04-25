@@ -1279,14 +1279,13 @@ func (s *RootManager) startQuarantineRoutine() {
 			<-checkOldTicker.C
 			if s.proposedExSet != nil {
 				log.Info("s.proposedExSet != nil")
-				earliestBlock := s.proposedExSet.earliestBlock()
-				if s.isExclusionSetMeetsQuarantineCriteria(earliestBlock) {
+				if s.isExclusionSetMeetsQuarantineCriteria(s.proposedExSet.earliestBlock()) {
 					log.Info("BEFORE s.isExclusionSetMeetsQuarantineCriteria(earliestBlock)")
-					if err := s.initiateExclusionSetQuarantine(s.proposedExSet); err != nil {
+					proposedExSetCopy := *s.proposedExSet
+					if err := s.initiateExclusionSetQuarantine(&proposedExSetCopy); err != nil {
 						log.Error("Failed to quarantine exclusion set", "err", err)
 					}
 					log.Info("AFTER s.isExclusionSetMeetsQuarantineCriteria(earliestBlock)")
-					s.notifyExclusionSetIsQuarantined(s.proposedExSet, s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
 					s.proposedExSet = nil
 					s.db.deleteProposedExclusionSet()
 				}
