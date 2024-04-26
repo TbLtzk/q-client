@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
+
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethdb/leveldb"
