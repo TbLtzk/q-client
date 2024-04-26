@@ -466,7 +466,7 @@ func (db *database) addExclusionSetToQuarantine(set *exclusionSet) error {
 	if err != nil {
 		panic(errors.Wrap(err, "failed to marshal quarantine exclusion sets"))
 	}
-	log.Info(fmt.Sprintf("value: %v (addExclusionSetToQuarantine)", value))
+	log.Info(fmt.Sprintf("value: %v (addExclusionSetToQuarantine)", string(value)))
 
 	if err := db.store.Put(quarantinedExclusionKey, value); err != nil {
 		panic(errors.Wrap(err, "failed save quarantined exclusion sets"))
