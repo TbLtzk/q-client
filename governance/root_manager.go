@@ -1281,12 +1281,13 @@ func (s *RootManager) startQuarantineRoutine() {
 				log.Info("s.proposedExSet != nil")
 				if s.isExclusionSetMeetsQuarantineCriteria(s.proposedExSet.earliestBlock()) {
 					log.Info("BEFORE s.isExclusionSetMeetsQuarantineCriteria(earliestBlock)")
-					proposedExSetCopy := *s.proposedExSet
-					if err := s.initiateExclusionSetQuarantine(&proposedExSetCopy); err != nil {
+					//proposedExSetCopy := *s.proposedExSet
+					log.Info(fmt.Sprintf("set: %p, copy %p:", s.proposedExSet, s.proposedExSet))
+					if err := s.initiateExclusionSetQuarantine(s.proposedExSet); err != nil {
 						log.Error("Failed to quarantine exclusion set", "err", err)
 					}
 					log.Info("AFTER s.isExclusionSetMeetsQuarantineCriteria(earliestBlock)")
-					s.proposedExSet = nil
+					//s.proposedExSet = nil
 					s.db.deleteProposedExclusionSet()
 				}
 			}
