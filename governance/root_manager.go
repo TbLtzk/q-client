@@ -1229,23 +1229,18 @@ func (s *RootManager) initiateExclusionSetQuarantine(set *exclusionSet) error {
 	if s.isExclusionSetInQuarantine(set) {
 		return nil
 	}
-	log.Info("!s.isExclusionSetInQuarantine(set)")
 
-	log.Info("locking s.quarantineLock (initiateExclusionSetQuarantine)")
 	s.quarantineLock.Lock()
 	defer s.quarantineLock.Unlock()
-	log.Info("locked s.quarantineLock (initiateExclusionSetQuarantine)")
 
 	s.quarantineEventCh <- &QuarantineEvent{
 		set,
 	}
-	log.Info("s.quarantineEventCh <- &QuarantineEvent (initiateExclusionSetQuarantine)")
 
 	err := s.db.addExclusionSetToQuarantine(set)
 	if err != nil {
 		return errors.Wrap(err, "failed to add exclusion set to quarantine")
 	}
-	log.Info("s.db.addExclusionSetToQuarantine(set) (initiateExclusionSetQuarantine)")
 
 	return nil
 }
@@ -1278,16 +1273,11 @@ func (s *RootManager) startQuarantineRoutine() {
 
 			<-checkOldTicker.C
 			if s.proposedExSet != nil {
-				log.Info("s.proposedExSet != nil")
 				if s.isExclusionSetMeetsQuarantineCriteria(s.proposedExSet.earliestBlock()) {
-					log.Info("BEFORE s.isExclusionSetMeetsQuarantineCriteria(earliestBlock)")
 					proposedExSetCopy := *s.proposedExSet
-					log.Info(fmt.Sprintf("set: %p, copy %p:", s.proposedExSet, &proposedExSetCopy))
-					log.Info(fmt.Sprintf("set: %p, copy %p:", s.proposedExSet, &proposedExSetCopy))
 					if err := s.initiateExclusionSetQuarantine(&proposedExSetCopy); err != nil {
 						log.Error("Failed to quarantine exclusion set", "err", err)
 					}
-					log.Info("AFTER s.isExclusionSetMeetsQuarantineCriteria(earliestBlock)")
 					s.proposedExSet = nil
 					s.db.deleteProposedExclusionSet()
 				}

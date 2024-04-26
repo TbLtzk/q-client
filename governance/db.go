@@ -3,7 +3,6 @@ package governance
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"math/big"
 
 	"github.com/pkg/errors"
@@ -445,7 +444,6 @@ func (db *database) addExclusionSetToQuarantine(set *exclusionSet) error {
 	if set == nil {
 		return nil
 	}
-	log.Info("set != nil (addExclusionSetToQuarantine)")
 
 	var resSets []common.ValidatorExclusionList
 
@@ -453,7 +451,6 @@ func (db *database) addExclusionSetToQuarantine(set *exclusionSet) error {
 	if err != nil {
 		log.Error("Failed to get exclusion sets from quarantine", "err", err)
 	}
-	log.Info(fmt.Sprintf("exRecords: %v (addExclusionSetToQuarantine)", exRecords))
 	for _, exSet := range exRecords {
 		if exSet.hash == set.hash {
 			return nil //It's already there
@@ -466,7 +463,6 @@ func (db *database) addExclusionSetToQuarantine(set *exclusionSet) error {
 	if err != nil {
 		panic(errors.Wrap(err, "failed to marshal quarantine exclusion sets"))
 	}
-	log.Info(fmt.Sprintf("value: %v (addExclusionSetToQuarantine)", string(value)))
 
 	if err := db.store.Put(quarantinedExclusionKey, value); err != nil {
 		panic(errors.Wrap(err, "failed save quarantined exclusion sets"))
