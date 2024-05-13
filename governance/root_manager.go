@@ -1233,10 +1233,6 @@ func (s *RootManager) initiateExclusionSetQuarantine(set *exclusionSet) error {
 	s.quarantineLock.Lock()
 	defer s.quarantineLock.Unlock()
 
-	s.quarantineEventCh <- &QuarantineEvent{
-		set,
-	}
-
 	err := s.db.addExclusionSetToQuarantine(set)
 	if err != nil {
 		return errors.Wrap(err, "failed to add exclusion set to quarantine")
@@ -1263,55 +1259,40 @@ func (s *RootManager) notifyExclusionSetIsQuarantined(set *exclusionSet, current
 }
 
 func (s *RootManager) startQuarantineRoutine() {
-	go func() {
-		checkOldTicker := time.NewTicker(time.Minute)
-		for {
-			if s.bc == nil {
-				time.Sleep(5 * time.Second)
-				continue
-			}
-
-			<-checkOldTicker.C
-			if s.proposedExSet != nil {
-				if s.isExclusionSetMeetsQuarantineCriteria(s.proposedExSet.earliestBlock()) {
-					proposedExSetCopy := *s.proposedExSet
-					if err := s.initiateExclusionSetQuarantine(&proposedExSetCopy); err != nil {
-						log.Error("Failed to quarantine exclusion set", "err", err)
-					}
-					s.proposedExSet = nil
-					s.db.deleteProposedExclusionSet()
-				}
-			}
-		}
-	}()
-
-	notificatorTicker := time.NewTicker(time.Minute)
+	quarantineTicker := time.NewTicker(time.Minute)
 	for {
 		if s.bc == nil {
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		select {
-		case setEvent := <-s.quarantineEventCh:
-			if setEvent.Set != nil {
-				earliestBlock := setEvent.Set.earliestBlockFromDiff(s.activeExSet)
-				s.notifyExclusionSetIsQuarantined(setEvent.Set, s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
-			}
-		case <-notificatorTicker.C:
-			s.quarantineLock.Lock()
-			sets, err := s.db.getExclusionSetsFromQuarantine()
-			if err != nil {
-				log.Error("Failed to get exclusion sets from quarantine", "err", err)
-			}
-			if sets != nil {
-				log.Warn("You have exclusion lists in the quarantine. You can see them with command: gov.quarantinedExclusionLists()")
-				for i := range sets {
-					earliestBlock := sets[i].earliestBlockFromDiff(s.activeExSet)
-					s.notifyExclusionSetIsQuarantined(&sets[i], s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
+		<-quarantineTicker.C
+
+		//send proposed to quarantine if meets criteria
+		if s.proposedExSet != nil {
+			if s.isExclusionSetMeetsQuarantineCriteria(s.proposedExSet.earliestBlock()) {
+				proposedExSetCopy := *s.proposedExSet
+				if err := s.initiateExclusionSetQuarantine(&proposedExSetCopy); err != nil {
+					log.Error("Failed to quarantine exclusion set", "err", err)
 				}
+				s.proposedExSet = nil
+				s.db.deleteProposedExclusionSet()
 			}
-			s.quarantineLock.Unlock()
 		}
+
+		//notify if there's anything in quarantine
+		s.quarantineLock.Lock()
+		sets, err := s.db.getExclusionSetsFromQuarantine()
+		if err != nil {
+			log.Error("Failed to get exclusion sets from quarantine", "err", err)
+		}
+		if sets != nil {
+			log.Warn("You have exclusion lists in the quarantine. You can see them with command: gov.quarantinedExclusionLists()")
+			for i := range sets {
+				earliestBlock := sets[i].earliestBlockFromDiff(s.activeExSet)
+				s.notifyExclusionSetIsQuarantined(&sets[i], s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
+			}
+		}
+		s.quarantineLock.Unlock()
 	}
 }
 
