@@ -1279,21 +1279,23 @@ func (s *RootManager) startQuarantineRoutine() {
 		}
 
 		//notify if there's anything in quarantine
-		func() {
-			s.quarantineLock.Lock()
-			defer s.quarantineLock.Unlock()
-			sets, err := s.db.getExclusionSetsFromQuarantine()
-			if err != nil {
-				log.Error("Failed to get exclusion sets from quarantine", "err", err)
-			}
-			if sets != nil {
-				log.Warn("You have exclusion lists in the quarantine. You can see them with command: gov.quarantinedExclusionLists()")
-				for i := range sets {
-					earliestBlock := sets[i].earliestBlockFromDiff(s.activeExSet)
-					s.notifyExclusionSetIsQuarantined(&sets[i], s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
-				}
-			}
-		}()
+		s.notifyQuarantine()
+	}
+}
+
+func (s *RootManager) notifyQuarantine() {
+	s.quarantineLock.Lock()
+	defer s.quarantineLock.Unlock()
+	sets, err := s.db.getExclusionSetsFromQuarantine()
+	if err != nil {
+		log.Error("Failed to get exclusion sets from quarantine", "err", err)
+	}
+	if sets != nil {
+		log.Warn("You have exclusion lists in the quarantine. You can see them with command: gov.quarantinedExclusionLists()")
+		for i := range sets {
+			earliestBlock := sets[i].earliestBlockFromDiff(s.activeExSet)
+			s.notifyExclusionSetIsQuarantined(&sets[i], s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
+		}
 	}
 }
 
