@@ -157,8 +157,7 @@ func (a *GovernanceAPI) QuarantinedExclusionLists() string {
 			"gov.acceptQuarantinedExclusionList(\"" + sets[i].hash.String() + "\")\n\n"
 	}
 
-	log.Warn(res)
-	return ""
+	return res
 }
 
 func (a *GovernanceAPI) AcceptProposedExclusionList() error {

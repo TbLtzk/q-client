@@ -753,6 +753,11 @@ var exclusionListFormatter = function(exclusionList) {
 	return exclusionList;
 }
 
+function quarantineListsFormatter(response) {
+	console.log(response);
+	return ""
+}
+
 web3._extend({
 	property: 'gov',
 	methods: [
@@ -892,7 +897,8 @@ web3._extend({
 	    new web3._extend.Method({
 			name: 'quarantinedExclusionLists',
 			call: 'gov_quarantinedExclusionLists',
-			params: 0
+			params: 0,
+            outputFormatter: quarantineListsFormatter
 		}),
 	    new web3._extend.Method({
 			name: 'acceptQuarantinedExclusionList',
