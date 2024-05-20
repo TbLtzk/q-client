@@ -15,13 +15,13 @@ else
     LINT_ARGS="$*"
 fi
 
-echo "Running golangci-lint in Docker on: $*"
+echo "Running golangci-lint in Docker on: $LINT_ARGS"
 
 # Use docker-compose which handles Windows paths better
 # Override the command to pass lint arguments
 # golangci-lint is pre-installed in the image
 docker-compose -f docker-compose.dev.yml --profile lint run --rm \
-    golangci-lint sh -c 'golangci-lint run --config .golangci.yml '"$*"
+    golangci-lint sh -c "golangci-lint run --config .golangci.yml $LINT_ARGS"
 
 echo "Linting completed successfully!"
 

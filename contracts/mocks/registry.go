@@ -15,7 +15,7 @@ type mockAccountAliases struct {
 
 var MockAccount *mockAccountAliases
 
-func NewMockAccountAliases(aliases map[common.Address]common.Address) {
+func NewMockAccountAliases(aliases map[common.Address]common.Address) contracts.AccountAliasesI {
 	MockAccount = new(mockAccountAliases)
 
 	MockAccount.aliases = aliases
@@ -24,6 +24,7 @@ func NewMockAccountAliases(aliases map[common.Address]common.Address) {
 	for account, alias := range aliases {
 		MockAccount.reverseAliases[alias] = account
 	}
+	return MockAccount
 }
 
 func (m *mockAccountAliases) ResolveBatch(opts *bind.CallOpts, main []common.Address, role []*big.Int) ([]common.Address, error) {

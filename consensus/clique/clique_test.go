@@ -652,3 +652,192 @@ func TestReorgRegistry(t *testing.T) {
 		t.Fatalf("failed to insert sidechain: %v", err)
 	}
 }
+
+func TestReorgRegistry2(t *testing.T) {
+	var (
+		db1                   = rawdb.NewMemoryDatabase()
+		db2                   = rawdb.NewMemoryDatabase()
+		exclusionSetProvider1 = new(consensus.NoopExclusionSetProvider)
+		exclusionSetProvider2 = new(consensus.NoopExclusionSetProvider)
+		signersCount          = 5
+		keys                  = make(map[common.Address]*ecdsa.PrivateKey)
+		addresses1            = make([]common.Address, 0, signersCount)
+		addresses2            = make([]common.Address, 0, signersCount)
+		commonBlocksCount     = 99
+	)
+
+	for len(addresses1) != signersCount {
+		key, _ := crypto.GenerateKey()
+		addr := crypto.PubkeyToAddress(key.PublicKey)
+		keys[addr] = key
+		addresses1 = append(addresses1, addr)
+		addresses2 = append(addresses2, addr)
+	}
+	sort.Sort(signersAscending(addresses1))
+	sort.Sort(signersAscending(addresses2))
+
+	reg1 := contracts.NewTestModeRegistryWithMocks(
+		mocks.NewMockValidators(common.HexToAddress("0x1"), addresses1, nil),
+		nil,
+	)
+	reg2 := contracts.NewTestModeRegistryWithMocks(
+		mocks.NewMockValidators(common.HexToAddress("0x1"), addresses2, nil),
+		nil,
+	)
+	engine1 := New(params.AllCliqueProtocolChanges.Clique, db1, exclusionSetProvider1, reg1)
+	engine2 := New(params.AllCliqueProtocolChanges.Clique, db2, exclusionSetProvider2, reg2)
+
+	genSpec := &core.Genesis{
+		Config:     params.AllCliqueProtocolChanges,
+		ExtraData:  make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
+		Alloc:      map[common.Address]core.GenesisAccount{},
+		BaseFee:    big.NewInt(params.InitialBaseFee),
+		Difficulty: big.NewInt(0),
+	}
+	for i := 0; i < signersCount; i++ {
+		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addresses1[i][:])
+	}
+
+	triedb1 := trie.NewDatabase(db1, trie.HashDefaults)
+	triedb2 := trie.NewDatabase(db2, trie.HashDefaults)
+	genesis1 := genSpec.MustCommit(db1, triedb1)
+	genesis2 := genSpec.MustCommit(db2, triedb2)
+
+	commonBlocks1 := generateChain(t, params.AllCliqueProtocolChanges, genesis1, engine1, db1, commonBlocksCount,
+		addresses1, keys, reg1, false)
+	commonBlocks2 := generateChain(t, params.AllCliqueProtocolChanges, genesis2, engine2, db2, commonBlocksCount,
+		addresses2, keys, reg2, false)
+
+	// Insert common blocks
+	chain1, _ := core.NewBlockChain(db1, nil, genSpec, nil, engine1, vm.Config{},
+		nil, nil)
+	defer chain1.Stop()
+	if _, err := chain1.InsertChain(commonBlocks1); err != nil {
+		t.Fatalf("failed to insert commonBlocks blocks: %v", err)
+	}
+	chain2, _ := core.NewBlockChain(db2, nil, genSpec, nil, engine2, vm.Config{},
+		nil, nil)
+	defer chain2.Stop()
+	if _, err := chain2.InsertChain(commonBlocks2); err != nil {
+		t.Fatalf("failed to insert commonBlocks blocks: %v", err)
+	}
+
+	// Add new address to the validators list of the second node
+	key, _ := crypto.GenerateKey()
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+	keys[addr] = key
+	addresses2 = append(addresses2, addr)
+	sort.Sort(signersAscending(addresses2))
+
+	// Generate side chain with different validators list
+	blocksToGenerate := signersCount * 3
+
+	curHeader := chain1.CurrentBlock()
+	mainChain := generateChain(t, params.AllCliqueProtocolChanges, chain1.GetBlock(curHeader.Hash(), curHeader.Number.Uint64()), engine1, db1,
+		blocksToGenerate, addresses1, keys, reg1, true)
+
+	_, err := chain2.InsertChain(mainChain)
+	if err == nil {
+		t.Fatalf("shouldn't validate blocks")
+	}
+	if !errors.Is(err, errUnauthorizedSigner) && !errors.Is(err, errWrongDifficulty) {
+		t.Fatalf("failed to insert mainchain: %v", err)
+	}
+}
+
+func TestReorgAliases(t *testing.T) {
+	var (
+		db1                   = rawdb.NewMemoryDatabase()
+		db2                   = rawdb.NewMemoryDatabase()
+		exclusionSetProvider1 = new(consensus.NoopExclusionSetProvider)
+		exclusionSetProvider2 = new(consensus.NoopExclusionSetProvider)
+		signersCount          = 5
+		keys                  = make(map[common.Address]*ecdsa.PrivateKey)
+		addresses1            = make([]common.Address, 0, signersCount)
+		addresses2            = make([]common.Address, 0, signersCount)
+		commonBlocksCount     = 99
+	)
+
+	for len(addresses1) != signersCount {
+		key, _ := crypto.GenerateKey()
+		addr := crypto.PubkeyToAddress(key.PublicKey)
+		keys[addr] = key
+		addresses1 = append(addresses1, addr)
+		addresses2 = append(addresses2, addr)
+	}
+	sort.Sort(signersAscending(addresses1))
+	sort.Sort(signersAscending(addresses2))
+
+	reg1 := contracts.NewTestModeRegistryWithMocks(
+		mocks.NewMockValidators(common.HexToAddress("0x1"), addresses1, nil),
+		nil,
+	)
+	reg2 := contracts.NewTestModeRegistryWithMocks(
+		mocks.NewMockValidators(common.HexToAddress("0x1"), addresses2, nil),
+		nil,
+	)
+	engine1 := New(params.AllCliqueProtocolChanges.Clique, db1, exclusionSetProvider1, reg1)
+	engine2 := New(params.AllCliqueProtocolChanges.Clique, db2, exclusionSetProvider2, reg2)
+
+	genSpec := &core.Genesis{
+		Config:     params.AllCliqueProtocolChanges,
+		ExtraData:  make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
+		Alloc:      map[common.Address]core.GenesisAccount{},
+		BaseFee:    big.NewInt(params.InitialBaseFee),
+		Difficulty: big.NewInt(0),
+	}
+	for i := 0; i < signersCount; i++ {
+		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addresses1[i][:])
+	}
+
+	triedb1 := trie.NewDatabase(db1, trie.HashDefaults)
+	triedb2 := trie.NewDatabase(db2, trie.HashDefaults)
+	genesis1 := genSpec.MustCommit(db1, triedb1)
+	genesis2 := genSpec.MustCommit(db2, triedb2)
+
+	commonBlocks1 := generateChain(t, params.AllCliqueProtocolChanges, genesis1, engine1, db1, commonBlocksCount,
+		addresses1, keys, reg1, false)
+	commonBlocks2 := generateChain(t, params.AllCliqueProtocolChanges, genesis2, engine2, db2, commonBlocksCount,
+		addresses2, keys, reg2, false)
+
+	// Insert common blocks
+	chain1, _ := core.NewBlockChain(db1, nil, genSpec, nil, engine1, vm.Config{},
+		nil, nil)
+	defer chain1.Stop()
+	if _, err := chain1.InsertChain(commonBlocks1); err != nil {
+		t.Fatalf("failed to insert commonBlocks blocks: %v", err)
+	}
+	chain2, _ := core.NewBlockChain(db2, nil, genSpec, nil, engine2, vm.Config{},
+		nil, nil)
+	defer chain2.Stop()
+	if _, err := chain2.InsertChain(commonBlocks2); err != nil {
+		t.Fatalf("failed to insert commonBlocks blocks: %v", err)
+	}
+
+	// Add new address to the validators list of the second node
+	key, _ := crypto.GenerateKey()
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+	aliases := make(map[common.Address]common.Address)
+	aliases[addresses1[0]] = addr
+
+	reg2 = contracts.NewTestModeRegistryWithMocks(
+		mocks.NewMockValidators(common.HexToAddress("0x1"), addresses2, nil),
+		mocks.NewMockAccountAliases(aliases),
+	)
+
+	engine2 = New(params.AllCliqueProtocolChanges.Clique, db2, exclusionSetProvider2, reg2)
+
+	// Generate side chain with different validators list
+	blocksToGenerate := signersCount * 3
+	curHeader := chain2.CurrentBlock()
+	sideChain := generateChain(t, params.AllCliqueProtocolChanges, chain2.GetBlock(curHeader.Hash(), curHeader.Number.Uint64()), engine2, db2,
+		blocksToGenerate, addresses2, keys, reg2, true)
+
+	_, err := chain1.InsertChain(sideChain)
+	if err == nil {
+		t.Fatalf("shouldn't validate blocks")
+	}
+	if !errors.Is(err, errUnauthorizedSigner) && !errors.Is(err, errWrongDifficulty) {
+		t.Fatalf("failed to insert sidechain: %v", err)
+	}
+}

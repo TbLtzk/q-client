@@ -306,9 +306,9 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 	}
 	// Checkpoint blocks need to enforce zero beneficiary
 	checkpoint := (number % c.config.Epoch) == 0
-	// if checkpoint && header.Coinbase != (common.Address{}) {
-	// 	return errInvalidCheckpointBeneficiary
-	// }
+	//if checkpoint && header.Coinbase != (common.Address{}) {
+	//	return errInvalidCheckpointBeneficiary
+	//}
 
 	// Rewards should be accumulated only by reward receiver
 	if header.Coinbase != c.registry.RewardReceiver() {
@@ -740,7 +740,7 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 		return err // todo wrap error
 	}
 
-	// Resolve the authorization key and check against signers
+	//Resolve the authorization key and check against signers
 	signer, err := ecrecover(header, c.signatures)
 	if err != nil {
 		return err
@@ -758,7 +758,7 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 			}
 		}
 	}
-	// Ensure that the difficulty corresponds to the turn-ness of the signer
+	//Ensure that the difficulty corresponds to the turn-ness of the signer
 	if !c.fakeDiff {
 		inturn := snap.inturn(header.Number.Uint64(), signer)
 		if inturn && header.Difficulty.Cmp(diffInTurn) != 0 {

@@ -180,7 +180,7 @@ func newTestRootManagerWithAccounts(t *testing.T, isRootNode, useAliases bool, n
 	for i := 0; i < len(roots); i++ {
 		accountAliases[roots[i]] = aliases[i]
 	}
-	mocks.NewMockAccountAliases(accountAliases)
+	_ = mocks.NewMockAccountAliases(accountAliases)
 
 	// Active root set
 	rootList := common.RootList{
