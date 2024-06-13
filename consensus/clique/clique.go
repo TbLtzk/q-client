@@ -420,7 +420,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		exclusionTime = time.Unix(int64(c.exclusionSetProvider.ExclusionSetTimestamp()), 0)
 	}
 	if number%c.config.Epoch == 0 && headerTime.After(exclusionTime) {
-		err = c.updateProposals(chain, number, snap, false)
+		err = c.updateProposals(chain, number, snap, true)
 		if err != nil {
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return err // todo wrap error
