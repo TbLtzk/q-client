@@ -1568,6 +1568,11 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 			// of the blocks delivered from the downloader, and the indexing will be off.
 			log.Debug("Downloaded item processing failed on sidechain import", "index", index, "err", err)
 		}
+		if errors.Is(err, types.ErrMismatchingCheckpointSigners) {
+			// ErrMismatchingCheckpointSigners is a known issue which happens due to bad design of checking validators during sync
+			// we just need to restart syncing, because we need latest on-chain state to get actual signers from smart contract
+			return fmt.Errorf("failed to validate signers: %w", err)
+		}
 		return fmt.Errorf("%w: %v", errInvalidChain, err)
 	}
 	return nil
