@@ -341,10 +341,13 @@ func (d *Downloader) LegacySync(id string, head common.Hash, td, ttd *big.Int, m
 		errors.Is(err, errStallingPeer) || errors.Is(err, errUnsyncedPeer) || errors.Is(err, errEmptyHeaderSet) ||
 		errors.Is(err, errPeersUnavailable) || errors.Is(err, errTooOld) || errors.Is(err, errInvalidAncestor) {
 		log.Warn("Synchronisation failed, dropping peer", "peer", id, "err", err)
-		if d.dropPeer == nil {
+		if d.dropPeer == nil || errors.Is(err, types.ErrMismatchingCheckpointSigners) {
+			// ErrMismatchingCheckpointSigners is a known issue which happens due to bad design of checking validators during sync
+			// we just need to restart syncing, because we need latest on-chain state to get actual signers from smart contract
+
 			// The dropPeer method is nil when `--copydb` is used for a local copy.
 			// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
-			log.Warn("Downloader wants to drop peer, but peerdrop-function is not set", "peer", id)
+			log.Warn("Downloader wants to drop peer, but peerdrop-function is not set", "peer", id, "err", err)
 		} else {
 			d.dropPeer(id)
 		}

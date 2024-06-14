@@ -118,10 +118,6 @@ var (
 	// invalid list of signers (i.e. non divisible by 20 bytes).
 	errInvalidCheckpointSigners = errors.New("invalid signer list on checkpoint block")
 
-	// errMismatchingCheckpointSigners is returned if a checkpoint block contains a
-	// list of signers different than the one the local node calculated.
-	errMismatchingCheckpointSigners = errors.New("mismatching signer list on checkpoint block")
-
 	// errInvalidMixDigest is returned if a block's mix digest is non-zero.
 	errInvalidMixDigest = errors.New("non-zero mix digest")
 
@@ -420,7 +416,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		exclusionTime = time.Unix(int64(c.exclusionSetProvider.ExclusionSetTimestamp()), 0)
 	}
 	if number%c.config.Epoch == 0 && headerTime.After(exclusionTime) {
-		err = c.updateProposals(chain, number-1, snap, true)
+		err = c.updateProposals(chain, number, snap, false)
 		if err != nil {
 			log.Error("failed to update proposals", "error", err, "step", "prepare")
 			return err // todo wrap error
@@ -432,7 +428,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		}
 		extraSuffix := len(header.Extra) - extraSeal
 		if !bytes.Equal(header.Extra[extraVanity:extraSuffix], signers) {
-			return errMismatchingCheckpointSigners
+			return types.ErrMismatchingCheckpointSigners
 		}
 	}
 	// All basic checks passed, verify the seal and return
@@ -697,7 +693,7 @@ func (c *Clique) verifySeal(chain consensus.ChainHeaderReader, header *types.Hea
 		return err
 	}
 
-	err = c.updateProposals(chain, number-1, snap, false)
+	err = c.updateProposals(chain, number, snap, false)
 	if err != nil {
 		log.Error("failed to update proposals", "error", err, "step", "prepare")
 		return err // todo wrap error

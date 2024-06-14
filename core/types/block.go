@@ -19,6 +19,7 @@ package types
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -34,6 +35,11 @@ import (
 var (
 	EmptyRootHash  = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 	EmptyUncleHash = rlpHash([]*Header(nil))
+
+	// ErrMismatchingCheckpointSigners is returned if a checkpoint block contains a
+	// list of signers different than the one the local node calculated.
+	// moved from Clique since we do not drop peer of such error happens in downloader
+	ErrMismatchingCheckpointSigners = errors.New("mismatching signer list on checkpoint block")
 )
 
 // A BlockNonce is a 64-bit hash which proves (combined with the
