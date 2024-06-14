@@ -101,3 +101,17 @@ Default quota values are set to 3 per Root node/24 hours. If you want to change 
 ### Fixed 
 - Handling incoming proposed exclusion list
 - Quarantine Criteria for exclusion lists
+
+## [1.3.9] - 2024-06
+### Changed
+- Updated initial root nodes for Mainnet
+
+### Added
+- Automatic quarantine of outdated proposed exclusion lists
+- Manual adding of unconfirmed constitution files
+
+### Fixed
+- Sharing latest constitution hash
+- Governance protocol handshake
+- Dropping peer during sync
+
