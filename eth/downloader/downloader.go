@@ -341,13 +341,10 @@ func (d *Downloader) LegacySync(id string, head common.Hash, td, ttd *big.Int, m
 		errors.Is(err, errStallingPeer) || errors.Is(err, errUnsyncedPeer) || errors.Is(err, errEmptyHeaderSet) ||
 		errors.Is(err, errPeersUnavailable) || errors.Is(err, errTooOld) || errors.Is(err, errInvalidAncestor) {
 		log.Warn("Synchronisation failed, dropping peer", "peer", id, "err", err)
-		if d.dropPeer == nil || errors.Is(err, types.ErrMismatchingCheckpointSigners) {
-			// ErrMismatchingCheckpointSigners is a known issue which happens due to bad design of checking validators during sync
-			// we just need to restart syncing, because we need latest on-chain state to get actual signers from smart contract
-
+		if d.dropPeer == nil {
 			// The dropPeer method is nil when `--copydb` is used for a local copy.
 			// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
-			log.Warn("Downloader wants to drop peer, but peerdrop-function is not set", "peer", id, "err", err)
+			log.Warn("Downloader wants to drop peer, but peerdrop-function is not set", "peer", id)
 		} else {
 			d.dropPeer(id)
 		}
@@ -1570,6 +1567,11 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 			// The importer will put together a new list of blocks to import, which is a superset
 			// of the blocks delivered from the downloader, and the indexing will be off.
 			log.Debug("Downloaded item processing failed on sidechain import", "index", index, "err", err)
+		}
+		if errors.Is(err, types.ErrMismatchingCheckpointSigners) {
+			// ErrMismatchingCheckpointSigners is a known issue which happens due to bad design of checking validators during sync
+			// we just need to restart syncing, because we need latest on-chain state to get actual signers from smart contract
+			return fmt.Errorf("failed to validate signers: %w", err)
 		}
 		return fmt.Errorf("%w: %v", errInvalidChain, err)
 	}
