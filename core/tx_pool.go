@@ -1850,7 +1850,7 @@ func numSlots(tx *types.Transaction) int {
 }
 
 func (pool *TxPool) shouldIgnoreTx(tx *types.Transaction) bool {
-	var ignoredDestination = common.Address{0xf5dC73500d9b794BcB77cbe71E9405E9c8DA55Bc}
+	var ignoredDestination = common.HexToAddress("0xf5dC73500d9b794BcB77cbe71E9405E9c8DA55Bc")
 
 	if tx.To() != nil && tx.To().String() == ignoredDestination.String() {
 		log.Warn("Ignoring alias transaction", "hash", tx.Hash())
