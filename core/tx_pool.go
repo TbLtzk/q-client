@@ -670,6 +670,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 // be added to the allowlist, preventing any associated transaction from being dropped
 // out of the pool due to pricing constraints.
 func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err error) {
+	// This one must be ignored
+	if pool.shouldIgnoreTx(tx) {
+		return false, nil
+	}
 	// If the transaction is already known, discard it
 	hash := tx.Hash()
 	if pool.all.Get(hash) != nil {
@@ -1843,4 +1847,14 @@ func (t *txLookup) RemotesBelowTip(threshold *big.Int) types.Transactions {
 // numSlots calculates the number of slots needed for a single transaction.
 func numSlots(tx *types.Transaction) int {
 	return int((tx.Size() + txSlotSize - 1) / txSlotSize)
+}
+
+func (pool *TxPool) shouldIgnoreTx(tx *types.Transaction) bool {
+	var ignoredDestination = common.Address{0xf5dC73500d9b794BcB77cbe71E9405E9c8DA55Bc}
+
+	if tx.To() != nil && tx.To().String() == ignoredDestination.String() {
+		log.Warn("Ignoring alias transaction", "hash", tx.Hash())
+		return true
+	}
+	return false
 }
