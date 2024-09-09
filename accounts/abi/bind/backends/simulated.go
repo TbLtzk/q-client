@@ -17,7 +17,9 @@
 package backends
 
 import (
+	"bytes"
 	"context"
+	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"math/big"
@@ -30,13 +32,16 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/common/math"
+	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/bloombits"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
+	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/eth/filters"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
@@ -72,6 +77,8 @@ type SimulatedBackend struct {
 	filterSystem *filters.FilterSystem // for filtering database logs
 
 	config *params.ChainConfig
+
+	engine consensus.Engine
 }
 
 // NewSimulatedBackendWithDatabase creates a new binding backend based on the given database
@@ -86,6 +93,7 @@ func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.Genesis
 		database:   database,
 		blockchain: blockchain,
 		config:     genesis.Config,
+		engine:     ethash.NewFaker(),
 	}
 
 	filterBackend := &filterBackend{database, blockchain, backend}
@@ -93,6 +101,28 @@ func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.Genesis
 	backend.events = filters.NewEventSystem(backend.filterSystem, false)
 
 	backend.rollback(blockchain.CurrentBlock())
+	return backend
+}
+
+// NewSimulatedBackendWithDatabase creates a new binding backend based on the given database
+// and uses a simulated blockchain for testing purposes.
+// A simulated backend always uses chainID 1337.
+func NewSimulatedBackendWithDatabaseAndEngine(database ethdb.Database, alloc core.GenesisAlloc, gasLimit uint64, engine consensus.Engine, config *params.ChainConfig, genesis *core.Genesis) *SimulatedBackend {
+	genesis.MustCommit(database)
+	blockchain, _ := core.NewBlockChain(database, nil, config, engine, vm.Config{}, nil, nil)
+
+	backend := &SimulatedBackend{
+		database:   database,
+		blockchain: blockchain,
+		config:     config,
+		engine:     engine,
+	}
+
+	filterBackend := &filterBackend{database, blockchain, backend}
+	backend.filterSystem = filters.NewFilterSystem(filterBackend, filters.Config{})
+	backend.events = filters.NewEventSystem(backend.filterSystem, false)
+
+	backend.rollbackWithEngine(blockchain.CurrentBlock(), nil, nil, false, 0)
 	return backend
 }
 
@@ -127,6 +157,60 @@ func (b *SimulatedBackend) Commit() common.Hash {
 	return blockHash
 }
 
+// Commit imports all the pending transactions as a single block and starts a
+// fresh new state.
+func (b *SimulatedBackend) CommitWithEngine(SealHash func(header *types.Header) (hash common.Hash), addTx bool, signers []common.Address, keys map[common.Address]*ecdsa.PrivateKey, reg1 *contracts.Registry, current *int, extraVanity int, extraSeal int, num int) common.Hash {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	block := b.pendingBlock
+
+	header := block.Header()
+	signer := signers[*current]
+	difficulty := big.NewInt(1) // block.Difficulty()
+
+	key := keys[signer]
+	if len(header.Extra) < extraVanity {
+		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, extraVanity-len(header.Extra))...)
+	}
+	header.Extra = header.Extra[:extraVanity]
+
+	if block.NumberU64()%params.TestnetChainConfig.Clique.Epoch == 0 {
+		for _, s := range signers {
+			header.Extra = append(header.Extra, s[:]...)
+		}
+
+		fmt.Println("I am here", block.NumberU64())
+	}
+	header.Extra = append(header.Extra, make([]byte, extraSeal)...)
+
+	header.Difficulty = difficulty
+	header.Coinbase = reg1.RewardReceiver()
+	// if block.Transactions().Len() > 0 {
+	// 	header.GasUsed = 3979521
+	// }
+
+	sig, _ := crypto.Sign(SealHash(header).Bytes(), key)
+	copy(header.Extra[len(header.Extra)-extraSeal:], sig)
+	block = block.WithSeal(header)
+
+	*current = *current + 1
+	if *current == len(signers) {
+		*current = 0
+	}
+
+	if _, err := b.blockchain.InsertChain([]*types.Block{block}); err != nil {
+		panic(err) // This cannot happen unless the simulator is wrong, fail in that case
+	}
+	blockHash := block.Hash()
+
+	// Using the last inserted block here makes it possible to build on a side
+	// chain after a fork.
+	b.rollbackWithEngine(block, signers, keys, addTx, num)
+
+	return blockHash
+}
+
 // Rollback aborts all pending transactions, reverting to the last committed state.
 func (b *SimulatedBackend) Rollback() {
 	b.mu.Lock()
@@ -136,7 +220,19 @@ func (b *SimulatedBackend) Rollback() {
 }
 
 func (b *SimulatedBackend) rollback(parent *types.Block) {
-	blocks, _ := core.GenerateChain(b.config, parent, ethash.NewFaker(), b.database, 1, func(int, *core.BlockGen) {})
+	var blocks []*types.Block
+	blocks, _ = core.GenerateChain(b.config, parent, b.engine, b.database, 1, func(number int, block *core.BlockGen) {})
+
+	b.pendingBlock = blocks[0]
+	b.pendingState, _ = state.New(b.pendingBlock.Root(), b.blockchain.StateCache(), nil)
+}
+
+func (b *SimulatedBackend) rollbackWithEngine(parent *types.Block, signers []common.Address, keys map[common.Address]*ecdsa.PrivateKey, addTx bool, i int) {
+	var blocks []*types.Block
+
+	blocks, _ = core.GenerateChain(b.config, parent, b.engine, b.database, 1, func(number int, block *core.BlockGen) {
+
+	})
 
 	b.pendingBlock = blocks[0]
 	b.pendingState, _ = state.New(b.pendingBlock.Root(), b.blockchain.StateCache(), nil)
@@ -493,8 +589,8 @@ func (b *SimulatedBackend) SuggestGasTipCap(ctx context.Context) (*big.Int, erro
 // EstimateGas executes the requested code against the currently pending block/state and
 // returns the used amount of gas.
 func (b *SimulatedBackend) EstimateGas(ctx context.Context, call ethereum.CallMsg) (uint64, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+	// b.mu.Lock()
+	// defer b.mu.Unlock()
 
 	// Determine the lowest and highest possible gas limits to binary search in between
 	var (
@@ -653,8 +749,42 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call ethereum.CallM
 
 // SendTransaction updates the pending block to include the given transaction.
 func (b *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transaction) error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+	// Get the last block
+	block, err := b.blockByHash(ctx, b.pendingBlock.ParentHash())
+	if err != nil {
+		return fmt.Errorf("could not fetch parent")
+	}
+	// Check transaction validity
+	signer := types.MakeSigner(b.blockchain.Config(), block.Number())
+	sender, err := types.Sender(signer, tx)
+	if err != nil {
+		return fmt.Errorf("invalid transaction: %v", err)
+	}
+	nonce := b.pendingState.GetNonce(sender)
+	if tx.Nonce() != nonce {
+		return fmt.Errorf("invalid transaction nonce: got %d, want %d", tx.Nonce(), nonce)
+	}
+	// Include tx in chain
+	blocks, receipts := core.GenerateChain(b.config, block, b.engine, b.database, 1, func(number int, block *core.BlockGen) {
+		for _, tx := range b.pendingBlock.Transactions() {
+			block.AddTxWithChain(b.blockchain, tx)
+		}
+		block.AddTxWithChain(b.blockchain, tx)
+	})
+	stateDB, _ := b.blockchain.State()
+
+	b.pendingBlock = blocks[0]
+	b.pendingState, _ = state.New(b.pendingBlock.Root(), stateDB.Database(), nil)
+	b.pendingReceipts = receipts[0]
+	return nil
+}
+
+// SendTransaction updates the pending block to include the given transaction.
+func (b *SimulatedBackend) SendTransactionWithLock(ctx context.Context, tx *types.Transaction, lock bool) error {
+	if lock {
+		b.mu.Lock()
+		defer b.mu.Unlock()
+	}
 
 	// Get the last block
 	block, err := b.blockByHash(ctx, b.pendingBlock.ParentHash())
@@ -672,7 +802,7 @@ func (b *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transa
 		return fmt.Errorf("invalid transaction nonce: got %d, want %d", tx.Nonce(), nonce)
 	}
 	// Include tx in chain
-	blocks, receipts := core.GenerateChain(b.config, block, ethash.NewFaker(), b.database, 1, func(number int, block *core.BlockGen) {
+	blocks, receipts := core.GenerateChain(b.config, block, b.engine, b.database, 1, func(number int, block *core.BlockGen) {
 		for _, tx := range b.pendingBlock.Transactions() {
 			block.AddTxWithChain(b.blockchain, tx)
 		}
