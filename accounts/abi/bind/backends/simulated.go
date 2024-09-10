@@ -180,7 +180,7 @@ func (b *SimulatedBackend) CommitWithEngine(SealHash func(header *types.Header) 
 			header.Extra = append(header.Extra, s[:]...)
 		}
 
-		fmt.Println("I am here", block.NumberU64())
+		// fmt.Println("I am here", block.NumberU64())
 	}
 	header.Extra = append(header.Extra, make([]byte, extraSeal)...)
 
@@ -521,8 +521,8 @@ func (e *revertError) ErrorData() interface{} {
 
 // CallContract executes a contract call.
 func (b *SimulatedBackend) CallContract(ctx context.Context, call ethereum.CallMsg, blockNumber *big.Int) ([]byte, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+	// b.mu.Lock()
+	// defer b.mu.Unlock()
 
 	if blockNumber != nil && blockNumber.Cmp(b.blockchain.CurrentBlock().Number()) != 0 {
 		return nil, errBlockNumberUnsupported
@@ -803,6 +803,8 @@ func (b *SimulatedBackend) SendTransactionWithLock(ctx context.Context, tx *type
 	}
 	// Include tx in chain
 	blocks, receipts := core.GenerateChain(b.config, block, b.engine, b.database, 1, func(number int, block *core.BlockGen) {
+		author, _ := b.engine.Author(nil)
+		block.SetCoinbase(author)
 		for _, tx := range b.pendingBlock.Transactions() {
 			block.AddTxWithChain(b.blockchain, tx)
 		}

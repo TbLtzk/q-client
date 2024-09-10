@@ -255,7 +255,7 @@ func (c *Clique) Author(header *types.Header) (common.Address, error) {
 	defer c.authorLock.RUnlock()
 
 	return c.latestRewardReceiver, nil
-	//return ecrecover(header, c.signatures)
+	// return ecrecover(header, c.signatures)
 }
 
 func (c *Clique) Signer() common.Address {
@@ -451,6 +451,12 @@ func (c *Clique) updateProposals(chain consensus.ChainHeaderReader, number uint6
 	}
 
 	signers, err := c.getValidatorList(nil, provider)
+	if number > 100 {
+		// fmt.Println(c.registry)
+		fmt.Println(c.registry.ValidatorsAddress()) //
+		fmt.Println(number)
+		fmt.Println(signers)
+	}
 	if signerListFromPast {
 		signers, err = c.getValidatorList(big.NewInt(int64(number)), provider)
 	}
@@ -474,7 +480,7 @@ func (c *Clique) updateProposals(chain consensus.ChainHeaderReader, number uint6
 	if chain.Config().IsAthos(new(big.Int).SetUint64(number)) {
 		filteredWithAliases := c.aliasAccounts(filtered, true)
 
-		//we need to filter one more time because exclusion list can contain the alias but not the validator itself for some reasons.
+		// we need to filter one more time because exclusion list can contain the alias but not the validator itself for some reasons.
 		snap.Signers = toSet(filterSigners(number, filteredWithAliases, excludedSigners))
 	}
 
@@ -517,12 +523,12 @@ func (c *Clique) aliasAccounts(filtered []common.Address, isAthos bool) []common
 		return filtered
 	}
 	providerAliases := c.registry.AccountAliases(nil)
-	if providerAliases == nil { //signers are set already
+	if providerAliases == nil { // signers are set already
 		log.Error("failed to get account aliases list from smart contract")
 		return filtered
 	}
 
-	blockSealingPurpose, _ := new(big.Int).SetString("ac1c67647cbdc0261ee21863e0dcd233307d62845e0ab39b5e890ce32de5a917", 16) //crypto.Keccak256([]byte("BLOCK_SEALING")
+	blockSealingPurpose, _ := new(big.Int).SetString("ac1c67647cbdc0261ee21863e0dcd233307d62845e0ab39b5e890ce32de5a917", 16) // crypto.Keccak256([]byte("BLOCK_SEALING")
 	var purposes []*big.Int
 	for range filtered {
 		purposes = append(purposes, blockSealingPurpose)
@@ -541,12 +547,12 @@ func (c *Clique) UnAliasAccounts(filtered []common.Address, isAthos bool) []comm
 		return filtered
 	}
 	providerAliases := c.registry.AccountAliases(nil)
-	if providerAliases == nil { //signers are set already
+	if providerAliases == nil { // signers are set already
 		log.Error("failed to get account aliases list from smart contract")
 		return filtered
 	}
 
-	blockSealingPurpose, _ := new(big.Int).SetString("ac1c67647cbdc0261ee21863e0dcd233307d62845e0ab39b5e890ce32de5a917", 16) //crypto.Keccak256([]byte("BLOCK_SEALING")
+	blockSealingPurpose, _ := new(big.Int).SetString("ac1c67647cbdc0261ee21863e0dcd233307d62845e0ab39b5e890ce32de5a917", 16) // crypto.Keccak256([]byte("BLOCK_SEALING")
 	var purposes []*big.Int
 	for range filtered {
 		purposes = append(purposes, blockSealingPurpose)
@@ -1068,7 +1074,7 @@ func toSet(signers []common.Address) map[common.Address]struct{} {
 }
 
 func (c *Clique) ChooseBlockWithMostRecentSigner(chain *core.BlockChain, header *types.Header, externalHeader *types.Header) (*types.Header, error) {
-	//In this case, header numbers should be the same, so take it from local header
+	// In this case, header numbers should be the same, so take it from local header
 	number := header.Number.Uint64()
 	if number == 0 {
 		return nil, errUnknownBlock
@@ -1104,7 +1110,7 @@ func (c *Clique) ChooseBlockWithMostRecentSigner(chain *core.BlockChain, header 
 		}
 	}
 
-	//We have no information about signer, so return local header
+	// We have no information about signer, so return local header
 	if externalIndex == 0 {
 		return header, nil
 	}

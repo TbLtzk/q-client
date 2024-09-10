@@ -636,20 +636,6 @@ func TestReorgRegistry(t *testing.T) {
 	}
 }
 
-type mockValidators struct {
-	*generated.Validators
-}
-
-func NewMockValidators(v *generated.Validators) contracts.ValidatorsI {
-	return &mockValidators{
-		Validators: v,
-	}
-}
-
-func (m *mockValidators) ValidatorsAddress() *common.Address {
-	return nil
-}
-
 // TestReorgRegistryV2 examines the behavior of a consensus engine in a scenario involving blockchain
 // reorganization due to changes in the validator registry. This test case creates two blockchain
 // instances with separate databases and exclusion set providers.
@@ -665,7 +651,7 @@ func TestReorgRegistryV2(t *testing.T) {
 		keys                  = make(map[common.Address]*ecdsa.PrivateKey)
 		addresses1            = make([]common.Address, 0, signersCount)
 		addresses2            = make([]common.Address, 0, signersCount)
-		commonBlocksCount     = 100
+		commonBlocksCount     = 99
 		testKey, _            = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		testAddr              = crypto.PubkeyToAddress(testKey.PublicKey)
 	)
@@ -688,6 +674,7 @@ func TestReorgRegistryV2(t *testing.T) {
 		mocks.NewMockValidators(common.HexToAddress("0x1"), addresses2, nil),
 		nil,
 	)
+	fmt.Println(reg2.ValidatorsAddress()) //
 
 	engine1 := New(params.TestnetChainConfig.Clique, db1, exclusionSetProvider1, reg1)
 	engine2 := New(params.TestnetChainConfig.Clique, db2, exclusionSetProvider2, reg2)
@@ -709,20 +696,17 @@ func TestReorgRegistryV2(t *testing.T) {
 	back2 := backends.NewSimulatedBackendWithDatabaseAndEngine(db2, core.GenesisAlloc{testAddr: {Balance: big.NewInt(params.Ether)}}, 10000000, engine2, params.TestnetChainConfig, genesis2)
 
 	// // Insert common blocks
-	var blocks []*types.Block
-	var current *int
-	c := 0
+	// var blocks []*types.Block
+	var current, current2 *int
+	c, c2 := 0, 0
 	current = &c
+	current2 = &c2
 	var hash common.Hash
 
 	auth, _ := bind.NewKeyedTransactorWithChainID(testKey, big.NewInt(35443))
 	var validatorAddrMG common.Address
 
 	for i := 0; i < commonBlocksCount; i++ {
-		hash = back1.CommitWithEngine(SealHash, false, addresses1, keys, reg1, current, extraVanity, extraSeal, i)
-		block := back1.Blockchain().GetBlockByHash(hash)
-		blocks = append(blocks, block)
-
 		if i == 10 {
 			fmt.Println("adding tx")
 
@@ -740,11 +724,23 @@ func TestReorgRegistryV2(t *testing.T) {
 
 			validatorAddrMG = validatorAddrM
 
-			// bindingVG = bindingM
+			fmt.Println("adding tx")
+
+			auth.NoSend = true
+			auth.Nonce = big.NewInt(0)
+			auth.GasPrice = big.NewInt(1)
+			// auth.GasLimit = 1000000000 * params.GWei
+
+			validatorAddrM, tx, bindingM, err = generated.DeployValidatorsMock(auth, back2)
+			fmt.Println(validatorAddrM, tx, bindingM, err)
+			err = back2.SendTransactionWithLock(context.Background(), tx, false)
+			if err != nil {
+				fmt.Println(err)
+			}
 
 		}
-		if i == 20 {
-			fmt.Println("creating snapshot")
+		if i == 11 {
+			// fmt.Println("creating snapshot")
 			auth.NoSend = true
 
 			auth.Nonce = big.NewInt(1)
@@ -762,39 +758,116 @@ func TestReorgRegistryV2(t *testing.T) {
 				fmt.Println(err)
 			}
 
+			auth.NoSend = true
+
+			auth.Nonce = big.NewInt(1)
+			bindingVG2, _ := generated.NewValidatorsMock(validatorAddrMG, back2)
+			auth.GasPrice = big.NewInt(1)
+			// auth.GasLimit = 1000000000 * params.GWei
+
+			tx, err = bindingVG2.SetSnapshot(auth, addresses1)
+			if err != nil {
+				fmt.Println(tx, err)
+				fmt.Println("aaaa")
+			}
+			err = back2.SendTransactionWithLock(context.Background(), tx, false)
+			if err != nil {
+				fmt.Println(err)
+			}
+
 		}
+
+		if i == 13 {
+			binding, _ := generated.NewValidators(validatorAddrMG, back1)
+
+			*reg1 = *contracts.NewTestModeRegistryWithMocks(
+				NewMockValidators(binding),
+				nil,
+			)
+
+			// fmt.Println("reg validators")
+			// fmt.Println(binding.GetValidatorsList(nil))
+
+			binding2, _ := generated.NewValidators(validatorAddrMG, back2)
+
+			*reg2 = *contracts.NewTestModeRegistryWithMocks(
+				NewMockValidators(binding2),
+				nil,
+			)
+
+			fmt.Println("reg2 validators")
+			fmt.Println(binding2.GetValidatorsList(nil))
+
+		}
+
+		hash = back1.CommitWithEngine(SealHash, false, addresses1, keys, reg1, current, extraVanity, extraSeal, i)
+		hash = back2.CommitWithEngine(SealHash, false, addresses1, keys, reg2, current2, extraVanity, extraSeal, i)
+		// block := back1.Blockchain().GetBlockByHash(hash)
+		// blocks = append(blocks, block)
 	}
-	_, err := back2.Blockchain().InsertChain(blocks)
-	if err != nil {
-		t.Fatalf("failed to insert commonBlocks blocks: %v", err)
-		return
-	}
+	// _, err := back2.Blockchain().InsertChain(blocks)
+	// if err != nil {
+	// 	t.Fatalf("failed to insert commonBlocks blocks: %v", err)
+	// 	return
+	// }
 
 	// // Uncommon blocks
+	fmt.Println("creating snapshot")
+	auth.NoSend = true
+	auth.Nonce = big.NewInt(2)
+	bindingVG, _ := generated.NewValidatorsMock(validatorAddrMG, back1)
+	auth.GasPrice = big.NewInt(1)
+	// auth.GasLimit = 1000000000 * params.GWei
+	tx, err := bindingVG.SetSnapshot(auth, addresses1)
+	if err != nil {
+		fmt.Println(tx, err)
+	}
+	err = back1.SendTransactionWithLock(context.Background(), tx, false)
+	if err != nil {
+		fmt.Println(err)
+	}
 	back1.CommitWithEngine(SealHash, false, addresses1, keys, reg1, current, extraVanity, extraSeal, 100)
 
-	// Change validators in the second chain
+	//
+	// fmt.Println(bindingVG.GetValidatorsList(nil))
+	// Chain2
+	fmt.Println("creating snapshot 2")
 	addresses2 = append(addresses2, testAddr)
 	keys[testAddr], _ = crypto.GenerateKey()
 	sort.Sort(signersAscending(addresses2))
-
-	// var validatorAddrMG common.Address
-
-	// validatorAddr, tx, binding, err := generated.DeployValidators(auth, back2)
-	// binding, _ := generated.NewValidators(validatorAddrMG, back)
-	// reg2 = contracts.NewTestModeRegistryWithMocks(
-	// 	NewMockValidators(binding),
-	// 	nil,
-	// )
-	//
-	*current = 0
-	hash = back2.CommitWithEngine(SealHash, true, addresses2, keys, reg2, current, extraVanity, extraSeal, 100)
-	block := back2.Blockchain().GetBlockByHash(hash)
-	hash = back2.CommitWithEngine(SealHash, false, addresses2, keys, reg2, current, extraVanity, extraSeal, 101)
+	auth.NoSend = true
+	auth.Nonce = big.NewInt(2)
+	bindingVG2, _ := generated.NewValidatorsMock(validatorAddrMG, back2)
+	auth.GasPrice = big.NewInt(1)
+	// auth.GasLimit = 1000000000 * params.GWei
+	tx, err = bindingVG2.SetSnapshot(auth, addresses2)
+	if err != nil {
+		fmt.Println(tx, err)
+	}
+	err = back2.SendTransactionWithLock(context.Background(), tx, false)
+	if err != nil {
+		fmt.Println(err)
+	}
+	hash = back2.CommitWithEngine(SealHash, false, addresses1, keys, reg2, current2, extraVanity, extraSeal, 100)
 	block1 := back2.Blockchain().GetBlockByHash(hash)
+	*current2 = *current2 + 1
+	fmt.Println("snapshot 2 post list of validators")
+	fmt.Println(reg2.Validators().GetValidatorsList(&bind.CallOpts{
+		BlockNumber: nil,
+	}))
 
+	*current = 0
+	// *current2 = 0
+	hash = back2.CommitWithEngine(SealHash, true, addresses2, keys, reg2, current2, extraVanity, extraSeal, 101)
+	block2 := back2.Blockchain().GetBlockByHash(hash)
+	// hash = back2.CommitWithEngine(SealHash, false, addresses2, keys, reg2, current, extraVanity, extraSeal, 101)
+	// block1 := back2.Blockchain().GetBlockByHash(hash)
+	fmt.Println("101")
 	// Try to insert the side chain
-	_, err = back1.Blockchain().InsertChain(types.Blocks{block, block1})
+	_, err = back1.Blockchain().InsertChain(types.Blocks{block1})
+	fmt.Println(err)
+	fmt.Println("102")
+	_, err = back1.Blockchain().InsertChain(types.Blocks{block2})
 	fmt.Println(err)
 }
 
@@ -899,78 +972,17 @@ func generateChainForReorg(t *testing.T, config *params.ChainConfig, parent *typ
 	return blocks
 }
 
-// auth, _ := bind.NewKeyedTransactorWithChainID(testKey, params.TestnetChainConfig.ChainID)
+type mockValidators struct {
+	*generated.Validators
+}
 
-// genSpec := &core.Genesis{
-// 	ExtraData:  make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
-// 	Alloc:      core.GenesisAlloc{testAddr: {Balance: big.NewInt(params.Ether)}},
-// 	BaseFee:    big.NewInt(params.InitialBaseFee),
-// 	Difficulty: big.NewInt(0),
-// }
-// for i := 0; i < signersCount; i++ {
-// 	copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addresses1[i][:])
-// }
-//
-// genesis1 := genSpec.MustCommit(db1)
-// genesis2 := genSpec.MustCommit(db2)
-//
-// commonBlocks1 := generateChainForReorg(t, params.TestnetChainConfig, genesis1, engine1, db1, commonBlocksCount,
-// 	addresses1, keys, reg1, genFunc(auth, back1, addresses1, reg1))
-// commonBlocks2 := generateChainForReorg(t, params.TestnetChainConfig, genesis2, engine2, db2, commonBlocksCount,
-// 	addresses2, keys, reg2, genFunc(auth, back2, addresses2, reg2))
-//
-// // Insert common blocks
-// chain1, err := core.NewBlockChain(db1, nil, params.TestnetChainConfig, engine1, vm.Config{},
-// 	nil, nil)
-// if err != nil {
-// 	t.Fatalf("failed to create blockchain: %v", err)
-//
-// }
-// defer chain1.Stop()
-// if _, err := chain1.InsertChain(commonBlocks1); err != nil {
-// 	t.Fatalf("failed to insert commonBlocks blocks: %v", err)
-// }
-// chain2, _ := core.NewBlockChain(db2, nil, params.TestnetChainConfig, engine2, vm.Config{},
-// 	nil, nil)
-// defer chain2.Stop()
-// if _, err := chain2.InsertChain(commonBlocks2); err != nil {
-// 	t.Fatalf("failed to insert commonBlocks blocks: %v", err)
-// }
+func NewMockValidators(v *generated.Validators) contracts.ValidatorsI {
+	return &mockValidators{
+		Validators: v,
+	}
+}
 
-// auth, _ := bind.NewKeyedTransactorWithChainID(testKey, params.TestnetChainConfig.ChainID)
-//
-// genSpec := &core.Genesis{
-// 	ExtraData:  make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
-// 	Alloc:      core.GenesisAlloc{testAddr: {Balance: big.NewInt(params.Ether)}},
-// 	BaseFee:    big.NewInt(params.InitialBaseFee),
-// 	Difficulty: big.NewInt(0),
-// }
-// for i := 0; i < signersCount; i++ {
-// 	copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addresses1[i][:])
-// }
-//
-// genesis1 := genSpec.MustCommit(db1)
-// // genesis2 := genSpec.MustCommit(db2)
-//
-// commonBlocks1 := generateChainForReorg(t, params.TestnetChainConfig, genesis1, engine1, db1, commonBlocksCount,
-// 	addresses1, keys, reg1, genFunc(auth, back1, addresses1, reg1))
-// // commonBlocks2 := generateChainForReorg(t, params.TestnetChainConfig, genesis2, engine2, db2, commonBlocksCount,
-// // 	addresses2, keys, reg2, genFunc(auth, back2, addresses2, reg2))
-//
-// // Insert common blocks
-// chain1, err := core.NewBlockChain(db1, nil, params.TestnetChainConfig, engine1, vm.Config{},
-// 	nil, nil)
-// if err != nil {
-// 	t.Fatalf("failed to create blockchain: %v", err)
-//
-// }
-// defer chain1.Stop()
-// if _, err := chain1.InsertChain(commonBlocks1); err != nil {
-// 	t.Fatalf("failed to insert commonBlocks blocks: %v", err)
-// }
-// chain2, _ := core.NewBlockChain(db2, nil, params.TestnetChainConfig, engine2, vm.Config{},
-// 	nil, nil)
-// defer chain2.Stop()
-// if _, err := chain2.InsertChain(commonBlocks1); err != nil {
-// 	t.Fatalf("failed to insert commonBlocks blocks: %v", err)
-// }
+func (m *mockValidators) ValidatorsAddress() *common.Address {
+	addr := common.HexToAddress("0x2")
+	return &addr
+}
