@@ -444,11 +444,11 @@ func (s *Ethereum) shouldPreserve(header *types.Header, externalHeader *types.He
 }
 
 func (s *Ethereum) ShouldPreserveClique(header *types.Header, externalHeader *types.Header) bool {
-	//If we use Clique as engine, we need to check rule #3 of Eip3436: https://eips.ethereum.org/EIPS/eip-3436
+	// If we use Clique as engine, we need to check rule #3 of Eip3436: https://eips.ethereum.org/EIPS/eip-3436
 	if c, ok := s.engine.(*clique.Clique); ok {
 		rHeader, err := c.ChooseBlockWithMostRecentSigner(s.blockchain, header, externalHeader)
 		if err != nil {
-			log.Warn("Failed to retrieve recent signer list for preserve check for local header", "number", header.Number.Uint64(), "hash", header.Hash(), "err", err)
+			log.Warn("Failed to retrieve recent signer list for ShouldPreserveClique", "number", header.Number.Uint64(), "hash", header.Hash(), "err", err)
 			return false
 		}
 

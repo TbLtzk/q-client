@@ -107,9 +107,22 @@ func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.Genesis
 // NewSimulatedBackendWithDatabase creates a new binding backend based on the given database
 // and uses a simulated blockchain for testing purposes.
 // A simulated backend always uses chainID 1337.
-func NewSimulatedBackendWithDatabaseAndEngine(database ethdb.Database, alloc core.GenesisAlloc, gasLimit uint64, engine consensus.Engine, config *params.ChainConfig, genesis *core.Genesis) *SimulatedBackend {
+func NewSimulatedBackendWithDatabaseAndEngine(database ethdb.Database, alloc core.GenesisAlloc, gasLimit uint64, engine consensus.Engine, config *params.ChainConfig, genesis *core.Genesis, shouldPreserve func(chain *core.BlockChain, header *types.Header, externalHeader *types.Header) (*types.Header, error)) *SimulatedBackend {
 	genesis.MustCommit(database)
-	blockchain, _ := core.NewBlockChain(database, nil, config, engine, vm.Config{}, nil, nil)
+
+	var blockchain *core.BlockChain
+
+	preserve := func(header *types.Header, externalHeader *types.Header) bool {
+		rHeader, err := shouldPreserve(blockchain, header, externalHeader)
+		if err != nil {
+			log.Warn("Failed to retrieve recent signer list for preserve check for local header", "number", header.Number.Uint64(), "hash", header.Hash(), "err", err)
+			return false
+		}
+
+		return rHeader == header
+	}
+
+	blockchain, _ = core.NewBlockChain(database, nil, config, engine, vm.Config{}, preserve, nil)
 
 	backend := &SimulatedBackend{
 		database:   database,

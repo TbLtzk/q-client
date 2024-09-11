@@ -28,8 +28,6 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
-	"golang.org/x/crypto/sha3"
-
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	_ "gitlab.com/q-dev/q-client/accounts/keystore"
@@ -49,6 +47,7 @@ import (
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/sentryMonitor"
 	"gitlab.com/q-dev/q-client/trie"
+	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -451,12 +450,6 @@ func (c *Clique) updateProposals(chain consensus.ChainHeaderReader, number uint6
 	}
 
 	signers, err := c.getValidatorList(nil, provider)
-	if number > 100 {
-		// fmt.Println(c.registry)
-		fmt.Println(c.registry.ValidatorsAddress()) //
-		fmt.Println(number)
-		fmt.Println(signers)
-	}
 	if signerListFromPast {
 		signers, err = c.getValidatorList(big.NewInt(int64(number)), provider)
 	}

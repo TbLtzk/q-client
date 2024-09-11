@@ -49,9 +49,9 @@ type ForkChoice struct {
 	// local td is equal to the extern one. It can be nil for light
 	// client
 
-	//As we use Clique as engine, we need to obey rule #3 of Eip3436
-	//Choose the block whose validator had the least recent in-turn block assignment
-	//This function is introduced because original preserve doesn't know anything about the external header
+	// As we use Clique as engine, we need to obey rule #3 of Eip3436
+	// Choose the block whose validator had the least recent in-turn block assignment
+	// This function is introduced because original preserve doesn't know anything about the external header
 	preserve func(header *types.Header, externalHeader *types.Header) bool
 }
 
@@ -88,22 +88,32 @@ func (f *ForkChoice) ReorgNeeded(currentHeader *types.Header, externalHeader *ty
 	if !reorg && externTd.Cmp(localTD) == 0 {
 		externalNum, currentNum := externalHeader.Number.Uint64(), currentHeader.Number.Uint64()
 		if externalNum < currentNum {
-			reorg = true
+			return true, nil
 		} else if externalNum == currentNum {
-			//Preserve check is modified in order to attempt of applying rule#3 from https://eips.ethereum.org/EIPS/eip-3436
-			//If header numbers are the same, then choose the block whose validator had the least recent in-turn block assignment
+			// Preserve check is modified in order to attempt of applying rule#3 from https://eips.ethereum.org/EIPS/eip-3436
+			// If header numbers are the same, then choose the block whose validator had the least recent in-turn block assignment
 			var currentPreserve, externPreserve bool
 			if f.preserve != nil {
 				currentPreserve, externPreserve = f.preserve(currentHeader, externalHeader), f.preserve(externalHeader, currentHeader)
 			}
-			//If both headers are from the same validator, then choose the block with the lower hash
-			if currentPreserve && externPreserve {
+			// External chain has a higher priority because of the order of the validators
+			if !currentPreserve && externPreserve {
+				reorg = true
+			}
+			// Local chain has a higher priority because of the order of the validators
+			// Not necessary since at the end of the condition we set reorg to false. Just for clarity
+			if currentPreserve && !externPreserve {
+				reorg = false
+			}
+			// If both headers are from the same validator, then choose the block with the lower hash
+			if currentPreserve && externPreserve || (!currentPreserve && !externPreserve) {
 				// EIP-3436 rule #4
 				// Apply external chain if it has the lower hash
 				reorg = externalHeader.Hash().Big().Cmp(currentHeader.Hash().Big()) < 0
-			} else {
-				reorg = false
 			}
+			// Can't decide which header to choose, so we keep the current one
+			// !currentPreserve && !externPreserve
+			reorg = false
 		}
 	}
 	return reorg, nil

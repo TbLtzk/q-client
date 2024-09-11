@@ -17,11 +17,9 @@
 package clique
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"errors"
-	"fmt"
 	"math/big"
 	"sort"
 	"testing"
@@ -656,6 +654,7 @@ func TestReorgRegistryV2(t *testing.T) {
 		testAddr              = crypto.PubkeyToAddress(testKey.PublicKey)
 	)
 
+	// First, generate the initial set of signers. Initially, signers for both chains are the same.
 	for len(addresses1) != signersCount {
 		key, _ := crypto.GenerateKey()
 		addr := crypto.PubkeyToAddress(key.PublicKey)
@@ -666,6 +665,7 @@ func TestReorgRegistryV2(t *testing.T) {
 	sort.Sort(signersAscending(addresses1))
 	sort.Sort(signersAscending(addresses2))
 
+	// Create test mode registries for both chains
 	reg1 := contracts.NewTestModeRegistryWithMocks(
 		mocks.NewMockValidators(common.HexToAddress("0x1"), addresses1, nil),
 		nil,
@@ -674,11 +674,11 @@ func TestReorgRegistryV2(t *testing.T) {
 		mocks.NewMockValidators(common.HexToAddress("0x1"), addresses2, nil),
 		nil,
 	)
-	fmt.Println(reg2.ValidatorsAddress()) //
 
 	engine1 := New(params.TestnetChainConfig.Clique, db1, exclusionSetProvider1, reg1)
 	engine2 := New(params.TestnetChainConfig.Clique, db2, exclusionSetProvider2, reg2)
 
+	// Create genesis blocks for both chains
 	genSpec := &core.Genesis{
 		ExtraData:  make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
 		Alloc:      core.GenesisAlloc{testAddr: {Balance: big.NewInt(params.Ether)}},
@@ -688,288 +688,155 @@ func TestReorgRegistryV2(t *testing.T) {
 	for i := 0; i < signersCount; i++ {
 		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addresses1[i][:])
 	}
+	genesis1, genesis2 := genSpec, genSpec
 
-	genesis1 := genSpec
-	genesis2 := genSpec
-
-	back1 := backends.NewSimulatedBackendWithDatabaseAndEngine(db1, core.GenesisAlloc{testAddr: {Balance: big.NewInt(params.Ether)}}, 10000000, engine1, params.TestnetChainConfig, genesis1)
-	back2 := backends.NewSimulatedBackendWithDatabaseAndEngine(db2, core.GenesisAlloc{testAddr: {Balance: big.NewInt(params.Ether)}}, 10000000, engine2, params.TestnetChainConfig, genesis2)
+	// Backends for both chains
+	back1 := backends.NewSimulatedBackendWithDatabaseAndEngine(db1, core.GenesisAlloc{testAddr: {Balance: big.NewInt(params.Ether)}}, 10000000, engine1, params.TestnetChainConfig, genesis1, engine1.ChooseBlockWithMostRecentSigner)
+	back2 := backends.NewSimulatedBackendWithDatabaseAndEngine(db2, core.GenesisAlloc{testAddr: {Balance: big.NewInt(params.Ether)}}, 10000000, engine2, params.TestnetChainConfig, genesis2, engine2.ChooseBlockWithMostRecentSigner)
 
 	// // Insert common blocks
-	// var blocks []*types.Block
-	var current, current2 *int
 	c, c2 := 0, 0
-	current = &c
-	current2 = &c2
-	var hash common.Hash
+	current, current2 := &c, &c2 // Pointers to the current block number
 
-	auth, _ := bind.NewKeyedTransactorWithChainID(testKey, big.NewInt(35443))
+	var hash common.Hash
 	var validatorAddrMG common.Address
 
+	auth, _ := bind.NewKeyedTransactorWithChainID(testKey, big.NewInt(35443))
+	auth.NoSend = true
+	auth.GasPrice = big.NewInt(1)
+
+	t.Log("Creating initial common chains")
 	for i := 0; i < commonBlocksCount; i++ {
-		if i == 10 {
-			fmt.Println("adding tx")
-
-			auth.NoSend = true
+		switch i {
+		case 10:
+			t.Log("Deploying validators contract")
+			// First chain
 			auth.Nonce = big.NewInt(0)
-			auth.GasPrice = big.NewInt(1)
-			// auth.GasLimit = 1000000000 * params.GWei
-
-			validatorAddrM, tx, bindingM, err := generated.DeployValidatorsMock(auth, back1)
-			fmt.Println(validatorAddrM, tx, bindingM, err)
+			validatorAddrM, tx, _, err := generated.DeployValidatorsMock(auth, back1)
+			if err != nil {
+				t.Fatalf("failed to deploy validators contract: %v", err)
+			}
 			err = back1.SendTransactionWithLock(context.Background(), tx, false)
 			if err != nil {
-				fmt.Println(err)
+				t.Fatalf("failed to deploy validators contract: %v", err)
 			}
-
 			validatorAddrMG = validatorAddrM
 
-			fmt.Println("adding tx")
-
-			auth.NoSend = true
+			// Second chain
 			auth.Nonce = big.NewInt(0)
-			auth.GasPrice = big.NewInt(1)
-			// auth.GasLimit = 1000000000 * params.GWei
-
-			validatorAddrM, tx, bindingM, err = generated.DeployValidatorsMock(auth, back2)
-			fmt.Println(validatorAddrM, tx, bindingM, err)
+			_, tx, _, err = generated.DeployValidatorsMock(auth, back2)
+			if err != nil {
+				t.Fatalf("failed to deploy validators contract: %v", err)
+			}
 			err = back2.SendTransactionWithLock(context.Background(), tx, false)
 			if err != nil {
-				fmt.Println(err)
+				t.Fatalf("failed to deploy validators contract: %v", err)
 			}
-
-		}
-		if i == 11 {
-			// fmt.Println("creating snapshot")
-			auth.NoSend = true
-
+		case 11:
+			t.Log("Setting snapshot")
+			// First chain
 			auth.Nonce = big.NewInt(1)
 			bindingVG, _ := generated.NewValidatorsMock(validatorAddrMG, back1)
-			auth.GasPrice = big.NewInt(1)
-			// auth.GasLimit = 1000000000 * params.GWei
-
 			tx, err := bindingVG.SetSnapshot(auth, addresses1)
 			if err != nil {
-				fmt.Println(tx, err)
-				fmt.Println("aaaa")
+				t.Fatalf("failed to set snapshot: %v for tx %v", err, tx)
 			}
 			err = back1.SendTransactionWithLock(context.Background(), tx, false)
 			if err != nil {
-				fmt.Println(err)
+				t.Fatalf("failed to set snapshot: %v", err)
 			}
 
-			auth.NoSend = true
-
+			// Second chain
 			auth.Nonce = big.NewInt(1)
 			bindingVG2, _ := generated.NewValidatorsMock(validatorAddrMG, back2)
-			auth.GasPrice = big.NewInt(1)
-			// auth.GasLimit = 1000000000 * params.GWei
-
 			tx, err = bindingVG2.SetSnapshot(auth, addresses1)
 			if err != nil {
-				fmt.Println(tx, err)
-				fmt.Println("aaaa")
+				t.Fatalf("failed to set snapshot: %v for tx %v", err, tx)
 			}
 			err = back2.SendTransactionWithLock(context.Background(), tx, false)
 			if err != nil {
-				fmt.Println(err)
+				t.Fatalf("failed to set snapshot: %v", err)
 			}
-
-		}
-
-		if i == 13 {
+		case 13:
+			t.Log("Updating registries")
 			binding, _ := generated.NewValidators(validatorAddrMG, back1)
-
 			*reg1 = *contracts.NewTestModeRegistryWithMocks(
 				NewMockValidators(binding),
 				nil,
 			)
 
-			// fmt.Println("reg validators")
-			// fmt.Println(binding.GetValidatorsList(nil))
-
 			binding2, _ := generated.NewValidators(validatorAddrMG, back2)
-
 			*reg2 = *contracts.NewTestModeRegistryWithMocks(
 				NewMockValidators(binding2),
 				nil,
 			)
-
-			fmt.Println("reg2 validators")
-			fmt.Println(binding2.GetValidatorsList(nil))
-
 		}
 
-		hash = back1.CommitWithEngine(SealHash, false, addresses1, keys, reg1, current, extraVanity, extraSeal, i)
-		hash = back2.CommitWithEngine(SealHash, false, addresses1, keys, reg2, current2, extraVanity, extraSeal, i)
-		// block := back1.Blockchain().GetBlockByHash(hash)
-		// blocks = append(blocks, block)
+		back1.CommitWithEngine(SealHash, false, addresses1, keys, reg1, current, extraVanity, extraSeal, i)
+		back2.CommitWithEngine(SealHash, false, addresses1, keys, reg2, current2, extraVanity, extraSeal, i)
 	}
-	// _, err := back2.Blockchain().InsertChain(blocks)
-	// if err != nil {
-	// 	t.Fatalf("failed to insert commonBlocks blocks: %v", err)
-	// 	return
-	// }
 
 	// // Uncommon blocks
-	fmt.Println("creating snapshot")
-	auth.NoSend = true
+	t.Log("Simulating the side chain insertion")
+
+	// Chain 1. Our snapshot will contain the unmodified list of validators
+	t.Log("Creating snapshot for chain 1")
 	auth.Nonce = big.NewInt(2)
 	bindingVG, _ := generated.NewValidatorsMock(validatorAddrMG, back1)
-	auth.GasPrice = big.NewInt(1)
-	// auth.GasLimit = 1000000000 * params.GWei
 	tx, err := bindingVG.SetSnapshot(auth, addresses1)
 	if err != nil {
-		fmt.Println(tx, err)
+		t.Fatalf("failed to set snapshot: %v for tx %v", err, tx)
 	}
 	err = back1.SendTransactionWithLock(context.Background(), tx, false)
 	if err != nil {
-		fmt.Println(err)
+		t.Fatalf("failed to send snapshot transaction: %v", err)
 	}
 	back1.CommitWithEngine(SealHash, false, addresses1, keys, reg1, current, extraVanity, extraSeal, 100)
+	t.Log("Chain 1 updated validators:")
+	t.Log(reg2.Validators().GetValidatorsList(nil))
 
-	//
-	// fmt.Println(bindingVG.GetValidatorsList(nil))
-	// Chain2
-	fmt.Println("creating snapshot 2")
+	// Chain 2. Our snapshot will contain the modified list of validators
+	t.Log("Creating snapshot for chain 2")
 	addresses2 = append(addresses2, testAddr)
 	keys[testAddr], _ = crypto.GenerateKey()
 	sort.Sort(signersAscending(addresses2))
-	auth.NoSend = true
 	auth.Nonce = big.NewInt(2)
 	bindingVG2, _ := generated.NewValidatorsMock(validatorAddrMG, back2)
-	auth.GasPrice = big.NewInt(1)
-	// auth.GasLimit = 1000000000 * params.GWei
 	tx, err = bindingVG2.SetSnapshot(auth, addresses2)
 	if err != nil {
-		fmt.Println(tx, err)
+		t.Fatalf("failed to set snapshot: %v for tx %v", err, tx)
 	}
 	err = back2.SendTransactionWithLock(context.Background(), tx, false)
 	if err != nil {
-		fmt.Println(err)
+		t.Fatalf("failed to send snapshot transaction: %v", err)
 	}
+	*current2 = 2
 	hash = back2.CommitWithEngine(SealHash, false, addresses1, keys, reg2, current2, extraVanity, extraSeal, 100)
-	block1 := back2.Blockchain().GetBlockByHash(hash)
+	block1 := back2.Blockchain().GetBlockByHash(hash) // This is the block that will be inserted into the first chain
+	t.Log("Chain 2 updated validators:")
+	t.Log(reg2.Validators().GetValidatorsList(nil))
+	t.Logf("Generated side chain block %d", block1.NumberU64())
+	// Block 2
 	*current2 = *current2 + 1
-	fmt.Println("snapshot 2 post list of validators")
-	fmt.Println(reg2.Validators().GetValidatorsList(&bind.CallOpts{
-		BlockNumber: nil,
-	}))
-
-	*current = 0
-	// *current2 = 0
 	hash = back2.CommitWithEngine(SealHash, true, addresses2, keys, reg2, current2, extraVanity, extraSeal, 101)
-	block2 := back2.Blockchain().GetBlockByHash(hash)
-	// hash = back2.CommitWithEngine(SealHash, false, addresses2, keys, reg2, current, extraVanity, extraSeal, 101)
-	// block1 := back2.Blockchain().GetBlockByHash(hash)
-	fmt.Println("101")
-	// Try to insert the side chain
-	_, err = back1.Blockchain().InsertChain(types.Blocks{block1})
-	fmt.Println(err)
-	fmt.Println("102")
-	_, err = back1.Blockchain().InsertChain(types.Blocks{block2})
-	fmt.Println(err)
-}
+	block2 := back2.Blockchain().GetBlockByHash(hash) // This is the block that will be inserted into the first chain
+	t.Logf("Generated side chain block %d", block2.NumberU64())
 
-func genFunc(auth *bind.TransactOpts, back *backends.SimulatedBackend, addresses []common.Address, reg *contracts.Registry) func(i int, gen *core.BlockGen) {
-	var validatorAddrMG common.Address
-	gen := func(i int, gen *core.BlockGen) {
-
-		if i == 10 {
-			fmt.Println("adding tx")
-
-			auth.NoSend = true
-			auth.Nonce = big.NewInt(0)
-			auth.GasPrice = big.NewInt(params.GWei)
-
-			validatorAddrM, tx, bindingM, err := generated.DeployValidatorsMock(auth, back)
-			fmt.Println(validatorAddrM, tx, bindingM, err)
-			gen.AddTx(tx)
-
-			validatorAddrMG = validatorAddrM
-
-			// bindingVG = bindingM
-
-		}
-
-		if i == 20 {
-			auth.NoSend = true
-
-			auth.Nonce = big.NewInt(1)
-			bindingVG, _ := generated.NewValidatorsMock(validatorAddrMG, back)
-			auth.GasLimit = 1000000
-
-			tx, err := bindingVG.SetSnapshot(auth, addresses)
-			if err != nil {
-				fmt.Println(tx, err)
-				fmt.Println("aaaa")
-			}
-			gen.AddTx(tx)
-
-		}
-
-		if i == 30 {
-			binding, _ := generated.NewValidators(validatorAddrMG, back)
-
-			reg = contracts.NewTestModeRegistryWithMocks(
-				NewMockValidators(binding),
-				nil,
-			)
-
-			fmt.Println(binding.GetValidatorsList(nil))
-		}
-
+	// ************************************************************************************************************************
+	// Let's try to insert the side chain into the first chain. Generate the blocks
+	t.Log("Inserting side chain into the first chain")
+	t.Log("Inserting two blocks simultaneously into chain1. Should fail. Block 1 will be inserted, block 2 will not.")
+	index, err := back1.Blockchain().InsertChain(types.Blocks{block1, block2})
+	if err != nil {
+		t.Logf("Successfully failed (: to insert side chain: %v", err)
 	}
-
-	return gen
-}
-
-// Generates blocks with the required signer and difficulty in the middle
-func generateChainForReorg(t *testing.T, config *params.ChainConfig, parent *types.Block, engine *Clique, db ethdb.Database, numBlocks int, addresses []common.Address, keys map[common.Address]*ecdsa.PrivateKey, reg *contracts.Registry, gen func(int, *core.BlockGen)) []*types.Block {
-	current := int(parent.NumberU64()+1) % len(addresses)
-	blocks, _ := core.GenerateChain(config, parent, engine, db, numBlocks, gen)
-
-	for i, block := range blocks {
-		header := block.Header()
-		if i > 0 {
-			header.ParentHash = blocks[i-1].Hash()
-		} else {
-			header.ParentHash = parent.Hash()
-		}
-
-		signer := addresses[current]
-
-		difficulty := block.Difficulty()
-
-		key := keys[signer]
-		if len(header.Extra) < extraVanity {
-			header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, extraVanity-len(header.Extra))...)
-		}
-		header.Extra = header.Extra[:extraVanity]
-
-		if block.NumberU64()%config.Clique.Epoch == 0 {
-			for _, s := range addresses {
-				header.Extra = append(header.Extra, s[:]...)
-			}
-
-			fmt.Println("I am here", block.NumberU64())
-		}
-		header.Extra = append(header.Extra, make([]byte, extraSeal)...)
-
-		header.Difficulty = difficulty
-		header.Coinbase = reg.RewardReceiver()
-
-		sig, _ := crypto.Sign(SealHash(header).Bytes(), key)
-		copy(header.Extra[len(header.Extra)-extraSeal:], sig)
-		blocks[i] = block.WithSeal(header)
-
-		current++
-		if current == len(addresses) {
-			current = 0
-		}
+	assert.Equal(t, index, 1)
+	t.Log("Inserting block 2 separately. Should fail also.")
+	index, err = back1.Blockchain().InsertChain(types.Blocks{block2})
+	if err != nil {
+		t.Logf("Successfully failed (: to insert side chain: %v", err)
 	}
-
-	return blocks
+	assert.Equal(t, index, 0)
 }
 
 type mockValidators struct {
