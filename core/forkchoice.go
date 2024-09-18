@@ -98,22 +98,21 @@ func (f *ForkChoice) ReorgNeeded(currentHeader *types.Header, externalHeader *ty
 			}
 			// External chain has a higher priority because of the order of the validators
 			if !currentPreserve && externPreserve {
-				reorg = true // nolint: ineffassign
+				return true, nil
 			}
 			// Local chain has a higher priority because of the order of the validators
 			// Not necessary since at the end of the condition we set reorg to false. Just for clarity
 			if currentPreserve && !externPreserve {
-				reorg = false // nolint: ineffassign
+				return false, nil
 			}
 			// If both headers are from the same validator, then choose the block with the lower hash
 			if currentPreserve && externPreserve || (!currentPreserve && !externPreserve) {
 				// EIP-3436 rule #4
 				// Apply external chain if it has the lower hash
-				reorg = externalHeader.Hash().Big().Cmp(currentHeader.Hash().Big()) < 0 // nolint: ineffassign
+				return externalHeader.Hash().Big().Cmp(currentHeader.Hash().Big()) < 0, nil
 			}
 			// Can't decide which header to choose, so we keep the current one
-			// !currentPreserve && !externPreserve
-			reorg = false
+			// !currentPreserve && !externPreserve, so we set reorg to false
 		}
 	}
 	return reorg, nil
