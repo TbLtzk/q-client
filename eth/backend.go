@@ -264,9 +264,6 @@ func New(stack *node.Node, config *ethconfig.Config, conn bind.ContractBackend, 
 		rm.InitDownloader(eth.Downloader())
 	}
 
-	eth.miner = miner.New(eth, &config.Miner, chainConfig, eth.EventMux(), eth.engine, eth.isLocalBlock, eth.accountManager)
-	eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
-
 	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), stack.Config().AllowUnprotectedTxs, eth, gpProvider, nil}
 	if eth.APIBackend.allowUnprotectedTxs {
 		log.Info("Unprotected transactions allowed")
@@ -276,6 +273,9 @@ func New(stack *node.Node, config *ethconfig.Config, conn bind.ContractBackend, 
 		gpoParams.Default = config.Miner.GasPrice
 	}
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
+
+	eth.miner = miner.New(eth, &config.Miner, chainConfig, eth.EventMux(), eth.engine, eth.isLocalBlock, eth.accountManager, gpProvider)
+	eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
 	// Setup DNS discovery iterators.
 	dnsclient := dnsdisc.NewClient(dnsdisc.Config{})
@@ -444,7 +444,7 @@ func (s *Ethereum) shouldPreserve(header *types.Header, externalHeader *types.He
 }
 
 func (s *Ethereum) ShouldPreserveClique(header *types.Header, externalHeader *types.Header) bool {
-	//If we use Clique as engine, we need to check rule #3 of Eip3436: https://eips.ethereum.org/EIPS/eip-3436
+	// If we use Clique as engine, we need to check rule #3 of Eip3436: https://eips.ethereum.org/EIPS/eip-3436
 	if c, ok := s.engine.(*clique.Clique); ok {
 		rHeader, err := c.ChooseBlockWithMostRecentSigner(s.blockchain, header, externalHeader)
 		if err != nil {
