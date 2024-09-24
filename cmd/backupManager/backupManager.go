@@ -28,11 +28,11 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const defaultRotationPeriod = 3 //days
+const defaultRotationPeriod = 3 // days
 
 type Config struct {
 	Datadir        string
-	BackupDir      string //If not set - temp dir will be used instead
+	BackupDir      string // If not set - temp dir will be used instead
 	Incremental    bool
 	S3Export       bool
 	S3Bucket       string
@@ -48,7 +48,7 @@ type Config struct {
 type BackupInfo struct {
 	Name          string
 	Timestamp     time.Time
-	Parent        string //In case of incremental backup
+	Parent        string // In case of incremental backup
 	Hash          string
 	ParentHash    string
 	BackupSize    int64
@@ -132,8 +132,8 @@ func (mgr *BackupManager) ScheduleExport() error {
 	if mgr.config.CronSpec != nil {
 		mgr.cron = cron.New()
 
-		//var job cron.Job{func() {}}
-		//job.Run()
+		// var job cron.Job{func() {}}
+		// job.Run()
 
 		var err error
 		var entryID cron.EntryID
@@ -194,7 +194,7 @@ func (mgr *BackupManager) prepareToRestore() error {
 }
 
 func (mgr *BackupManager) postExecute() error {
-	//log.Info("Backup manager. Running post-execute actions")
+	// log.Info("Backup manager. Running post-execute actions")
 	if mgr.lock != nil {
 		return mgr.lock.Release()
 	}
@@ -203,12 +203,12 @@ func (mgr *BackupManager) postExecute() error {
 
 func (mgr *BackupManager) RestoreBackup(backupName *string) error {
 	startTime := time.Now()
-	//This one will be run in any case
+	// This one will be run in any case
 	err := mgr.prepareToRestore()
 	if err != nil {
 		return err
 	}
-	defer mgr.postExecute() //TODO handle error?
+	defer mgr.postExecute() // TODO handle error?
 
 	log.Info("Backup manager. Backup restoration job started")
 
@@ -220,7 +220,7 @@ func (mgr *BackupManager) RestoreBackup(backupName *string) error {
 		}
 		backupName = &latestBackupName
 	} else {
-		//Check if backup exists. Skip this check if S3 export is enabled
+		// Check if backup exists. Skip this check if S3 export is enabled
 		if !mgr.config.S3Export {
 			backupPath := *backupName
 			if !strings.Contains(*backupName, mgr.config.BackupDir) {
@@ -233,7 +233,7 @@ func (mgr *BackupManager) RestoreBackup(backupName *string) error {
 		}
 	}
 
-	//File exists. Restore it
+	// File exists. Restore it
 	if errRestore := mgr.restoreBackup(*backupName); errRestore != nil {
 		return errors.Wrap(errRestore, "Failed to restore backup. No backups found")
 	}
@@ -246,12 +246,12 @@ func (mgr *BackupManager) RestoreBackup(backupName *string) error {
 func (mgr *BackupManager) CreateBackup() error {
 	startTime := time.Now()
 
-	//This one will be run in any case
+	// This one will be run in any case
 	if err := mgr.prepareToBackup(); err != nil {
 		return err
 	}
 
-	//This one will be run only if prepareCallback is set
+	// This one will be run only if prepareCallback is set
 	if mgr.prepareCallback != nil {
 		if errPrepare := mgr.prepareCallback(); errPrepare != nil {
 			return errors.Wrap(errPrepare, "Failed to prepare for the mgr job")
@@ -261,13 +261,13 @@ func (mgr *BackupManager) CreateBackup() error {
 	var results *BackupInfo
 	defer func() {
 		if mgr.onJobEndCallback != nil {
-			//We need to call callback in any case. Even if job failed.
-			//Results are ignored as callback isn't the part of the job.
+			// We need to call callback in any case. Even if job failed.
+			// Results are ignored as callback isn't the part of the job.
 			mgr.onJobEndCallback(results)
 		}
 	}()
 
-	defer mgr.postExecute() //TODO handle error?
+	defer mgr.postExecute() // TODO handle error?
 
 	log.Info("Backup manager. Backup job started")
 
@@ -275,7 +275,7 @@ func (mgr *BackupManager) CreateBackup() error {
 	backupDir := os.TempDir()
 
 	if mgr.config.BackupDir != "" {
-		//If backup dir doesn't exist - create one
+		// If backup dir doesn't exist - create one
 		if _, errE := os.OpenFile(mgr.config.BackupDir, os.O_RDONLY, 0); errE != nil {
 			log.Info("\tBackup directory doesn't exist. Creating")
 			if errMk := os.MkdirAll(mgr.config.BackupDir, 0755); errMk != nil && !os.IsNotExist(errMk) {
@@ -284,7 +284,7 @@ func (mgr *BackupManager) CreateBackup() error {
 		}
 		backupDir = mgr.config.BackupDir
 	} else {
-		//Backup dir is not set. Check if S3 export is enabled.
+		// Backup dir is not set. Check if S3 export is enabled.
 		if !mgr.config.S3Export {
 			return errors.New("Cannot create archive: backup dir is not set and S3 export is disabled. Please set backup dir or enable S3 export.")
 		}
@@ -305,22 +305,22 @@ func (mgr *BackupManager) CreateBackup() error {
 	}
 
 	var backupFiles map[string]string
-	backupFilename := fmt.Sprintf("%d", timestamp.Unix()) //edgecase and default value if no backups found
+	backupFilename := fmt.Sprintf("%d", timestamp.Unix()) // edgecase and default value if no backups found
 	var lastBackupInfo *BackupInfo
 
 	backupFiles, lastBackupInfo, err = mgr.getIncrementalBackupFilesWithHashes("")
 	if err != nil || backupFiles == nil {
-		//Ignore error. It's not critical. Otherwise, full backup will be created
+		// Ignore error. It's not critical. Otherwise, full backup will be created
 		backupFiles = make(map[string]string)
 	}
-	//If incremental is enabled - let's name backup file according to the part name
+	// If incremental is enabled - let's name backup file according to the part name
 	if mgr.config.Incremental && lastBackupInfo != nil {
 		fileName := strings.TrimSuffix(lastBackupInfo.Name, filepath.Ext(lastBackupInfo.Name))
 		if len(fileName) == 10 {
-			//It is a full backup
+			// It is a full backup
 			backupFilename = fileName + "_1"
 		} else if strings.Contains(fileName, "_") {
-			//It is an incremental backup. Let's increase the number
+			// It is an incremental backup. Let's increase the number
 			preefix := strings.Split(fileName, "_")[0]
 			suffix := strings.Split(fileName, "_")[1]
 			if suffix != "" {
@@ -345,7 +345,7 @@ func (mgr *BackupManager) CreateBackup() error {
 		return errors.Wrap(err, "Failed to create the archive log file")
 	}
 
-	//We're using temp directory. Need to clean up after yourself
+	// We're using temp directory. Need to clean up after yourself
 	if mgr.config.BackupDir == "" {
 		defer func() {
 			if err := os.Remove(backupFileFullName); err != nil {
@@ -373,16 +373,16 @@ func (mgr *BackupManager) CreateBackup() error {
 			return nil
 		}
 
-		//Skip keystore files. It's a bad practice to store them in the same directory as the data.
+		// Skip keystore files. It's a bad practice to store them in the same directory as the data.
 		if matched, _ := regexp.MatchString("^.*(keystore|pwd|pass|password).*$", path+info.Name()); matched {
 			log.Info("\tSkipping keystore/password file: " + info.Name())
 			return nil
 		}
-		//Special case for the keystore file. It's a json file with 491 bytes size.
+		// Special case for the keystore file. It's a json file with 491 bytes size.
 		if info.Size() == 491 {
 			dat, err := os.ReadFile(path)
 			if err == nil {
-				//This is simplified keystore file. Skip it
+				// This is simplified keystore file. Skip it
 				var kf struct {
 					Address string `json:"address"`
 					Crypto  struct {
@@ -398,7 +398,7 @@ func (mgr *BackupManager) CreateBackup() error {
 		hash := mgr.getHashOfFile(path)
 		shortName := strings.TrimPrefix(path, mgr.config.Datadir)
 
-		//Check if file was changed since last backup. If incremental backup is enabled. Otherwise file will be added to the archive anyway
+		// Check if file was changed since last backup. If incremental backup is enabled. Otherwise file will be added to the archive anyway
 		if hashStr, ok := backupFiles[shortName]; ok {
 			if hashStr == hash {
 				log.Info("\tSkipping unchanged file: " + path)
@@ -528,7 +528,7 @@ func (mgr *BackupManager) getDiskFreeSpace(path string) (int64, error) {
 		bavail = 0
 	}
 	//nolint:unconvert
-	return int64(bavail) * stat.Bsize, nil
+	return int64(bavail) * int64(stat.Bsize), nil
 }
 
 func (mgr *BackupManager) getDirectorySize(path string) (int64, error) {
@@ -566,7 +566,7 @@ func (mgr *BackupManager) restoreBackup(s string) error {
 }
 
 func (mgr *BackupManager) restoreBackupFromS3(filename string) error {
-	//First, check if we have enough space to restore the backup
+	// First, check if we have enough space to restore the backup
 	backupSize, err := mgr.getBackupSizeFromS3(filename)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get backup file size")
@@ -576,8 +576,8 @@ func (mgr *BackupManager) restoreBackupFromS3(filename string) error {
 		return errors.Wrap(err, "Failed to get free disk space")
 	}
 
-	//Check if we have enough space to restore the backup
-	//We need at least 2x the size of the backup to be sure we have enough space
+	// Check if we have enough space to restore the backup
+	// We need at least 2x the size of the backup to be sure we have enough space
 	if backupSize*2 > freeSpace {
 		return errors.New("Not enough disk space to restore the backup")
 	}
@@ -591,7 +591,7 @@ func (mgr *BackupManager) restoreBackupFromS3(filename string) error {
 	}
 	defer result.Body.Close()
 
-	//Unpack the backup file
+	// Unpack the backup file
 	if err := mgr.unpackBackup(result.Body); err != nil {
 		return errors.Wrap(err, "Failed to unpack backup file")
 	}
@@ -600,7 +600,7 @@ func (mgr *BackupManager) restoreBackupFromS3(filename string) error {
 }
 
 func (mgr *BackupManager) restoreBackupFromLocal(s string) error {
-	//Unpack the backup file
+	// Unpack the backup file
 	backupFile, err := os.Open(mgr.config.BackupDir + "/" + s)
 	if err != nil {
 		return errors.Wrap(err, "Failed to open backup file")
@@ -698,9 +698,9 @@ func sanitizeFilePath(d, t string) (v string, err error) {
 }
 
 func (mgr *BackupManager) getBackupSizeFromS3(filename string) (int64, error) {
-	//We can download and unmarshall the json file to get the size of the backup
-	//However, this is not very efficient, so we will just list the objects in the bucket
-	//and get the size of the backup file
+	// We can download and unmarshall the json file to get the size of the backup
+	// However, this is not very efficient, so we will just list the objects in the bucket
+	// and get the size of the backup file
 
 	result, err := mgr.s3Client.ListObjectsV2(context.TODO(), &s3.ListObjectsV2Input{
 		Bucket: aws.String(mgr.config.S3Bucket),
@@ -723,20 +723,20 @@ func (mgr *BackupManager) performRotation() error {
 		period = defaultRotationPeriod
 	}
 
-	//Get the list of backups
+	// Get the list of backups
 	backupList, err := mgr.getBackupNames("")
 	if err != nil {
 		return errors.Wrap(err, "Failed to get backup list")
 	}
 
-	//If the number of backups is less than the rotation period, we don't need to do anything
+	// If the number of backups is less than the rotation period, we don't need to do anything
 	if len(backupList) == 0 || len(backupList) <= mgr.config.RotationPeriod {
-		return nil //Nothing to do
+		return nil // Nothing to do
 	}
 
 	candidates := []string{}
 
-	//Get the list of backups that are older than the rotation period
+	// Get the list of backups that are older than the rotation period
 	for _, s := range backupList {
 		i, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
@@ -746,13 +746,13 @@ func (mgr *BackupManager) performRotation() error {
 
 		desiredPeriod := time.Hour * 24 * time.Duration(period)
 		timePassed := time.Since(tm)
-		//Check if the backup is older than the rotation period
+		// Check if the backup is older than the rotation period
 		if timePassed > desiredPeriod {
 			candidates = append(candidates, s)
 		}
 	}
 
-	//Delete the oldest backups
+	// Delete the oldest backups
 	for _, candidate := range candidates {
 		if err := mgr.deleteBackup(candidate); err != nil {
 			return errors.Wrap(err, "Failed to delete backup")
@@ -771,7 +771,7 @@ func (mgr *BackupManager) getIncrementalBackupFilesWithHashes(backupName string)
 	}
 	files := make(map[string]string)
 	var lastInfo *BackupInfo
-	//infos are sorted by date ascending. So, if file has been changed - the last one will be the correct one
+	// infos are sorted by date ascending. So, if file has been changed - the last one will be the correct one
 	for i := range infos {
 		for _, file := range infos[i].Files {
 			files[file.Name] = file.Hash
@@ -779,7 +779,7 @@ func (mgr *BackupManager) getIncrementalBackupFilesWithHashes(backupName string)
 		lastInfo = &infos[i]
 	}
 
-	//As a result we will have a map of files with their hashes.
+	// As a result we will have a map of files with their hashes.
 	return files, lastInfo, nil
 }
 
@@ -798,7 +798,7 @@ func (mgr *BackupManager) getIncrementalBackupList(fullBackup string) ([]BackupI
 	if backupName == "" {
 		return nil, nil
 	}
-	//Get the list of backups with the last full backup as the prefix (full included). Sorted by date descending
+	// Get the list of backups with the last full backup as the prefix (full included). Sorted by date descending
 	backupInfos, err := mgr.getBackupInfos(backupName)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get backup list")
@@ -818,32 +818,32 @@ func (mgr *BackupManager) validateIncrementalBackups(incrementalBackups []Backup
 	if len(incrementalBackups) == 0 {
 		return nil, nil
 	}
-	//if there's only one file - it's a full backup, no need to validate
+	// if there's only one file - it's a full backup, no need to validate
 	if len(incrementalBackups) == 1 {
 		return incrementalBackups, nil
 	}
 
-	var resList []BackupInfo //This guy contains the list of incremental backups that are valid. Includes the last full backup
+	var resList []BackupInfo // This guy contains the list of incremental backups that are valid. Includes the last full backup
 
-	//backups are sorted by date descending. Revert the order and follow the chain of incremental backups
-	//first backup is the last full backup
+	// backups are sorted by date descending. Revert the order and follow the chain of incremental backups
+	// first backup is the last full backup
 	sort.Slice(incrementalBackups, func(i, j int) bool {
 		return incrementalBackups[i].Timestamp.Unix() < incrementalBackups[j].Timestamp.Unix()
 	})
 
 	var previousBackup BackupInfo
-	//resList = append(resList, previousBackup) //add the last full backup to the list
+	// resList = append(resList, previousBackup) //add the last full backup to the list
 	validationFailed := false
 
-	//Iterate through the list and check if the incremental backups are valid (consistency check)
+	// Iterate through the list and check if the incremental backups are valid (consistency check)
 	for _, backup := range incrementalBackups {
-		//skip previous backup. Also skip all backups that are older than the previous backup (we don't need to check them)
+		// skip previous backup. Also skip all backups that are older than the previous backup (we don't need to check them)
 		if backup.Hash == previousBackup.Hash || backup.Timestamp.Unix() < previousBackup.Timestamp.Unix() {
 			continue
 		}
 		log.Info("\t\tValidating incremental backup: " + backup.Timestamp.String())
 
-		//check if the backup is valid
+		// check if the backup is valid
 		if !validationFailed {
 			if err := mgr.validateIncrementalBackup(previousBackup, backup); err != nil {
 				validationFailed = true
@@ -852,7 +852,7 @@ func (mgr *BackupManager) validateIncrementalBackups(incrementalBackups []Backup
 
 		if validationFailed {
 			log.Info("\t\t\tValidation failed. Deleting backup: " + backup.Timestamp.String())
-			//delete the backup - it's not valid
+			// delete the backup - it's not valid
 			if err := mgr.deleteBackup(backup.Timestamp.String()); err != nil {
 				return resList, errors.Wrap(err, "Failed to delete invalid backup")
 			}
@@ -861,14 +861,14 @@ func (mgr *BackupManager) validateIncrementalBackups(incrementalBackups []Backup
 			previousBackup = backup
 		}
 	}
-	//as a result we'll have a list of incremental backups that are valid on top of the last full backup
+	// as a result we'll have a list of incremental backups that are valid on top of the last full backup
 	return resList, nil
 }
 
 // Compare the hash of the previous backup with the parent hash of the current backup
 func (mgr *BackupManager) validateIncrementalBackup(parent BackupInfo, current BackupInfo) error {
-	//for now, assume that backup files themselves are valid, so we only need to check the backup logs
-	//TODO validate backup files
+	// for now, assume that backup files themselves are valid, so we only need to check the backup logs
+	// TODO validate backup files
 
 	if current.ParentHash != parent.Hash && current.Hash != parent.Hash {
 		return errors.New("Backup is not incremental")
@@ -877,7 +877,7 @@ func (mgr *BackupManager) validateIncrementalBackup(parent BackupInfo, current B
 }
 
 func (mgr *BackupManager) getLastFullBackupName() (string, error) {
-	//Get the list of backups
+	// Get the list of backups
 	backupList, err := mgr.getBackupNames("")
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get last full backup")
@@ -904,7 +904,7 @@ func (mgr *BackupManager) getBackupInfos(prefix string) ([]BackupInfo, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get backup list")
 	}
-	//Sort the backup list by date
+	// Sort the backup list by date
 	sort.Slice(backupInfos, func(i, j int) bool {
 		return backupInfos[i].Timestamp.Unix() > backupInfos[j].Timestamp.Unix()
 	})
@@ -922,11 +922,11 @@ func (mgr *BackupManager) getBackupNames(prefix string) ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get backup list")
 	}
-	//Sort the backup list by date
+	// Sort the backup list by date
 	sort.Slice(backupList, func(i, j int) bool {
 		return backupList[i] > backupList[j]
 	})
-	//If a prefix is specified, filter the list
+	// If a prefix is specified, filter the list
 	if prefix != "" {
 		for _, s := range backupList {
 			if strings.HasPrefix(s, prefix) {

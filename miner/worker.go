@@ -24,11 +24,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/internal/utils"
-
 	mapset "github.com/deckarep/golang-set"
-
+	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/misc"
@@ -36,6 +33,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/internal/utils"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/trie"
@@ -254,9 +252,10 @@ type worker struct {
 	skipSealHook func(*task) bool                   // Method to decide whether skipping the sealing.
 	fullTaskHook func()                             // Method to call before pushing the full sealing task.
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
+	gpp          core.GasPriceProvider
 }
 
-func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, isLocalBlock func(header *types.Header) bool, init bool, accountManager *accounts.Manager) *worker {
+func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, isLocalBlock func(header *types.Header) bool, init bool, accountManager *accounts.Manager, gpp core.GasPriceProvider) *worker {
 	worker := &worker{
 		config:             config,
 		chainConfig:        chainConfig,
@@ -281,6 +280,7 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 		startCh:            make(chan struct{}, 1),
 		resubmitIntervalCh: make(chan time.Duration),
 		resubmitAdjustCh:   make(chan *intervalAdjust, resubmitAdjustChanSize),
+		gpp:                gpp,
 	}
 	// Subscribe NewTxsEvent for tx pool
 	worker.txsSub = eth.TxPool().SubscribeNewTxsEvent(worker.txsCh)
@@ -1273,6 +1273,6 @@ func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
 }
 
 func (w *worker) prepareSystemTx(accountManager *accounts.Manager, env *environment) map[common.Address]types.Transactions {
-	systemTxPreparer := utils.New(w.chainConfig, w.engine, env.state, env.header, env.signer)
+	systemTxPreparer := utils.New(w.chainConfig, w.engine, env.state, env.header, env.signer, w.gpp)
 	return systemTxPreparer.PrepareSystemTx(accountManager)
 }

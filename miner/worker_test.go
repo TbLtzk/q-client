@@ -24,13 +24,12 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/q-client/contracts"
-
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/state"
@@ -208,7 +207,7 @@ func (b *testWorkerBackend) newRandomTx(creation bool) *types.Transaction {
 func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine, db ethdb.Database, blocks int) (*worker, *testWorkerBackend) {
 	backend := newTestWorkerBackend(t, chainConfig, engine, db, blocks)
 	backend.txPool.AddLocals(pendingTxs)
-	w := newWorker(testConfig, chainConfig, engine, backend, new(event.TypeMux), nil, false, nil)
+	w := newWorker(testConfig, chainConfig, engine, backend, new(event.TypeMux), nil, false, nil, nil)
 	w.setEtherbase(testBankAddress)
 	return w, backend
 }
@@ -237,7 +236,7 @@ func testGenerateBlockAndImport(t *testing.T, isClique bool) {
 		engine = ethash.NewFaker()
 	}
 
-	//chainConfig.LondonBlock = big.NewInt(0)
+	// chainConfig.LondonBlock = big.NewInt(0)
 	w, b := newTestWorker(t, chainConfig, engine, db, 0)
 	defer w.close()
 
@@ -259,8 +258,8 @@ func testGenerateBlockAndImport(t *testing.T, isClique bool) {
 	// Start mining!
 	w.start()
 
-	//For some reason in the case of clique, there's a delay
-	//TODO investigate why
+	// For some reason in the case of clique, there's a delay
+	// TODO investigate why
 	time.Sleep(time.Second * 1)
 
 	for i := 0; i < 5; i++ {
@@ -539,20 +538,20 @@ func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine co
 	}
 }
 
-//func TestGetSealingWorkEthash(t *testing.T) {
+// func TestGetSealingWorkEthash(t *testing.T) {
 //	testGetSealingWork(t, ethashChainConfig, ethash.NewFaker(), false)
-//}
+// }
 
 func TestGetSealingWorkClique(t *testing.T) {
 	testGetSealingWork(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase(), &consensus.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry()), false)
 }
 
-//func TestGetSealingWorkPostMerge(t *testing.T) {
+// func TestGetSealingWorkPostMerge(t *testing.T) {
 //	local := new(params.ChainConfig)
 //	*local = *ethashChainConfig
 //	local.TerminalTotalDifficulty = big.NewInt(0)
 //	testGetSealingWork(t, local, ethash.NewFaker(), true)
-//}
+// }
 
 func testGetSealingWork(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine, postMerge bool) {
 	defer engine.Close()

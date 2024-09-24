@@ -5,15 +5,14 @@ import (
 	"strings"
 
 	"gitlab.com/q-dev/q-client/accounts"
-	"gitlab.com/q-dev/q-client/core/state"
-
-	"gitlab.com/q-dev/q-client/consensus"
-	"gitlab.com/q-dev/q-client/params"
-
 	"gitlab.com/q-dev/q-client/accounts/abi"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/system-contracts/generated"
 )
 
@@ -27,15 +26,17 @@ type SystemTxPreparer struct {
 	currentState *state.StateDB
 	header       *types.Header
 	signer       types.Signer
+	gpp          core.GasPriceProvider
 }
 
-func New(c *params.ChainConfig, e consensus.Engine, s *state.StateDB, h *types.Header, signer types.Signer) *SystemTxPreparer {
+func New(c *params.ChainConfig, e consensus.Engine, s *state.StateDB, h *types.Header, signer types.Signer, gpp core.GasPriceProvider) *SystemTxPreparer {
 	return &SystemTxPreparer{
 		config:       c,
 		engine:       e,
 		currentState: s,
 		header:       h,
 		signer:       signer,
+		gpp:          gpp,
 	}
 }
 
@@ -106,5 +107,15 @@ func (w *SystemTxPreparer) prepareTx(contractAddress, sender common.Address) (*t
 
 	nonce := w.currentState.GetNonce(sender)
 
-	return types.NewTransaction(nonce, contractAddress, big.NewInt(0), 1477210, big.NewInt(50000000000), input), nil
+	gasPrice := big.NewInt(50000000000)
+	if w.gpp != nil {
+		gp, err := w.gpp.GetGasPrice()
+		if err != nil {
+			return nil, err
+		}
+		if gp.Int64() > 0 {
+			gasPrice = gp
+		}
+	}
+	return types.NewTransaction(nonce, contractAddress, big.NewInt(0), 1477210, gasPrice, input), nil
 }

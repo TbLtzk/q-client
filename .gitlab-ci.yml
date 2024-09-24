@@ -19,7 +19,7 @@ stages:
   - "deploy"
 
 test:
-  image: golang:1.19.5
+  image: golang:1.21
   stage: test
   extends: .before_script_template
   tags:
@@ -28,7 +28,9 @@ test:
     - merge_requests
     - master
   script:
-    - GO111MODULE=off go get gotest.tools/gotestsum
+    - GO111MODULE=off go get -u github.com/myitcv/gobin
+    - export PATH=$(go env GOPATH)/bin:$PATH
+    - gobin gotest.tools/gotestsum@v1.12.0
     - gotestsum --junitfile report.xml --format testname
   artifacts:
     when: always
