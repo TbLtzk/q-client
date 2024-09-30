@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"slices"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -214,6 +215,26 @@ type BlockChain struct {
 	processor  Processor // Block transaction processor interface
 	forker     *ForkChoice
 	vmConfig   vm.Config
+
+	ignoredBlocks map[uint64]ignoredBlock // Blocks that are ignored during import
+}
+
+func (bc *BlockChain) Lock() (res bool) {
+	log.Trace("Locking blockchain")
+	res = bc.chainmu.TryLock()
+	log.Trace("Locked blockchain")
+	return res
+}
+
+func (bc *BlockChain) Unlock() {
+	log.Trace("Unlocking blockchain")
+	bc.chainmu.Unlock()
+	log.Trace("Unlocked blockchain")
+}
+
+type ignoredBlock struct {
+	hash      common.Hash
+	canonical types.Block
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -410,6 +431,9 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			triedb.SaveCachePeriodically(bc.cacheConfig.TrieCleanJournal, bc.cacheConfig.TrieCleanRejournal, bc.quit)
 		}()
 	}
+
+	bc.ignoredBlocks = make(map[uint64]ignoredBlock)
+
 	return bc, nil
 }
 
@@ -540,10 +564,10 @@ func (bc *BlockChain) SetSafe(block *types.Block) {
 //
 // The method returns the block number where the requested root cap was found.
 func (bc *BlockChain) setHeadBeyondRoot(head uint64, root common.Hash, repair bool) (uint64, error) {
-	if !bc.chainmu.TryLock() {
+	if !bc.Lock() {
 		return 0, errChainStopped
 	}
-	defer bc.chainmu.Unlock()
+	defer bc.Unlock()
 
 	// Track the block number of the requested root hash
 	var rootNumber uint64 // (no root == always 0)
@@ -701,10 +725,10 @@ func (bc *BlockChain) setHeadBeyondRoot(head uint64, root common.Hash, repair bo
 
 // RevalidateChain sets head on the block before specified block number
 // and performs reorg to this block which revalidates higher blocks
-func (bc *BlockChain) RevalidateChain(number uint64) error {
+func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block, canonicalChain []*types.Block) (bool, bool, error) {
 	// Genesis block is not supported
 	if number == 0 {
-		return errors.New("trying to revalidate genesis block")
+		return false, false, errors.New("trying to revalidate genesis block")
 	}
 
 	defer func() {
@@ -714,7 +738,7 @@ func (bc *BlockChain) RevalidateChain(number uint64) error {
 	// If we didn't reach block number of revalidation, skip it
 	currentBlock := bc.CurrentBlock()
 	if currentBlock.NumberU64() < number {
-		return nil
+		return false, false, nil
 	}
 
 	lastValidBlockNumber := number - 1
@@ -723,33 +747,54 @@ func (bc *BlockChain) RevalidateChain(number uint64) error {
 	// Last valid block should be available as we cheched that its number less
 	// than current block number
 	if lastValidBlock == nil {
-		return fmt.Errorf("missing revalidation block %d", lastValidBlockNumber)
+		return false, false, fmt.Errorf("missing revalidation block %d", lastValidBlockNumber)
 	}
 
 	log.Info("Revalidating from block", "fromnumber", currentBlock.Number(), "fromhash", currentBlock.Hash(), "tonumber", lastValidBlock.Number(), "tohash", lastValidBlock.Hash())
 
 	blocksToRewind := int(currentBlock.NumberU64() - lastValidBlockNumber)
-	blocks := bc.GetBlocksFromHash(currentBlock.Hash(), blocksToRewind)
+	var blocks []*types.Block
 
-	// Reverse block array to prepare for insert
-	for i, j := 0, len(blocks)-1; i < j; i, j = i+1, j-1 {
-		blocks[i], blocks[j] = blocks[j], blocks[i]
+	if len(chain) > 0 {
+		// If chain to insert is provided, use it.
+		blocks = chain
+		// Canonical chain is not provided, so we need to get it from the database
+	}
+	if len(chain) == 0 || len(canonicalChain) == 0 {
+		// If chain to insert is not provided, get it from the database
+		// In this case, canonical chain to return to is not provided. So there won't be second attempt to insert
+		blocks = bc.GetBlocksFromHash(currentBlock.Hash(), blocksToRewind)
+		// Reverse block array to prepare for insert
+		for i, j := 0, len(blocks)-1; i < j; i, j = i+1, j-1 {
+			blocks[i], blocks[j] = blocks[j], blocks[i]
+		}
 	}
 
 	err := bc.SetHead(lastValidBlockNumber)
 	if err != nil {
 		log.Error("Can't rewind head", "number", lastValidBlockNumber, "err", err)
-		return err
+		return false, false, err
 	}
 
 	log.Info("Inserting blocks on top of rewound head", "count", len(blocks))
 	_, err = bc.InsertChain(blocks)
 	if err != nil {
 		log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
-		return err
+		if canonicalChain == nil {
+			return false, false, err
+		}
+
+		// Trying to insert the side chain blocks to canonical chain
+		_, err = bc.InsertChain(canonicalChain)
+		if err != nil {
+			log.Error("Can't insert canonical chain after failed revalidation", "count", len(canonicalChain), "err", err)
+			return false, true, nil
+		}
+
+		return true, false, nil
 	}
 
-	return nil
+	return true, false, nil
 }
 
 // FastSyncCommitHead sets the current head block to the one defined by the hash
@@ -765,12 +810,12 @@ func (bc *BlockChain) SnapSyncCommitHead(hash common.Hash) error {
 	}
 
 	// If all checks out, manually set the head block.
-	if !bc.chainmu.TryLock() {
+	if !bc.Lock() {
 		return errChainStopped
 	}
 	bc.currentBlock.Store(block)
 	headBlockGauge.Update(int64(block.NumberU64()))
-	bc.chainmu.Unlock()
+	bc.Unlock()
 
 	// Destroy any existing state snapshot and regenerate it in the background,
 	// also resuming the normal maintenance of any previously paused snapshot.
@@ -793,10 +838,10 @@ func (bc *BlockChain) ResetWithGenesisBlock(genesis *types.Block) error {
 	if err := bc.SetHead(0); err != nil {
 		return err
 	}
-	if !bc.chainmu.TryLock() {
+	if !bc.Lock() {
 		return errChainStopped
 	}
-	defer bc.chainmu.Unlock()
+	defer bc.Unlock()
 
 	// Prepare the genesis block and reinitialise the chain
 	batch := bc.db.NewBatch()
@@ -1037,10 +1082,10 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	// updateHead updates the head fast sync block if the inserted blocks are better
 	// and returns an indicator whether the inserted blocks are canonical.
 	updateHead := func(head *types.Block) bool {
-		if !bc.chainmu.TryLock() {
+		if !bc.Lock() {
 			return false
 		}
-		defer bc.chainmu.Unlock()
+		defer bc.Unlock()
 
 		// Rewind may have occurred, skip in that case.
 		if bc.CurrentHeader().Number.Cmp(head.Number()) >= 0 {
@@ -1386,10 +1431,11 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 // WriteBlockAndSetHead writes the given block and all associated state to the database,
 // and applies the block as the new chain head.
 func (bc *BlockChain) WriteBlockAndSetHead(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB, emitHeadEvent bool) (status WriteStatus, err error) {
-	if !bc.chainmu.TryLock() {
+	if !bc.Lock() {
 		return NonStatTy, errChainStopped
 	}
-	defer bc.chainmu.Unlock()
+
+	defer bc.Unlock()
 
 	return bc.writeBlockAndSetHead(block, receipts, logs, state, emitHeadEvent)
 }
@@ -1488,11 +1534,93 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 		}
 	}
 	// Pre-checks passed, start the full block imports
-	if !bc.chainmu.TryLock() {
+	if !bc.Lock() {
 		return 0, errChainStopped
 	}
-	defer bc.chainmu.Unlock()
+
+	defer func() {
+		bc.Unlock()
+	}()
+
 	return bc.insertChain(chain, true, true)
+
+}
+
+func (bc *BlockChain) SwitchToSidechain(chain []*types.Block, failedBlock *types.Block) (err error) {
+	if bc.ignoredBlocks[failedBlock.Number().Uint64()].hash == failedBlock.Hash() {
+		// Skip the block if it's already ignored
+		log.Warn("Aborting switch to the sidechain. Block is already ignored", "number", failedBlock.Number(), "hash", failedBlock.Hash())
+		return
+	}
+	defer func() {
+		if err != nil {
+			bc.ignoredBlocks[failedBlock.Number().Uint64()] = ignoredBlock{
+				hash:      failedBlock.Hash(),
+				canonical: *bc.CurrentBlock(),
+			}
+		}
+	}()
+	// Otherwise, try to reorg the chain
+	log.Error("Mismatching checkpoint signers, trying to reorg the chain", "number", failedBlock.Number(), "hash", failedBlock.Header().Hash())
+	if ancestorHeader := rawdb.FindCommonAncestor(bc.db, bc.CurrentHeader(), chain[0].Header()); ancestorHeader != nil {
+		var canonical []*types.Block
+		if bc.CurrentBlock().Number().Uint64()-ancestorHeader.Number.Uint64() > bc.Config().Clique.Epoch {
+			log.Error("Failed to find common ancestor block", "number", ancestorHeader.Number, "hash", ancestorHeader.Hash)
+			return errors.New("failed to find common ancestor block")
+		}
+		ancestorBlock := bc.GetBlockByHash(ancestorHeader.Hash())
+		if ancestorBlock == nil {
+			log.Error("Failed to find common ancestor block", "number", ancestorHeader.Number, "hash", ancestorHeader.Hash)
+			return errors.New("failed to find common ancestor block")
+		}
+		// if ancestorBlock.Number().Uint64() == failedBlock.Number().Uint64() {
+		// 	log.Error("Failed to find common ancestor block: ", "number", ancestorBlock.Number(), "hash", ancestorBlock.Hash())
+		// 	return errors.New("failed to find common ancestor block")
+		// }
+		if bc.chainConfig.Clique != nil && bc.CurrentBlock().NumberU64()-ancestorBlock.Number().Uint64() >= bc.Config().Clique.Epoch {
+			log.Error("Failed to find common ancestor block: subchain is longer than epoch", "number", ancestorBlock.Number(), "hash", ancestorBlock.Hash())
+			return errors.New("subchain is longer than epoch")
+		}
+		for i := bc.CurrentBlock().Number().Uint64(); i > ancestorBlock.Number().Uint64(); i-- {
+			canonical = append(canonical, bc.GetBlockByNumber(i))
+		}
+		slices.Reverse(canonical)
+
+		prevBlock := bc.GetBlockByHash(chain[0].ParentHash())
+		subchain := types.Blocks{}
+		for {
+			log.Warn("Recovering ancestors", "number", prevBlock.Number(), "hash", prevBlock.Hash())
+
+			if prevBlock.Number().Uint64() == ancestorBlock.Number().Uint64() {
+				break
+			}
+			// TODO: add a limit to the number of blocks to recover
+			subchain = append(types.Blocks{prevBlock}, subchain...)
+			// We've reached the canonical chain
+			prevBlock = bc.GetBlockByHash(prevBlock.ParentHash())
+			if prevBlock == nil {
+				log.Error("Failed to find parent block", "number", chain[0].Number(), "hash", chain[0].Hash())
+				return
+				// return i, fmt.Errorf("failed to find parent block")
+			}
+		}
+		log.Info("====================================")
+		subchain = append(types.Blocks{ancestorBlock}, subchain...)
+		chain = append(subchain, chain...)
+
+		for _, block := range chain {
+			log.Warn("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
+		}
+		_, _, err = bc.RevalidateChain(prevBlock.Number().Uint64()+1, chain, canonical)
+		if err != nil {
+			// Issue an error if the reorg failed
+			// Ignored block will be added to the ignored blocks list in the defer function
+			log.Error("Failed to insert side chain", "number", failedBlock.Number(), "hash", failedBlock.Hash(), "err", err)
+			return
+		}
+		return
+	}
+	return
 }
 
 // insertChain is the internal implementation of InsertChain, which assumes that
@@ -1507,6 +1635,15 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals, setHead bool)
 	// If the chain is terminating, don't even bother starting up.
 	if bc.insertStopped() {
 		return 0, nil
+	}
+
+	// Clean the ignored blocks if they're outdated
+	// Since we can't have the sidechain longer than the Epoch length, we can safely
+	// remove all the blocks that are older than the Epoch length.
+	for u, _ := range bc.ignoredBlocks {
+		if bc.chainConfig.Clique != nil && bc.CurrentBlock().NumberU64()-u >= bc.Config().Clique.Epoch {
+			delete(bc.ignoredBlocks, u)
+		}
 	}
 
 	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
@@ -2215,10 +2352,10 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 // updating. It relies on the additional SetCanonical call to finalize the entire
 // procedure.
 func (bc *BlockChain) InsertBlockWithoutSetHead(block *types.Block) error {
-	if !bc.chainmu.TryLock() {
+	if !bc.Lock() {
 		return errChainStopped
 	}
-	defer bc.chainmu.Unlock()
+	defer bc.Unlock()
 
 	_, err := bc.insertChain(types.Blocks{block}, true, false)
 	return err
@@ -2228,10 +2365,10 @@ func (bc *BlockChain) InsertBlockWithoutSetHead(block *types.Block) error {
 // block. It's possible that the state of the new head is missing, and it will
 // be recovered in this function as well.
 func (bc *BlockChain) SetCanonical(head *types.Block) (common.Hash, error) {
-	if !bc.chainmu.TryLock() {
+	if !bc.Lock() {
 		return common.Hash{}, errChainStopped
 	}
-	defer bc.chainmu.Unlock()
+	defer bc.Unlock()
 
 	// Re-execute the reorged chain in case the head state is missing.
 	if !bc.HasState(head.Root()) {
@@ -2462,10 +2599,10 @@ func (bc *BlockChain) InsertHeaderChain(chain []*types.Header, checkFreq int) (i
 		return i, err
 	}
 
-	if !bc.chainmu.TryLock() {
+	if !bc.Lock() {
 		return 0, errChainStopped
 	}
-	defer bc.chainmu.Unlock()
+	defer bc.Unlock()
 	_, err := bc.hc.InsertHeaderChain(chain, start, bc.forker)
 	return 0, err
 }

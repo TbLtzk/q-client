@@ -206,6 +206,7 @@ type BlockChain interface {
 
 	// Snapshots returns the blockchain snapshot tree to paused it during sync.
 	Snapshots() *snapshot.Tree
+	SwitchToSidechain(blocks []*types.Block, block *types.Block) error
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
@@ -1549,6 +1550,29 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 	// transition. Because the downloaded chain is guided by the
 	// consensus-layer.
 	if index, err := d.blockchain.InsertChain(blocks); err != nil {
+		if errors.Is(err, types.ErrMismatchingCheckpointSigners) {
+			// ErrMismatchingCheckpointSigners is a known issue which happens due to bad design of checking validators during sync
+			// we just need to restart syncing, because we need latest on-chain state to get actual signers from smart contract
+
+			// This is the case when we possibly have a sidechain that contains changes in the validator set,
+			// and we don't know about this from our perspective (as we don't have transactions that change this state)
+			// In this case, we'll try to reorg the chain if the total difficulty is higher than the current chain
+			// This will allow us to replay the transactions and update the validator set if everything is correct
+			// Otherwise, we'll do the reorg to the canonical chain and mark this sidechain as ignored
+			// Perform the reorg only if the block is not already ignored
+			// Ensure, that we're not in the canonical chain.
+			// If so - that means that failed block is definitely invalid
+			if d.blockchain.CurrentBlock().Hash() == blocks[index].Hash() {
+				return fmt.Errorf("failed to validate signers: %w", err)
+			}
+			// If not - chain inserted as a sidechain. Let's try to insert block one more time with reorg
+			// *doReorg = true
+			failedBlock := blocks[index]
+			err = d.blockchain.SwitchToSidechain(blocks, failedBlock)
+			if err == nil {
+				index = len(blocks)
+			}
+		}
 		if index < len(results) {
 			log.Debug("Downloaded item processing failed", "number", results[index].Header.Number, "hash", results[index].Header.Hash(), "err", err)
 
@@ -1567,11 +1591,6 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 			// The importer will put together a new list of blocks to import, which is a superset
 			// of the blocks delivered from the downloader, and the indexing will be off.
 			log.Debug("Downloaded item processing failed on sidechain import", "index", index, "err", err)
-		}
-		if errors.Is(err, types.ErrMismatchingCheckpointSigners) {
-			// ErrMismatchingCheckpointSigners is a known issue which happens due to bad design of checking validators during sync
-			// we just need to restart syncing, because we need latest on-chain state to get actual signers from smart contract
-			return fmt.Errorf("failed to validate signers: %w", err)
 		}
 		return fmt.Errorf("%w: %v", errInvalidChain, err)
 	}
