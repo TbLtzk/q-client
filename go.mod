@@ -1,6 +1,6 @@
 module gitlab.com/q-dev/q-client
 
-go 1.19
+go 1.21.5
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.3.0

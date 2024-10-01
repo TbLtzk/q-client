@@ -206,7 +206,7 @@ type BlockChain interface {
 
 	// Snapshots returns the blockchain snapshot tree to paused it during sync.
 	Snapshots() *snapshot.Tree
-	SwitchToSidechain(blocks []*types.Block, block *types.Block) error
+	TrySwitchToSidechain(blocks []*types.Block, block *types.Block) error
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
@@ -1516,7 +1516,7 @@ func (d *Downloader) processFullSyncContent(ttd *big.Int, beaconMode bool) error
 				}
 			}
 		}
-		if err := d.importBlockResults(results); err != nil {
+		if err := d.importBlockResults(results, beaconMode); err != nil {
 			return err
 		}
 		if len(rejected) != 0 {
@@ -1526,7 +1526,7 @@ func (d *Downloader) processFullSyncContent(ttd *big.Int, beaconMode bool) error
 	}
 }
 
-func (d *Downloader) importBlockResults(results []*fetchResult) error {
+func (d *Downloader) importBlockResults(results []*fetchResult, beaconMode bool) error {
 	// Check for any early termination requests
 	if len(results) == 0 {
 		return nil
@@ -1568,7 +1568,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 			// If not - chain inserted as a sidechain. Let's try to insert block one more time with reorg
 			// *doReorg = true
 			failedBlock := blocks[index]
-			err = d.blockchain.SwitchToSidechain(blocks, failedBlock)
+			err = d.blockchain.TrySwitchToSidechain(blocks, failedBlock)
 			if err == nil {
 				index = len(blocks)
 			}
@@ -1580,7 +1580,9 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 			if d.badBlock != nil {
 				head, _, err := d.skeleton.Bounds()
 				if err != nil {
-					log.Error("Failed to retrieve beacon bounds for bad block reporting", "err", err)
+					if beaconMode {
+						log.Error("Failed to retrieve beacon bounds for bad block reporting", "err", err)
+					}
 				} else {
 					d.badBlock(blocks[index].Header(), head)
 				}
@@ -1715,7 +1717,7 @@ func (d *Downloader) processSnapSyncContent() error {
 			}
 		}
 		// Fast sync done, pivot commit done, full import
-		if err := d.importBlockResults(afterP); err != nil {
+		if err := d.importBlockResults(afterP, false); err != nil {
 			return err
 		}
 	}

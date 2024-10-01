@@ -19,7 +19,7 @@ stages:
   - "deploy"
 
 test:
-  image: golang:1.21
+  image: golang:1.21.5
   stage: test
   extends: .before_script_template
   tags:
