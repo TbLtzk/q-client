@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"slices"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -1593,10 +1592,8 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 		return errors.New("subchain is longer than epoch")
 	}
 	for i := bc.CurrentBlock().Number().Uint64(); i > ancestorBlock.Number().Uint64(); i-- {
-		canonical = append(canonical, bc.GetBlockByNumber(i))
+		canonical = append([]*types.Block{bc.GetBlockByNumber(i)}, canonical...)
 	}
-	slices.Reverse(canonical)
-
 	// Rebuild the chain up to the common ancestor
 	prevBlock := bc.GetBlockByHash(chain[0].ParentHash())
 	subchain := types.Blocks{}
