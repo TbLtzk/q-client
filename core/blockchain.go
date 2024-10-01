@@ -774,6 +774,7 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block, canon
 		log.Error("Can't rewind head", "number", lastValidBlockNumber, "err", err)
 		return false, false, err
 	}
+	// bc.chainHeadFeed.Send(ChainHeadEvent{lastValidBlock, true})
 
 	log.Info("Inserting blocks on top of rewound head", "count", len(blocks))
 	_, err = bc.InsertChain(blocks)
@@ -1562,7 +1563,6 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 			return
 		}
 		// Need to rebuild the snapshot if it's enabled. Otherwise, we'll get errors "missing trie node"
-		bc.snaps.Rebuild(bc.CurrentBlock().Hash())
 	}()
 
 	log.Error("Mismatching checkpoint signers, trying to reorg the chain", "number", failedBlock.Number(), "hash", failedBlock.Header().Hash())
@@ -1571,26 +1571,18 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 		return errors.New("failed to switch to the sidechain: failed to find common ancestor block")
 	}
 	ancestorBlock = bc.GetBlockByHash(ancestorHeader.Hash())
-
-	var canonical []*types.Block
-	if bc.CurrentBlock().Number().Uint64()-ancestorHeader.Number.Uint64() > bc.Config().Clique.Epoch {
-		log.Error("Failed to find common ancestor block", "number", ancestorHeader.Number, "hash", ancestorHeader.Hash)
-		return errors.New("failed to find common ancestor block")
-	}
-
 	if ancestorBlock == nil {
 		log.Error("Failed to find common ancestor block", "number", ancestorHeader.Number, "hash", ancestorHeader.Hash)
 		return errors.New("failed to find common ancestor block")
 	}
-	log.Info("Found common ancestor block", "number", ancestorBlock.Number(), "hash", ancestorBlock.Hash())
-	// if ancestorBlock.Number().Uint64() == failedBlock.Number().Uint64() {
-	// 	log.Error("Failed to find common ancestor block: ", "number", ancestorBlock.Number(), "hash", ancestorBlock.Hash())
-	// 	return errors.New("failed to find common ancestor block")
-	// }
-	if bc.chainConfig.Clique != nil && bc.CurrentBlock().NumberU64()-ancestorBlock.Number().Uint64() >= bc.Config().Clique.Epoch {
-		log.Error("Failed to find common ancestor block: subchain is longer than epoch", "number", ancestorBlock.Number(), "hash", ancestorBlock.Hash())
-		return errors.New("subchain is longer than epoch")
+
+	var canonical []*types.Block
+	if bc.CurrentBlock().Number().Uint64()-ancestorHeader.Number.Uint64() > bc.Config().Clique.Epoch || ancestorBlock.NumberU64() == failedBlock.Number().Uint64() {
+		log.Error("Failed to find common ancestor block", "number", ancestorHeader.Number, "hash", ancestorHeader.Hash)
+		return errors.New("failed to find common ancestor block")
 	}
+
+	log.Info("Found common ancestor block", "number", ancestorBlock.Number(), "hash", ancestorBlock.Hash())
 	for i := bc.CurrentBlock().Number().Uint64(); i > ancestorBlock.Number().Uint64(); i-- {
 		canonical = append([]*types.Block{bc.GetBlockByNumber(i)}, canonical...)
 	}
@@ -1626,6 +1618,7 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 		log.Error("Failed to insert side chain", "number", failedBlock.Number(), "hash", failedBlock.Hash(), "err", err)
 		return err
 	}
+
 	return nil
 }
 
