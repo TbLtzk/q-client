@@ -724,10 +724,10 @@ func (bc *BlockChain) setHeadBeyondRoot(head uint64, root common.Hash, repair bo
 
 // RevalidateChain sets head on the block before specified block number
 // and performs reorg to this block which revalidates higher blocks
-func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block, canonicalChain []*types.Block) (bool, bool, error) {
+func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block, canonicalChain []*types.Block) error {
 	// Genesis block is not supported
 	if number == 0 {
-		return false, false, errors.New("trying to revalidate genesis block")
+		return errors.New("trying to revalidate genesis block")
 	}
 
 	defer func() {
@@ -737,7 +737,7 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block, canon
 	// If we didn't reach block number of revalidation, skip it
 	currentBlock := bc.CurrentBlock()
 	if currentBlock.NumberU64() < number {
-		return false, false, nil
+		return nil
 	}
 
 	lastValidBlockNumber := number - 1
@@ -746,7 +746,7 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block, canon
 	// Last valid block should be available as we cheched that its number less
 	// than current block number
 	if lastValidBlock == nil {
-		return false, false, fmt.Errorf("missing revalidation block %d", lastValidBlockNumber)
+		return fmt.Errorf("missing revalidation block %d", lastValidBlockNumber)
 	}
 
 	log.Info("Revalidating from block", "fromnumber", currentBlock.Number(), "fromhash", currentBlock.Hash(), "tonumber", lastValidBlock.Number(), "tohash", lastValidBlock.Hash())
@@ -772,7 +772,7 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block, canon
 	err := bc.SetHead(lastValidBlockNumber)
 	if err != nil {
 		log.Error("Can't rewind head", "number", lastValidBlockNumber, "err", err)
-		return false, false, err
+		return err
 	}
 	// bc.chainHeadFeed.Send(ChainHeadEvent{lastValidBlock, true})
 
@@ -781,20 +781,20 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block, canon
 	if err != nil {
 		log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
 		if canonicalChain == nil {
-			return false, false, err
+			return err
 		}
 
 		// Trying to insert the side chain blocks to canonical chain
 		_, err = bc.InsertChain(canonicalChain)
 		if err != nil {
 			log.Error("Can't insert canonical chain after failed revalidation", "count", len(canonicalChain), "err", err)
-			return false, true, nil
+			return nil
 		}
 
-		return true, false, nil
+		return nil
 	}
 
-	return true, false, nil
+	return nil
 }
 
 // FastSyncCommitHead sets the current head block to the one defined by the hash
@@ -1590,11 +1590,8 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	prevBlock := bc.GetBlockByHash(chain[0].ParentHash())
 	subchain := types.Blocks{}
 	for {
-		log.Warn("Recovering ancestors", "number", prevBlock.Number(), "hash", prevBlock.Hash())
+		log.Warn("Recovering ancestors", "number", prevBlock.Number(), "hash", prevBlock.Hash(), "ancestor", ancestorBlock.Number(), "ancestorHash", ancestorBlock.Hash())
 
-		if prevBlock.Number().Uint64() == ancestorBlock.Number().Uint64() {
-			break
-		}
 		// TODO: add a limit to the number of blocks to recover
 		subchain = append(types.Blocks{prevBlock}, subchain...)
 		// We've reached the canonical chain
@@ -1602,6 +1599,9 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 		if prevBlock == nil {
 			log.Error("Failed to find parent block", "number", chain[0].Number(), "hash", chain[0].Hash())
 			return errors.New("failed to find parent block")
+		}
+		if prevBlock.Number().Uint64() <= ancestorBlock.Number().Uint64() {
+			break
 		}
 	}
 	subchain = append(types.Blocks{ancestorBlock}, subchain...)
@@ -1611,12 +1611,18 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	}
 
 	// Revalidate the chain and try to insert it. On fail - return to the canonical chain
-	_, _, err = bc.RevalidateChain(prevBlock.Number().Uint64(), chain, canonical)
+	err = bc.RevalidateChain(prevBlock.Number().Uint64(), chain, canonical)
 	if err != nil {
 		// Issue an error if the reorg failed
 		// Ignored block will be added to the ignored blocks list in the defer function
 		log.Error("Failed to insert side chain", "number", failedBlock.Number(), "hash", failedBlock.Hash(), "err", err)
 		return err
+	}
+
+	// After switching to the sidechain, we need to rebuild the snapshot
+	// Otherwise we'll get errors "missing trie node"
+	if _, err = bc.snaps.Journal(ancestorBlock.ParentHash()); err != nil {
+		bc.snaps.Rebuild(ancestorBlock.Root())
 	}
 
 	return nil
