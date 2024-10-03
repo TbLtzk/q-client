@@ -350,7 +350,7 @@ func (s *RootManager) upgradeExclusionSet(set *exclusionSet, forceUpgrade bool) 
 
 		// Revalidate in separate goroutine to prevent possible deadlocks
 		go func() {
-			err := s.bc.RevalidateChain(earliestBlock, nil, nil)
+			err := s.bc.RevalidateChain(earliestBlock, nil)
 			if err != nil {
 				log.Error("Failed to revalidate chain after updating the exclusion list", "err", err)
 			}
