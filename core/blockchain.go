@@ -1515,7 +1515,6 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 	}
 	defer bc.chainmu.Unlock()
 	return bc.insertChain(chain, true, true)
-
 }
 
 func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *types.Block) (err error) {
