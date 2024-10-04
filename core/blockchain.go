@@ -761,7 +761,7 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 	if err != nil {
 		log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
 		log.Warn("Reverting chain revalidation")
-		if blocks != nil && len(blocks) > 0 {
+		if len(blocks) > 0 {
 			_, err = bc.InsertChain(blocks)
 			if err != nil {
 				log.Error("Can't insert canonical blocks on fails", "count", len(blocks), "err", err)
@@ -1588,7 +1588,6 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 		if prevBlock.Number().Uint64() <= ancestorBlock.Number().Uint64() {
 			break
 		}
-
 	}
 
 	exists := false
@@ -1625,7 +1624,6 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 		log.Warn("Enabling snapshot recovery", "chainhead", head.NumberU64(), "diskbase", *layer)
 	}
 	bc.snaps, _ = snapshot.New(bc.db, bc.stateCache.TrieDB(), bc.cacheConfig.SnapshotLimit, head.Root(), false, true, true)
-
 	return nil
 }
 
@@ -1646,7 +1644,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals, setHead bool)
 	// Clean the ignored blocks if they're outdated
 	// Since we can't have the sidechain longer than the Epoch length, we can safely
 	// remove all the blocks that are older than the Epoch length.
-	for u, _ := range bc.ignoredBlocks {
+	for u := range bc.ignoredBlocks {
 		if bc.chainConfig.Clique != nil && bc.CurrentBlock().NumberU64()-u >= bc.Config().Clique.Epoch {
 			delete(bc.ignoredBlocks, u)
 		}
