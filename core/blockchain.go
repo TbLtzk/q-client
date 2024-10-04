@@ -727,7 +727,7 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 		return nil
 	}
 
-	lastValidBlockNumber := number - 1
+	lastValidBlockNumber := number
 	lastValidBlock := bc.GetBlockByNumber(lastValidBlockNumber)
 
 	// Last valid block should be available as we cheched that its number less
@@ -754,7 +754,7 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 
 	log.Info("Inserting blocks on top of rewound head", "count", len(blocks))
 	blocksToInsert := blocks
-	if chain != nil && len(chain) > 0 {
+	if len(chain) > 0 {
 		blocksToInsert = chain
 	}
 	_, err = bc.InsertChain(blocksToInsert)
@@ -1545,9 +1545,7 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	log.Error("Mismatching checkpoint signers, trying to reorg the chain", "number", failedBlock.Number(), "hash", failedBlock.Header().Hash())
 	ancestorHeader = rawdb.FindCommonAncestor(bc.db, bc.CurrentHeader(), chain[0].Header())
 	if ancestorHeader == nil {
-		log.Error("currentHeader", "number", bc.CurrentHeader().Number, "hash", bc.CurrentHeader().Hash)
-		log.Error("chain[0].Header()", "number", chain[0].Header().Number, "hash", chain[0].Header().Hash)
-		log.Error("chain[len(chain)-1].Header()", "number", chain[len(chain)-1].Header().Number, "hash", chain[len(chain)-1].Header().Hash)
+		log.Error("Failed to find common ancestor for block", "number", chain[0].Number(), "hash", chain[0].Hash())
 		return errors.New("failed to find common ancestor block: ancestorHeader is nil")
 	}
 	ancestorBlock = bc.GetBlockByHash(ancestorHeader.Hash())
@@ -1557,27 +1555,16 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	}
 
 	if bc.CurrentBlock().Number().Uint64()-ancestorHeader.Number.Uint64() >= bc.Config().Clique.Epoch {
-		log.Error("Failed to find common ancestor block: longer than epoch", "number", ancestorHeader.Number, "hash", ancestorHeader.Hash)
+		log.Error("Failed to find common ancestor block: chain is longer than epoch", "number", ancestorHeader.Number, "hash", ancestorHeader.Hash)
 		return errors.New("ancestor block is too old for the reorg attempt")
 	}
 
-	log.Info("Found common ancestor block", "number", ancestorBlock.Number(), "hash", ancestorBlock.Hash())
+	log.Info("Found common ancestor block, restoring chain", "number", ancestorBlock.Number(), "hash", ancestorBlock.Hash())
 	// Rebuild the chain up to the common ancestor
 	prevBlock := bc.GetBlockByHash(chain[0].ParentHash())
-	subchain := types.Blocks{}
+	subchain := make(map[uint64]*types.Block)
 	for {
-		log.Warn("Recovering ancestors", "number", prevBlock.Number(), "hash", prevBlock.Hash(), "ancestor", ancestorBlock.Number(), "ancestorHash", ancestorBlock.Hash())
-
-		exists := false
-		for _, blk := range subchain {
-			if blk.Hash() == prevBlock.Hash() {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			subchain = append(types.Blocks{prevBlock}, subchain...)
-		}
+		subchain[prevBlock.NumberU64()] = prevBlock
 		// We've reached the canonical chain
 		prevBlock = bc.GetBlockByHash(prevBlock.ParentHash())
 		if prevBlock == nil {
@@ -1589,24 +1576,25 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 		}
 	}
 
-	exists := false
-	for _, blk := range subchain {
-		if blk.Hash() == ancestorBlock.Hash() {
-			exists = true
-			break
-		}
-	}
-	if !exists {
-		subchain = append(types.Blocks{ancestorBlock}, subchain...)
-	}
-	chain = append(subchain, chain...)
-	log.Info("---------------------------------")
+	subchain[ancestorBlock.NumberU64()] = ancestorBlock
+
 	for _, block := range chain {
-		log.Warn("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
+		subchain[block.NumberU64()] = block
+	}
+	resChain := make(types.Blocks, 0, len(subchain))
+	for number := range subchain {
+		resChain = append(resChain, subchain[number])
+	}
+	sort.Slice(resChain, func(i, j int) bool {
+		return resChain[i].NumberU64() < resChain[j].NumberU64()
+	})
+
+	for _, block := range resChain {
+		log.Info("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
 	}
 
 	// Revalidate the chain and try to insert it. On fail - return to the canonical chain
-	err = bc.RevalidateChain(prevBlock.Number().Uint64(), chain)
+	err = bc.RevalidateChain(prevBlock.Number().Uint64(), resChain)
 	if err != nil {
 		// Issue an error if the reorg failed
 		// Ignored block will be added to the ignored blocks list in the defer function
