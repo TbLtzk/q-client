@@ -745,7 +745,6 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 	for i, j := 0, len(blocks)-1; i < j; i, j = i+1, j-1 {
 		blocks[i], blocks[j] = blocks[j], blocks[i]
 	}
-
 	err := bc.SetHead(lastValidBlockNumber)
 	if err != nil {
 		log.Error("Can't rewind head", "number", lastValidBlockNumber, "err", err)
@@ -767,6 +766,7 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 				log.Error("Can't insert canonical blocks on fails", "count", len(blocks), "err", err)
 				return err
 			}
+			return nil
 		}
 		return err
 	}
