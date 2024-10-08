@@ -1590,7 +1590,7 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	})
 
 	for _, block := range resChain {
-		log.Info("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
+		log.Debug("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
 	}
 
 	// Revalidate the chain and try to insert it. On fail - return to the canonical chain
