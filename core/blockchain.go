@@ -215,12 +215,11 @@ type BlockChain struct {
 	forker     *ForkChoice
 	vmConfig   vm.Config
 
-	ignoredBlocks map[uint64]ignoredBlock // Blocks that are ignored during import
+	ignoredBlocks map[common.Hash]*ignoredBlock // Blocks that are ignored during import
 }
 
 type ignoredBlock struct {
-	hash      common.Hash
-	canonical types.Block
+	number *big.Int
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -418,7 +417,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		}()
 	}
 
-	bc.ignoredBlocks = make(map[uint64]ignoredBlock)
+	bc.ignoredBlocks = make(map[common.Hash]*ignoredBlock)
 
 	return bc, nil
 }
@@ -759,8 +758,13 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 	_, err = bc.InsertChain(blocksToInsert)
 	if err != nil {
 		log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
-		log.Warn("Reverting chain revalidation")
 		if len(blocks) > 0 {
+			log.Warn("Reverting chain revalidation")
+			err := bc.SetHead(lastValidBlockNumber)
+			if err != nil {
+				log.Error("Can't rewind head", "number", lastValidBlockNumber, "err", err)
+				return err
+			}
 			_, err = bc.InsertChain(blocks)
 			if err != nil {
 				log.Error("Can't insert canonical blocks on fails", "count", len(blocks), "err", err)
@@ -1518,11 +1522,18 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 }
 
 func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *types.Block) (err error) {
-	if bc.ignoredBlocks[failedBlock.Number().Uint64()].hash == failedBlock.Hash() {
-		// Skip the block if it's already ignored
-		log.Warn("Aborting switch to the sidechain. Block is already ignored", "number", failedBlock.Number(), "hash", failedBlock.Hash())
-		return
+	// We're here for the first time, so we need to initialize the ignored blocks map
+	if bc.ignoredBlocks[failedBlock.Hash()] == nil {
+		bc.ignoredBlocks[failedBlock.Hash()] = &ignoredBlock{}
+		log.Debug("Initializing ignored blocks map", "number", failedBlock.Number(), "hash", failedBlock.Hash())
+		return nil
 	}
+	// If the block is already ignored - return
+	if bc.ignoredBlocks[failedBlock.Hash()].number == failedBlock.Number() {
+		log.Warn("Aborting switch to the sidechain. Block is already ignored", "number", failedBlock.Number(), "hash", failedBlock.Hash())
+		return errors.New("block is already ignored")
+	}
+
 	// If chain is too long - truncate it to the Epoch length.
 	// Other blocks will be ignored and downloaded again.
 	if uint64(len(chain)) > bc.Config().Clique.Epoch {
@@ -1532,14 +1543,14 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	var ancestorHeader *types.Header
 	var ancestorBlock *types.Block
 	defer func() {
+		// Add the block to the ignored blocks list
 		if err != nil {
-			bc.ignoredBlocks[failedBlock.Number().Uint64()] = ignoredBlock{
-				hash:      failedBlock.Hash(),
-				canonical: *bc.CurrentBlock(),
+			bc.ignoredBlocks[failedBlock.Hash()] = &ignoredBlock{
+				number: failedBlock.Number(),
 			}
-			return
 		}
-		// Need to rebuild the snapshot if it's enabled. Otherwise, we'll get errors "missing trie node"
+		// Otherwise, remove the block from the ignored blocks list
+		delete(bc.ignoredBlocks, failedBlock.Hash())
 	}()
 
 	log.Error("Mismatching checkpoint signers", "number", failedBlock.Number(), "hash", failedBlock.Header().Hash())
@@ -1593,7 +1604,7 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	})
 
 	for _, block := range resChain {
-		log.Info("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
+		log.Debug("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
 	}
 
 	// Revalidate the chain and try to insert it. On fail - return to the canonical chain
@@ -1613,7 +1624,6 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	if layer := rawdb.ReadSnapshotRecoveryNumber(bc.db); layer != nil && *layer > head.NumberU64() {
 		log.Warn("Enabling snapshot recovery", "chainhead", head.NumberU64(), "diskbase", *layer)
 	}
-	bc.snaps, _ = snapshot.New(bc.db, bc.stateCache.TrieDB(), bc.cacheConfig.SnapshotLimit, head.Root(), false, true, true)
 	return nil
 }
 
@@ -1634,8 +1644,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals, setHead bool)
 	// Clean the ignored blocks if they're outdated
 	// Since we can't have the sidechain longer than the Epoch length, we can safely
 	// remove all the blocks that are older than the Epoch length.
-	for u := range bc.ignoredBlocks {
-		if bc.chainConfig.Clique != nil && bc.CurrentBlock().NumberU64()-u >= bc.Config().Clique.Epoch {
+	for u, ib := range bc.ignoredBlocks {
+		if ib == nil || ib.number == nil {
+			// This block is not ignored or not initialized yet
+			continue
+		}
+		if bc.chainConfig.Clique != nil && bc.CurrentBlock().NumberU64()-ib.number.Uint64() >= bc.Config().Clique.Epoch {
 			delete(bc.ignoredBlocks, u)
 		}
 	}
