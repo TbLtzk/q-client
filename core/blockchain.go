@@ -1555,8 +1555,9 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	}
 
 	if bc.CurrentBlock().Number().Uint64()-ancestorHeader.Number.Uint64() >= bc.Config().Clique.Epoch {
-		log.Error("Failed to find common ancestor block: chain is longer than epoch", "number", ancestorHeader.Number, "hash", ancestorHeader.Hash)
-		return errors.New("ancestor block is too old for the reorg attempt")
+		log.Error("Failed to switch chains: number of blocks between current and ancestor blocks is more than epoch", "ancestor",
+			ancestorHeader.Number, "ancestorHash", ancestorHeader.Hash, "current", bc.CurrentBlock().Number(), "currentHash", bc.CurrentBlock().Hash())
+		return errors.New("ancestor block is too far from the current block")
 	}
 
 	log.Info("Found common ancestor block, restoring chain", "number", ancestorBlock.Number(), "hash", ancestorBlock.Hash())
@@ -1590,7 +1591,7 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	})
 
 	for _, block := range resChain {
-		log.Debug("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
+		log.Info("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
 	}
 
 	// Revalidate the chain and try to insert it. On fail - return to the canonical chain
