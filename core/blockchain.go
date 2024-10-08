@@ -1549,8 +1549,6 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 				number: failedBlock.Number(),
 			}
 		}
-		// Otherwise, remove the block from the ignored blocks list
-		delete(bc.ignoredBlocks, failedBlock.Hash())
 	}()
 
 	log.Error("Mismatching checkpoint signers", "number", failedBlock.Number(), "hash", failedBlock.Header().Hash())
