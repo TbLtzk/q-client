@@ -1545,7 +1545,7 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	log.Error("Mismatching checkpoint signers", "number", failedBlock.Number(), "hash", failedBlock.Header().Hash())
 	log.Info("Trying to switch to the sidechain. Searching for common ancestor for blocks",
 		"current", bc.CurrentBlock().Number(), "currentHash", bc.CurrentBlock().Hash(), "sidechain[0]", chain[0].Number(), "hash", chain[0].Hash(), "length", len(chain))
-	ancestorHeader = rawdb.FindCommonAncestor(bc.db, bc.CurrentHeader(), chain[0].Header())
+	ancestorHeader = rawdb.FindCommonAncestor(bc.db, bc.CurrentBlock().Header(), chain[0].Header())
 	if ancestorHeader == nil {
 		log.Error("Failed to find common ancestor for block", "number", chain[0].Number(), "hash", chain[0].Hash())
 		return errors.New("failed to find common ancestor block: ancestorHeader is nil")
