@@ -215,7 +215,7 @@ type BlockChain struct {
 	forker     *ForkChoice
 	vmConfig   vm.Config
 
-	ignoredBlocks map[common.Hash]*ignoredBlock // Blocks that are ignored during import
+	ignoredBlocks map[uint64]map[common.Hash]struct{} // Blocks that are ignored during import
 }
 
 type ignoredBlock struct {
@@ -417,7 +417,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		}()
 	}
 
-	bc.ignoredBlocks = make(map[common.Hash]*ignoredBlock)
+	bc.ignoredBlocks = make(map[uint64]map[common.Hash]struct{})
 
 	return bc, nil
 }
@@ -1522,14 +1522,25 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 }
 
 func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *types.Block) (err error) {
+	// Clean the ignored blocks if they're outdated
+	// Since we can't have the invalid sidechain longer than the Epoch length, we can safely
+	// remove all the blocks that are older than the Epoch length.
+	for number := range bc.ignoredBlocks {
+		if number+bc.Config().Clique.Epoch < bc.CurrentBlock().NumberU64() {
+			delete(bc.ignoredBlocks, number)
+			continue
+		}
+
+	}
+
 	// We're here for the first time, so we need to initialize the ignored blocks map
-	if bc.ignoredBlocks[failedBlock.Hash()] == nil {
-		bc.ignoredBlocks[failedBlock.Hash()] = &ignoredBlock{}
+	if bc.ignoredBlocks[failedBlock.NumberU64()] == nil {
+		bc.ignoredBlocks[failedBlock.NumberU64()] = make(map[common.Hash]struct{})
 		log.Debug("Initializing ignored blocks map", "number", failedBlock.Number(), "hash", failedBlock.Hash())
 		return nil
 	}
 	// If the block is already ignored - return
-	if bc.ignoredBlocks[failedBlock.Hash()].number != nil {
+	if _, ok := bc.ignoredBlocks[failedBlock.NumberU64()][failedBlock.Hash()]; ok {
 		log.Warn("Aborting switch to the sidechain. Block is already ignored", "number", failedBlock.Number(), "hash", failedBlock.Hash())
 		return errors.New("block is already ignored")
 	}
@@ -1545,9 +1556,7 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	defer func() {
 		// Add the block to the ignored blocks list
 		if err != nil {
-			bc.ignoredBlocks[failedBlock.Hash()] = &ignoredBlock{
-				number: failedBlock.Number(),
-			}
+			bc.ignoredBlocks[failedBlock.NumberU64()][failedBlock.Hash()] = struct{}{}
 		}
 	}()
 
@@ -1637,19 +1646,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals, setHead bool)
 	// If the chain is terminating, don't even bother starting up.
 	if bc.insertStopped() {
 		return 0, nil
-	}
-
-	// Clean the ignored blocks if they're outdated
-	// Since we can't have the sidechain longer than the Epoch length, we can safely
-	// remove all the blocks that are older than the Epoch length.
-	for u, ib := range bc.ignoredBlocks {
-		if ib == nil || ib.number == nil {
-			// This block is not ignored or not initialized yet
-			continue
-		}
-		if bc.chainConfig.Clique != nil && bc.CurrentBlock().NumberU64()-ib.number.Uint64() >= bc.Config().Clique.Epoch {
-			delete(bc.ignoredBlocks, u)
-		}
 	}
 
 	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
