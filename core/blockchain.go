@@ -1529,7 +1529,7 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 		return nil
 	}
 	// If the block is already ignored - return
-	if bc.ignoredBlocks[failedBlock.Hash()].number == failedBlock.Number() {
+	if bc.ignoredBlocks[failedBlock.Hash()].number != nil {
 		log.Warn("Aborting switch to the sidechain. Block is already ignored", "number", failedBlock.Number(), "hash", failedBlock.Hash())
 		return errors.New("block is already ignored")
 	}
