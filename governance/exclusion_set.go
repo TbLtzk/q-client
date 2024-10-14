@@ -6,7 +6,6 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -18,7 +17,7 @@ type exclusionSet struct {
 
 	addresses   []common.Address
 	addrToBlock map[common.Address]uint64
-	blockRanges map[common.Address][]common.BlockRange //Several address ranges can be assigned to one validator
+	blockRanges map[common.Address][]common.BlockRange // Several address ranges can be assigned to one validator
 
 	signers map[common.Address][]byte
 }
@@ -34,6 +33,11 @@ func (s *exclusionSet) String() string {
 }
 
 func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error) {
+	return newExclusionSetWithSupport(list, false)
+}
+
+// Next iteration will make this function unnecessary since we'll resave the list with the new hash
+func newExclusionSetWithSupport(list *common.ValidatorExclusionList, local bool) (*exclusionSet, error) {
 	if list == nil {
 		return nil, errInvalidExclusionList
 	}
@@ -82,19 +86,25 @@ func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error)
 		blockRanges: validatorsSet,
 	}
 
-	if (list.Hash != common.Hash{}) {
-		set.hash = set.calcFullHash() //new hash rule only for validation (for now). Try it first
-	} else {
-		set.hash = set.calcHash() //old hash rule is applied if list is new and hash is empty
-	}
+	// First step of the preparation for the new hash rule:
+	// propose local sets with the new hash rule
+	set.hash = set.calcFullHash()
+	// But support old hash rule for the existing lists
+	if !local {
+		if (list.Hash != common.Hash{}) {
+			set.hash = set.calcFullHash() // new hash rule only for validation (for now). Try it first
+		} else {
+			set.hash = set.calcHash() // old hash rule is applied if list is new and hash is empty
+		}
 
-	set.fixTimestamp()
-
-	if set.hash != list.Hash && (list.Hash != common.Hash{}) {
-		set.hash = set.calcHash()
 		set.fixTimestamp()
+
 		if set.hash != list.Hash && (list.Hash != common.Hash{}) {
-			return nil, errHashMismatch
+			set.hash = set.calcHash()
+			set.fixTimestamp()
+			if set.hash != list.Hash && (list.Hash != common.Hash{}) {
+				return nil, errHashMismatch
+			}
 		}
 	}
 

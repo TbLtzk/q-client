@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/p2p"
 )
@@ -149,9 +148,7 @@ func (p *peer) handshake(msg statusMsgBody, rm *RootManager) (*peerStatus, error
 	if currentRootSet == nil {
 		return nil, errors.New("empty current root list")
 	}
-	if currentRootSet != nil {
-		currentRootSet.updateAliases(rm.getAliasesOfRoots(currentRootSet.rootAddresses))
-	}
+	currentRootSet.updateAliases(rm.getAliasesOfRoots(currentRootSet.rootAddresses))
 
 	desiredRootSet, err := newRootSet(&status.DesiredRootList)
 	if err != nil {
@@ -169,7 +166,7 @@ func (p *peer) handshake(msg statusMsgBody, rm *RootManager) (*peerStatus, error
 		proposedRootSet.updateAliases(rm.getAliasesOfRoots(proposedRootSet.rootAddresses))
 	}
 
-	//Validators
+	// Validators
 
 	currentExSet, err := newExclusionSet(&status.CurrentExclusionList)
 	if err != nil {
