@@ -15,12 +15,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"gitlab.com/q-dev/system-contracts/generated"
-
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/system-contracts/generated"
 )
 
 const (
@@ -79,10 +78,10 @@ func NewConstitutionManager(datadir string, db *database, rm *RootManager) (*Con
 	knownHashes, _ := db.getKnownConstitutionFiles()
 	manager.knownHashes = knownHashes
 
-	////TODO this is too dirty. Find a better way to wait until registry is initialized
-	//time.AfterFunc(time.Second*5, func() {
+	// //TODO this is too dirty. Find a better way to wait until registry is initialized
+	// time.AfterFunc(time.Second*5, func() {
 	//	manager.CheckLastConstitutionFileExists()
-	//})
+	// })
 
 	return manager, nil
 }
@@ -135,13 +134,13 @@ func (cm *ConstitutionManager) validateStorage() {
 
 				hash := cm.getHashOfFile(path)
 				if hash != dbFile.Hash {
-					fsFileCheckError = errors.New("Wrong file hash") //TODO other checks?
+					fsFileCheckError = errors.New("Wrong file hash") // TODO other checks?
 				}
 
 				break
 			}
 		}
-		if !fsFileExistsInDB { //But it can be renamed, will check later
+		if !fsFileExistsInDB { // But it can be renamed, will check later
 			filesToRemove = append(filesToRemove, &removeCandidate{
 				path:             path,
 				errorDescription: "File doesn't exist in database",
@@ -158,7 +157,7 @@ func (cm *ConstitutionManager) validateStorage() {
 		}
 	}
 
-	//Files were validated early, just check if they're existing
+	// Files were validated early, just check if they're existing
 	var resDbFiles []common.ConstitutionFile
 	for _, dbFile := range dbFiles {
 		path := filepath.Join(cm.baseDir, dbFile.Name)
@@ -175,27 +174,27 @@ func (cm *ConstitutionManager) validateStorage() {
 
 		if !dbFileExistsInStorage {
 			isRenamed := false
-			//Check candidates for removal, file can be renamed. If so - return it's correct name
+			// Check candidates for removal, file can be renamed. If so - return it's correct name
 			for _, candidate := range filesToRemove {
 				hash := cm.getHashOfFile(candidate.path)
 				if hash == dbFile.Hash {
-					//It means that file was renamed
+					// It means that file was renamed
 					os.Rename(path, dbFile.Name)
 					isRenamed = true
 					candidate.delete = false
 				}
 			}
 
-			//We can't find file on disk anyway
+			// We can't find file on disk anyway
 			if !isRenamed {
-				log.Error("Removing file %s record from database. File doesn't exist in the storage", "path", path)
+				log.Warn("Removing file %s record from database. File doesn't exist in the storage", "path", path)
 				continue
 			}
 		}
 		resDbFiles = append(resDbFiles, dbFile)
 	}
 
-	//Remove wrong records from db
+	// Remove wrong records from db
 	if len(resDbFiles) != len(dbFiles) {
 		log.Warn("Updating constitution storage in the database")
 		if err := cm.db.saveConstitutionStorage(resDbFiles); err != nil {
@@ -203,11 +202,11 @@ func (cm *ConstitutionManager) validateStorage() {
 		}
 	}
 
-	//Remove all incorrect files
+	// Remove all incorrect files
 	if len(filesToRemove) > 0 {
 		for _, candidate := range filesToRemove {
 			if candidate.delete {
-				log.Error("Removing file from constitution storage directory. File doesn't exist in the database", "err", candidate.path)
+				log.Warn("Removing file from constitution storage directory. File doesn't exist in the database", "err", candidate.path)
 				if err := os.Remove(candidate.path); err != nil {
 					log.Error("Failed to delete file", "err", err, "path", candidate.path)
 				}
@@ -215,7 +214,7 @@ func (cm *ConstitutionManager) validateStorage() {
 		}
 	}
 
-	//Check requests and remove the fulfilled ones
+	// Check requests and remove the fulfilled ones
 	var resRequests []common.Hash
 	for _, request := range fileRequests {
 		isFulfilled := false
@@ -236,16 +235,16 @@ func (cm *ConstitutionManager) validateStorage() {
 		}
 	}
 
-	//Update known files - add new ones if any
+	// Update known files - add new ones if any
 	resKnownFiles := []common.Hash{}
 	for _, existingFile := range resDbFiles {
 		resKnownFiles = append(resKnownFiles, existingFile.Hash)
 	}
 
-	//validation of hashes inside
+	// validation of hashes inside
 	if err := cm.updateKnownConstitutionFiles(resKnownFiles); err != nil {
 		log.Error("Failed to update known constitution files", "err", err)
-		//return
+		// return
 	}
 }
 
@@ -352,8 +351,8 @@ func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 		filename = newFileName
 	}
 
-	//cm.storageLock.Lock()
-	//defer cm.storageLock.Unlock()
+	// cm.storageLock.Lock()
+	// defer cm.storageLock.Unlock()
 
 	candidatePath := filepath.Join(cm.baseDir, draftsDir, filename)
 
@@ -479,7 +478,7 @@ func (cm *ConstitutionManager) storeConstitutionFile(contents []byte, cFile comm
 	hasFile := false
 	hasKnownFile := false
 	if legit {
-		//No need to update same file
+		// No need to update same file
 		for _, dbFile := range dbFiles {
 			if dbFile.Hash == cFile.Hash {
 				hasFile = true
@@ -507,7 +506,7 @@ func (cm *ConstitutionManager) storeConstitutionFile(contents []byte, cFile comm
 		}
 	}
 
-	//We only need add a record to the DB in case if file is not a draft
+	// We only need add a record to the DB in case if file is not a draft
 	if legit && !hasFile {
 		dbFiles = append(dbFiles, cFile)
 		if errSave := cm.db.saveConstitutionStorage(dbFiles); errSave != nil {
@@ -590,10 +589,10 @@ func (cm *ConstitutionManager) getHashOfFile(filePath string) common.Hash {
 
 func (cm *ConstitutionManager) preformatFileContents(bytes []byte) []byte {
 	contents := string(bytes)
-	//TODO
-	//re := regexp.MustCompile(`\r?\n`)
-	//contents = re.ReplaceAllString(contents, "\r")
-	////What else?
+	// TODO
+	// re := regexp.MustCompile(`\r?\n`)
+	// contents = re.ReplaceAllString(contents, "\r")
+	// //What else?
 	return []byte(contents)
 }
 
