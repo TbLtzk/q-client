@@ -1526,7 +1526,6 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 			delete(bc.ignoredBlocks, number)
 			continue
 		}
-
 	}
 
 	// We're here for the first time, so we need to initialize the ignored blocks map
