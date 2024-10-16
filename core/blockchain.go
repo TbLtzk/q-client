@@ -218,10 +218,6 @@ type BlockChain struct {
 	ignoredBlocks map[uint64]map[common.Hash]struct{} // Blocks that are ignored during import
 }
 
-type ignoredBlock struct {
-	number *big.Int
-}
-
 // NewBlockChain returns a fully initialised block chain using information
 // available in the database. It initialises the default Ethereum Validator
 // and Processor.
