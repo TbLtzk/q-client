@@ -1,5 +1,5 @@
-//go:build go1.16
-// +build go1.16
+//go:build go1.18
+// +build go1.18
 
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
@@ -13,22 +13,21 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/internal/shared"
+	"github.com/Azure/azure-sdk-for-go/sdk/internal/exported"
 )
 
 // Payload reads and returns the response body or an error.
 // On a successful read, the response body is cached.
 // Subsequent reads will access the cached value.
 func Payload(resp *http.Response) ([]byte, error) {
-	return shared.Payload(resp)
+	return exported.Payload(resp, nil)
 }
 
 // HasStatusCode returns true if the Response's status code is one of the specified values.
 func HasStatusCode(resp *http.Response, statusCodes ...int) bool {
-	return shared.HasStatusCode(resp, statusCodes...)
+	return exported.HasStatusCode(resp, statusCodes...)
 }
 
 // UnmarshalAsByteArray will base-64 decode the received payload and place the result into the value pointed to by v.
@@ -85,21 +84,21 @@ func UnmarshalAsXML(resp *http.Response, v interface{}) error {
 // Drain reads the response body to completion then closes it.  The bytes read are discarded.
 func Drain(resp *http.Response) {
 	if resp != nil && resp.Body != nil {
-		_, _ = io.Copy(ioutil.Discard, resp.Body)
+		_, _ = io.Copy(io.Discard, resp.Body)
 		resp.Body.Close()
 	}
 }
 
 // removeBOM removes any byte-order mark prefix from the payload if present.
 func removeBOM(resp *http.Response) error {
-	payload, err := Payload(resp)
+	_, err := exported.Payload(resp, &exported.PayloadOptions{
+		BytesModifier: func(b []byte) []byte {
+			// UTF8
+			return bytes.TrimPrefix(b, []byte("\xef\xbb\xbf"))
+		},
+	})
 	if err != nil {
 		return err
-	}
-	// UTF8
-	trimmed := bytes.TrimPrefix(payload, []byte("\xef\xbb\xbf"))
-	if len(trimmed) < len(payload) {
-		resp.Body.(*shared.NopClosingBytesReader).Set(trimmed)
 	}
 	return nil
 }

@@ -17,6 +17,12 @@ func (o *lazyObject) className() string {
 	return obj.className()
 }
 
+func (o *lazyObject) typeOf() String {
+	obj := o.create(o.val)
+	o.val.self = obj
+	return obj.typeOf()
+}
+
 func (o *lazyObject) getIdx(p valueInt, receiver Value) Value {
 	obj := o.create(o.val)
 	o.val.self = obj
@@ -163,28 +169,16 @@ func (o *lazyObject) _putSym(*Symbol, Value) {
 	panic("cannot use _putSym() in lazy object")
 }
 
-func (o *lazyObject) toPrimitiveNumber() Value {
-	obj := o.create(o.val)
-	o.val.self = obj
-	return obj.toPrimitiveNumber()
-}
-
-func (o *lazyObject) toPrimitiveString() Value {
-	obj := o.create(o.val)
-	o.val.self = obj
-	return obj.toPrimitiveString()
-}
-
-func (o *lazyObject) toPrimitive() Value {
-	obj := o.create(o.val)
-	o.val.self = obj
-	return obj.toPrimitive()
-}
-
 func (o *lazyObject) assertCallable() (call func(FunctionCall) Value, ok bool) {
 	obj := o.create(o.val)
 	o.val.self = obj
 	return obj.assertCallable()
+}
+
+func (o *lazyObject) vmCall(vm *vm, n int) {
+	obj := o.create(o.val)
+	o.val.self = obj
+	obj.vmCall(vm, n)
 }
 
 func (o *lazyObject) assertConstructor() func(args []Value, newTarget *Object) *Object {
@@ -295,19 +289,25 @@ func (o *lazyObject) setProto(proto *Object, throw bool) bool {
 	return obj.setProto(proto, throw)
 }
 
-func (o *lazyObject) sortLen() int64 {
+func (o *lazyObject) getPrivateEnv(typ *privateEnvType, create bool) *privateElements {
+	obj := o.create(o.val)
+	o.val.self = obj
+	return obj.getPrivateEnv(typ, create)
+}
+
+func (o *lazyObject) sortLen() int {
 	obj := o.create(o.val)
 	o.val.self = obj
 	return obj.sortLen()
 }
 
-func (o *lazyObject) sortGet(i int64) Value {
+func (o *lazyObject) sortGet(i int) Value {
 	obj := o.create(o.val)
 	o.val.self = obj
 	return obj.sortGet(i)
 }
 
-func (o *lazyObject) swap(i, j int64) {
+func (o *lazyObject) swap(i int, j int) {
 	obj := o.create(o.val)
 	o.val.self = obj
 	obj.swap(i, j)
