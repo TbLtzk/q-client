@@ -21,8 +21,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/docker/docker/pkg/reexec"
 	"gitlab.com/q-dev/q-client/internal/cmdtest"
+	"gitlab.com/q-dev/q-client/internal/reexec"
 )
 
 type testEthkey struct {

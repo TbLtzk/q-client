@@ -48,6 +48,9 @@ profile.cov
 /dashboard/assets/package-lock.json
 
 **/yarn-error.log
+logs/
+
+tests/spec-tests/
 
 # MacOS version file replacement backup
 version.go-E

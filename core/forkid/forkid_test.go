@@ -18,10 +18,14 @@ package forkid
 
 import (
 	"bytes"
+	"hash/crc32"
 	"math"
 	"testing"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
@@ -152,58 +156,61 @@ import (
 // 		// Local is mainnet Petersburg, remote announces the same. No future fork is announced.
 // 		{7987396, ID{Hash: checksumToBytes(0x668db0af), Next: 0}, nil},
 
-// 		// Local is mainnet Petersburg, remote announces the same. Remote also announces a next fork
+// 		// Local is mainnet Gray Glacier, remote announces the same. No future fork is announced.
+		{&legacyConfig, 15050000, 0, ID{Hash: checksumToBytes(0xf0afd0e3), Next: 0}, nil},
+
+		// Local is mainnet Gray Glacier, remote announces the same. Remote also announces a next fork
 // 		// at block 0xffffffff, but that is uncertain.
-// 		{7987396, ID{Hash: checksumToBytes(0x668db0af), Next: math.MaxUint64}, nil},
+// 		{&legacyConfig, 15050000, 0, ID{Hash: checksumToBytes(0xf0afd0e3), Next: math.MaxUint64}, nil},
 
 // 		// Local is mainnet currently in Byzantium only (so it's aware of Petersburg), remote announces
 // 		// also Byzantium, but it's not yet aware of Petersburg (e.g. non updated node before the fork).
 // 		// In this case we don't know if Petersburg passed yet or not.
-// 		{7279999, ID{Hash: checksumToBytes(0xa00bc324), Next: 0}, nil},
+// 		{&legacyConfig, 7279999, 0, ID{Hash: checksumToBytes(0xa00bc324), Next: 0}, nil},
 
 // 		// Local is mainnet currently in Byzantium only (so it's aware of Petersburg), remote announces
 // 		// also Byzantium, and it's also aware of Petersburg (e.g. updated node before the fork). We
 // 		// don't know if Petersburg passed yet (will pass) or not.
-// 		{7279999, ID{Hash: checksumToBytes(0xa00bc324), Next: 7280000}, nil},
+// 		{&legacyConfig, 7279999, 0, ID{Hash: checksumToBytes(0xa00bc324), Next: 7280000}, nil},
 
 // 		// Local is mainnet currently in Byzantium only (so it's aware of Petersburg), remote announces
 // 		// also Byzantium, and it's also aware of some random fork (e.g. misconfigured Petersburg). As
 // 		// neither forks passed at neither nodes, they may mismatch, but we still connect for now.
-// 		{7279999, ID{Hash: checksumToBytes(0xa00bc324), Next: math.MaxUint64}, nil},
+// 		{&legacyConfig, 7279999, 0, ID{Hash: checksumToBytes(0xa00bc324), Next: math.MaxUint64}, nil},
 
 // 		// Local is mainnet exactly on Petersburg, remote announces Byzantium + knowledge about Petersburg. Remote
 // 		// is simply out of sync, accept.
-// 		{7280000, ID{Hash: checksumToBytes(0xa00bc324), Next: 7280000}, nil},
+// 		{&legacyConfig, 7280000, 0, ID{Hash: checksumToBytes(0xa00bc324), Next: 7280000}, nil},
 
 // 		// Local is mainnet Petersburg, remote announces Byzantium + knowledge about Petersburg. Remote
 // 		// is simply out of sync, accept.
-// 		{7987396, ID{Hash: checksumToBytes(0xa00bc324), Next: 7280000}, nil},
+// 		{&legacyConfig, 7987396, 0, ID{Hash: checksumToBytes(0xa00bc324), Next: 7280000}, nil},
 
 // 		// Local is mainnet Petersburg, remote announces Spurious + knowledge about Byzantium. Remote
 // 		// is definitely out of sync. It may or may not need the Petersburg update, we don't know yet.
-// 		{7987396, ID{Hash: checksumToBytes(0x3edd5b10), Next: 4370000}, nil},
+// 		{&legacyConfig, 7987396, 0, ID{Hash: checksumToBytes(0x3edd5b10), Next: 4370000}, nil},
 
 // 		// Local is mainnet Byzantium, remote announces Petersburg. Local is out of sync, accept.
-// 		{7279999, ID{Hash: checksumToBytes(0x668db0af), Next: 0}, nil},
+// 		{&legacyConfig, 7279999, 0, ID{Hash: checksumToBytes(0x668db0af), Next: 0}, nil},
 
 // 		// Local is mainnet Spurious, remote announces Byzantium, but is not aware of Petersburg. Local
 // 		// out of sync. Local also knows about a future fork, but that is uncertain yet.
-// 		{4369999, ID{Hash: checksumToBytes(0xa00bc324), Next: 0}, nil},
+// 		{&legacyConfig, 4369999, 0, ID{Hash: checksumToBytes(0xa00bc324), Next: 0}, nil},
 
 // 		// Local is mainnet Petersburg. remote announces Byzantium but is not aware of further forks.
 // 		// Remote needs software update.
-// 		{7987396, ID{Hash: checksumToBytes(0xa00bc324), Next: 0}, ErrRemoteStale},
+// 		{&legacyConfig, 7987396, 0, ID{Hash: checksumToBytes(0xa00bc324), Next: 0}, ErrRemoteStale},
 
 // 		// Local is mainnet Petersburg, and isn't aware of more forks. Remote announces Petersburg +
 // 		// 0xffffffff. Local needs software update, reject.
-// 		{7987396, ID{Hash: checksumToBytes(0x5cddc0e1), Next: 0}, ErrLocalIncompatibleOrStale},
+// 		{&legacyConfig, 7987396, 0, ID{Hash: checksumToBytes(0x5cddc0e1), Next: 0}, ErrLocalIncompatibleOrStale},
 
 // 		// Local is mainnet Byzantium, and is aware of Petersburg. Remote announces Petersburg +
 // 		// 0xffffffff. Local needs software update, reject.
-// 		{7279999, ID{Hash: checksumToBytes(0x5cddc0e1), Next: 0}, ErrLocalIncompatibleOrStale},
+// 		{&legacyConfig, 7279999, 0, ID{Hash: checksumToBytes(0x5cddc0e1), Next: 0}, ErrLocalIncompatibleOrStale},
 
 // 		// Local is mainnet Petersburg, remote is Rinkeby Petersburg.
-// 		{7987396, ID{Hash: checksumToBytes(0xafec6b27), Next: 0}, ErrLocalIncompatibleOrStale},
+// 		{&legacyConfig, 7987396, 0, ID{Hash: checksumToBytes(0xafec6b27), Next: 0}, ErrLocalIncompatibleOrStale},
 
 // 		// Local is mainnet London, far in the future. Remote announces Gopherium (non existing fork)
 // 		// at some future block 88888888, for itself, but past block for local. Local is incompatible.
@@ -242,6 +249,58 @@ func TestEncoding(t *testing.T) {
 		}
 		if !bytes.Equal(have, tt.want) {
 			t.Errorf("test %d: RLP mismatch: have %x, want %x", i, have, tt.want)
+		}
+	}
+}
+
+// Tests that time-based forks which are active at genesis are not included in
+// forkid hash.
+func TestTimeBasedForkInGenesis(t *testing.T) {
+	var (
+		time       = uint64(1690475657)
+		genesis    = types.NewBlockWithHeader(&types.Header{Time: time})
+		forkidHash = checksumToBytes(crc32.ChecksumIEEE(genesis.Hash().Bytes()))
+		config     = func(shanghai, cancun uint64) *params.ChainConfig {
+			return &params.ChainConfig{
+				ChainID:                       big.NewInt(1337),
+				HomesteadBlock:                big.NewInt(0),
+				DAOForkBlock:                  nil,
+				DAOForkSupport:                true,
+				EIP150Block:                   big.NewInt(0),
+				EIP155Block:                   big.NewInt(0),
+				EIP158Block:                   big.NewInt(0),
+				ByzantiumBlock:                big.NewInt(0),
+				ConstantinopleBlock:           big.NewInt(0),
+				PetersburgBlock:               big.NewInt(0),
+				IstanbulBlock:                 big.NewInt(0),
+				MuirGlacierBlock:              big.NewInt(0),
+				BerlinBlock:                   big.NewInt(0),
+				LondonBlock:                   big.NewInt(0),
+				TerminalTotalDifficulty:       big.NewInt(0),
+				TerminalTotalDifficultyPassed: true,
+				MergeNetsplitBlock:            big.NewInt(0),
+				ShanghaiTime:                  &shanghai,
+				CancunTime:                    &cancun,
+				Ethash:                        new(params.EthashConfig),
+			}
+		}
+	)
+	tests := []struct {
+		config *params.ChainConfig
+		want   ID
+	}{
+		// Shanghai active before genesis, skip
+		{config(time-1, time+1), ID{Hash: forkidHash, Next: time + 1}},
+
+		// Shanghai active at genesis, skip
+		{config(time, time+1), ID{Hash: forkidHash, Next: time + 1}},
+
+		// Shanghai not active, skip
+		{config(time+1, time+2), ID{Hash: forkidHash, Next: time + 1}},
+	}
+	for _, tt := range tests {
+		if have := NewID(tt.config, genesis, 0, time); have != tt.want {
+			t.Fatalf("incorrect forkid hash: have %x, want %x", have, tt.want)
 		}
 	}
 }

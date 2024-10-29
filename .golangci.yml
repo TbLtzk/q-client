@@ -26,7 +26,6 @@ linters:
     - bidichk
     - durationcheck
     - exportloopref
-    - gosec
     - whitespace
     - unused
 
@@ -42,15 +41,6 @@ linters:
 linters-settings:
   gofmt:
     simplify: true
-  goconst:
-    min-len: 3 # minimum length of string constant
-    min-occurrences: 6 # minimum number of occurrences
-  gosec:
-    excludes:
-      - G404 # Use of weak random number generator - lots of FP
-      - G107 # Potential http request -- those are intentional
-      - G306 # G306: Expect WriteFile permissions to be 0600 or less
-      - G114
 
 issues:
   exclude-rules:

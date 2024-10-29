@@ -19,12 +19,14 @@ package core
 import (
 	"context"
 	"encoding/json"
+	"os"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/signer/core/apitypes"
+	"golang.org/x/exp/slog"
 )
 
 type AuditLogger struct {
@@ -113,12 +115,13 @@ func (l *AuditLogger) Version(ctx context.Context) (string, error) {
 }
 
 func NewAuditLogger(path string, api ExternalAPI) (*AuditLogger, error) {
-	l := log.New("api", "signer")
-	handler, err := log.FileHandler(path, log.LogfmtFormat())
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, err
 	}
-	l.SetHandler(handler)
+
+	handler := slog.NewTextHandler(f, nil)
+	l := log.NewLogger(handler).With("api", "signer")
 	l.Info("Configured", "audit log", path)
 	return &AuditLogger{l, api}, nil
 }

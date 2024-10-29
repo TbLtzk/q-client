@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -31,6 +32,7 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/trie"
+	"golang.org/x/exp/slog"
 )
 
 // makeChain creates a chain of n blocks starting at and including parent.
@@ -42,7 +44,7 @@ func makeChain(n int, seed byte, parent *types.Block, empty bool) ([]*types.Bloc
 		block.SetCoinbase(common.Address{seed})
 		// Add one tx to every secondblock
 		if !empty && i%2 == 0 {
-			signer := types.MakeSigner(params.TestChainConfig, block.Number())
+			signer := types.MakeSigner(params.TestChainConfig, block.Number(), block.Timestamp())
 			tx, err := types.SignTx(types.NewTransaction(block.TxNonce(testAddress), common.Address{seed}, big.NewInt(1000), params.TxGas, block.BaseFee(), nil), signer, testKey)
 			if err != nil {
 				panic(err)
@@ -271,7 +273,7 @@ func XTestDelivery(t *testing.T) {
 	world.chain = blo
 	world.progress(10)
 	if false {
-		log.Root().SetHandler(log.StdoutHandler)
+		log.SetDefault(log.NewLogger(slog.NewTextHandler(os.Stdout, nil)))
 	}
 	q := newQueue(10, 10)
 	var wg sync.WaitGroup
@@ -282,14 +284,14 @@ func XTestDelivery(t *testing.T) {
 		defer wg.Done()
 		c := 1
 		for {
-			//fmt.Printf("getting headers from %d\n", c)
+			// fmt.Printf("getting headers from %d\n", c)
 			headers := world.headers(c)
 			hashes := make([]common.Hash, len(headers))
 			for i, header := range headers {
 				hashes[i] = header.Hash()
 			}
 			l := len(headers)
-			//fmt.Printf("scheduling %d headers, first %d last %d\n",
+			// fmt.Printf("scheduling %d headers, first %d last %d\n",
 			//	l, headers[0].Number.Uint64(), headers[len(headers)-1].Number.Uint64())
 			q.Schedule(headers, hashes, uint64(c))
 			c += l
@@ -339,7 +341,7 @@ func XTestDelivery(t *testing.T) {
 					uncleHashes[i] = types.CalcUncleHash(uncles)
 				}
 				time.Sleep(100 * time.Millisecond)
-				_, err := q.DeliverBodies(peer.id, txset, txsHashes, uncleset, uncleHashes)
+				_, err := q.DeliverBodies(peer.id, txset, txsHashes, uncleset, uncleHashes, nil, nil)
 				if err != nil {
 					fmt.Printf("delivered %d bodies %v\n", len(txset), err)
 				}
@@ -380,8 +382,8 @@ func XTestDelivery(t *testing.T) {
 		defer wg.Done()
 		for i := 0; i < 50; i++ {
 			time.Sleep(300 * time.Millisecond)
-			//world.tick()
-			//fmt.Printf("trying to progress\n")
+			// world.tick()
+			// fmt.Printf("trying to progress\n")
 			world.progress(rand.Intn(100))
 		}
 		for i := 0; i < 50; i++ {
@@ -440,7 +442,7 @@ func (n *network) forget(blocknum uint64) {
 func (n *network) progress(numBlocks int) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
-	//fmt.Printf("progressing...\n")
+	// fmt.Printf("progressing...\n")
 	newBlocks, newR := makeChain(numBlocks, 0, n.chain[len(n.chain)-1], false)
 	n.chain = append(n.chain, newBlocks...)
 	n.receipts = append(n.receipts, newR...)
@@ -455,7 +457,7 @@ func (n *network) headers(from int) []*types.Header {
 	for index >= len(n.chain) {
 		// wait for progress
 		n.cond.L.Lock()
-		//fmt.Printf("header going into wait\n")
+		// fmt.Printf("header going into wait\n")
 		n.cond.Wait()
 		index = from - n.offset
 		n.cond.L.Unlock()
