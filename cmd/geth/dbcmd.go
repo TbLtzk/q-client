@@ -29,6 +29,7 @@ import (
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli/v2"
+	"gitlab.com/q-dev/q-client/cmd/backupManager"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"

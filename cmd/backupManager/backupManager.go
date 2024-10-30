@@ -710,7 +710,7 @@ func (mgr *BackupManager) getBackupSizeFromS3(filename string) (int64, error) {
 		return 0, err
 	} else {
 		for _, content := range result.Contents {
-			return content.Size, nil
+			return *content.Size, nil
 		}
 	}
 	return 0, err

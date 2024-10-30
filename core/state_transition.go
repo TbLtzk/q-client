@@ -358,11 +358,11 @@ func (st *StateTransition) preCheck() error {
 // returning the evm execution result with following fields.
 //
 //   - used gas:
-     total gas used (including gas being refunded)
+//     total gas used (including gas being refunded)
 //   - returndata:
-     the returned data from evm
+//     the returned data from evm
 //   - concrete execution error:
-     various EVM errors which abort the execution,     e.g.//     ErrOutOfGas, ErrExecutionReverted
+//     various EVM errors which abort the execution,     e.g.//     ErrOutOfGas, ErrExecutionReverted
 //
 // However if any consensus issue encountered, return the error directly with
 // nil evm execution result.

@@ -24,6 +24,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/holiman/uint256"
+	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/misc/eip1559"
@@ -34,6 +36,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/internal/utils"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/trie"
@@ -206,6 +209,7 @@ type worker struct {
 	mu       sync.RWMutex // The lock used to protect the coinbase and extra fields
 	coinbase common.Address
 	extra    []byte
+	tip      *uint256.Int // Minimum tip needed for non-local transaction to include them
 
 	pendingMu    sync.RWMutex
 	pendingTasks map[common.Hash]*task
@@ -248,12 +252,13 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, engine consensus
 		chainConfig:        chainConfig,
 		engine:             engine,
 		eth:                eth,
-		chain:              eth.BlockChain(),
 		mux:                mux,
+		chain:              eth.BlockChain(),
 		accountManager:     accountManager,
 		isLocalBlock:       isLocalBlock,
 		coinbase:           config.Etherbase,
 		extra:              config.ExtraData,
+		tip:                uint256.MustFromBig(config.GasPrice),
 		pendingTasks:       make(map[common.Hash]*task),
 		txsCh:              make(chan core.NewTxsEvent, txChanSize),
 		chainHeadCh:        make(chan core.ChainHeadEvent, chainHeadChanSize),
@@ -329,6 +334,13 @@ func (w *worker) setExtra(extra []byte) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.extra = extra
+}
+
+// setGasTip sets the minimum miner tip needed to include a non-local transaction.
+func (w *worker) setGasTip(tip *big.Int) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.tip = uint256.MustFromBig(tip)
 }
 
 // setRecommitInterval updates the interval for miner sealing work recommitting.
@@ -892,7 +904,7 @@ func (w *worker) commitTransactions(env *environment, txs *transactionsByPriceAn
 
 // generateParams wraps various of settings for generating sealing task.
 type generateParams struct {
-	timestamp   uint64            // The timstamp for sealing task
+	timestamp   uint64            // The timestamp for sealing task
 	forceTime   bool              // Flag whether the given timestamp is immutable or not
 	parentHash  common.Hash       // Parent block hash, empty means the latest chain head
 	coinbase    common.Address    // The fee recipient address for including transaction
@@ -951,20 +963,6 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 			header.GasLimit = core.CalcGasLimit(parentGasLimit, w.config.GasCeil)
 		}
 	}
-	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
-	if w.isRunning() {
-		if w.coinbase == (common.Address{}) {
-			log.Error("Refusing to mine without etherbase")
-			return nil, errors.New("Refusing to mine without etherbase")
-		}
-		header.Coinbase = w.coinbase
-		var err error
-		w.coinbase, err = w.engine.Author(header)
-		if err != nil {
-			log.Error("failed to get author of future block", "error", err)
-		}
-		log.Debug("updated coinbase", "address", w.coinbase.String())
-	}
 	// Apply EIP-4844, EIP-4788.
 	if w.chainConfig.IsCancun(header.Number, header.Time) {
 		var excessBlobGas uint64
@@ -979,6 +977,20 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		header.ParentBeaconRoot = genParams.beaconRoot
 	}
 	// Run the consensus preparation with the default or customized consensus engine.
+	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
+	if w.isRunning() {
+		if w.coinbase == (common.Address{}) {
+			log.Error("Refusing to mine without etherbase")
+			return nil, errors.New("Refusing to mine without etherbase")
+		}
+		header.Coinbase = w.coinbase
+		var err error
+		w.coinbase, err = w.engine.Author(header)
+		if err != nil {
+			log.Error("failed to get author of future block", "error", err)
+		}
+		log.Debug("updated coinbase", "address", w.coinbase.String())
+	}
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for sealing", "err", err)
 		return nil, err
@@ -1007,16 +1019,6 @@ func (w *worker) fillTransactions(interrupt *atomic.Int32, env *environment) err
 
 	// Split the pending transactions into locals and remotes.
 	localTxs, remoteTxs := make(map[common.Address][]*txpool.LazyTransaction), pending
-
-	systemTxs := w.prepareSystemTx(w.accountManager, env)
-	// Short circuit if there is no available pending transactions.
-	// But if we disable empty precommit already, ignore it. Since
-	// empty block is necessary to keep the liveness of the network.
-	if len(pending) == 0 && len(systemTxs) == 0 && atomic.LoadUint32(&w.noempty) == 0 {
-		w.updateSnapshot(env)
-		return nil
-	}
-	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
 	for _, account := range w.eth.TxPool().Locals() {
 		if txs := remoteTxs[account]; len(txs) > 0 {
 			delete(remoteTxs, account)
@@ -1036,18 +1038,6 @@ func (w *worker) fillTransactions(interrupt *atomic.Int32, env *environment) err
 		if err := w.commitTransactions(env, txs, interrupt); err != nil {
 			return err
 		}
-	}
-	// add system transactions in last block of epoch
-	if len(systemTxs) > 0 {
-		txs := types.NewTransactionsByPriceAndNonce(env.signer, systemTxs, env.header.BaseFee)
-		if err := w.commitTransactions(env, txs, interrupt); err != nil {
-			log.Warn("fail to apply system txs")
-			return err
-		} else {
-			log.Info("committed system txs")
-		}
-	} else {
-		log.Info("no system txs")
 	}
 	return nil
 }
@@ -1253,7 +1243,7 @@ func signalToErr(signal int32) error {
 	}
 }
 
-func (w *worker) prepareSystemTx(accountManager *accounts.Manager, env *environment) map[common.Address]types.Transactions {
+func (w *worker) prepareSystemTx(accountManager *accounts.Manager, env *environment, pool *txpool.TxPool) map[common.Address][]*txpool.LazyTransaction {
 	systemTxPreparer := utils.New(w.chainConfig, w.engine, env.state, env.header, env.signer, w.gpp)
-	return systemTxPreparer.PrepareSystemTx(accountManager)
+	return systemTxPreparer.PrepareSystemTx(accountManager, pool)
 }

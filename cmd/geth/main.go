@@ -25,11 +25,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/cmd/utils"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/console/prompt"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/eth/downloader"
@@ -147,15 +149,10 @@ var (
 		utils.GpoMaxGasPriceFlag,
 		utils.GpoIgnoreGasPriceFlag,
 		utils.GpoGasPriceFactor,
-		utils.MinerNotifyFullFlag,
-		utils.IgnoreLegacyReceiptsFlag,
 		configFileFlag,
 		utils.LogDebugFlag,
 		utils.LogBacktraceAtFlag,
 	}, utils.NetworkFlags, utils.DatabaseFlags)
-		utils.ConstitutionDirFlag,
-		utils.GlobalGasBufferFlag,
-	}, utils.NetworkFlags, utils.DatabasePathFlags)
 
 	rpcFlags = []cli.Flag{
 		utils.HTTPEnabledFlag,
@@ -252,7 +249,7 @@ func init() {
 		removedbCommand,
 		dumpCommand,
 		dumpGenesisCommand,
-		//writeAddrCommand,
+		// writeAddrCommand,
 		// See accountcmd.go:
 		accountCommand,
 		walletCommand,
@@ -479,7 +476,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 		}()
 	}
 
-	//We need to wait until accounts are unlocked and only then check last transition block signatures
+	// We need to wait until accounts are unlocked and only then check last transition block signatures
 	if clique, ok := backend.Engine().(*clique.Clique); ok {
 		clique.VerifyLastTransitionBlock()
 	}

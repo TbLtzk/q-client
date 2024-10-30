@@ -23,6 +23,7 @@ import (
 	"io"
 	"math/big"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -47,6 +48,7 @@ import (
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
+	"gitlab.com/q-dev/q-client/sentryMonitor"
 	"gitlab.com/q-dev/q-client/trie"
 	"gitlab.com/q-dev/q-client/trie/triedb/hashdb"
 	"gitlab.com/q-dev/q-client/trie/triedb/pathdb"
@@ -822,12 +824,13 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 	}
 
 	defer func() {
-		bc.chainHeadFeed.Send(ChainHeadEvent{Block: bc.CurrentBlock()})
+		block := bc.CurrentBlock()
+		bc.chainHeadFeed.Send(ChainHeadEvent{Block: bc.GetBlockByHash(block.Hash())})
 	}()
 
 	// If we didn't reach block number of revalidation, skip it
 	currentBlock := bc.CurrentBlock()
-	if currentBlock.NumberU64() < number {
+	if currentBlock.Number.Uint64() < number {
 		return nil
 	}
 
@@ -840,9 +843,9 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 		return fmt.Errorf("missing revalidation block %d", lastValidBlockNumber)
 	}
 
-	log.Info("Revalidating from block", "fromnumber", currentBlock.Number(), "fromhash", currentBlock.Hash(), "tonumber", lastValidBlock.Number(), "tohash", lastValidBlock.Hash())
+	log.Info("Revalidating from block", "fromnumber", currentBlock.Number, "fromhash", currentBlock.Hash(), "tonumber", lastValidBlock.Number(), "tohash", lastValidBlock.Hash())
 
-	blocksToRewind := int(currentBlock.NumberU64() - lastValidBlockNumber)
+	blocksToRewind := int(currentBlock.Number.Uint64() - lastValidBlockNumber)
 	blocks := bc.GetBlocksFromHash(currentBlock.Hash(), blocksToRewind)
 
 	// Reverse block array to prepare for insert
@@ -1621,7 +1624,7 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	// Since we can't have the invalid sidechain longer than the Epoch length, we can safely
 	// remove all the blocks that are older than the Epoch length.
 	for number := range bc.ignoredBlocks {
-		if number+bc.Config().Clique.Epoch < bc.CurrentBlock().NumberU64() {
+		if number+bc.Config().Clique.Epoch < bc.CurrentBlock().Number.Uint64() {
 			delete(bc.ignoredBlocks, number)
 			continue
 		}
@@ -1656,8 +1659,8 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 
 	log.Error("Mismatching checkpoint signers", "number", failedBlock.Number(), "hash", failedBlock.Header().Hash())
 	log.Info("Trying to switch to the sidechain. Searching for common ancestor for blocks",
-		"current", bc.CurrentBlock().Number(), "currentHash", bc.CurrentBlock().Hash(), "sidechain[0]", chain[0].Number(), "hash", chain[0].Hash(), "length", len(chain))
-	ancestorHeader = rawdb.FindCommonAncestor(bc.db, bc.CurrentBlock().Header(), chain[0].Header())
+		"current", bc.CurrentBlock().Number, "currentHash", bc.CurrentBlock().Hash(), "sidechain[0]", chain[0].Number(), "hash", chain[0].Hash(), "length", len(chain))
+	ancestorHeader = rawdb.FindCommonAncestor(bc.db, bc.CurrentBlock(), chain[0].Header())
 	if ancestorHeader == nil {
 		log.Error("Failed to find common ancestor for block", "number", chain[0].Number(), "hash", chain[0].Hash())
 		return errors.New("failed to find common ancestor block: ancestorHeader is nil")
@@ -1668,9 +1671,9 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 		return errors.New("ancestor block is missing")
 	}
 
-	if bc.CurrentBlock().Number().Uint64()-ancestorHeader.Number.Uint64() >= bc.Config().Clique.Epoch {
+	if bc.CurrentBlock().Number.Uint64()-ancestorHeader.Number.Uint64() >= bc.Config().Clique.Epoch {
 		log.Error("Failed to switch chains: number of blocks between current and ancestor blocks is more than epoch", "ancestor",
-			ancestorHeader.Number, "ancestorHash", ancestorHeader.Hash, "current", bc.CurrentBlock().Number(), "currentHash", bc.CurrentBlock().Hash())
+			ancestorHeader.Number, "ancestorHash", ancestorHeader.Hash, "current", bc.CurrentBlock().Number, "currentHash", bc.CurrentBlock().Hash())
 		return errors.New("ancestor block is too far from the current block")
 	}
 
@@ -2596,9 +2599,10 @@ Platform: %v%v
 Chain config: %#v
 Receipts: %v
 ##############################
-`, bc.chainConfig, block.Number(), block.Hash(), receiptString, err, platform, vcs, config, receiptString)
+`, block.Number(), block.Hash(), err, platform, vcs, config, receiptString)
 	log.Error(errorString)
 	sentryMonitor.HandleErrorMessage(errorString)
+	return errorString
 }
 
 // InsertHeaderChain attempts to insert the given header chain in to the local

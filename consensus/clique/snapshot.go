@@ -18,8 +18,8 @@
 package clique
 
 import (
-	"bytes"
 	"encoding/json"
+	"math"
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"

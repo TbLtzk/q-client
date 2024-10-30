@@ -26,12 +26,15 @@ import (
 	"gitlab.com/q-dev/q-client/consensus/beacon"
 	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/txpool/blobpool"
 	"gitlab.com/q-dev/q-client/core/txpool/legacypool"
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/eth/gasprice"
 	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/governance"
+	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/miner"
 	"gitlab.com/q-dev/q-client/params"
 )
@@ -68,17 +71,7 @@ var Defaults = Config{
 	RPCEVMTimeout:      5 * time.Second,
 	GPO:                FullNodeGPO,
 	RPCTxFeeCap:        1, // 1 ether
-	Miner: miner.Config{
-		GasCeil:  16000000,
-		GasPrice: big.NewInt(params.GWei),
-		Recommit: 3 * time.Second,
-	},
-	TxPool:        core.DefaultTxPoolConfig,
-	RPCGasCap:     50000000,
-	RPCEVMTimeout: 5 * time.Second,
-	GPO:           FullNodeGPO,
-	RPCTxFeeCap:   1, // 1 ether
-	GasBuffer:     1,
+	GasBuffer:          1,
 }
 
 //go:generate go run github.com/fjl/gencodec -type Config -formats toml -out gen_config.go
@@ -166,9 +159,9 @@ type Config struct {
 	// send-transaction variants. The unit is ether.
 	RPCTxFeeCap float64
 
-	//Global gas buffer ratio for estimation
+	// Global gas buffer ratio for estimation
 	GasBuffer float64
-	
+
 	// OverrideCancun (TODO: remove after the fork)
 	OverrideCancun *uint64 `toml:",omitempty"`
 
@@ -181,24 +174,13 @@ type Config struct {
 // only exist on already merged networks.
 func CreateConsensusEngine(config *params.ChainConfig, db ethdb.Database, rm *governance.RootManager, reg *contracts.Registry) (consensus.Engine, error) {
 	// If proof-of-authority is requested, set it up
-	var engine consensus.Engine
-	if chainConfig.Clique != nil {
+	if config.Clique != nil {
 		if rm == nil {
 			log.Warn("creating clique in test mode; exclusion set will always be empty!")
-			return clique.New(chainConfig.Clique, db, &consensus.NoopExclusionSetProvider{}, reg)
-			return beacon.New(clique.New(config.Clique, db)), nil
+			return beacon.New(clique.New(config.Clique, db, &consensus.NoopExclusionSetProvider{}, reg)), nil
 		}
 
-		return clique.New(chainConfig.Clique, db, rm, reg)
-		return beacon.New(clique.New(config.Clique, db)), nil
-	} else {
-		switch config.PowMode {
-		case ethash.ModeFake:
-			log.Warn("Ethash used in fake mode")
-		case ethash.ModeTest:
-			log.Warn("Ethash used in test mode")
-		case ethash.ModeShared:
-			log.Warn("Ethash used in shared mode")
+		return clique.New(config.Clique, db, rm, reg), nil
 	}
 	// If defaulting to proof-of-work, enforce an already merged network since
 	// we cannot run PoW algorithms anymore, so we cannot even follow a chain

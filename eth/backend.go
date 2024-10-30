@@ -25,11 +25,13 @@ import (
 	"sync"
 
 	"gitlab.com/q-dev/q-client/accounts"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/beacon"
 	"gitlab.com/q-dev/q-client/consensus/clique"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/bloombits"
 	"gitlab.com/q-dev/q-client/core/rawdb"
@@ -46,6 +48,8 @@ import (
 	"gitlab.com/q-dev/q-client/eth/protocols/snap"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/governance"
+	"gitlab.com/q-dev/q-client/indexer"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/internal/shutdowncheck"
 	"gitlab.com/q-dev/q-client/log"
@@ -138,12 +142,7 @@ func New(stack *node.Node, config *ethconfig.Config, conn bind.ContractBackend, 
 	// Try to recover offline state pruning only in hash-based.
 	if scheme == rawdb.HashScheme {
 		// leave testmode for compatibility with ethash
-		// in unit tests
-
-		if rm != nil {
-			rm.InitRegistry(reg)
-		}
-
+		// in unit test
 		if err := pruner.RecoverPruning(stack.ResolvePath(""), chainDb); err != nil {
 			log.Error("Failed to recover state", "error", err)
 		}
@@ -157,6 +156,10 @@ func New(stack *node.Node, config *ethconfig.Config, conn bind.ContractBackend, 
 	reg := contracts.NewTestModeRegistry()
 	if cfg := chainConfig.Clique; cfg != nil {
 		reg = contracts.NewRegistry(cfg.Registry, cfg.RewardReceiver, conn)
+	}
+
+	if rm != nil {
+		rm.InitRegistry(reg)
 	}
 
 	engine, err := ethconfig.CreateConsensusEngine(chainConfig, chainDb, rm, reg)
@@ -246,8 +249,7 @@ func New(stack *node.Node, config *ethconfig.Config, conn bind.ContractBackend, 
 	if cfg := chainConfig.Clique; cfg != nil {
 		gpProvider = gasprice.NewEPQFIParamsOracle(config.Miner.GasPrice, reg, eth.blockchain)
 	}
-	eth.txPool = core.NewTxPool(config.TxPool, chainConfig, eth.blockchain, gpProvider)
-	legacyPool := legacypool.New(config.TxPool, eth.blockchain)
+	legacyPool := legacypool.New(config.TxPool, eth.blockchain, gpProvider)
 
 	eth.txPool, err = txpool.New(new(big.Int).SetUint64(config.TxPool.PriceLimit), eth.blockchain, []txpool.SubPool{legacyPool, blobPool})
 	if err != nil {
@@ -272,8 +274,8 @@ func New(stack *node.Node, config *ethconfig.Config, conn bind.ContractBackend, 
 	if rm != nil {
 		rm.InitDownloader(eth.Downloader())
 	}
-	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), eth.EventMux(), eth.engine, eth.isLocalBlock)
-	eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
+	// eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), eth.EventMux(), eth.engine, eth.isLocalBlock, eth.accountManager, gpProvider)
+	// eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
 
 	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), stack.Config().AllowUnprotectedTxs, eth, gpProvider, nil}
 	if eth.APIBackend.allowUnprotectedTxs {

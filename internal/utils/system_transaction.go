@@ -10,6 +10,7 @@ import (
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
+	"gitlab.com/q-dev/q-client/core/txpool"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
@@ -40,8 +41,8 @@ func New(c *params.ChainConfig, e consensus.Engine, s *state.StateDB, h *types.H
 	}
 }
 
-func (w *SystemTxPreparer) PrepareSystemTx(accountManager *accounts.Manager) map[common.Address]types.Transactions {
-	result := make(map[common.Address]types.Transactions)
+func (w *SystemTxPreparer) PrepareSystemTx(accountManager *accounts.Manager, pool *txpool.TxPool) map[common.Address][]*txpool.LazyTransaction {
+	result := make(map[common.Address][]*txpool.LazyTransaction)
 
 	if (w.config.Clique != nil) && ((w.header.Number.Uint64()+1)%w.config.Clique.Epoch == 0) {
 		signer := w.engine.Signer()
@@ -77,7 +78,17 @@ func (w *SystemTxPreparer) PrepareSystemTx(accountManager *accounts.Manager) map
 					}
 
 					types.Sender(w.signer, tx)
-					result[signer] = types.Transactions{tx}
+					result[signer] = append(result[signer], &txpool.LazyTransaction{
+						Pool:      pool,
+						Hash:      tx.Hash(),
+						Tx:        tx,
+						Time:      tx.Time(),
+						GasFeeCap: tx.GasFeeCap(),
+						GasTipCap: tx.GasTipCap(),
+						Gas:       tx.Gas(),
+						BlobGas:   tx.BlobGas(),
+					})
+
 					log.Debug("system tx is here")
 					log.Info("system tx", "tx", *tx)
 				} else {

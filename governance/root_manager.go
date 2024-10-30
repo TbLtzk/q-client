@@ -311,7 +311,7 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 }
 
 func (s *RootManager) isExclusionSetMeetsQuarantineCriteria(blockNumber uint64) bool {
-	currentBlock := s.bc.CurrentBlock().Number().Uint64()
+	currentBlock := s.bc.CurrentBlock().Number.Uint64()
 	rewindLimit := s.maxRewindLimit() // TODO reconsider this logic
 
 	// Check if set can cause a rewind
@@ -384,7 +384,7 @@ func (s *RootManager) validateOldExclusionSet(set *exclusionSet) error {
 		return nil
 	}
 
-	currentBlock := s.bc.CurrentBlock().Number().Uint64()
+	currentBlock := s.bc.CurrentBlock().Number.Uint64()
 
 	if s.activeExSet != nil {
 		// current members of exclusion list should be left unchanged
@@ -438,7 +438,7 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 		return nil
 	}
 
-	currentBlock := s.bc.CurrentBlock().Number()
+	currentBlock := s.bc.CurrentBlock().Number
 
 	if s.activeExSet != nil {
 		// Upgraded L0 governance
@@ -1130,7 +1130,7 @@ func (s *RootManager) ValidatePreviousTransitionBlockSignature() {
 	if s.bc == nil {
 		return
 	}
-	currentBlock := s.bc.CurrentBlock().Number().Uint64()
+	currentBlock := s.bc.CurrentBlock().Number.Uint64()
 	previousTransitionBlock := currentBlock - currentBlock%s.bc.Config().Clique.Epoch
 	s.HandleTransitionBlockSignature(s.bc.GetBlockByNumber(previousTransitionBlock).Header())
 }
@@ -1169,7 +1169,7 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 		return
 	}
 
-	currentBlock := s.bc.CurrentBlock().Number().Uint64()
+	currentBlock := s.bc.CurrentBlock().Number.Uint64()
 	if s.dl != nil && s.dl.Progress().HighestBlock > currentBlock {
 		currentBlock = s.dl.Progress().HighestBlock
 		log.Debug("Co-sign during sync", "block_to_co-sign", header.Number.Uint64(), "latest_block", currentBlock)
@@ -1218,7 +1218,7 @@ func (s *RootManager) isAthosReached() bool {
 	if s.bc == nil {
 		return false
 	}
-	currentBlock := s.bc.CurrentBlock().Number()
+	currentBlock := s.bc.CurrentBlock().Number
 	return s.bc.Config().IsAthos(currentBlock)
 }
 
@@ -1293,7 +1293,7 @@ func (s *RootManager) notifyQuarantine() {
 		log.Warn("You have exclusion lists in the quarantine. You can see them with command: gov.quarantinedExclusionLists()")
 		for i := range sets {
 			earliestBlock := sets[i].earliestBlockFromDiff(s.activeExSet)
-			s.notifyExclusionSetIsQuarantined(&sets[i], s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
+			s.notifyExclusionSetIsQuarantined(&sets[i], s.bc.CurrentBlock().Number.Uint64(), earliestBlock, s.maxRewindLimit())
 		}
 	}
 }

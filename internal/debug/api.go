@@ -36,6 +36,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-bexpr"
+	"gitlab.com/q-dev/q-client/log"
 	"golang.org/x/exp/slog"
 )
 

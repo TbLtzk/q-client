@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/log"
 )
@@ -91,7 +90,7 @@ func (a *GovernancePublicAPI) ActiveExclusionList() *ExclusionList {
 }
 
 func (a *GovernancePublicAPI) ActiveExclusionListPrettify() string {
-	return printPrettifiedList(newExclusionListPrettify(a.gov.RootManager.getActiveExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
+	return printPrettifiedList(newExclusionListPrettify(a.gov.RootManager.getActiveExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number.Int64()))
 }
 
 func (a *GovernancePublicAPI) DesiredExclusionList() *ExclusionList {
@@ -99,7 +98,7 @@ func (a *GovernancePublicAPI) DesiredExclusionList() *ExclusionList {
 }
 
 func (a *GovernancePublicAPI) DesiredExclusionListPrettify() string {
-	return printPrettifiedList(newExclusionListPrettify(a.gov.RootManager.getDesiredExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
+	return printPrettifiedList(newExclusionListPrettify(a.gov.RootManager.getDesiredExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number.Int64()))
 }
 
 func (a *GovernancePublicAPI) ProposedExclusionList() *ExclusionList {
@@ -107,12 +106,12 @@ func (a *GovernancePublicAPI) ProposedExclusionList() *ExclusionList {
 }
 
 func (a *GovernancePublicAPI) ProposedExclusionListPrettify() string {
-	return printPrettifiedList(newExclusionListPrettify(a.gov.RootManager.getProposedExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
+	return printPrettifiedList(newExclusionListPrettify(a.gov.RootManager.getProposedExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number.Int64()))
 }
 
 func (a *GovernancePublicAPI) IsInExclusionList(address string) string {
 	return printPrettifiedSearch(checkExclusionLists(common.HexToAddress(address), a.gov.RootManager.getActiveExclusionSet(),
-		a.gov.RootManager.getDesiredExclusionSet(), a.gov.RootManager.getProposedExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number().Int64()))
+		a.gov.RootManager.getDesiredExclusionSet(), a.gov.RootManager.getProposedExclusionSet(), a.gov.RootManager.bc.CurrentBlock().Number.Int64()))
 }
 
 func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusionList, force bool) (common.Hash, error) {
@@ -139,7 +138,7 @@ func (a *GovernanceAPI) QuarantinedExclusionLists() string {
 		return ""
 	}
 	var earliestBlock uint64
-	currentBlock := a.gov.RootManager.bc.CurrentBlock().Number().Int64()
+	currentBlock := a.gov.RootManager.bc.CurrentBlock().Number.Int64()
 	if err != nil {
 		return errors.Wrap(err, "can't get exclusion sets from quarantine").Error()
 	}
@@ -152,7 +151,7 @@ func (a *GovernanceAPI) QuarantinedExclusionLists() string {
 		earliestBlock = sets[i].earliestBlockFromDiff(a.gov.RootManager.activeExSet)
 		res += "Exclusion list with hash " + sets[i].hash.String() + ":\n"
 		res += "Blockchain will be rewound approx to block #" + fmt.Sprint(earliestBlock) + "). \n"
-		res += printPrettifiedList(newExclusionListPrettify(&sets[i], a.gov.RootManager.bc.CurrentBlock().Number().Int64())) + "\n"
+		res += printPrettifiedList(newExclusionListPrettify(&sets[i], a.gov.RootManager.bc.CurrentBlock().Number.Int64())) + "\n"
 		res += "If you still want to accept this list and do realize potential harm, execute the following command:\n\n" +
 			"gov.acceptQuarantinedExclusionList(\"" + sets[i].hash.String() + "\")\n\n"
 	}
@@ -217,7 +216,7 @@ func (a *GovernancePublicAPI) GetRootNodeApprovals(blockNumber *big.Int, hash *c
 }
 
 func (a *GovernanceAPI) GetLatestTransitionBlocks(amount int) (*[]TransitionBlocksWithApproval, error) {
-	currentBlockNumber := a.gov.RootManager.bc.CurrentBlock().Number().Uint64()
+	currentBlockNumber := a.gov.RootManager.bc.CurrentBlock().Number.Uint64()
 	if uint64(amount) > currentBlockNumber/101 {
 		log.Error("Not enough transition blocks!")
 		return nil, nil

@@ -21,9 +21,7 @@ import (
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 )
 
@@ -51,9 +49,9 @@ type ForkChoice struct {
 	// local td is equal to the extern one. It can be nil for light
 	// client
 
-	//As we use Clique as engine, we need to obey rule #3 of Eip3436
-	//Choose the block whose validator had the least recent in-turn block assignment
-	//This function is introduced because original preserve doesn't know anything about the external header
+	// As we use Clique as engine, we need to obey rule #3 of Eip3436
+	// Choose the block whose validator had the least recent in-turn block assignment
+	// This function is introduced because original preserve doesn't know anything about the external header
 	preserve func(header *types.Header, externalHeader *types.Header) bool
 }
 
@@ -83,29 +81,22 @@ func (f *ForkChoice) ReorgNeeded(currentHeader *types.Header, externalHeader *ty
 	if ttd := f.chain.Config().TerminalTotalDifficulty; ttd != nil && ttd.Cmp(externTd) <= 0 {
 		return true, nil
 	}
-
 	// If the total difficulty is higher than our known, add it to the canonical chain
-	if diff := externTd.Cmp(localTD); diff > 0 {
-		return true, nil
-	} else if diff < 0 {
-		return false, nil
-	}
-	// Local and external difficulty is identical.
 	// Second clause in the if statement reduces the vulnerability to selfish mining.
 	// Please refer to http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf
 	reorg := externTd.Cmp(localTD) > 0
 	if !reorg && externTd.Cmp(localTD) == 0 {
 		externalNum, currentNum := externalHeader.Number.Uint64(), currentHeader.Number.Uint64()
 		if externalNum < currentNum {
-		reorg = true
+			reorg = true
 		} else if externalNum == currentNum {
-			//Preserve check is modified in order to attempt of applying rule#3 from https://eips.ethereum.org/EIPS/eip-3436
-			//If header numbers are the same, then choose the block whose validator had the least recent in-turn block assignment
-		var currentPreserve, externPreserve bool
-		if f.preserve != nil {
+			// Preserve check is modified in order to attempt of applying rule#3 from https://eips.ethereum.org/EIPS/eip-3436
+			// If header numbers are the same, then choose the block whose validator had the least recent in-turn block assignment
+			var currentPreserve, externPreserve bool
+			if f.preserve != nil {
 				currentPreserve, externPreserve = f.preserve(currentHeader, externalHeader), f.preserve(externalHeader, currentHeader)
-		}
-			//If both headers are from the same validator, then choose the block with the lower hash
+			}
+			// If both headers are from the same validator, then choose the block with the lower hash
 			if currentPreserve && externPreserve {
 				// EIP-3436 rule #4
 				// Apply external chain if it has the lower hash
@@ -113,6 +104,7 @@ func (f *ForkChoice) ReorgNeeded(currentHeader *types.Header, externalHeader *ty
 			} else {
 				reorg = false
 			}
+		}
 	}
 	return reorg, nil
 }

@@ -26,11 +26,11 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("0x7579ce66d1bc55ee09fab06c1e8ec6456ec24ca58d82797c21c4dc4c007508e9") //QMainnet
-	TestnetGenesisHash = common.HexToHash("0x7989645d3b77e443a739a0489f86cbd54ec3f484a744d32f1d58bfc1bed698de") //Q Testnet
-	DevnetGenesisHash  = common.HexToHash("0x796d1bf4d4d2ec5acd086f1621d2826a51cefd943f8e2f1c36159d19c793bd81") //Q Devnet
-	//TODO remove
-	//EthereumMainnetGenesisHash  = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3") //Mainnet
+	MainnetGenesisHash = common.HexToHash("0x7579ce66d1bc55ee09fab06c1e8ec6456ec24ca58d82797c21c4dc4c007508e9") // QMainnet
+	TestnetGenesisHash = common.HexToHash("0x7989645d3b77e443a739a0489f86cbd54ec3f484a744d32f1d58bfc1bed698de") // Q Testnet
+	DevnetGenesisHash  = common.HexToHash("0x796d1bf4d4d2ec5acd086f1621d2826a51cefd943f8e2f1c36159d19c793bd81") // Q Devnet
+	// TODO remove
+	// EthereumMainnetGenesisHash  = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3") //Mainnet
 	HoleskyGenesisHash = common.HexToHash("0xb5f7f912443c940f21fd611f12828d75b534364ed9e95ca4e307729a4661bde4")
 	SepoliaGenesisHash = common.HexToHash("0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9")
 	GoerliGenesisHash  = common.HexToHash("0xbf7e331f7f7c1dd2e05159666b3bf8bc7a8a3a9eb1d518969eab529dd9b88c1a")
@@ -41,12 +41,11 @@ func newUint64(val uint64) *uint64 { return &val }
 var (
 	MainnetTerminalTotalDifficulty, _ = new(big.Int).SetString("58_750_000_000_000_000_000_000", 0)
 
-	//MainnetChainConfig is the chain parameters to run a node on the main network.
-	MainnetChainConfig = &ChainConfig{ //Q Mainnet
+	// MainnetChainConfig is the chain parameters to run a node on the main network.
+	MainnetChainConfig = &ChainConfig{ // Q Mainnet
 		ChainID:             big.NewInt(35441),
 		HomesteadBlock:      big.NewInt(0),
 		EIP150Block:         big.NewInt(0),
-		EIP150Hash:          common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 		EIP155Block:         big.NewInt(0),
 		EIP158Block:         big.NewInt(0),
 		ByzantiumBlock:      big.NewInt(0),
@@ -61,29 +60,8 @@ var (
 			Registry:       common.HexToAddress("0xc3E589056Ece16BCB88c6f9318e9a7343b663522"),
 		},
 		AthosBlock: big.NewInt(5075000),
-	// MainnetChainConfig is the chain parameters to run a node on the main network.
-	MainnetChainConfig = &ChainConfig{
-		ChainID:                       big.NewInt(1),
-		HomesteadBlock:                big.NewInt(1_150_000),
-		DAOForkBlock:                  big.NewInt(1_920_000),
-		DAOForkSupport:                true,
-		EIP150Block:                   big.NewInt(2_463_000),
-		EIP155Block:                   big.NewInt(2_675_000),
-		EIP158Block:                   big.NewInt(2_675_000),
-		ByzantiumBlock:                big.NewInt(4_370_000),
-		ConstantinopleBlock:           big.NewInt(7_280_000),
-		PetersburgBlock:               big.NewInt(7_280_000),
-		IstanbulBlock:                 big.NewInt(9_069_000),
-		MuirGlacierBlock:              big.NewInt(9_200_000),
-		BerlinBlock:                   big.NewInt(12_244_000),
-		LondonBlock:                   big.NewInt(12_965_000),
-		ArrowGlacierBlock:             big.NewInt(13_773_000),
-		GrayGlacierBlock:              big.NewInt(15_050_000),
-		TerminalTotalDifficulty:       MainnetTerminalTotalDifficulty, // 58_750_000_000_000_000_000_000
-		TerminalTotalDifficultyPassed: true,
-		ShanghaiTime:                  newUint64(1681338455),
-		Ethash:                        new(EthashConfig),
 	}
+
 	// HoleskyChainConfig contains the chain parameters to run a node on the Holesky test network.
 	HoleskyChainConfig = &ChainConfig{
 		ChainID:                       big.NewInt(17000),
@@ -329,9 +307,26 @@ var (
 		Ethash:                        new(EthashConfig),
 		Clique:                        nil,
 	}
-	TestRules = TestChainConfig.Rules(new(big.Int), false, 0)
-	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, false, new(EthashConfig), nil}
-	TestRules       = TestChainConfig.Rules(new(big.Int), false)
+
+	TestnetChainConfig = &ChainConfig{
+		ChainID:             big.NewInt(35443),
+		HomesteadBlock:      big.NewInt(0),
+		EIP150Block:         big.NewInt(0),
+		EIP155Block:         big.NewInt(0),
+		EIP158Block:         big.NewInt(0),
+		ByzantiumBlock:      big.NewInt(0),
+		ConstantinopleBlock: big.NewInt(0),
+		PetersburgBlock:     big.NewInt(0),
+		IstanbulBlock:       big.NewInt(0),
+		BerlinBlock:         big.NewInt(3459000),
+		Clique: &CliqueConfig{
+			Period:         5,
+			Epoch:          101,
+			RewardReceiver: common.HexToAddress("0xc4D32b94f039991703b869AA8AcB1A354c32AFd1"),
+			Registry:       common.HexToAddress("0xc3E589056Ece16BCB88c6f9318e9a7343b663522"),
+		},
+		AthosBlock: big.NewInt(3459000),
+	}
 )
 
 // NetworkNames are user friendly names to use in the chain spec banner.
@@ -367,7 +362,7 @@ type ChainConfig struct {
 	IstanbulBlock       *big.Int `json:"istanbulBlock,omitempty"`       // Istanbul switch block (nil = no fork, 0 = already on istanbul)
 	MuirGlacierBlock    *big.Int `json:"muirGlacierBlock,omitempty"`    // Eip-2384 (bomb delay) switch block (nil = no fork, 0 = already activated)
 	BerlinBlock         *big.Int `json:"berlinBlock,omitempty"`         // Berlin switch block (nil = no fork, 0 = already on berlin)
-	AthosBlock          *big.Int `json:"athosBlock,omitempty"`          //Improve Layer 0 Governance epic. //TODO set in configs
+	AthosBlock          *big.Int `json:"athosBlock,omitempty"`          // Improve Layer 0 Governance epic. //TODO set in configs
 
 	LondonBlock        *big.Int `json:"londonBlock,omitempty"`        // London switch block (nil = no fork, 0 = already on london)
 	ArrowGlacierBlock  *big.Int `json:"arrowGlacierBlock,omitempty"`  // Eip-4345 (bomb delay) switch block (nil = no fork, 0 = already activated)
@@ -375,8 +370,8 @@ type ChainConfig struct {
 	MergeNetsplitBlock *big.Int `json:"mergeNetsplitBlock,omitempty"` // Virtual fork after The Merge to use as a network splitter
 	// Fork scheduling was switched from blocks to timestamps here
 
-	ShanghaiTime *uint64 `json:"shanghaiTime,omitempty"`      // Shanghai switch time (nil = no fork, 0 = already on shanghai)
-	CancunTime   *uint64 `json:"cancunTime,omitempty"`        // Cancun switch time (nil = no fork, 0 = already on cancun)
+	ShanghaiTime *uint64 `json:"shanghaiTime,omitempty"` // Shanghai switch time (nil = no fork, 0 = already on shanghai)
+	CancunTime   *uint64 `json:"cancunTime,omitempty"`   // Cancun switch time (nil = no fork, 0 = already on cancun)
 	PragueTime   *uint64 `json:"pragueTime,omitempty"`   // Prague switch time (nil = no fork, 0 = already on prague)
 	VerkleTime   *uint64 `json:"verkleTime,omitempty"`   // Verkle switch time (nil = no fork, 0 = already on verkle)
 
@@ -451,7 +446,7 @@ func (c *ChainConfig) Description() string {
 	// Create a list of forks with a short description of them. Forks that only
 	// makes sense for mainnet should be optional at printing to avoid bloating
 	// the output for testnets and private networks.
-	//banner += "Pre-Merge hard forks (block based):\n"
+	// banner += "Pre-Merge hard forks (block based):\n"
 	banner += fmt.Sprintf(" - Homestead:                   #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/homestead.md)\n", c.HomesteadBlock)
 	if c.DAOForkBlock != nil {
 		banner += fmt.Sprintf(" - DAO Fork:                    #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/dao-fork.md)\n", c.DAOForkBlock)
@@ -468,18 +463,18 @@ func (c *ChainConfig) Description() string {
 	}
 	banner += fmt.Sprintf(" - Berlin:                      %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/berlin.md)\n", c.BerlinBlock)
 
-	//if c.ArrowGlacierBlock != nil {
+	// if c.ArrowGlacierBlock != nil {
 	//	banner += fmt.Sprintf(" - Arrow Glacier:               %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/arrow-glacier.md)\n", c.ArrowGlacierBlock)
-	//}
-	//if c.GrayGlacierBlock != nil {
+	// }
+	// if c.GrayGlacierBlock != nil {
 	//	banner += fmt.Sprintf(" - Gray Glacier:                %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/gray-glacier.md)\n", c.GrayGlacierBlock)
-	//}
-	//if c.ShanghaiBlock != nil {
+	// }
+	// if c.ShanghaiBlock != nil {
 	//	banner += fmt.Sprintf(" - Shanghai:                     %-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/shanghai.md)\n", c.ShanghaiBlock)
-	//}
-	//if c.CancunBlock != nil {
+	// }
+	// if c.CancunBlock != nil {
 	//	banner += fmt.Sprintf(" - Cancun:                      %-8v\n", c.CancunBlock)
-	//}
+	// }
 	if c.AthosBlock != nil {
 		banner += fmt.Sprintf(" - Athos:    	                  %-8v (https://gitlab.com/q-dev/QIPs)\n", c.AthosBlock)
 	}
@@ -495,8 +490,8 @@ func (c *ChainConfig) Description() string {
 
 	// Add a special section for the merge as it's non-obvious
 	if c.TerminalTotalDifficulty == nil {
-		//banner += "The Merge is not yet available for this network!\n"
-		//banner += " - Hard-fork specification: https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/paris.md\n"
+		// banner += "The Merge is not yet available for this network!\n"
+		// banner += " - Hard-fork specification: https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/paris.md\n"
 	} else {
 		banner += "Merge configured:\n"
 		banner += " - Hard-fork specification:    https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/paris.md\n"
@@ -630,7 +625,7 @@ func (c *ChainConfig) IsAthos(num *big.Int) bool {
 	if c.AthosBlock != nil && c.AthosBlock.Uint64() == 0 {
 		c.AthosBlock = nil
 	}
-	return isForked(c.AthosBlock, num)
+	return isBlockForked(c.AthosBlock, num)
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
@@ -681,14 +676,14 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 		{name: "muirGlacierBlock", block: c.MuirGlacierBlock, optional: true},
 		{name: "berlinBlock", block: c.BerlinBlock},
 		{name: "athosBlock", block: c.AthosBlock},
-		//{name: "londonBlock", block: c.LondonBlock},
-		//{name: "arrowGlacierBlock", block: c.ArrowGlacierBlock, optional: true},
-		//{name: "grayGlacierBlock", block: c.GrayGlacierBlock, optional: true},
-		//{name: "mergeNetsplitBlock", block: c.MergeNetsplitBlock, optional: true},
-		//{name: "shanghaiTime", timestamp: c.ShanghaiTime},
+		// {name: "londonBlock", block: c.LondonBlock},
+		// {name: "arrowGlacierBlock", block: c.ArrowGlacierBlock, optional: true},
+		// {name: "grayGlacierBlock", block: c.GrayGlacierBlock, optional: true},
+		// {name: "mergeNetsplitBlock", block: c.MergeNetsplitBlock, optional: true},
+		// {name: "shanghaiTime", timestamp: c.ShanghaiTime},
 		{name: "cancunTime", timestamp: c.CancunTime, optional: true},
 		{name: "pragueTime", timestamp: c.PragueTime, optional: true},
-		//{name: "verkleTime", timestamp: c.VerkleTime, optional: true},
+		// {name: "verkleTime", timestamp: c.VerkleTime, optional: true},
 	} {
 		if lastFork.name != "" {
 			switch {
@@ -795,8 +790,8 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, headNumber *big.Int, 
 	if isForkTimestampIncompatible(c.VerkleTime, newcfg.VerkleTime, headTimestamp) {
 		return newTimestampCompatError("Verkle fork timestamp", c.VerkleTime, newcfg.VerkleTime)
 	}
-	if isForkIncompatible(c.AthosBlock, newcfg.AthosBlock, head) {
-		return newCompatError("IsAthos fork block", c.AthosBlock, newcfg.AthosBlock)
+	if isForkBlockIncompatible(c.AthosBlock, newcfg.AthosBlock, headNumber) {
+		return newBlockCompatError("IsAthos fork block", c.AthosBlock, newcfg.AthosBlock)
 	}
 	return nil
 }

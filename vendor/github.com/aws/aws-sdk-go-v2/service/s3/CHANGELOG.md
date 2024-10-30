@@ -1,7 +1,3 @@
-# v1.66.2 (2024-10-28)
-
-* **Dependency Update**: Updated to the latest SDK module versions
-
 # v1.66.1 (2024-10-25)
 
 * **Bug Fix**: Update presign post URL resolution to use the exact result from EndpointResolverV2

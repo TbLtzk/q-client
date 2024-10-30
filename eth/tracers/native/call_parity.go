@@ -22,7 +22,6 @@ import (
 	"math/big"
 	"strings"
 	"sync/atomic"
-	"time"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
@@ -30,27 +29,9 @@ import (
 	"gitlab.com/q-dev/q-client/eth/tracers"
 )
 
-var parityErrorMapping = map[string]string{
-	"contract creation code storage out of gas": "Out of gas",
-	"out of gas":                      "Out of gas",
-	"gas uint64 overflow":             "Out of gas",
-	"max code size exceeded":          "Out of gas",
-	"invalid jump destination":        "Bad jump destination",
-	"execution reverted":              "Reverted",
-	"return data out of bounds":       "Out of bounds",
-	"stack limit reached 1024 (1023)": "Out of stack",
-	"precompiled failed":              "Built-in failed",
-	"invalid input length":            "Built-in failed",
-}
-
-var parityErrorMappingStartingWith = map[string]string{
-	"invalid opcode:": "Bad instruction",
-	"stack underflow": "Stack underflow",
-}
-
 func init() {
 	// type ctorFn = func(*tracers.Context, json.RawMessage) (tracers.Tracer, error)
-	register("callTracerParity", NewCallParityTracer)
+	tracers.DefaultDirectory.Register("callParityTracer", NewCallParityTracer, false)
 }
 
 // CallParityFrame is the result of a callParityTracerParity run.
@@ -137,7 +118,7 @@ func (t *callParityTracer) fillCallFrameFromContext(callFrame *CallParityFrame) 
 func (t *callParityTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
 	t.env = env
 
-	rules := env.ChainConfig().Rules(env.Context.BlockNumber, false)
+	rules := env.ChainConfig().Rules(env.Context.BlockNumber, false, env.Context.Time)
 
 	// Skip any pre-compile invocations, those are just fancy opcodes
 	t.activePrecompiles = vm.ActivePrecompiles(rules)
@@ -167,7 +148,7 @@ func (t *callParityTracer) CaptureStart(env *vm.EVM, from common.Address, to com
 	t.fillCallFrameFromContext(&t.callstack[0])
 }
 
-func (t *callParityTracer) CaptureEnd(output []byte, gasUsed uint64, _ time.Duration, err error) {
+func (t *callParityTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {
 	if err != nil {
 		t.callstack[0].Error = err.Error()
 		if err.Error() == "execution reverted" && len(output) > 0 {

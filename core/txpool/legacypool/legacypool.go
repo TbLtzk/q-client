@@ -40,6 +40,9 @@ import (
 )
 
 const (
+	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
+	chainHeadChanSize = 10
+
 	// txSlotSize is used to calculate how many data slots a single transaction
 	// takes up based on its size. The slots are used as DoS protection, ensuring
 	// that validating a new transaction remains a constant operation (in reality
@@ -57,6 +60,10 @@ var (
 	// ErrTxPoolOverflow is returned if the transaction pool is full and can't accept
 	// another remote transaction.
 	ErrTxPoolOverflow = errors.New("txpool is full")
+
+	// ErrUnderpriced is returned if a transaction's gas price is below the minimum
+	// configured for the transaction pool.
+	ErrUnderpriced = errors.New("transaction underpriced")
 )
 
 var (
@@ -116,6 +123,9 @@ type BlockChain interface {
 
 	// StateAt returns a state database for a given root hash (generally the head).
 	StateAt(root common.Hash) (*state.StateDB, error)
+
+	// TODO do we need this?
+	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
 }
 
 // Config are the configuration parameters of the transaction pool.
@@ -160,6 +170,8 @@ func (config *Config) sanitize() Config {
 		log.Warn("Sanitizing invalid txpool journal time", "provided", conf.Rejournal, "updated", time.Second)
 		conf.Rejournal = time.Second
 	}
+	// TODO ?
+	//  not present in the original
 	// if conf.PriceLimit < 1 {
 	// 	log.Warn("Sanitizing invalid txpool price limit", "provided", conf.PriceLimit, "updated", DefaultConfig.PriceLimit)
 	// 	conf.PriceLimit = DefaultConfig.PriceLimit
@@ -214,8 +226,8 @@ type LegacyPool struct {
 	gpLock              sync.RWMutex
 	priceLimit          *big.Int
 	isPriceLimitDynamic bool
-	priceProvider       GasPriceProvider
-	
+	priceProvider       core.GasPriceProvider
+
 	locals  *accountSet // Set of local transaction to exempt from eviction rules
 	journal *journal    // Journal of local transaction to back up to disk
 
@@ -226,6 +238,8 @@ type LegacyPool struct {
 	all     *lookup                      // All transactions to allow lookups
 	priced  *pricedList                  // All transactions sorted by price
 
+	chainHeadCh     chan core.ChainHeadEvent
+	chainHeadSub    event.Subscription
 	reqResetCh      chan *txpoolResetRequest
 	reqPromoteCh    chan *accountSet
 	queueTxEventCh  chan *types.Transaction
@@ -243,7 +257,7 @@ type txpoolResetRequest struct {
 
 // New creates a new transaction pool to gather, sort and filter inbound
 // transactions from the network.
-func New(config Config, chain BlockChain, gpProvider GasPriceProvider) *LegacyPool {
+func New(config Config, chain BlockChain, gpProvider core.GasPriceProvider) *LegacyPool {
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
 
@@ -257,20 +271,21 @@ func New(config Config, chain BlockChain, gpProvider GasPriceProvider) *LegacyPo
 
 	// Create the transaction pool with its initial settings
 	pool := &LegacyPool{
-		config:          config,
-		chain:           chain,
-		chainconfig:     chain.Config(),
-		signer:          types.LatestSigner(chain.Config()),
-		pending:         make(map[common.Address]*list),
-		queue:           make(map[common.Address]*list),
-		beats:           make(map[common.Address]time.Time),
-		all:             newLookup(),
-		reqResetCh:      make(chan *txpoolResetRequest),
-		reqPromoteCh:    make(chan *accountSet),
-		queueTxEventCh:  make(chan *types.Transaction),
-		reorgDoneCh:     make(chan chan struct{}),
-		reorgShutdownCh: make(chan struct{}),
-		initDoneCh:      make(chan struct{}),
+		config:              config,
+		chain:               chain,
+		chainconfig:         chain.Config(),
+		signer:              types.LatestSigner(chain.Config()),
+		pending:             make(map[common.Address]*list),
+		queue:               make(map[common.Address]*list),
+		beats:               make(map[common.Address]time.Time),
+		all:                 newLookup(),
+		reqResetCh:          make(chan *txpoolResetRequest),
+		reqPromoteCh:        make(chan *accountSet),
+		queueTxEventCh:      make(chan *types.Transaction),
+		reorgDoneCh:         make(chan chan struct{}),
+		reorgShutdownCh:     make(chan struct{}),
+		initDoneCh:          make(chan struct{}),
+		chainHeadCh:         make(chan core.ChainHeadEvent, chainHeadChanSize),
 		priceLimit:          priceLimit,
 		isPriceLimitDynamic: isPriceLimitDynamic,
 		priceProvider:       gpProvider,
@@ -311,7 +326,7 @@ func (pool *LegacyPool) Init(gasTip *big.Int, head *types.Header, reserve txpool
 	pool.gasTip.Store(gasTip)
 
 	// Initialize the state with head block, or fallback to empty one in
-	// case the head state is not available(might occur when node is not
+	// case the head state is not available (might occur when node is not
 	// fully synced).
 	statedb, err := pool.chain.StateAt(head.Root)
 	if err != nil {
@@ -338,6 +353,9 @@ func (pool *LegacyPool) Init(gasTip *big.Int, head *types.Header, reserve txpool
 			log.Warn("Failed to rotate transaction journal", "err", err)
 		}
 	}
+
+	// Subscribe events from blockchain and start the main event loop.
+	pool.chainHeadSub = pool.chain.SubscribeChainHeadEvent(pool.chainHeadCh)
 	pool.wg.Add(1)
 	go pool.loop()
 	return nil
@@ -368,18 +386,13 @@ func (pool *LegacyPool) loop() {
 		// Handle pool shutdown
 		case <-pool.reorgShutdownCh:
 		// Handle ChainHeadEvent
-		case ev := <-pool.chainHeadCh:
+		// TODO
+		case <-pool.chainHeadCh:
 			if pool.isPriceLimitDynamic {
 				if price, err := pool.priceProvider.GetGasPrice(); err == nil && pool.PriceLimit().Cmp(price) != 0 {
-					pool.SetGasPrice(price)
+					pool.SetGasTip(price)
 				}
 			}
-
-			if ev.Block != nil {
-				pool.requestReset(head.Header(), ev.Block.Header())
-				head = ev.Block
-			}
-
 
 		// Handle stats reporting ticks
 		case <-report.C:
@@ -454,9 +467,9 @@ func (pool *LegacyPool) SubscribeTransactions(ch chan<- core.NewTxsEvent, reorgs
 	// reorgs run lazily, so separating the two would need a marker.
 	return pool.txFeed.Subscribe(ch)
 }
-	
+
 // PriceLimit returns the current gas price enforced by the transaction pool.
-func (pool *TxPool) PriceLimit() *big.Int {
+func (pool *LegacyPool) PriceLimit() *big.Int {
 	pool.gpLock.RLock()
 	defer pool.gpLock.RUnlock()
 
@@ -466,19 +479,14 @@ func (pool *TxPool) PriceLimit() *big.Int {
 // SetGasTip updates the minimum gas tip required by the transaction pool for a
 // new transaction, and drops all transactions below this threshold.
 func (pool *LegacyPool) SetGasTip(tip *big.Int) {
-	pool.gpLock.Lock()
-	defer pool.gpLock.Unlock()
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
 
 	old := pool.gasTip.Load()
 	pool.gasTip.Store(new(big.Int).Set(tip))
 
 	// If the min miner fee increased, remove transactions below the new threshold
 	if tip.Cmp(old) > 0 {
-	old := pool.priceLimit!!!!!
-	
-	
-	// if the min miner fee increased, remove transactions below the new threshold
-	if price.Cmp(old) > 0 {
 		// pool.priced is sorted by GasFeeCap, so we have to iterate through pool.all instead
 		drop := pool.all.RemotesBelowTip(tip)
 		for _, tx := range drop {
@@ -487,7 +495,7 @@ func (pool *LegacyPool) SetGasTip(tip *big.Int) {
 		pool.priced.Removed(len(drop))
 	}
 
-	pool.priceLimit = price
+	pool.priceLimit = tip
 	log.Info("Legacy pool tip threshold updated", "tip", tip)
 }
 
@@ -575,7 +583,6 @@ func (pool *LegacyPool) Pending(enforceTips bool) map[common.Address][]*txpool.L
 		// If the miner requests tip enforcement, cap the lists now
 		if enforceTips && !pool.locals.contains(addr) {
 			for i, tx := range txs {
-				if tx.EffectiveGasTipIntCmp(pool.priceLimit, pool.priced.urgent.baseFee) < 0 {
 				if tx.EffectiveGasTipIntCmp(pool.gasTip.Load(), pool.priced.urgent.baseFee) < 0 {
 					txs = txs[:i]
 					break
@@ -680,11 +687,14 @@ func (pool *LegacyPool) validateTx(tx *types.Transaction, local bool) error {
 			}
 			return nil
 		},
+	}
 	// Drop non-local transactions under our own minimal accepted gas price
+	from, _ := types.Sender(pool.signer, tx)    // already validated
 	local = local || pool.locals.contains(from) // account may be local even if the transaction arrived from the network
 	if !local && tx.GasTipCapIntCmp(pool.PriceLimit()) < 0 {
 		return ErrUnderpriced
 	}
+
 	if err := txpool.ValidateTransactionWithState(tx, pool.signer, opts); err != nil {
 		return err
 	}
@@ -903,10 +913,6 @@ func (pool *LegacyPool) enqueueTx(hash common.Hash, tx *types.Transaction, local
 	if addAll {
 		pool.all.Add(tx, local)
 		pool.priced.Put(tx, local)
-	}
-	// If we never record the heartbeat, do it right now.
-	if _, exist := pool.beats[from]; !exist {
-		pool.beats[from] = time.Now()
 	}
 	// If we never record the heartbeat, do it right now.
 	if _, exist := pool.beats[from]; !exist {

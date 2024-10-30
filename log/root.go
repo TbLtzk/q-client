@@ -4,6 +4,7 @@ import (
 	"os"
 	"sync/atomic"
 
+	"gitlab.com/q-dev/q-client/sentryMonitor"
 	"golang.org/x/exp/slog"
 )
 
@@ -84,7 +85,7 @@ func Warn(msg string, ctx ...interface{}) {
 
 // WarnAndNotify is a convenient alias for Root().Warn
 func WarnAndNotify(msg string, ctx ...interface{}) {
-	root.write(msg, LvlWarn, ctx, skipLevel)
+	Root().Write(slog.LevelWarn, msg, ctx...)
 	sentryMonitor.HandleWarningWithArgs(msg, ctx...)
 }
 
@@ -103,7 +104,7 @@ func Error(msg string, ctx ...interface{}) {
 
 // ErrorAndNotify is a convenient alias for Root().Error
 func ErrorAndNotify(msg string, ctx ...interface{}) {
-	root.write(msg, LvlError, ctx, skipLevel)
+	Root().Write(slog.LevelError, msg, ctx...)
 	sentryMonitor.HandleErrorWithArgs(msg, ctx...)
 }
 
@@ -118,7 +119,7 @@ func ErrorAndNotify(msg string, ctx ...interface{}) {
 //	log.Crit("msg", "key1", val1, "key2", val2)
 func Crit(msg string, ctx ...interface{}) {
 	Root().Write(LevelCrit, msg, ctx...)
-	sentryMonitor.HandleErrorMessage(msg) //This type of errors will be handled in any case
+	sentryMonitor.HandleErrorMessage(msg) // This type of errors will be handled in any case
 	os.Exit(1)
 }
 

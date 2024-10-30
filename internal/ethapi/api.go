@@ -1093,13 +1093,13 @@ func doCall(ctx context.Context, b Backend, args TransactionArgs, state *state.S
 	defer cancel()
 
 	// Get a new instance of the EVM.
-	msg, err := args.ToMessage(globalGasCap, header.BaseFee)
-	if err != nil {
-		return nil, err
-	}
 	blockCtx := core.NewEVMBlockContext(header, NewChainContext(ctx, b), nil)
 	if blockOverrides != nil {
 		blockOverrides.Apply(&blockCtx)
+	}
+	msg, err := args.ToMessage(globalGasCap, blockCtx.BaseFee)
+	if err != nil {
+		return nil, err
 	}
 	evm := b.GetEVM(ctx, msg, state, header, &vm.Config{NoBaseFee: true}, &blockCtx)
 
@@ -1194,12 +1194,13 @@ func DoEstimateGas(ctx context.Context, b Backend, args TransactionArgs, blockNr
 		return 0, err
 	}
 
-	if b.GasBuffer() != 1 && args.Value == nil {
-		mHi := uint64(float64(estimate) * b.GasBuffer())
-		if mHi < cap {
-			estimate = mHi
-		}
-	}
+	// TODO
+	// if b.GasBuffer() != 1 && args.Value == nil {
+	// 	mHi := uint64(float64(estimate) * b.GasBuffer())
+	// 	if int(mHi) < cap {
+	// 		estimate = mHi
+	// 	}
+	// }
 
 	return hexutil.Uint64(estimate), nil
 }

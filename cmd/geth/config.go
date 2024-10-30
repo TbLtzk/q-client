@@ -38,6 +38,7 @@ import (
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/eth/catalyst"
 	"gitlab.com/q-dev/q-client/eth/ethconfig"
+	"gitlab.com/q-dev/q-client/governance"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/internal/version"

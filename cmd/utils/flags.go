@@ -39,8 +39,10 @@ import (
 	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
+	"gitlab.com/q-dev/q-client/cmd/backupManager"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/fdlimit"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/txpool/legacypool"
@@ -48,14 +50,17 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/crypto/kzg4844"
 	"gitlab.com/q-dev/q-client/eth"
+	"gitlab.com/q-dev/q-client/eth/catalyst"
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/eth/ethconfig"
 	"gitlab.com/q-dev/q-client/eth/filters"
 	"gitlab.com/q-dev/q-client/eth/gasprice"
 	"gitlab.com/q-dev/q-client/eth/tracers"
+	"gitlab.com/q-dev/q-client/ethclient"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethdb/remotedb"
 	"gitlab.com/q-dev/q-client/ethstats"
+	"gitlab.com/q-dev/q-client/governance"
 	"gitlab.com/q-dev/q-client/graphql"
 	"gitlab.com/q-dev/q-client/internal/ethapi"
 	"gitlab.com/q-dev/q-client/internal/flags"
@@ -71,6 +76,7 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/netutil"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/sentryMonitor"
 	"gitlab.com/q-dev/q-client/trie"
 	"gitlab.com/q-dev/q-client/trie/triedb/hashdb"
 	"gitlab.com/q-dev/q-client/trie/triedb/pathdb"
@@ -1185,19 +1191,19 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		switch {
 		case ctx.Bool(HoleskyFlag.Name):
 			urls = params.HoleskyBootnodes
-		case ctx.Bool(SepoliaFlag.Name):
-			urls = params.SepoliaBootnodes
-		case ctx.Bool(GoerliFlag.Name):
-			urls = params.GoerliBootnodes
 		case ctx.IsSet(DevnetFlag.Name):
 			urls = params.DevnetBootnodes
 		case ctx.IsSet(TestnetFlag.Name):
 			urls = params.TestnetBootnodes
 		case ctx.IsSet(FischerFlag.Name):
 			urls = params.TestnetBootnodes
+		case ctx.Bool(SepoliaFlag.Name):
+			urls = params.SepoliaBootnodes
+		case ctx.Bool(GoerliFlag.Name):
+			urls = params.GoerliBootnodes
 		}
-		cfg.BootstrapNodes = mustParseBootnodes(urls)
 	}
+	cfg.BootstrapNodes = mustParseBootnodes(urls)
 }
 
 func mustParseBootnodes(urls []string) []*enode.Node {
@@ -2166,7 +2172,7 @@ func SetDNSDiscoveryDefaults(cfg *ethconfig.Config, genesis common.Hash) {
 // RegisterEthService adds an Ethereum client to the stack.
 // The second return value is the full node instance.
 func RegisterEthService(stack *node.Node, cfg *ethconfig.Config, gov *governance.RootManager) (ethapi.Backend, *eth.Ethereum) {
-	conn, _ := stack.Attach()
+	conn := stack.Attach()
 	client := ethclient.NewClient(conn)
 	backend, err := eth.New(stack, cfg, client, gov)
 	if err != nil {
@@ -2462,20 +2468,14 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (*core.BlockCh
 	if err != nil {
 		Fatalf("%v", err)
 	}
-	engine, err := ethconfig.CreateConsensusEngine(config, chainDb)
+
+	engine, err := ethconfig.CreateConsensusEngine(config, chainDb, nil, contracts.NewTestModeRegistry())
 	if err != nil {
 		Fatalf("%v", err)
-
-	var engine consensus.Engine
-	if config.Clique != nil {
-		engine = clique.New(config.Clique, chainDb, &consensus.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry())
-	} else {
-		ethashConf := ethconfig.Defaults.Ethash
-		if ctx.Bool(FakePoWFlag.Name) {
-			ethashConf.PowMode = ethash.ModeFake
 	}
+
 	if gcmode := ctx.String(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
-		engine = ethconfig.CreateConsensusEngine(stack, config, &ethashConf, nil, false, chainDb, nil, nil)
+		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	scheme, err := rawdb.ParseStateScheme(ctx.String(StateSchemeFlag.Name), chainDb)
 	if err != nil {

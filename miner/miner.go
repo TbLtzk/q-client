@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus"
@@ -57,7 +58,8 @@ type Config struct {
 
 // DefaultConfig contains default settings for miner.
 var DefaultConfig = Config{
-	GasCeil:  30000000,
+	// GasCeil:  30000000,
+	GasCeil:  16000000,
 	GasPrice: big.NewInt(params.GWei),
 
 	// The default recommit time is chosen as two seconds since

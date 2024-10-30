@@ -25,13 +25,13 @@ import (
 type Scope struct {
 	mu          sync.RWMutex
 	breadcrumbs []*Breadcrumb
-	attachments []*Attachment
 	user        User
 	tags        map[string]string
 	contexts    map[string]Context
 	extra       map[string]interface{}
 	fingerprint []string
 	level       Level
+	transaction string
 	request     *http.Request
 	// requestBody holds a reference to the original request.Body.
 	requestBody interface {
@@ -43,22 +43,19 @@ type Scope struct {
 		Overflow() bool
 	}
 	eventProcessors []EventProcessor
-
-	propagationContext PropagationContext
-	span               *Span
 }
 
 // NewScope creates a new Scope.
 func NewScope() *Scope {
-	return &Scope{
-		breadcrumbs:        make([]*Breadcrumb, 0),
-		attachments:        make([]*Attachment, 0),
-		tags:               make(map[string]string),
-		contexts:           make(map[string]Context),
-		extra:              make(map[string]interface{}),
-		fingerprint:        make([]string, 0),
-		propagationContext: NewPropagationContext(),
+	scope := Scope{
+		breadcrumbs: make([]*Breadcrumb, 0),
+		tags:        make(map[string]string),
+		contexts:    make(map[string]Context),
+		extra:       make(map[string]interface{}),
+		fingerprint: make([]string, 0),
 	}
+
+	return &scope
 }
 
 // AddBreadcrumb adds new breadcrumb to the current scope
@@ -83,22 +80,6 @@ func (scope *Scope) ClearBreadcrumbs() {
 	defer scope.mu.Unlock()
 
 	scope.breadcrumbs = []*Breadcrumb{}
-}
-
-// AddAttachment adds new attachment to the current scope.
-func (scope *Scope) AddAttachment(attachment *Attachment) {
-	scope.mu.Lock()
-	defer scope.mu.Unlock()
-
-	scope.attachments = append(scope.attachments, attachment)
-}
-
-// ClearAttachments clears all attachments from the current scope.
-func (scope *Scope) ClearAttachments() {
-	scope.mu.Lock()
-	defer scope.mu.Unlock()
-
-	scope.attachments = []*Attachment{}
 }
 
 // SetUser sets the user for the current scope.
@@ -294,20 +275,20 @@ func (scope *Scope) SetLevel(level Level) {
 	scope.level = level
 }
 
-// SetPropagationContext sets the propagation context for the current scope.
-func (scope *Scope) SetPropagationContext(propagationContext PropagationContext) {
+// SetTransaction sets the transaction name for the current transaction.
+func (scope *Scope) SetTransaction(name string) {
 	scope.mu.Lock()
 	defer scope.mu.Unlock()
 
-	scope.propagationContext = propagationContext
+	scope.transaction = name
 }
 
-// SetSpan sets a span for the current scope.
-func (scope *Scope) SetSpan(span *Span) {
-	scope.mu.Lock()
-	defer scope.mu.Unlock()
+// Transaction returns the transaction name for the current transaction.
+func (scope *Scope) Transaction() (name string) {
+	scope.mu.RLock()
+	defer scope.mu.RUnlock()
 
-	scope.span = span
+	return scope.transaction
 }
 
 // Clone returns a copy of the current scope with all data copied over.
@@ -319,13 +300,11 @@ func (scope *Scope) Clone() *Scope {
 	clone.user = scope.user
 	clone.breadcrumbs = make([]*Breadcrumb, len(scope.breadcrumbs))
 	copy(clone.breadcrumbs, scope.breadcrumbs)
-	clone.attachments = make([]*Attachment, len(scope.attachments))
-	copy(clone.attachments, scope.attachments)
 	for key, value := range scope.tags {
 		clone.tags[key] = value
 	}
 	for key, value := range scope.contexts {
-		clone.contexts[key] = cloneContext(value)
+		clone.contexts[key] = value
 	}
 	for key, value := range scope.extra {
 		clone.extra[key] = value
@@ -333,11 +312,10 @@ func (scope *Scope) Clone() *Scope {
 	clone.fingerprint = make([]string, len(scope.fingerprint))
 	copy(clone.fingerprint, scope.fingerprint)
 	clone.level = scope.level
+	clone.transaction = scope.transaction
 	clone.request = scope.request
 	clone.requestBody = scope.requestBody
 	clone.eventProcessors = scope.eventProcessors
-	clone.propagationContext = scope.propagationContext
-	clone.span = scope.span
 	return clone
 }
 
@@ -355,16 +333,12 @@ func (scope *Scope) AddEventProcessor(processor EventProcessor) {
 }
 
 // ApplyToEvent takes the data from the current scope and attaches it to the event.
-func (scope *Scope) ApplyToEvent(event *Event, hint *EventHint, client *Client) *Event {
+func (scope *Scope) ApplyToEvent(event *Event, hint *EventHint) *Event {
 	scope.mu.RLock()
 	defer scope.mu.RUnlock()
 
 	if len(scope.breadcrumbs) > 0 {
 		event.Breadcrumbs = append(event.Breadcrumbs, scope.breadcrumbs...)
-	}
-
-	if len(scope.attachments) > 0 {
-		event.Attachments = append(event.Attachments, scope.attachments...)
 	}
 
 	if len(scope.tags) > 0 {
@@ -394,32 +368,9 @@ func (scope *Scope) ApplyToEvent(event *Event, hint *EventHint, client *Client) 
 
 			// Ensure we are not overwriting event fields
 			if _, ok := event.Contexts[key]; !ok {
-				event.Contexts[key] = cloneContext(value)
+				event.Contexts[key] = value
 			}
 		}
-	}
-
-	if event.Contexts == nil {
-		event.Contexts = make(map[string]Context)
-	}
-
-	if scope.span != nil {
-		if _, ok := event.Contexts["trace"]; !ok {
-			event.Contexts["trace"] = scope.span.traceContext().Map()
-		}
-
-		transaction := scope.span.GetTransaction()
-		if transaction != nil {
-			event.sdkMetaData.dsc = DynamicSamplingContextFromTransaction(transaction)
-		}
-	} else {
-		event.Contexts["trace"] = scope.propagationContext.Map()
-
-		dsc := scope.propagationContext.DynamicSamplingContext
-		if !dsc.HasEntries() && client != nil {
-			dsc = DynamicSamplingContextFromScope(scope, client)
-		}
-		event.sdkMetaData.dsc = dsc
 	}
 
 	if len(scope.extra) > 0 {
@@ -442,6 +393,10 @@ func (scope *Scope) ApplyToEvent(event *Event, hint *EventHint, client *Client) 
 
 	if scope.level != "" {
 		event.Level = scope.level
+	}
+
+	if scope.transaction != "" {
+		event.Transaction = scope.transaction
 	}
 
 	if event.Request == nil && scope.request != nil {
@@ -470,17 +425,4 @@ func (scope *Scope) ApplyToEvent(event *Event, hint *EventHint, client *Client) 
 	}
 
 	return event
-}
-
-// cloneContext returns a new context with keys and values copied from the passed one.
-//
-// Note: a new Context (map) is returned, but the function does NOT do
-// a proper deep copy: if some context values are pointer types (e.g. maps),
-// they won't be properly copied.
-func cloneContext(c Context) Context {
-	res := Context{}
-	for k, v := range c {
-		res[k] = v
-	}
-	return res
 }

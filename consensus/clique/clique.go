@@ -27,13 +27,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/holiman/uint256"
 	"gitlab.com/q-dev/q-client/accounts"
+	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
-	lru "gitlab.com/q-dev/q-client/common/lru"
+	"gitlab.com/q-dev/q-client/common/lru"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/misc"
 	"gitlab.com/q-dev/q-client/consensus/misc/eip1559"
+	"gitlab.com/q-dev/q-client/contracts"
+	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
@@ -42,6 +46,7 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
+	"gitlab.com/q-dev/q-client/sentryMonitor"
 	"gitlab.com/q-dev/q-client/trie"
 	"golang.org/x/crypto/sha3"
 )
@@ -56,9 +61,8 @@ const (
 
 // Clique proof-of-authority protocol constants.
 var (
-	CliqueBlockReward = new(big.Int).Div(new(big.Int).Mul(big.NewInt(params.Ether), big.NewInt(15)), big.NewInt(10)) // Block reward in wei for successfully mining a block
-
-	epochLength = uint64(30000) // Default number of blocks after which to checkpoint and reset the pending votes
+	CliqueBlockReward = uint256.NewInt(0).Div(uint256.NewInt(0).Mul(uint256.NewInt(params.Ether), uint256.NewInt(15)), uint256.NewInt(10)) // Block reward in wei for successfully mining a block
+	epochLength       = uint64(30000)                                                                                                      // Default number of blocks after which to checkpoint and reset the pending votes
 
 	extraVanity = 32                     // Fixed number of extra-data prefix bytes reserved for signer vanity
 	extraSeal   = crypto.SignatureLength // Fixed number of extra-data suffix bytes reserved for signer seal
