@@ -481,6 +481,33 @@ func (c *Clique) updateProposals(chain consensus.ChainHeaderReader, number uint6
 	return nil
 }
 
+func (c *Clique) getValidatorsShortlist(number uint64, snap *Snapshot) ([]common.Address, error) {
+	excludedSigners := c.exclusionSetProvider.ExclusionSetValidators()
+
+	provider := c.registry.Validators()
+	if provider == nil {
+		snap.Signers = toSet(filterSigners(number, snap.SignersList(), excludedSigners))
+		return nil, nil
+	}
+
+	signers, err := c.getValidatorList(nil, provider)
+	if err != nil {
+		return nil, err
+	}
+
+	// this can happen when 'validators' contract is deployed but is empty
+	if len(signers) == 0 {
+		return signers, nil
+	}
+
+	filtered := filterSigners(number, signers, excludedSigners)
+	if maxNValidators := c.registry.ActiveValidatorsNumber(); maxNValidators != nil {
+		filtered = filtered[:min(*maxNValidators, int64(len(filtered)))]
+	}
+
+	return filtered, nil
+}
+
 // tryToFallback checks if fallback to default signers is necessary (i.e. current signers list is empty)
 // and then sets signers from the genesis block
 func (c *Clique) tryToFallback(chain consensus.ChainHeaderReader, snap *Snapshot, err error) {
