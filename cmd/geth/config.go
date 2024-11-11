@@ -177,9 +177,6 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 
 	rm := utils.MakeRootManager(stack, cfg.Eth.NetworkId, &cfg.Governance)
 
-	backend, eth := utils.RegisterEthService(stack, &cfg.Eth, rm)
-	utils.RegisterGovernanceService(stack, rm)
-
 	if ctx.IsSet(utils.OverrideCancun.Name) {
 		v := ctx.Uint64(utils.OverrideCancun.Name)
 		cfg.Eth.OverrideCancun = &v
@@ -188,6 +185,8 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 		v := ctx.Uint64(utils.OverrideVerkle.Name)
 		cfg.Eth.OverrideVerkle = &v
 	}
+	backend, eth := utils.RegisterEthService(stack, &cfg.Eth, rm)
+	utils.RegisterGovernanceService(stack, rm)
 
 	// Create gauge with geth system and build information
 	if eth != nil { // The 'eth' backend may be nil in light mode

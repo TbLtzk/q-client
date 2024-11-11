@@ -239,7 +239,6 @@ type LegacyPool struct {
 	priced  *pricedList                  // All transactions sorted by price
 
 	chainHeadCh     chan core.ChainHeadEvent
-	chainHeadSub    event.Subscription
 	reqResetCh      chan *txpoolResetRequest
 	reqPromoteCh    chan *accountSet
 	queueTxEventCh  chan *types.Transaction
@@ -355,7 +354,6 @@ func (pool *LegacyPool) Init(gasTip *big.Int, head *types.Header, reserve txpool
 	}
 
 	// Subscribe events from blockchain and start the main event loop.
-	pool.chainHeadSub = pool.chain.SubscribeChainHeadEvent(pool.chainHeadCh)
 	pool.wg.Add(1)
 	go pool.loop()
 	return nil
@@ -385,8 +383,7 @@ func (pool *LegacyPool) loop() {
 		select {
 		// Handle pool shutdown
 		case <-pool.reorgShutdownCh:
-		// Handle ChainHeadEvent
-		// TODO
+			return
 		case <-pool.chainHeadCh:
 			if pool.isPriceLimitDynamic {
 				if price, err := pool.priceProvider.GetGasPrice(); err == nil && pool.PriceLimit().Cmp(price) != 0 {

@@ -92,6 +92,8 @@ type RootManager struct {
 
 	ApprovalMaxFailures    uint64
 	transitionBlockChecker *transitionBlockChecker
+	quarantineTicker       *time.Ticker
+	quarantineTickerDone   chan struct{}
 }
 
 // Config of root manager
@@ -175,6 +177,9 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 		ProposalQuotaTimeWindow: cfg.ProposalQuotaTimeWindow,
 
 		ApprovalMaxFailures: cfg.ApprovalMaxFailures,
+
+		quarantineTicker:     time.NewTicker(time.Minute),
+		quarantineTickerDone: make(chan struct{}),
 	}
 
 	manager.transitionBlockChecker = newTransitionBlockChecker(
@@ -1258,13 +1263,17 @@ func (s *RootManager) notifyExclusionSetIsQuarantined(set *exclusionSet, current
 }
 
 func (s *RootManager) startQuarantineRoutine() {
-	quarantineTicker := time.NewTicker(time.Minute)
 	for {
 		if s.bc == nil {
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		<-quarantineTicker.C
+		select {
+		case <-s.quarantineTickerDone:
+			return
+		case <-s.quarantineTicker.C:
+			// nothing to do if we are not root node
+		}
 
 		// send proposed to quarantine if meets criteria
 		if s.proposedExSet != nil {
@@ -1280,6 +1289,11 @@ func (s *RootManager) startQuarantineRoutine() {
 		// notify if there's anything in quarantine
 		s.notifyQuarantine()
 	}
+}
+
+func (s *RootManager) stop() {
+	s.quarantineTickerDone <- struct{}{}
+	s.quarantineTicker.Stop()
 }
 
 func (s *RootManager) notifyQuarantine() {
