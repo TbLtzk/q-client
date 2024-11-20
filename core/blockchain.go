@@ -751,24 +751,36 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 	if len(chain) > 0 {
 		blocksToInsert = chain
 	}
-	_, err = bc.InsertChain(blocksToInsert)
-	if err != nil {
-		log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
-		if len(blocks) > 0 {
-			log.Warn("Reverting chain revalidation")
-			err := bc.SetHead(lastValidBlockNumber)
-			if err != nil {
-				log.Error("Can't rewind head", "number", lastValidBlockNumber, "err", err)
-				return err
+	for _, block := range blocksToInsert {
+		var oneBlockArr []*types.Block
+		// We're inserting blocks one by one to avoid header verification issues
+		// I.e. if we insert multiple blocks at once, clique uses its current state
+		// and not the state at the block which can lead to verification errors
+		oneBlockArr = append(oneBlockArr, block)
+		_, err = bc.InsertChain(oneBlockArr)
+		if err != nil {
+			log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
+			if len(blocks) > 0 {
+				log.Warn("Reverting chain revalidation")
+				// Since newly inserted chain can be longer than the original one
+				// we need to rewind head to the block with greater number
+				targetBlock := lastValidBlockNumber
+				if block.NumberU64() > lastValidBlockNumber {
+					targetBlock = block.NumberU64()
+				}
+				errH := bc.SetHead(targetBlock)
+				if errH != nil {
+					log.Error("Can't rewind head", "number", lastValidBlockNumber, "err", err)
+					return errH
+				}
+				_, errI := bc.InsertChain(blocks)
+				if errI != nil {
+					log.Error("Can't insert canonical blocks on fails", "count", len(blocks), "err", err)
+					return errI
+				}
 			}
-			_, err = bc.InsertChain(blocks)
-			if err != nil {
-				log.Error("Can't insert canonical blocks on fails", "count", len(blocks), "err", err)
-				return err
-			}
-			return nil
+			return err
 		}
-		return err
 	}
 
 	return nil
