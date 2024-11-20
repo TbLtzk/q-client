@@ -731,7 +731,7 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 		return fmt.Errorf("missing revalidation block %d", lastValidBlockNumber)
 	}
 
-	log.Info("Rewinding from block", "fromnumber", currentBlock.Number(), "fromhash", currentBlock.Hash(), "tonumber", lastValidBlock.Number(), "tohash", lastValidBlock.Hash())
+	log.Info("Revalidating from block", "fromnumber", currentBlock.Number(), "fromhash", currentBlock.Hash(), "tonumber", lastValidBlock.Number(), "tohash", lastValidBlock.Hash())
 
 	blocksToRewind := int(currentBlock.NumberU64() - lastValidBlockNumber)
 	blocks := bc.GetBlocksFromHash(currentBlock.Hash(), blocksToRewind)
@@ -759,7 +759,11 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 			log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
 			if len(blocks) > 0 {
 				log.Warn("Reverting chain revalidation")
-				errH := bc.SetHead(lastValidBlockNumber)
+				targetBlock := lastValidBlockNumber
+				if block.NumberU64() > lastValidBlockNumber {
+					targetBlock = block.NumberU64()
+				}
+				errH := bc.SetHead(targetBlock)
 				if errH != nil {
 					log.Error("Can't rewind head", "number", lastValidBlockNumber, "err", err)
 					return errH
