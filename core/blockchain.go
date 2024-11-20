@@ -731,7 +731,7 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 		return fmt.Errorf("missing revalidation block %d", lastValidBlockNumber)
 	}
 
-	log.Info("Revalidating from block", "fromnumber", currentBlock.Number(), "fromhash", currentBlock.Hash(), "tonumber", lastValidBlock.Number(), "tohash", lastValidBlock.Hash())
+	log.Info("Rewinding from block", "fromnumber", currentBlock.Number(), "fromhash", currentBlock.Hash(), "tonumber", lastValidBlock.Number(), "tohash", lastValidBlock.Hash())
 
 	blocksToRewind := int(currentBlock.NumberU64() - lastValidBlockNumber)
 	blocks := bc.GetBlocksFromHash(currentBlock.Hash(), blocksToRewind)
@@ -751,24 +751,27 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 	if len(chain) > 0 {
 		blocksToInsert = chain
 	}
-	_, err = bc.InsertChain(blocksToInsert)
-	if err != nil {
-		log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
-		if len(blocks) > 0 {
-			log.Warn("Reverting chain revalidation")
-			err := bc.SetHead(lastValidBlockNumber)
-			if err != nil {
-				log.Error("Can't rewind head", "number", lastValidBlockNumber, "err", err)
-				return err
+	for _, block := range blocksToInsert {
+		var oneBlockArr []*types.Block
+		oneBlockArr = append(oneBlockArr, block)
+		_, err = bc.InsertChain(oneBlockArr)
+		if err != nil {
+			log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
+			if len(blocks) > 0 {
+				log.Warn("Reverting chain revalidation")
+				errH := bc.SetHead(lastValidBlockNumber)
+				if errH != nil {
+					log.Error("Can't rewind head", "number", lastValidBlockNumber, "err", err)
+					return errH
+				}
+				_, errI := bc.InsertChain(blocks)
+				if errI != nil {
+					log.Error("Can't insert canonical blocks on fails", "count", len(blocks), "err", err)
+					return errI
+				}
 			}
-			_, err = bc.InsertChain(blocks)
-			if err != nil {
-				log.Error("Can't insert canonical blocks on fails", "count", len(blocks), "err", err)
-				return err
-			}
-			return nil
+			return err
 		}
-		return err
 	}
 
 	return nil
@@ -1606,7 +1609,7 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	})
 
 	for _, block := range resChain {
-		log.Debug("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
+		log.Info("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
 	}
 
 	// Revalidate the chain and try to insert it. On fail - return to the canonical chain
