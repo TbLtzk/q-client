@@ -753,12 +753,17 @@ func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error
 	}
 	for _, block := range blocksToInsert {
 		var oneBlockArr []*types.Block
+		// We're inserting blocks one by one to avoid header verification issues
+		// I.e. if we insert multiple blocks at once, clique uses its current state
+		// and not the state at the block which can lead to verification errors
 		oneBlockArr = append(oneBlockArr, block)
 		_, err = bc.InsertChain(oneBlockArr)
 		if err != nil {
 			log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
 			if len(blocks) > 0 {
 				log.Warn("Reverting chain revalidation")
+				// Since newly inserted chain can be longer than the original one
+				// we need to rewind head to the block with greater number
 				targetBlock := lastValidBlockNumber
 				if block.NumberU64() > lastValidBlockNumber {
 					targetBlock = block.NumberU64()
@@ -1613,7 +1618,7 @@ func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *ty
 	})
 
 	for _, block := range resChain {
-		log.Info("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
+		log.Debug("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
 	}
 
 	// Revalidate the chain and try to insert it. On fail - return to the canonical chain
