@@ -115,3 +115,13 @@ Default quota values are set to 3 per Root node/24 hours. If you want to change 
 - Governance protocol handshake
 - Dropping peer during sync
 
+## [1.3.11] - 2024-11
+### Changed
+- Change how transaction indexing operates (The behaviour of eth_syncing is slightly changed)
+
+### Added
+- Support EIP-4844 transactions in API-methods
+- Add -pos flag for displaying byte positions
+
+### Fixed
+- Logging configuration
