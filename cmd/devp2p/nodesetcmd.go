@@ -19,6 +19,8 @@ package main
 import (
 	"errors"
 	"fmt"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/rlp"
 	"net"
 	"sort"
 	"strconv"
@@ -26,11 +28,9 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/forkid"
 	"gitlab.com/q-dev/q-client/p2p/enr"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/rlp"
 )
 
 var (
@@ -229,10 +229,10 @@ func ethFilter(args []string) (nodeFilter, error) {
 	var filter forkid.Filter
 	switch args[0] {
 	case "mainnet":
-		filter = forkid.NewStaticFilter(params.MainnetChainConfig, params.MainnetGenesisHash)
+		filter = forkid.NewStaticFilter(params.MainnetChainConfig, core.DefaultMainnetGenesisBlock().ToBlock())
 		filter = forkid.NewStaticFilter(params.MainnetChainConfig, core.DefaultGenesisBlock().ToBlock())
 	case "testnet":
-		filter = forkid.NewStaticFilter(params.TestnetChainConfig, params.TestnetGenesisHash)
+		filter = forkid.NewStaticFilter(params.TestnetChainConfig, core.DefaultTestnetGenesisBlock().ToBlock())
 	case "goerli":
 		filter = forkid.NewStaticFilter(params.GoerliChainConfig, core.DefaultGoerliGenesisBlock().ToBlock())
 	case "sepolia":

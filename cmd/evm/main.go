@@ -24,11 +24,8 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"gitlab.com/q-dev/q-client/cmd/evm/internal/t8ntool"
-	"gitlab.com/q-dev/q-client/cmd/evm/internal/t8ntool"
 	"gitlab.com/q-dev/q-client/internal/debug"
 	"gitlab.com/q-dev/q-client/internal/flags"
-	"gitlab.com/q-dev/q-client/internal/flags"
-)
 
 	// Force-load the tracer engines to trigger registration
 	_ "gitlab.com/q-dev/q-client/eth/tracers/js"

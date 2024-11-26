@@ -25,6 +25,13 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
+	"gitlab.com/q-dev/q-client/cmd/devp2p/internal/v4test"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/internal/flags"
+	"gitlab.com/q-dev/q-client/p2p/discover"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 var (
