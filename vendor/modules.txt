@@ -348,7 +348,7 @@ github.com/dop251/goja/ftoa/internal/fast
 github.com/dop251/goja/parser
 github.com/dop251/goja/token
 github.com/dop251/goja/unistring
-# github.com/ethereum/c-kzg-4844 v0.4.0
+# github.com/ethereum/c-kzg-4844/bindings/go v0.0.0-20230126171313-363c7d7593b4
 ## explicit; go 1.19
 github.com/ethereum/c-kzg-4844/bindings/go
 # github.com/fatih/color v1.13.0
@@ -665,7 +665,7 @@ github.com/status-im/keycard-go/derivationpath
 ## explicit; go 1.20
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/supranational/blst v0.3.13
+# github.com/supranational/blst v0.3.11-0.20230124161941-ca03e11a3ff2
 ## explicit; go 1.11
 github.com/supranational/blst/bindings/go
 # github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
