@@ -523,7 +523,7 @@ func (db *database) getExclusionSetsFromQuarantine() ([]exclusionSet, error) {
 
 	var sets []exclusionSet
 	for i := range exclusionLists {
-		set, err := newExclusionSetWithSupport(&exclusionLists[i], true)
+		set, err := newExclusionSetWithSupport(&exclusionLists[i], false)
 		if err != nil {
 			// don't return error, just skip this list
 			continue
