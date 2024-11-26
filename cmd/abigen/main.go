@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
@@ -183,7 +182,7 @@ func abigen(c *cli.Context) error {
 		}
 		types = append(types, kind)
 	} else if c.String(truffleFlag.Name) != "" {
-		jsonOutput, err := ioutil.ReadFile(c.String(truffleFlag.Name))
+		jsonOutput, err := os.ReadFile(c.String(truffleFlag.Name))
 		if err != nil {
 			utils.Fatalf("Failed to read json file from truffle: %v", err)
 		}

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/event"
@@ -339,7 +338,7 @@ func (h *handler) runPeer(p *peer) error {
 	h.peers.register(p)
 	defer h.peers.unregister(p)
 
-	//Status nil check goes higher
+	// Status nil check goes higher
 	for _, set := range []struct {
 		our   *rootSet
 		their *rootSet
@@ -615,7 +614,7 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 			CreatedAt: time.Now().Unix(),
 		}
 
-		//Received file can be the draft (if was requested previously)
+		// Received file can be the draft (if was requested previously)
 		legit, errV := h.constitutionManager.isHashValid(file.Hash)
 		if errV != nil {
 			// If we receive a constitution, and our registry is not initialized, most likely
@@ -803,8 +802,8 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 
 		h.exEventCh <- &exclusionSetEvent{set: received}
 	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
-		//On very start of the node account can be not unlocked, so isRootNode can return false
-		signatureAdded := false //In case when alias changed
+		// On very start of the node account can be not unlocked, so isRootNode can return false
+		signatureAdded := false // In case when alias changed
 		if rm.isRootNode(false) {
 			signatureAdded = rm.signExclusionSet(rm.activeExSet)
 		}
@@ -885,8 +884,8 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 	}
 
 	if received.BlockNumber.Uint64()%rm.bc.Config().Clique.Epoch != 0 {
-		log.Error("Received root node approval list contains invalid block number", "blockNumber", received.BlockNumber)
-		return errInvalidApprovalBlockNumber
+		log.Info("Received root node approval list contains invalid block number", "blockNumber", received.BlockNumber)
+		return nil
 	}
 	if received.BlockNumber.Uint64() == 0 {
 		return nil
@@ -909,7 +908,7 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 
 		addr := crypto.PubkeyToAddress(*pubkey)
 
-		//TODO Refactor
+		// TODO Refactor
 		ok := false
 		for address, alias := range rm.active.aliases {
 			if address == addr || alias == addr {
@@ -985,7 +984,7 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 			return errV
 		}
 
-		//If the requested file is not on the list but node has it, it answers anyway (this will allow for draft constitution to be stored in the file system)
+		// If the requested file is not on the list but node has it, it answers anyway (this will allow for draft constitution to be stored in the file system)
 		if !ok {
 			log.Debug("Requested file hash doesn't belong to history")
 		}

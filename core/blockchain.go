@@ -214,6 +214,8 @@ type BlockChain struct {
 	processor  Processor // Block transaction processor interface
 	forker     *ForkChoice
 	vmConfig   vm.Config
+
+	ignoredBlocks map[uint64]map[common.Hash]struct{} // Blocks that are ignored during import
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -410,6 +412,9 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			triedb.SaveCachePeriodically(bc.cacheConfig.TrieCleanJournal, bc.cacheConfig.TrieCleanRejournal, bc.quit)
 		}()
 	}
+
+	bc.ignoredBlocks = make(map[uint64]map[common.Hash]struct{})
+
 	return bc, nil
 }
 
@@ -701,7 +706,7 @@ func (bc *BlockChain) setHeadBeyondRoot(head uint64, root common.Hash, repair bo
 
 // RevalidateChain sets head on the block before specified block number
 // and performs reorg to this block which revalidates higher blocks
-func (bc *BlockChain) RevalidateChain(number uint64) error {
+func (bc *BlockChain) RevalidateChain(number uint64, chain []*types.Block) error {
 	// Genesis block is not supported
 	if number == 0 {
 		return errors.New("trying to revalidate genesis block")
@@ -717,7 +722,7 @@ func (bc *BlockChain) RevalidateChain(number uint64) error {
 		return nil
 	}
 
-	lastValidBlockNumber := number - 1
+	lastValidBlockNumber := number
 	lastValidBlock := bc.GetBlockByNumber(lastValidBlockNumber)
 
 	// Last valid block should be available as we cheched that its number less
@@ -735,7 +740,6 @@ func (bc *BlockChain) RevalidateChain(number uint64) error {
 	for i, j := 0, len(blocks)-1; i < j; i, j = i+1, j-1 {
 		blocks[i], blocks[j] = blocks[j], blocks[i]
 	}
-
 	err := bc.SetHead(lastValidBlockNumber)
 	if err != nil {
 		log.Error("Can't rewind head", "number", lastValidBlockNumber, "err", err)
@@ -743,10 +747,40 @@ func (bc *BlockChain) RevalidateChain(number uint64) error {
 	}
 
 	log.Info("Inserting blocks on top of rewound head", "count", len(blocks))
-	_, err = bc.InsertChain(blocks)
-	if err != nil {
-		log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
-		return err
+	blocksToInsert := blocks
+	if len(chain) > 0 {
+		blocksToInsert = chain
+	}
+	for _, block := range blocksToInsert {
+		var oneBlockArr []*types.Block
+		// We're inserting blocks one by one to avoid header verification issues
+		// I.e. if we insert multiple blocks at once, clique uses its current state
+		// and not the state at the block which can lead to verification errors
+		oneBlockArr = append(oneBlockArr, block)
+		_, err = bc.InsertChain(oneBlockArr)
+		if err != nil {
+			log.Error("Can't insert blocks after chain revalidation", "count", len(blocks), "err", err)
+			if len(blocks) > 0 {
+				log.Warn("Reverting chain revalidation")
+				// Since newly inserted chain can be longer than the original one
+				// we need to rewind head to the block with greater number
+				targetBlock := lastValidBlockNumber
+				if block.NumberU64() > lastValidBlockNumber {
+					targetBlock = block.NumberU64()
+				}
+				errH := bc.SetHead(targetBlock)
+				if errH != nil {
+					log.Error("Can't rewind head", "number", lastValidBlockNumber, "err", err)
+					return errH
+				}
+				_, errI := bc.InsertChain(blocks)
+				if errI != nil {
+					log.Error("Can't insert canonical blocks on fails", "count", len(blocks), "err", err)
+					return errI
+				}
+			}
+			return err
+		}
 	}
 
 	return nil
@@ -1493,6 +1527,118 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 	}
 	defer bc.chainmu.Unlock()
 	return bc.insertChain(chain, true, true)
+}
+
+func (bc *BlockChain) TrySwitchToSidechain(chain []*types.Block, failedBlock *types.Block) (err error) {
+	// Clean the ignored blocks if they're outdated
+	// Since we can't have the invalid sidechain longer than the Epoch length, we can safely
+	// remove all the blocks that are older than the Epoch length.
+	for number := range bc.ignoredBlocks {
+		if number+bc.Config().Clique.Epoch < bc.CurrentBlock().NumberU64() {
+			delete(bc.ignoredBlocks, number)
+			continue
+		}
+	}
+
+	// We're here for the first time, so we need to initialize the ignored blocks map
+	if bc.ignoredBlocks[failedBlock.NumberU64()] == nil {
+		bc.ignoredBlocks[failedBlock.NumberU64()] = make(map[common.Hash]struct{})
+		log.Debug("Initializing ignored blocks map", "number", failedBlock.Number(), "hash", failedBlock.Hash())
+		return nil
+	}
+	// If the block is already ignored - return
+	if _, ok := bc.ignoredBlocks[failedBlock.NumberU64()][failedBlock.Hash()]; ok {
+		log.Warn("Aborting switch to the sidechain. Block is already ignored", "number", failedBlock.Number(), "hash", failedBlock.Hash())
+		return errors.New("block is already ignored")
+	}
+
+	// If chain is too long - truncate it to the Epoch length.
+	// Other blocks will be ignored and downloaded again.
+	if uint64(len(chain)) > bc.Config().Clique.Epoch {
+		log.Info("Truncating side chain to the epoch length", "length", len(chain), "epoch", bc.Config().Clique.Epoch)
+		chain = chain[:bc.Config().Clique.Epoch]
+	}
+	var ancestorHeader *types.Header
+	var ancestorBlock *types.Block
+	defer func() {
+		// Add the block to the ignored blocks list
+		if err != nil {
+			bc.ignoredBlocks[failedBlock.NumberU64()][failedBlock.Hash()] = struct{}{}
+		}
+	}()
+
+	log.Error("Mismatching checkpoint signers", "number", failedBlock.Number(), "hash", failedBlock.Header().Hash())
+	log.Info("Trying to switch to the sidechain. Searching for common ancestor for blocks",
+		"current", bc.CurrentBlock().Number(), "currentHash", bc.CurrentBlock().Hash(), "sidechain[0]", chain[0].Number(), "hash", chain[0].Hash(), "length", len(chain))
+	ancestorHeader = rawdb.FindCommonAncestor(bc.db, bc.CurrentBlock().Header(), chain[0].Header())
+	if ancestorHeader == nil {
+		log.Error("Failed to find common ancestor for block", "number", chain[0].Number(), "hash", chain[0].Hash())
+		return errors.New("failed to find common ancestor block: ancestorHeader is nil")
+	}
+	ancestorBlock = bc.GetBlockByHash(ancestorHeader.Hash())
+	if ancestorBlock == nil {
+		log.Error("Failed to find common ancestor block", "number", ancestorHeader.Number, "hash", ancestorHeader.Hash)
+		return errors.New("ancestor block is missing")
+	}
+
+	if bc.CurrentBlock().Number().Uint64()-ancestorHeader.Number.Uint64() >= bc.Config().Clique.Epoch {
+		log.Error("Failed to switch chains: number of blocks between current and ancestor blocks is more than epoch", "ancestor",
+			ancestorHeader.Number, "ancestorHash", ancestorHeader.Hash, "current", bc.CurrentBlock().Number(), "currentHash", bc.CurrentBlock().Hash())
+		return errors.New("ancestor block is too far from the current block")
+	}
+
+	log.Info("Found common ancestor block, restoring chain", "number", ancestorBlock.Number(), "hash", ancestorBlock.Hash())
+	// Rebuild the chain up to the common ancestor
+	prevBlock := bc.GetBlockByHash(chain[0].ParentHash())
+	subchain := make(map[uint64]*types.Block)
+	for {
+		subchain[prevBlock.NumberU64()] = prevBlock
+		// We've reached the canonical chain
+		prevBlock = bc.GetBlockByHash(prevBlock.ParentHash())
+		if prevBlock == nil {
+			log.Error("Failed to find parent block", "number", chain[0].Number(), "hash", chain[0].Hash())
+			return errors.New("failed to find parent block")
+		}
+		if prevBlock.Number().Uint64() <= ancestorBlock.Number().Uint64() {
+			break
+		}
+	}
+
+	subchain[ancestorBlock.NumberU64()] = ancestorBlock
+
+	for _, block := range chain {
+		subchain[block.NumberU64()] = block
+	}
+	resChain := make(types.Blocks, 0, len(subchain))
+	for number := range subchain {
+		resChain = append(resChain, subchain[number])
+	}
+	sort.Slice(resChain, func(i, j int) bool {
+		return resChain[i].NumberU64() < resChain[j].NumberU64()
+	})
+
+	for _, block := range resChain {
+		log.Debug("Ancestor chain", "number", block.Number(), "hash", block.Hash(), "parent", block.ParentHash())
+	}
+
+	// Revalidate the chain and try to insert it. On fail - return to the canonical chain
+	err = bc.RevalidateChain(prevBlock.Number().Uint64(), resChain)
+	if err != nil {
+		// Issue an error if the reorg failed
+		// Ignored block will be added to the ignored blocks list in the defer function
+		log.Error("Failed to insert side chain", "number", failedBlock.Number(), "hash", failedBlock.Hash(), "err", err)
+		return err
+	}
+
+	// After switching to the sidechain, we need to rebuild the snapshot
+	// Otherwise we'll get errors "missing trie node"
+	// bc.snaps.Rebuild(ancestorBlock.Root())
+
+	head := ancestorBlock // bc.CurrentBlock()
+	if layer := rawdb.ReadSnapshotRecoveryNumber(bc.db); layer != nil && *layer > head.NumberU64() {
+		log.Warn("Enabling snapshot recovery", "chainhead", head.NumberU64(), "diskbase", *layer)
+	}
+	return nil
 }
 
 // insertChain is the internal implementation of InsertChain, which assumes that
