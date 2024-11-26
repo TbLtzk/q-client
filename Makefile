@@ -6,7 +6,7 @@
 
 GOBIN = ./build/bin
 GO ?= latest
-GORUN = go run
+GORUN = env CGO_ENABLED=0 go run
 
 geth:
 	$(GORUN) build/ci.go install ./cmd/geth
