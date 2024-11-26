@@ -26,7 +26,7 @@ type ValidatorExclusionList struct {
 }
 
 func (el ValidatorExclusionList) IsEmpty() bool {
-	return el.Timestamp == 0 && len(el.Validators) == 0 && el.Hash == Hash{}
+	return el.Timestamp == 0 || len(el.Validators) == 0 || el.Hash == Hash{}
 }
 
 // ExcludedValidator.
