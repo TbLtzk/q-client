@@ -35,7 +35,7 @@ import (
 )
 
 func init() {
-	rand.Seed(time.Now().Unix())
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 // TestFreezerBasics test initializing a freezertable from scratch, writing to the table,

@@ -18,7 +18,7 @@ package snap
 
 import (
 	"bytes"
-	"crypto/rand"
+	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"math/big"
@@ -45,7 +45,7 @@ func TestHashing(t *testing.T) {
 	var bytecodes = make([][]byte, 10)
 	for i := 0; i < len(bytecodes); i++ {
 		buf := make([]byte, 100)
-		rand.Read(buf)
+		crand.Read(buf)
 		bytecodes[i] = buf
 	}
 	var want, got string
@@ -79,7 +79,7 @@ func BenchmarkHashing(b *testing.B) {
 	var bytecodes = make([][]byte, 10000)
 	for i := 0; i < len(bytecodes); i++ {
 		buf := make([]byte, 100)
-		rand.Read(buf)
+		crand.Read(buf)
 		bytecodes[i] = buf
 	}
 	var old = func() {

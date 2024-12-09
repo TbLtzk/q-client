@@ -17,7 +17,7 @@
 package enode
 
 import (
-	"math/rand"
+	crand "crypto/rand"
 	"net"
 	"testing"
 
@@ -114,7 +114,7 @@ func TestLocalNodeEndpoint(t *testing.T) {
 		assert.Equal(t, initialSeq+1, ln.Node().Seq())
 
 		from := &net.UDPAddr{IP: make(net.IP, 4), Port: 90}
-		rand.Read(from.IP)
+		crand.Read(from.IP)
 		ln.UDPEndpointStatement(from, predicted)
 	}
 	assert.Equal(t, predicted.IP, ln.Node().IP())

@@ -17,6 +17,7 @@
 package miner
 
 import (
+	crand "crypto/rand"
 	"errors"
 	"math/big"
 	"math/rand"
@@ -106,7 +107,7 @@ func init() {
 	})
 	newTxs = append(newTxs, tx2)
 
-	rand.Seed(time.Now().UnixNano())
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 // testWorkerBackend implements worker.Backend interfaces and wraps all information needed during the testing.
@@ -187,7 +188,7 @@ func (b *testWorkerBackend) newRandomUncle() *types.Block {
 	}
 	blocks, _ := core.GenerateChain(b.chain.Config(), parent, b.chain.Engine(), b.db, 1, func(i int, gen *core.BlockGen) {
 		var addr = make([]byte, common.AddressLength)
-		rand.Read(addr)
+		crand.Read(addr)
 		gen.SetCoinbase(common.BytesToAddress(addr))
 	})
 	return blocks[0]

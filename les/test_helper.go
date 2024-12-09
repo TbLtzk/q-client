@@ -22,7 +22,7 @@ package les
 
 import (
 	"context"
-	"crypto/rand"
+	crand "crypto/rand"
 	"fmt"
 	"math/big"
 	"sync/atomic"
@@ -408,7 +408,7 @@ func newTestPeerPair(name string, version int, server *serverHandler, client *cl
 
 	// Generate a random id and create the peer
 	var id enode.ID
-	rand.Read(id[:])
+	crand.Read(id[:])
 
 	peer1 := newClientPeer(version, NetworkId, p2p.NewPeer(id, name, nil), net)
 	peer2 := newServerPeer(version, NetworkId, false, p2p.NewPeer(id, name, nil), app)
@@ -468,7 +468,7 @@ func (client *testClient) newRawPeer(t *testing.T, name string, version int, rec
 
 	// Generate a random id and create the peer
 	var id enode.ID
-	rand.Read(id[:])
+	crand.Read(id[:])
 	peer := newServerPeer(version, NetworkId, false, p2p.NewPeer(id, name, nil), net)
 
 	// Start the peer on a new thread
@@ -532,7 +532,7 @@ func (server *testServer) newRawPeer(t *testing.T, name string, version int) (*t
 
 	// Generate a random id and create the peer
 	var id enode.ID
-	rand.Read(id[:])
+	crand.Read(id[:])
 	peer := newClientPeer(version, NetworkId, p2p.NewPeer(id, name, nil), net)
 
 	// Start the peer on a new thread

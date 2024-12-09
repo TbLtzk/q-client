@@ -17,7 +17,7 @@
 package les
 
 import (
-	"crypto/rand"
+	crand "crypto/rand"
 	"fmt"
 	"net"
 	"sync/atomic"
@@ -105,7 +105,7 @@ func connect(server *serverHandler, serverId enode.ID, client *clientHandler, pr
 	app, net := p2p.MsgPipe()
 
 	var id enode.ID
-	rand.Read(id[:])
+	crand.Read(id[:])
 
 	peer1 := newServerPeer(protocol, NetworkId, true, p2p.NewPeer(serverId, "", nil), net) // Mark server as trusted
 	peer2 := newClientPeer(protocol, NetworkId, p2p.NewPeer(id, "", nil), app)

@@ -17,7 +17,7 @@
 package utils
 
 import (
-	"math/rand"
+	crand "crypto/rand"
 	"testing"
 
 	"gitlab.com/q-dev/q-client/p2p/enode"
@@ -62,13 +62,13 @@ func (lt *limTest) request(n *ltNode) {
 		address = string([]byte{byte(n.addr)})
 	} else {
 		var b [32]byte
-		rand.Read(b[:])
+		crand.Read(b[:])
 		address = string(b[:])
 	}
 	if n.id >= 0 {
 		id = enode.ID{byte(n.id)}
 	} else {
-		rand.Read(id[:])
+		crand.Read(id[:])
 	}
 	lt.runCount++
 	n.runCount++

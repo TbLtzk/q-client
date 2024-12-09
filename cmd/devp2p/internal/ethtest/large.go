@@ -17,7 +17,7 @@
 package ethtest
 
 import (
-	"crypto/rand"
+	crand "crypto/rand"
 	"math/big"
 
 	"gitlab.com/q-dev/q-client/common"
@@ -28,7 +28,7 @@ import (
 // largeNumber returns a very large big.Int.
 func largeNumber(megabytes int) *big.Int {
 	buf := make([]byte, megabytes*1024*1024)
-	rand.Read(buf)
+	crand.Read(buf)
 	bigint := new(big.Int)
 	bigint.SetBytes(buf)
 	return bigint
@@ -37,14 +37,14 @@ func largeNumber(megabytes int) *big.Int {
 // largeBuffer returns a very large buffer.
 func largeBuffer(megabytes int) []byte {
 	buf := make([]byte, megabytes*1024*1024)
-	rand.Read(buf)
+	crand.Read(buf)
 	return buf
 }
 
 // largeString returns a very large string.
 func largeString(megabytes int) string {
 	buf := make([]byte, megabytes*1024*1024)
-	rand.Read(buf)
+	crand.Read(buf)
 	return hexutil.Encode(buf)
 }
 
@@ -55,7 +55,7 @@ func largeBlock() *types.Block {
 // Returns a random hash
 func randHash() common.Hash {
 	var h common.Hash
-	rand.Read(h[:])
+	crand.Read(h[:])
 	return h
 }
 

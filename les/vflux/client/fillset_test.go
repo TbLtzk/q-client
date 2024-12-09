@@ -17,7 +17,7 @@
 package client
 
 import (
-	"math/rand"
+	crand "crypto/rand"
 	"testing"
 	"time"
 
@@ -51,7 +51,7 @@ func (i *testIter) Close() {
 
 func (i *testIter) push() {
 	var id enode.ID
-	rand.Read(id[:])
+	crand.Read(id[:])
 	i.nodeCh <- enode.SignNull(new(enr.Record), id)
 }
 

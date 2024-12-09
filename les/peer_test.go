@@ -17,7 +17,7 @@
 package les
 
 import (
-	"crypto/rand"
+	crand "crypto/rand"
 	"errors"
 	"math/big"
 	"reflect"
@@ -83,7 +83,7 @@ func TestPeerSubscription(t *testing.T) {
 
 	// Generate a random id and create the peer
 	var id enode.ID
-	rand.Read(id[:])
+	crand.Read(id[:])
 	peer := newServerPeer(2, NetworkId, false, p2p.NewPeer(id, "name", nil), nil)
 	peers.register(peer)
 
@@ -109,7 +109,7 @@ func TestHandshake(t *testing.T) {
 
 	// Generate a random id and create the peer
 	var id enode.ID
-	rand.Read(id[:])
+	crand.Read(id[:])
 
 	peer1 := newClientPeer(2, NetworkId, p2p.NewPeer(id, "name", nil), net)
 	peer2 := newServerPeer(2, NetworkId, true, p2p.NewPeer(id, "name", nil), app)

@@ -46,7 +46,7 @@ func main() {
 	app.Before = func(c *cli.Context) error {
 		// Set up the logger to print everything and the random generator
 		log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(c.Int("loglevel")), log.StreamHandler(os.Stdout, log.TerminalFormat(true))))
-		rand.Seed(time.Now().UnixNano())
+		rand.New(rand.NewSource(time.Now().UnixNano()))
 
 		return nil
 	}
