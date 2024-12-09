@@ -38,7 +38,7 @@ test:
       junit: report.xml
 
 lint:
-  image: golang:1.19.5
+  image: golang:1.62.2
   stage: test
   extends: .before_script_template
   tags:
