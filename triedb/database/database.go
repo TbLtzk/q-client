@@ -17,7 +17,7 @@
 package database
 
 import (
-	"github.com/ethereum/go-ethereum/common"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 // Reader wraps the Node method of a backing trie reader.

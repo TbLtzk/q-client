@@ -41,6 +41,7 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/node"
+	"gitlab.com/q-dev/q-client/params"
 )
 
 var (

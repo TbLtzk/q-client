@@ -20,6 +20,7 @@ import (
 	"container/heap"
 	"math/big"
 
+	"github.com/holiman/uint256"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/txpool"
 	"gitlab.com/q-dev/q-client/core/types"

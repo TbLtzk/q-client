@@ -39,7 +39,6 @@ import (
 	"gitlab.com/q-dev/q-client/eth/tracers/logger"
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/trie/triedb/hashdb"
 	"gitlab.com/q-dev/q-client/triedb"
 	"gitlab.com/q-dev/q-client/triedb/hashdb"
 )

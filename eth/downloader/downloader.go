@@ -35,6 +35,7 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/triedb"
 )
 
 var (

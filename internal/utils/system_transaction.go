@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/holiman/uint256"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/abi"
 	"gitlab.com/q-dev/q-client/common"
@@ -83,8 +84,8 @@ func (w *SystemTxPreparer) PrepareSystemTx(accountManager *accounts.Manager, poo
 						Hash:      tx.Hash(),
 						Tx:        tx,
 						Time:      tx.Time(),
-						GasFeeCap: tx.GasFeeCap(),
-						GasTipCap: tx.GasTipCap(),
+						GasFeeCap: uint256.NewInt(tx.GasFeeCap().Uint64()),
+						GasTipCap: uint256.NewInt(tx.GasTipCap().Uint64()),
 						Gas:       tx.Gas(),
 						BlobGas:   tx.BlobGas(),
 					})

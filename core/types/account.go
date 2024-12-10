@@ -23,9 +23,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/q-client/common/math"
 )
 
 //go:generate go run github.com/fjl/gencodec -type Account -field-override accountMarshaling -out gen_account.go

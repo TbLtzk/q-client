@@ -32,6 +32,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/triedb"
 )
 
 // BlockGen creates blocks for testing.

@@ -37,8 +37,8 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/trie"
-	"gitlab.com/q-dev/q-client/trie/triedb/pathdb"
 	"gitlab.com/q-dev/q-client/triedb"
+	"gitlab.com/q-dev/q-client/triedb/pathdb"
 )
 
 //go:generate go run github.com/fjl/gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -562,46 +562,6 @@ func DeveloperGenesisBlock(gasLimit uint64, faucet *common.Address) *Genesis {
 		genesis.Alloc[*faucet] = types.Account{Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))}
 	}
 	return genesis
-}
-
-// Q Genesis blocks
-
-func DefaultMainnetGenesisBlock() *Genesis {
-	return &Genesis{
-		Config:     params.MainnetChainConfig,
-		Nonce:      0,
-		Timestamp:  1648049107,
-		ExtraData:  hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000004a14d788d86d021670ebcece1196631d6659598464d4edefe8ba86d3588b213b0a053e7b910cad686a39b688d591ea00c9ea69658438794204b5cc620000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:   21477216,
-		Difficulty: big.NewInt(1),
-		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-		Coinbase:   common.HexToAddress("0x0000000000000000000000000000000000000000"),
-		Alloc: map[common.Address]GenesisAccount{
-			common.HexToAddress("0xF691ea2E16B1017CE4893C2D2b91e745a3E501ad"): {Balance: big.NewInt(0).Exp(big.NewInt(10), big.NewInt(27), nil)},
-		},
-		Number:     0,
-		GasUsed:    0,
-		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-	}
-}
-
-func DefaultTestnetGenesisBlock() *Genesis {
-	return &Genesis{
-		Config:     params.TestnetChainConfig,
-		Nonce:      0,
-		Timestamp:  1651580049,
-		ExtraData:  hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000004a14d788d86d021670ebcece1196631d6659598464d4edefe8ba86d3588b213b0a053e7b910cad686a39b688d591ea00c9ea69658438794204b5cc620000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:   21477216,
-		Difficulty: big.NewInt(1),
-		Mixhash:    common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-		Coinbase:   common.HexToAddress("0x0000000000000000000000000000000000000000"),
-		Alloc: map[common.Address]GenesisAccount{
-			common.HexToAddress("0xF691ea2E16B1017CE4893C2D2b91e745a3E501ad"): {Balance: big.NewInt(0).Exp(big.NewInt(10), big.NewInt(27), nil)},
-		},
-		Number:     0,
-		GasUsed:    0,
-		ParentHash: common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
-	}
 }
 
 // Q Genesis blocks

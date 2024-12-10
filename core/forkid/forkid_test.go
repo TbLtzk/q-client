@@ -20,10 +20,10 @@ import (
 	"bytes"
 	"hash/crc32"
 	"math"
+	"math/big"
 	"testing"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
@@ -157,9 +157,9 @@ import (
 // 		{7987396, ID{Hash: checksumToBytes(0x668db0af), Next: 0}, nil},
 
 // 		// Local is mainnet Gray Glacier, remote announces the same. No future fork is announced.
-		{&legacyConfig, 15050000, 0, ID{Hash: checksumToBytes(0xf0afd0e3), Next: 0}, nil},
+// {&legacyConfig, 15050000, 0, ID{Hash: checksumToBytes(0xf0afd0e3), Next: 0}, nil},
 
-		// Local is mainnet Gray Glacier, remote announces the same. Remote also announces a next fork
+// Local is mainnet Gray Glacier, remote announces the same. Remote also announces a next fork
 // 		// at block 0xffffffff, but that is uncertain.
 // 		{&legacyConfig, 15050000, 0, ID{Hash: checksumToBytes(0xf0afd0e3), Next: math.MaxUint64}, nil},
 

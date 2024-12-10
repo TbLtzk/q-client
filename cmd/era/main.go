@@ -26,14 +26,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/internal/era"
-	"github.com/ethereum/go-ethereum/internal/ethapi"
-	"github.com/ethereum/go-ethereum/internal/flags"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/urfave/cli/v2"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/internal/era"
+	"gitlab.com/q-dev/q-client/internal/ethapi"
+	"gitlab.com/q-dev/q-client/internal/flags"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 var app = flags.NewApp("go-ethereum era tool")

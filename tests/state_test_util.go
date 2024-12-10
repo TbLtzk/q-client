@@ -40,8 +40,9 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
-	"gitlab.com/q-dev/q-client/trie/triedb/hashdb"
-	"gitlab.com/q-dev/q-client/trie/triedb/pathdb"
+	"gitlab.com/q-dev/q-client/triedb"
+	"gitlab.com/q-dev/q-client/triedb/hashdb"
+	"gitlab.com/q-dev/q-client/triedb/pathdb"
 	"golang.org/x/crypto/sha3"
 )
 

@@ -26,17 +26,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/internal/era"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/trie"
-	"github.com/ethereum/go-ethereum/triedb"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus/ethash"
+	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/rawdb"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/core/vm"
+	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/internal/era"
+	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/trie"
+	"gitlab.com/q-dev/q-client/triedb"
 )
 
 var (

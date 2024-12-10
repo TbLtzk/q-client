@@ -19,17 +19,10 @@ package clique
 
 import (
 	"crypto/ecdsa"
-	"fmt"
-	"math/big"
-	"testing"
 
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core"
-	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/params"
 	"golang.org/x/exp/slices"
 )
 

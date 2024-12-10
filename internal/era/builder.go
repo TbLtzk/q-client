@@ -22,11 +22,11 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/internal/era/e2store"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/golang/snappy"
+	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/core/types"
+	"gitlab.com/q-dev/q-client/internal/era/e2store"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 // Builder is used to create Era1 archives of block data.

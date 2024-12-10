@@ -36,9 +36,9 @@ import (
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/trie"
-	"gitlab.com/q-dev/q-client/trie/triedb/pathdb"
 	"gitlab.com/q-dev/q-client/trie/triestate"
 	"gitlab.com/q-dev/q-client/triedb"
+	"gitlab.com/q-dev/q-client/triedb/pathdb"
 )
 
 // A stateTest checks that the state changes are correctly captured. Instances

@@ -22,7 +22,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 func TestEncode(t *testing.T) {

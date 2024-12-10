@@ -10,7 +10,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/common/math"
-	"github.com/ethereum/go-ethereum/core/types"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/params"
 )
 

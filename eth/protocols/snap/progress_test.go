@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
+	"gitlab.com/q-dev/q-client/common"
 )
 
 // Legacy sync progress definitions
