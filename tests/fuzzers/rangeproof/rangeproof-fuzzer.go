@@ -26,6 +26,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/ethdb/memorydb"
 	"gitlab.com/q-dev/q-client/trie"
+	"gitlab.com/q-dev/q-client/triedb"
 	"golang.org/x/exp/slices"
 )
 
@@ -56,7 +57,7 @@ func (f *fuzzer) readInt() uint64 {
 }
 
 func (f *fuzzer) randomTrie(n int) (*trie.Trie, map[string]*kv) {
-	trie := trie.NewEmpty(trie.NewDatabase(rawdb.NewMemoryDatabase(), nil))
+	trie := trie.NewEmpty(triedb.NewDatabase(rawdb.NewMemoryDatabase(), nil))
 	vals := make(map[string]*kv)
 	size := f.readInt()
 	// Fill it with some fluff

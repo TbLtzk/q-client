@@ -27,7 +27,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethdb"
-	"gitlab.com/q-dev/q-client/trie"
+	"gitlab.com/q-dev/q-client/triedb"
 )
 
 type stateEnv struct {
@@ -43,7 +43,7 @@ func newStateEnv() *stateEnv {
 
 func TestDump(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
-	tdb := NewDatabaseWithConfig(db, &trie.Config{Preimages: true})
+	tdb := NewDatabaseWithConfig(db, &triedb.Config{Preimages: true})
 	sdb, _ := New(types.EmptyRootHash, tdb, nil)
 	s := &stateEnv{db: db, state: sdb}
 
@@ -100,7 +100,7 @@ func TestDump(t *testing.T) {
 
 func TestIterativeDump(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
-	tdb := NewDatabaseWithConfig(db, &trie.Config{Preimages: true})
+	tdb := NewDatabaseWithConfig(db, &triedb.Config{Preimages: true})
 	sdb, _ := New(types.EmptyRootHash, tdb, nil)
 	s := &stateEnv{db: db, state: sdb}
 

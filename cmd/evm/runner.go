@@ -39,8 +39,9 @@ import (
 	"gitlab.com/q-dev/q-client/eth/tracers/logger"
 	"gitlab.com/q-dev/q-client/internal/flags"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/trie"
 	"gitlab.com/q-dev/q-client/trie/triedb/hashdb"
+	"gitlab.com/q-dev/q-client/triedb"
+	"gitlab.com/q-dev/q-client/triedb/hashdb"
 )
 
 var runCommand = &cli.Command{
@@ -148,7 +149,7 @@ func runCmd(ctx *cli.Context) error {
 	}
 
 	db := rawdb.NewMemoryDatabase()
-	triedb := trie.NewDatabase(db, &trie.Config{
+	triedb := triedb.NewDatabase(db, &triedb.Config{
 		Preimages: preimages,
 		HashDB:    hashdb.Defaults,
 	})

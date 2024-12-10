@@ -41,7 +41,7 @@ import (
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/metrics"
 	"gitlab.com/q-dev/q-client/p2p"
-	"gitlab.com/q-dev/q-client/trie/triedb/pathdb"
+	"gitlab.com/q-dev/q-client/triedb/pathdb"
 )
 
 const (
@@ -73,7 +73,7 @@ type txPool interface {
 
 	// Pending should return pending transactions.
 	// The slice should be modifiable by the caller.
-	Pending(enforceTips bool) map[common.Address][]*txpool.LazyTransaction
+	Pending(filter txpool.PendingFilter) map[common.Address][]*txpool.LazyTransaction
 
 	// SubscribeTransactions subscribes to new transaction events. The subscriber
 	// can decide whether to receive notifications only for newly seen transactions

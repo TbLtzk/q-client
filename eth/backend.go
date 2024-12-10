@@ -251,7 +251,7 @@ func New(stack *node.Node, config *ethconfig.Config, conn bind.ContractBackend, 
 	}
 	legacyPool := legacypool.New(config.TxPool, eth.blockchain, gpProvider)
 
-	eth.txPool, err = txpool.New(new(big.Int).SetUint64(config.TxPool.PriceLimit), eth.blockchain, []txpool.SubPool{legacyPool, blobPool})
+	eth.txPool, err = txpool.New(config.TxPool.PriceLimit, eth.blockchain, []txpool.SubPool{legacyPool, blobPool})
 	if err != nil {
 		return nil, err
 	}

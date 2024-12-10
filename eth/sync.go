@@ -23,6 +23,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/rawdb"
+	"gitlab.com/q-dev/q-client/core/txpool"
 	"gitlab.com/q-dev/q-client/eth/downloader"
 	"gitlab.com/q-dev/q-client/eth/protocols/eth"
 	"gitlab.com/q-dev/q-client/log"
@@ -36,7 +37,7 @@ const (
 // syncTransactions starts sending all currently pending transactions to the given peer.
 func (h *handler) syncTransactions(p *eth.Peer) {
 	var hashes []common.Hash
-	for _, batch := range h.txpool.Pending(false) {
+	for _, batch := range h.txpool.Pending(txpool.PendingFilter{OnlyPlainTxs: true}) {
 		for _, tx := range batch {
 			hashes = append(hashes, tx.Hash)
 		}

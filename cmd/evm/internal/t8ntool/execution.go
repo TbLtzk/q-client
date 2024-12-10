@@ -37,12 +37,13 @@ import (
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/trie"
+	"gitlab.com/q-dev/q-client/triedb"
 	"golang.org/x/crypto/sha3"
 )
 
 type Prestate struct {
-	Env stEnv             `json:"env"`
-	Pre core.GenesisAlloc `json:"pre"`
+	Env stEnv              `json:"env"`
+	Pre types.GenesisAlloc `json:"pre"`
 }
 
 // ExecutionResult contains the execution status after running a state test, any
@@ -354,8 +355,8 @@ func (pre *Prestate) Apply(vmConfig vm.Config, chainConfig *params.ChainConfig,
 	return statedb, execRs, body, nil
 }
 
-func MakePreState(db ethdb.Database, accounts core.GenesisAlloc) *state.StateDB {
-	sdb := state.NewDatabaseWithConfig(db, &trie.Config{Preimages: true})
+func MakePreState(db ethdb.Database, accounts types.GenesisAlloc) *state.StateDB {
+	sdb := state.NewDatabaseWithConfig(db, &triedb.Config{Preimages: true})
 	statedb, _ := state.New(types.EmptyRootHash, sdb, nil)
 	for addr, a := range accounts {
 		statedb.SetCode(addr, a.Code)

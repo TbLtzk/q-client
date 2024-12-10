@@ -25,7 +25,6 @@ import (
 
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/ethclient/simulated"
@@ -57,7 +56,7 @@ func TestWaitDeployed(t *testing.T) {
 	t.Parallel()
 	for name, test := range waitDeployedTests {
 		backend := simulated.NewBackend(
-			core.GenesisAlloc{
+			types.GenesisAlloc{
 				crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
 			},
 		)
@@ -65,7 +64,7 @@ func TestWaitDeployed(t *testing.T) {
 
 		// Create the transaction
 		head, _ := backend.Client().HeaderByNumber(context.Background(), nil) // Should be child's, good enough
-		gasPrice := new(big.Int).Add(head.BaseFee, big.NewInt(1))
+		gasPrice := new(big.Int).Add(head.BaseFee, big.NewInt(params.GWei))
 
 		tx := types.NewContractCreation(0, big.NewInt(0), test.gas, gasPrice, common.FromHex(test.code))
 		tx, _ = types.SignTx(tx, types.LatestSignerForChainID(big.NewInt(1337)), testKey)
@@ -102,7 +101,7 @@ func TestWaitDeployed(t *testing.T) {
 
 func TestWaitDeployedCornerCases(t *testing.T) {
 	backend := simulated.NewBackend(
-		core.GenesisAlloc{
+		types.GenesisAlloc{
 			crypto.PubkeyToAddress(testKey.PublicKey): {Balance: big.NewInt(10000000000000000)},
 		},
 	)

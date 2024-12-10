@@ -25,7 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.com/q-dev/q-client"
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/state/snapshot"
@@ -35,7 +35,6 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/trie"
 )
 
 var (
@@ -212,7 +211,7 @@ type BlockChain interface {
 
 	// TrieDB retrieves the low level trie database used for interacting
 	// with trie nodes.
-	TrieDB() *trie.Database
+	TrieDB() *triedb.Database
 
 	TrySwitchToSidechain(blocks []*types.Block, block *types.Block) error
 }
@@ -613,6 +612,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td, ttd *
 			if err := d.lightchain.SetHead(origin); err != nil {
 				return err
 			}
+			log.Info("Truncated excess ancient chain segment", "oldhead", frozen-1, "newhead", origin)
 		}
 	}
 	// Initiate the sync using a concurrent header and content retrieval algorithm

@@ -28,7 +28,6 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus/misc/eip1559"
-	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
@@ -74,10 +73,10 @@ var (
 )
 
 type input struct {
-	Alloc core.GenesisAlloc `json:"alloc,omitempty"`
-	Env   *stEnv            `json:"env,omitempty"`
-	Txs   []*txWithKey      `json:"txs,omitempty"`
-	TxRlp string            `json:"txsRlp,omitempty"`
+	Alloc types.GenesisAlloc `json:"alloc,omitempty"`
+	Env   *stEnv             `json:"env,omitempty"`
+	Txs   []*txWithKey       `json:"txs,omitempty"`
+	TxRlp string             `json:"txsRlp,omitempty"`
 }
 
 func Transition(ctx *cli.Context) error {
@@ -272,7 +271,7 @@ func applyCancunChecks(env *stEnv, chainConfig *params.ChainConfig) error {
 	return nil
 }
 
-type Alloc map[common.Address]core.GenesisAccount
+type Alloc map[common.Address]types.Account
 
 func (g Alloc) OnRoot(common.Hash) {}
 
@@ -288,7 +287,7 @@ func (g Alloc) OnAccount(addr *common.Address, dumpAccount state.DumpAccount) {
 			storage[k] = common.HexToHash(v)
 		}
 	}
-	genesisAccount := core.GenesisAccount{
+	genesisAccount := types.Account{
 		Code:    dumpAccount.Code,
 		Storage: storage,
 		Balance: balance,

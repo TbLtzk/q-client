@@ -19,9 +19,10 @@ package simulated
 import (
 	"time"
 
-	"gitlab.com/q-dev/q-client"
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/eth/catalyst"
 	"gitlab.com/q-dev/q-client/eth/downloader"
@@ -70,7 +71,7 @@ type Backend struct {
 // contract bindings in unit tests.
 //
 // A simulated backend always uses chainID 1337.
-func NewBackend(alloc core.GenesisAlloc, options ...func(nodeConf *node.Config, ethConf *ethconfig.Config)) *Backend {
+func NewBackend(alloc types.GenesisAlloc, options ...func(nodeConf *node.Config, ethConf *ethconfig.Config)) *Backend {
 	// Create the default configurations for the outer node shell and the Ethereum
 	// service to mutate with the options afterwards
 	nodeConf := node.DefaultConfig

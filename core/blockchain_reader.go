@@ -30,7 +30,7 @@ import (
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/rlp"
-	"gitlab.com/q-dev/q-client/trie"
+	"gitlab.com/q-dev/q-client/triedb"
 )
 
 // CurrentHeader retrieves the current head header of the canonical chain. The
@@ -406,8 +406,13 @@ func (bc *BlockChain) TxIndexProgress() (TxIndexProgress, error) {
 }
 
 // TrieDB retrieves the low level trie database used for data storage.
-func (bc *BlockChain) TrieDB() *trie.Database {
+func (bc *BlockChain) TrieDB() *triedb.Database {
 	return bc.triedb
+}
+
+// HeaderChain returns the underlying header chain.
+func (bc *BlockChain) HeaderChain() *HeaderChain {
+	return bc.hc
 }
 
 // SubscribeRemovedLogsEvent registers a subscription of RemovedLogsEvent.

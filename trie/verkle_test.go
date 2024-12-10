@@ -25,7 +25,6 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
-	"gitlab.com/q-dev/q-client/trie/triedb/pathdb"
 	"gitlab.com/q-dev/q-client/trie/utils"
 )
 
@@ -57,12 +56,7 @@ var (
 )
 
 func TestVerkleTreeReadWrite(t *testing.T) {
-	db := NewDatabase(rawdb.NewMemoryDatabase(), &Config{
-		IsVerkle: true,
-		PathDB:   pathdb.Defaults,
-	})
-	defer db.Close()
-
+	db := newTestDatabase(rawdb.NewMemoryDatabase(), rawdb.PathScheme)
 	tr, _ := NewVerkleTrie(types.EmptyVerkleHash, db, utils.NewPointCache(100))
 
 	for addr, acct := range accounts {
