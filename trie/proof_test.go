@@ -23,6 +23,7 @@ import (
 	"fmt"
 	mrand "math/rand"
 	"testing"
+	"time"
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/rawdb"
@@ -30,6 +31,10 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb/memorydb"
 	"golang.org/x/exp/slices"
 )
+
+func init() {
+	mrand.New(mrand.NewSource(time.Now().UnixNano()))
+}
 
 // Prng is a pseudo random number generator seeded by strong randomness.
 // The randomness is printed on startup in order to make failures reproducible.

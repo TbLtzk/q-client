@@ -26,11 +26,16 @@ import (
 	"reflect"
 	"testing"
 	"testing/quick"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/require"
 	"gitlab.com/q-dev/q-client/metrics"
 )
+
+func init() {
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+}
 
 // TestFreezerBasics test initializing a freezertable from scratch, writing to the table,
 // and reading it back.

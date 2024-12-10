@@ -20,7 +20,7 @@
 package eth
 
 import (
-	"crypto/rand"
+	crand "crypto/rand"
 	"testing"
 
 	"gitlab.com/q-dev/q-client/common"
@@ -43,7 +43,7 @@ func newTestPeer(name string, version uint, backend Backend) (*testPeer, <-chan 
 
 	// Start the peer on a new thread
 	var id enode.ID
-	rand.Read(id[:])
+	crand.Read(id[:])
 
 	peer := NewPeer(version, p2p.NewPeer(id, name, nil), net, backend.TxPool())
 	errc := make(chan error, 1)

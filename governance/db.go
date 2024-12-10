@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
-
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethdb/leveldb"
@@ -226,7 +225,7 @@ func (db *database) getExclusionSet(key []byte) (*exclusionSet, error) {
 		panic(errors.Wrap(err, "failed to unmarshal exclusion list"))
 	}
 
-	set, err := newExclusionSet(&exclusionList)
+	set, err := newExclusionSetWithSupport(&exclusionList, true)
 	if err != nil {
 		panic(errors.Wrap(err, "malformed exclusion set"))
 	}
@@ -453,7 +452,7 @@ func (db *database) addExclusionSetToQuarantine(set *exclusionSet) error {
 	}
 	for _, exSet := range exRecords {
 		if exSet.hash == set.hash {
-			return nil //It's already there
+			return nil // It's already there
 		}
 		resSets = append(resSets, exSet.makeList())
 	}
@@ -524,9 +523,9 @@ func (db *database) getExclusionSetsFromQuarantine() ([]exclusionSet, error) {
 
 	var sets []exclusionSet
 	for i := range exclusionLists {
-		set, err := newExclusionSet(&exclusionLists[i])
+		set, err := newExclusionSetWithSupport(&exclusionLists[i], false)
 		if err != nil {
-			//don't return error, just skip this list
+			// don't return error, just skip this list
 			continue
 		}
 		sets = append(sets, *set)

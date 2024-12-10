@@ -56,6 +56,7 @@ func testSetIndex(a interface{}, i int) {
 }
 
 func TestLazyQueue(t *testing.T) {
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 	clock := &mclock.Simulated{}
 	q := NewLazyQueue(testSetIndex, testPriority, testMaxPriority, clock, testQueueRefresh)
 

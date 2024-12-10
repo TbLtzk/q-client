@@ -25,16 +25,20 @@ type ValidatorExclusionList struct {
 	Signatures [][]byte `json:"signatures"`
 }
 
+func (el ValidatorExclusionList) IsEmpty() bool {
+	return el.Timestamp == 0 || len(el.Validators) == 0 || el.Hash == Hash{}
+}
+
 // ExcludedValidator.
 type ExcludedValidator struct {
 	Address  Address `json:"address"`
 	Block    uint64  `json:"block"`
-	EndBlock uint64  `json:"endBlock,omitempty" rlp:"optional"` //If is set - validator stays banned until reaching this block
+	EndBlock uint64  `json:"endBlock,omitempty" rlp:"optional"` // If is set - validator stays banned until reaching this block
 }
 
 type BlockRange struct {
 	StartAddress uint64
-	EndAddress   uint64 //New approach to validator blocking mechanism assumes that there can be end of the ban if the end block is set
+	EndAddress   uint64 // New approach to validator blocking mechanism assumes that there can be end of the ban if the end block is set
 }
 
 func (existingBlockRange BlockRange) IsEqualTo(candidate BlockRange) (res bool) {
@@ -167,6 +171,6 @@ type ConstitutionFileContent struct {
 
 type ListQuotaEntry struct {
 	Hash      Hash    `json:"hash"`
-	Timestamp uint64  `json:"timestamp"` //determines when the entry was added, not the timestamp of the list as it can be not correct
+	Timestamp uint64  `json:"timestamp"` // determines when the entry was added, not the timestamp of the list as it can be not correct
 	Author    Address `json:"author"`
 }
