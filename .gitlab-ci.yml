@@ -152,7 +152,7 @@ publish:
 
 publish-arm:
   image:
-    name: "gcr.io/go-containerregistry/crane/debug:v0.11.0"
+    name: "gcr.io/go-containerregistry/crane:debug"
     entrypoint: [""]
   stage: "release"
   when: manual
