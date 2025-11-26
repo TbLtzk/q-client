@@ -26,7 +26,18 @@ const maxNRootNodes = 101
 // Maximum cap on the size of a protocol message.
 // (doubled max cap list)
 const protocolMaxMsgSize = 2*maxNRootNodes*(crypto.SignatureLength+common.AddressLength) + common.HashLength
+
+// maxConstitutionFileSize limits the size of the compressed governance payload
+// that can be received over the wire.
 const maxConstitutionFileSize = 512000 // TODO define correct value
+
+// maxConstitutionDecompressedSize limits the size of a single decompressed
+// constitution file. This prevents gzip "zip bombs" from exhausting memory.
+const maxConstitutionDecompressedSize int64 = 1 * 1024 * 1024 // 1 MiB
+
+// maxConstitutionTotalDecompressedSize limits the total size of all
+// decompressed constitution files carried in a single message.
+const maxConstitutionTotalDecompressedSize int64 = 2 * 1024 * 1024 // 2 MiB
 
 // protocol message codes
 const (

@@ -585,6 +585,8 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 		requiredHashes[hash] = struct{}{}
 	}
 
+	var totalDecompressedSize int64
+
 	for _, file := range response.Files {
 		if _, ok := requiredHashes[file.Hash]; !ok {
 			log.Error("Received constitution file with non-requested hash", "hash", file.Hash)
@@ -596,9 +598,34 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 		if e1 != nil {
 			return e1
 		}
-		output, e2 := io.ReadAll(gzreader)
+
+		// Protect against gzip bombs by limiting decompressed size.
+		limitedReader := &io.LimitedReader{
+			R: gzreader,
+			// Allow one extra byte to reliably detect overflow beyond the limit.
+			N: maxConstitutionDecompressedSize + 1,
+		}
+
+		output, e2 := io.ReadAll(limitedReader)
+		_ = gzreader.Close()
 		if e2 != nil {
 			return e2
+		}
+
+		if int64(len(output)) > maxConstitutionDecompressedSize {
+			log.Warn("Received constitution file exceeds decompressed size limit",
+				"hash", file.Hash,
+				"limit", maxConstitutionDecompressedSize,
+				"size", len(output))
+			return errors.New("received constitution file exceeds decompressed size limit")
+		}
+
+		totalDecompressedSize += int64(len(output))
+		if totalDecompressedSize > maxConstitutionTotalDecompressedSize {
+			log.Warn("Total decompressed size of constitution files in message exceeds limit",
+				"limit", maxConstitutionTotalDecompressedSize,
+				"size", totalDecompressedSize)
+			return errors.New("total decompressed size of constitution files in message exceeds limit")
 		}
 
 		receivedHash := h.constitutionManager.getHashByFileContent(output)
