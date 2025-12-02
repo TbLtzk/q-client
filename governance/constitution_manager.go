@@ -312,7 +312,7 @@ func (cm *ConstitutionManager) validateStorageDir() ([]string, error) {
 }
 
 // gov.addConstitutionFile("a.adoc")
-// gov.addConstitutionFile("https://constitution.q.org/constitution/latest")
+// gov.addConstitutionFile("https://constitution.qgov.io/constitution/latest")
 func (cm *ConstitutionManager) addConstitutionFile(filename string) error {
 	cm.validateStorage()
 

@@ -3,7 +3,7 @@
 
 [Go Ethereum](https://github.com/ethereum/go-ethereum) fork
 
-[![Q favicon](./favicon-32x32.png)](https://q.org) Official Golang implementation of the Q Blockchain.
+[![Q favicon](./favicon-32x32.png)](https://qgov.io) Official Golang implementation of the Q Blockchain.
 
 ## Requirements
 
