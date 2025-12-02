@@ -413,7 +413,7 @@ Constitution file with hash 0x5dfd08904f23e0497b291487319f07e32113f3c5bdc9c540ad
 ----
 
 ----
-gov.addConstitutionFile("https://constitution.q.org/constitution/latest")
+gov.addConstitutionFile("https://constitution.qgov.io/constitution/latest")
 Constitution file with hash 0x25a0ad3b8de911b1745691b83875291c75f424487551ec83f7ef9ae8205ef059 added successfully
 
 Validating constitution storage
