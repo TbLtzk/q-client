@@ -225,7 +225,7 @@ func (db *database) getExclusionSet(key []byte) (*exclusionSet, error) {
 		panic(errors.Wrap(err, "failed to unmarshal exclusion list"))
 	}
 
-	set, err := newExclusionSetWithSupport(&exclusionList, true)
+	set, err := newExclusionSet(&exclusionList)
 	if err != nil {
 		panic(errors.Wrap(err, "malformed exclusion set"))
 	}
@@ -523,7 +523,7 @@ func (db *database) getExclusionSetsFromQuarantine() ([]exclusionSet, error) {
 
 	var sets []exclusionSet
 	for i := range exclusionLists {
-		set, err := newExclusionSetWithSupport(&exclusionLists[i], false)
+		set, err := newExclusionSet(&exclusionLists[i])
 		if err != nil {
 			// don't return error, just skip this list
 			continue
