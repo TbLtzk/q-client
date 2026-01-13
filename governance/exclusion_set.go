@@ -33,11 +33,6 @@ func (s *exclusionSet) String() string {
 }
 
 func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error) {
-	return newExclusionSetWithSupport(list, false)
-}
-
-// Next iteration will make this function unnecessary since we'll resave the list with the new hash
-func newExclusionSetWithSupport(list *common.ValidatorExclusionList, local bool) (*exclusionSet, error) {
 	if list == nil {
 		return nil, errInvalidExclusionList
 	}
@@ -86,25 +81,16 @@ func newExclusionSetWithSupport(list *common.ValidatorExclusionList, local bool)
 		blockRanges: validatorsSet,
 	}
 
-	// First step of the preparation for the new hash rule:
-	// propose local sets with the new hash rule
+	// Calculate hash using the new hash rule (includes block ranges)
 	set.hash = set.calcFullHash()
-	// But support old hash rule for the existing lists
-	if !local {
-		if (list.Hash != common.Hash{}) {
-			set.hash = set.calcFullHash() // new hash rule only for validation (for now). Try it first
-		} else {
-			set.hash = set.calcHash() // old hash rule is applied if list is new and hash is empty
-		}
+	
+	// Fix known bad hashes/timestamps
+	set.fixTimestamp()
 
-		set.fixTimestamp()
-
-		if set.hash != list.Hash && (list.Hash != common.Hash{}) {
-			set.hash = set.calcHash()
-			set.fixTimestamp()
-			if set.hash != list.Hash && (list.Hash != common.Hash{}) {
-				return nil, errHashMismatch
-			}
+	// Validate hash if provided (signatures are validated against the calculated hash below)
+	if list.Hash != (common.Hash{}) {
+		if set.hash != list.Hash {
+			return nil, errHashMismatch
 		}
 	}
 
@@ -120,15 +106,6 @@ func newExclusionSetWithSupport(list *common.ValidatorExclusionList, local bool)
 
 	set.signers = signers
 	return set, nil
-}
-
-func (s *exclusionSet) calcHash() common.Hash {
-	msg := append([]byte{}, fmt.Sprint(s.timestamp)...)
-	for _, addr := range s.addresses {
-		msg = append(msg, addr.Bytes()...)
-	}
-
-	return crypto.Keccak256Hash(msg)
 }
 
 func (s *exclusionSet) calcFullHash() common.Hash {
