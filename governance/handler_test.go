@@ -98,7 +98,7 @@ func TestHandleMessage(t *testing.T) {
 	}
 	h := newHandler(rm.RootManager, cm)
 	rw1, rw2 := p2p.MsgPipe()
-	p1 := newPeer(2, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
+	p1 := newPeer(5, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
 	defer p1.Disconnect(p2p.DiscRequested)
 
 	tests := []struct {
@@ -151,7 +151,7 @@ func TestHandleRootSet(t *testing.T) {
 	}
 
 	rw1, rw2 := p2p.MsgPipe()
-	p1 := newPeer(2, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
+	p1 := newPeer(5, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
 	defer p1.Disconnect(p2p.DiscRequested)
 
 	startRootList := rm.active.copy()
@@ -250,7 +250,7 @@ func TestHandleExclusionSet(t *testing.T) {
 	}
 
 	rw1, rw2 := p2p.MsgPipe()
-	p1 := newPeer(2, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
+	p1 := newPeer(5, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
 	defer p1.Disconnect(p2p.DiscRequested)
 
 	listWithWrongHash := randomExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 3, defNumAccounts, true)
@@ -340,7 +340,7 @@ func TestHandleConstitution(t *testing.T) {
 	}
 
 	rw1, rw2 := p2p.MsgPipe()
-	p1 := newPeer(2, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
+	p1 := newPeer(5, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
 	defer p1.Disconnect(p2p.DiscRequested)
 
 	tests := []struct {
@@ -459,7 +459,7 @@ func TestApproval(t *testing.T) {
 	}
 
 	rw1, rw2 := p2p.MsgPipe()
-	p1 := newPeer(2, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
+	p1 := newPeer(5, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
 	defer p1.Disconnect(p2p.DiscRequested)
 
 	tests := []struct {
@@ -606,7 +606,7 @@ func handshake(rm *RootManager, cm *ConstitutionManager, code uint64, msg interf
 func makeHandshake(h *handler, code uint64, msg interface{}) (*peer, *p2p.MsgPipeRW, *p2p.MsgPipeRW, chan error) {
 	rw1, rw2 := p2p.MsgPipe()
 
-	p1 := newPeer(2, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
+	p1 := newPeer(5, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
 
 	errCh := make(chan error)
 

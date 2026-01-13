@@ -83,7 +83,7 @@ func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error)
 
 	// Calculate hash using the new hash rule (includes block ranges)
 	set.hash = set.calcFullHash()
-	
+
 	// Fix known bad hashes/timestamps
 	set.fixTimestamp()
 

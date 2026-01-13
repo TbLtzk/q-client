@@ -8,17 +8,14 @@ import (
 // Constants to match up protocol versions and messages
 const (
 	protocolName = "qgov" // protocolName is the official short name of the protocol used during capability negotiation.
-	qgov2        = 2      // TODO decide when to remove this outdated protocol
-	qgov3        = 3
-	qgov4        = 4
-	qgov5        = 5 // Exclusion sets new algorithm
+	qgov5        = 5      // Exclusion sets new algorithm
 )
 
 // ProtocolVersions are the supported versions of the gov protocol (first is primary).
-var ProtocolVersions = []uint{qgov2, qgov3, qgov4, qgov5}
+var ProtocolVersions = []uint{qgov5}
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
-var protocolLengths = map[uint]uint64{qgov2: 3, qgov3: 4, qgov4: 7, qgov5: 7}
+var protocolLengths = map[uint]uint64{qgov5: 7}
 
 // maximum possible number of root nodes
 const maxNRootNodes = 101
