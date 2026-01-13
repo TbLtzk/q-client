@@ -135,7 +135,7 @@ func alwaysTrueFn() bool {
 }
 
 func testClientPool(t *testing.T, activeLimit, clientCount, paidCount int, randomDisconnect bool) {
-	rand.Seed(time.Now().UnixNano())
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 	var (
 		clock     mclock.Simulated
 		db        = rawdb.NewMemoryDatabase()

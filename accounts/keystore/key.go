@@ -19,6 +19,7 @@ package keystore
 import (
 	"bytes"
 	"crypto/ecdsa"
+	crand "crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -147,7 +148,7 @@ func newKeyFromECDSA(privateKeyECDSA *ecdsa.PrivateKey) *Key {
 // retry until the first byte is 0.
 func NewKeyForDirectICAP(rand io.Reader) *Key {
 	randBytes := make([]byte, 64)
-	_, err := rand.Read(randBytes)
+	_, err := crand.Read(randBytes)
 	if err != nil {
 		panic("key generation: could not read from random source: " + err.Error())
 	}

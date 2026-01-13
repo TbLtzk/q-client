@@ -18,6 +18,7 @@ package discover
 
 import (
 	"crypto/ecdsa"
+	crand "crypto/rand"
 	"fmt"
 	"math/rand"
 
@@ -408,7 +409,7 @@ func gen(typ interface{}, rand *rand.Rand) interface{} {
 
 func genIP(rand *rand.Rand) net.IP {
 	ip := make(net.IP, 4)
-	rand.Read(ip)
+	crand.Read(ip)
 	return ip
 }
 

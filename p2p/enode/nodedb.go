@@ -18,7 +18,7 @@ package enode
 
 import (
 	"bytes"
-	"crypto/rand"
+	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"net"
@@ -459,7 +459,7 @@ seek:
 		// random amount each time in order to increase the likelihood
 		// of hitting all existing nodes in very small databases.
 		ctr := id[0]
-		rand.Read(id[:])
+		crand.Read(id[:])
 		id[0] = ctr + id[0]%16
 		it.Seek(nodeKey(id))
 

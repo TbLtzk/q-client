@@ -21,7 +21,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/elliptic"
-	"crypto/rand"
+	crand "crypto/rand"
 	"crypto/sha256"
 	"crypto/sha512"
 	"fmt"
@@ -84,7 +84,7 @@ func (s *SecureChannelSession) Pair(pairingPassword []byte) error {
 	secretHash := pbkdf2.Key(norm.NFKD.Bytes(pairingPassword), norm.NFKD.Bytes([]byte(pairingSalt)), 50000, 32, sha256.New)
 
 	challenge := make([]byte, 32)
-	if _, err := rand.Read(challenge); err != nil {
+	if _, err := crand.Read(challenge); err != nil {
 		return err
 	}
 
@@ -169,7 +169,7 @@ func (s *SecureChannelSession) Open() error {
 // connection.
 func (s *SecureChannelSession) mutuallyAuthenticate() error {
 	data := make([]byte, scSecretLength)
-	if _, err := rand.Read(data); err != nil {
+	if _, err := crand.Read(data); err != nil {
 		return err
 	}
 

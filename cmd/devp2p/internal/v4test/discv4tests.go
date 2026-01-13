@@ -18,7 +18,7 @@ package v4test
 
 import (
 	"bytes"
-	"crypto/rand"
+	crand "crypto/rand"
 	"fmt"
 	"net"
 	"time"
@@ -279,7 +279,7 @@ func FindnodeWithoutEndpointProof(t *utesting.T) {
 	defer te.close()
 
 	req := v4wire.Findnode{Expiration: futureExpiration()}
-	rand.Read(req.Target[:])
+	crand.Read(req.Target[:])
 	te.send(te.l1, &req)
 
 	for {
@@ -303,7 +303,7 @@ func BasicFindnode(t *utesting.T) {
 	bond(t, te)
 
 	findnode := v4wire.Findnode{Expiration: futureExpiration()}
-	rand.Read(findnode.Target[:])
+	crand.Read(findnode.Target[:])
 	te.send(te.l1, &findnode)
 
 	reply, _, err := te.read(te.l1)
@@ -364,7 +364,7 @@ func FindnodePastExpiration(t *utesting.T) {
 	bond(t, te)
 
 	findnode := v4wire.Findnode{Expiration: -futureExpiration()}
-	rand.Read(findnode.Target[:])
+	crand.Read(findnode.Target[:])
 	te.send(te.l1, &findnode)
 
 	for {
@@ -449,7 +449,7 @@ func FindnodeAmplificationInvalidPongHash(t *utesting.T) {
 	// Now send FINDNODE. The remote node should not respond because our
 	// PONG did not reference the PING hash.
 	findnode := v4wire.Findnode{Expiration: futureExpiration()}
-	rand.Read(findnode.Target[:])
+	crand.Read(findnode.Target[:])
 	te.send(te.l1, &findnode)
 
 	// If we receive a NEIGHBORS response, the attack worked and the test fails.
@@ -472,7 +472,7 @@ func FindnodeAmplificationWrongIP(t *utesting.T) {
 	// Now send FINDNODE from the same node ID, but different IP address.
 	// The remote node should not respond.
 	findnode := v4wire.Findnode{Expiration: futureExpiration()}
-	rand.Read(findnode.Target[:])
+	crand.Read(findnode.Target[:])
 	te.send(te.l2, &findnode)
 
 	// If we receive a NEIGHBORS response, the attack worked and the test fails.

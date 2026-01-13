@@ -32,7 +32,7 @@ import (
 )
 
 func init() {
-	mrand.Seed(time.Now().Unix())
+	mrand.New(mrand.NewSource(time.Now().UnixNano()))
 }
 
 // makeProvers creates Merkle trie provers based on different implementations to
