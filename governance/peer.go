@@ -41,9 +41,7 @@ func (s *peerSet) register(p *peer) {
 
 	go p.listenForRootSets()
 	go p.listenForExclusionSets()
-	if p.version >= qgov3 {
-		go p.listenApprovals()
-	}
+	go p.listenApprovals()
 }
 
 func (s *peerSet) unregister(p *peer) {
@@ -223,10 +221,8 @@ func (p *peer) listenApprovals() {
 	for {
 		select {
 		case approval := <-p.approvalCh:
-			if p.version >= qgov3 {
-				if err := p.sendApprovalList(approval); err != nil {
-					p.Log().Warn("failed to send approval", "err", err, "root-set", approval)
-				}
+			if err := p.sendApprovalList(approval); err != nil {
+				p.Log().Warn("failed to send approval", "err", err, "root-set", approval)
 			}
 		case <-p.done:
 			return
@@ -307,22 +303,13 @@ func (p *peer) sendApprovalList(approvalList *common.RootNodeApprovalList) error
 }
 
 func (p *peer) sendConstitutionFileRequest(request *common.ConstitutionFilesRequest) error {
-	if p.version >= qgov4 {
-		return p2p.Send(p.rw, ConstitutionFileRequestMsg, request)
-	}
-	return nil
+	return p2p.Send(p.rw, ConstitutionFileRequestMsg, request)
 }
 
 func (p *peer) sendKnownConstitutionFiles(files *common.KnownConstitutionFilesMessage) error {
-	if p.version >= qgov4 {
-		return p2p.Send(p.rw, KnownConstitutionFilesMsg, files)
-	}
-	return nil
+	return p2p.Send(p.rw, KnownConstitutionFilesMsg, files)
 }
 
 func (p *peer) sendConstitutionFiles(files *common.ConstitutionFilesResponse) error {
-	if p.version >= qgov4 {
-		return p2p.Send(p.rw, ConstitutionFilesMsg, files)
-	}
-	return nil
+	return p2p.Send(p.rw, ConstitutionFilesMsg, files)
 }

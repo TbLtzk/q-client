@@ -182,9 +182,6 @@ func (h *handler) listenForRNApprovals() {
 		select {
 		case approval := <-h.approvalCh:
 			for _, p := range h.peers.all() {
-				if p.version < qgov3 {
-					continue
-				}
 				log.Debug("Sending approval list root node approvals", "to", p.id)
 				p.asyncSendApprovals(approval)
 			}
@@ -202,9 +199,6 @@ func (h *handler) broadcastApprovals() {
 		select {
 		case msg := <-h.approvalEventCh:
 			for _, p := range h.peers.all() {
-				if p.version < qgov3 {
-					continue
-				}
 				if msg.fromID == p.id {
 					continue
 				}
@@ -219,18 +213,14 @@ func (h *handler) broadcastApprovals() {
 
 func (h *handler) broadcastConstitutionRequest(request *common.ConstitutionFilesRequest) {
 	for _, p := range h.peers.all() {
-		if p.version >= qgov4 {
-			p.sendConstitutionFileRequest(request)
-		}
+		p.sendConstitutionFileRequest(request)
 	}
 }
 
 //nolint:unused
 func (h *handler) broadcastKnownConstitutionFiles(files *common.KnownConstitutionFilesMessage) {
 	for _, p := range h.peers.all() {
-		if p.version >= qgov4 {
-			p.sendKnownConstitutionFiles(files)
-		}
+		p.sendKnownConstitutionFiles(files)
 	}
 }
 
@@ -328,11 +318,9 @@ func (h *handler) runPeer(p *peer) error {
 		h.propagateExclusionSet(status.currentExSet)
 	}
 
-	if p.version >= qgov3 {
-		approvals := rm.db.getLastApprovals()
-		if err = p.sendApprovalList(approvals); err != nil {
-			p.Log().Warn("failed to send approval", "err", err, "root-set", approvals)
-		}
+	approvals := rm.db.getLastApprovals()
+	if err = p.sendApprovalList(approvals); err != nil {
+		p.Log().Warn("failed to send approval", "err", err, "root-set", approvals)
 	}
 
 	h.peers.register(p)
@@ -371,15 +359,13 @@ func (h *handler) runPeer(p *peer) error {
 		}
 	}
 
-	if p.version >= qgov4 {
-		h.constitutionManager.insureLatestHashIsHandled()
+	h.constitutionManager.insureLatestHashIsHandled()
 
-		newReq := common.ConstitutionFilesRequest{Hashes: h.constitutionManager.requiredHashes}
-		p.sendConstitutionFileRequest(&newReq)
+	newReq := common.ConstitutionFilesRequest{Hashes: h.constitutionManager.requiredHashes}
+	p.sendConstitutionFileRequest(&newReq)
 
-		filesReq := common.KnownConstitutionFilesMessage{Hashes: h.constitutionManager.knownHashes}
-		p.sendKnownConstitutionFiles(&filesReq)
-	}
+	filesReq := common.KnownConstitutionFilesMessage{Hashes: h.constitutionManager.knownHashes}
+	p.sendKnownConstitutionFiles(&filesReq)
 
 	h.peerWG.Add(1)
 	defer h.peerWG.Done()
