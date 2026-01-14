@@ -579,7 +579,7 @@ func handleMsg(h *handler, code uint64, msg interface{}, p1 *peer, rw2 *p2p.MsgP
 		select {
 		case err := <-errCh:
 			return err
-		case <-time.After(5 * time.Second):
+		case <-time.After(10 * time.Second):
 			return errors.New("timeout")
 		}
 	}

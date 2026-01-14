@@ -455,6 +455,7 @@ func TestValidateExclusionSet(t *testing.T) {
 			set, err := newExclusionSet(tt.List)
 			if err != nil {
 				t.Errorf("Can't create exclusion set: %v, test name:%v", err, tt.Name)
+				return
 			}
 			if set.hash == rm.activeExSet.hash {
 				return
@@ -482,6 +483,7 @@ func TestProposeExclusionSet(t *testing.T) {
 			set, err := newExclusionSet(tt.List)
 			if err != nil {
 				t.Errorf("Can't create exclusion set: %v, test name:%v", err, tt.Name)
+				return
 			}
 			if set.hash == rm.activeExSet.hash {
 				return
@@ -514,6 +516,7 @@ func TestAcceptProposedExclusionSet(t *testing.T) {
 			set, err := newExclusionSet(tt.List)
 			if err != nil {
 				t.Errorf("Can't create exclusion set: %v, test name:%v", err, tt.Name)
+				return
 			}
 
 			exSet, err := newExclusionSet(activeExclusionList)

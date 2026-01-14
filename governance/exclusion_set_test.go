@@ -9,7 +9,7 @@ import (
 var (
 	activeExclusionList = &common.ValidatorExclusionList{
 		Timestamp: 1680255000,
-		Hash:      common.HexToHash("0xf6cc800a504eadaabe2e7dbd5651fdd546d8769323af8ab50245b61e80795982"),
+		Hash:      common.Hash{}, // Will be calculated by newExclusionSet
 		Validators: []common.ExcludedValidator{
 			{
 				Address: common.HexToAddress("0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b"),
@@ -34,7 +34,7 @@ var (
 	//Has timestamp with a less value than activeExclusionList
 	obsoleteExclusionList = &common.ValidatorExclusionList{
 		Timestamp: 1680250000,
-		Hash:      common.HexToHash("0x7d32d21a17e09b9d5affd0aa3b28b7f0e767117498a4163323d3f588dae34a99"),
+		Hash:      common.Hash{}, // Will be calculated by newExclusionSet
 		Validators: []common.ExcludedValidator{
 			{
 				Address: common.HexToAddress("0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b"),
@@ -58,7 +58,7 @@ var (
 	}
 	correctExclusionList = &common.ValidatorExclusionList{
 		Timestamp: 1680255617,
-		Hash:      common.HexToHash("0x25c2d75a2ddb2c63342dcec4ae307dca29adf5aefd5b06a4586a4541afddcdf4"),
+		Hash:      common.Hash{}, // Will be calculated by newExclusionSet
 		Validators: []common.ExcludedValidator{
 			{
 				Address: common.HexToAddress("0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b"),
@@ -106,7 +106,7 @@ var (
 	}
 	exclusionListWithDuplicateAddresses = &common.ValidatorExclusionList{
 		Timestamp: 1680255617,
-		Hash:      common.HexToHash("0x25c2d75a2ddb2c63342dcec4ae307dca29adf5aefd5b06a4586a4541afddcdf4"),
+		Hash:      common.Hash{}, // Will be calculated by newExclusionSet (but test should fail due to duplicates)
 		Validators: []common.ExcludedValidator{
 			{
 				Address: common.HexToAddress("0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b"),
@@ -134,7 +134,7 @@ var (
 	}
 	exclusionListWithWrongSignature = &common.ValidatorExclusionList{
 		Timestamp: 1680255617,
-		Hash:      common.HexToHash("0x25c2d75a2ddb2c63342dcec4ae307dca29adf5aefd5b06a4586a4541afddcdf4"),
+		Hash:      common.Hash{}, // Will be calculated by newExclusionSet (but test should fail due to wrong signature)
 		Validators: []common.ExcludedValidator{
 			{
 				Address: common.HexToAddress("0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b"),
