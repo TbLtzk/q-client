@@ -27,7 +27,7 @@ import (
 
 // TestCreation tests that different genesis and fork rule combinations result in
 // the correct fork ID.
-// ---- NOT RELEVANT TO Q NETWORKS
+// ---- NOT RELEVANT TO QGOV NETWORKS
 // func TestCreation(t *testing.T) {
 // 	type testcase struct {
 // 		head uint64

@@ -1,10 +1,10 @@
-In order to connect to the Q MainNet network:
+In order to connect to the QGOV MainNet network:
 
 Start node:
 
 `$ geth --datadir=<datadir> --syncmode=full`
 
-In order to connect to the Q TestNet network:
+In order to connect to the QGOV TestNet network:
 
 Start node:
 

@@ -544,7 +544,7 @@ func DeveloperGenesisBlock(period uint64, gasLimit uint64, faucet common.Address
 	}
 }
 
-// Q Genesis blocks
+// QGOV Genesis blocks
 
 func DefaultMainnetGenesisBlock() *Genesis {
 	return &Genesis{

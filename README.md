@@ -1,9 +1,9 @@
-# Q Client
-[![go-github release (latest SemVer)](https://img.shields.io/gitlab/v/release/q-dev/q-client?sort=semver)](https://gitlab.com/q-dev/q-client/releases)
+# QGOV Client
+[![go-github release (latest SemVer)](https://img.shields.io/gitlab/v/release/q-dev/q-client?sort=semver)](https://gitlab.com/q-dev/q-client/-/releases)
 
 [Go Ethereum](https://github.com/ethereum/go-ethereum) fork
 
-[![Q favicon](./favicon-32x32.png)](https://qgov.io) Official Golang implementation of the Q Blockchain.
+[![QGOV favicon](./favicon-32x32.png)](https://qgov.io) Official Golang implementation of the QGOV Blockchain.
 
 ## Requirements
 
@@ -14,9 +14,9 @@
 
 ## Public tools
 
-These repositories contain all you need to interact with Q networks.
-They include the sources, scripts and the according tutorials to launch a node, connect to Q network
-via mobile application and make use of the various governance features that Q offers.
+These repositories contain all you need to interact with QGOV networks.
+They include the sources, scripts and the according tutorials to launch a node, connect to QGOV network
+via mobile application and make use of the various governance features that QGOV offers.
 * [Testnet Public Tools](https://gitlab.com/q-dev/testnet-public-tools)
 * [Mainnet Public Tools](https://gitlab.com/q-dev/mainnet-public-tools)
 
@@ -74,7 +74,7 @@ Recommended:
 * High Performance SSD with at least 1TB free space
 * 25+ MBit/sec download Internet service
 
-### Full node on the Q MainNet network
+### Full node on the QGOV MainNet network
 
 By far the most common scenario is people wanting to simply interact with the Ethereum
 network: create accounts; transfer funds; deploy and interact with contracts. For this
@@ -96,7 +96,7 @@ This command will:
    This tool is optional and if you leave it out you can always attach to an already running
    `geth` instance with `geth attach`.
 
-### A Full node on the Q TestNet network
+### A Full node on the QGOV TestNet network
 
 Transitioning towards developers, if you'd like to play around with creating Ethereum
 contracts, you almost certainly would like to do that without any real money involved until
@@ -117,7 +117,7 @@ useful on the testnet too. Please, see above for their explanations if you've sk
 
 Specifying the `--testnet` or `--fischer` flag, however, will reconfigure your `geth` instance a bit:
 
- * Instead of connecting the Q MainNet network, the client will connect to the Q TestNet 
+ * Instead of connecting the QGOV MainNet network, the client will connect to the QGOV TestNet 
    network, which uses different P2P bootnodes, different network IDs and genesis
    states.
  * Instead of using the default data directory (`~/.ethereum` on Linux for example), `geth`

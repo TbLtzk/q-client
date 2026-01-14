@@ -109,11 +109,11 @@ var YoloV1Bootnodes = []string{
 }
 
 // -----------------------------------------
-// Q Networks
+// QGOV Networks
 // -----------------------------------------
 
 // MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Q network.
+// QGOV network.
 var MainnetBootnodes = []string{
 	"enode://e07f45cca23066cc11d6203474f7f0ae47577000d7770a78c3ef9917b36f658d800f6f349f9e2975e08e697049bb6f2a0fd7cb4df6815823bc9ef5603a364d10@bootnode.qgov.io:30301",
 	"enode://3021f73a6f14f8594384923f7f0228f81a806d1708e5c046db12661bdce6b0f10625fae12771aa36f7a4d1f110d4e5a589bf3d34ec4b1d2c6d10e382d90f6983@extrabootnode.qgov.io:0?discport=30314",
@@ -122,14 +122,14 @@ var MainnetBootnodes = []string{
 }
 
 // DevnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Q devnet network.
+// QGOV devnet network.
 var DevnetBootnodes = []string{
 	"enode://3dc52b0fefeda02972816dfae089c266ed4cba79c6a153cc5676da26a3122215e1d3865ef27b3391f88272d2fee1f36e238cebce5deb00c5a2fea763d8ebd99b@bootnode.qdevnet.org:30301",
 	"enode://70b402c7e1b6f13c8cb61c980acc13745b961b6862124ec674d14dbf93bbdd8a74e9086c8a0e2b7807060a83c6481dca34eadf9425cdc98ca7f1fddbfc0bb37c@54.73.188.73:30311",
 }
 
 // TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Q testnet network.
+// QGOV testnet network.
 var TestnetBootnodes = []string{
 	"enode://fdb91b62c3ffd93fbd979a2b8acd02b4b039191b9fbc2f50ab212dc2fd2b747714ea3500c89d9370a3f7389e422361e8ca82176c9323207273033faa5c7f97cc@bootnode.qgov-test.io:30305",
 	"enode://3021f73a6f14f8594384923f7f0228f81a806d1708e5c046db12661bdce6b0f10625fae12771aa36f7a4d1f110d4e5a589bf3d34ec4b1d2c6d10e382d90f6983@extrabootnode.qgov-test.io:0?discport=30324",

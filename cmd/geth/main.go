@@ -146,7 +146,7 @@ var (
 		utils.DeveloperPeriodFlag,
 		utils.DeveloperGasLimitFlag,
 
-		// Q networks
+		// QGOV networks
 		utils.DevnetFlag,
 		utils.TestnetFlag,
 		utils.FischerFlag,
@@ -361,11 +361,11 @@ func prepare(ctx *cli.Context) {
 	case ctx.IsSet(utils.DevnetFlag.Name):
 		log.Info("Starting q-client on devnet...")
 	case ctx.IsSet(utils.TestnetFlag.Name):
-		log.Info("Starting q-client on Q testnet...")
+		log.Info("Starting q-client on QGOV testnet...")
 	case ctx.IsSet(utils.FischerFlag.Name):
-		log.Info("Starting q-client on Q testnet...")
+		log.Info("Starting q-client on QGOV testnet...")
 	case !ctx.IsSet(utils.NetworkIdFlag.Name):
-		log.Info("Starting q-client on Q mainnet...")
+		log.Info("Starting q-client on QGOV mainnet...")
 	}
 
 	// If we're a full node on mainnet without --cache specified, bump default cache allowance

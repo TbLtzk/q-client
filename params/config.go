@@ -27,9 +27,9 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("0x7579ce66d1bc55ee09fab06c1e8ec6456ec24ca58d82797c21c4dc4c007508e9") //QMainnet
-	TestnetGenesisHash = common.HexToHash("0x7989645d3b77e443a739a0489f86cbd54ec3f484a744d32f1d58bfc1bed698de") //Q Testnet
-	DevnetGenesisHash  = common.HexToHash("0x796d1bf4d4d2ec5acd086f1621d2826a51cefd943f8e2f1c36159d19c793bd81") //Q Devnet
+	MainnetGenesisHash = common.HexToHash("0x7579ce66d1bc55ee09fab06c1e8ec6456ec24ca58d82797c21c4dc4c007508e9") //QGOV Mainnet
+	TestnetGenesisHash = common.HexToHash("0x7989645d3b77e443a739a0489f86cbd54ec3f484a744d32f1d58bfc1bed698de") //QGOV Testnet
+	DevnetGenesisHash  = common.HexToHash("0x796d1bf4d4d2ec5acd086f1621d2826a51cefd943f8e2f1c36159d19c793bd81") //QGOV Devnet
 	//TODO remove
 	//EthereumMainnetGenesisHash  = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3") //Mainnet
 	RopstenGenesisHash = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
@@ -63,7 +63,7 @@ var (
 	MainnetTerminalTotalDifficulty, _ = new(big.Int).SetString("58_750_000_000_000_000_000_000", 0)
 
 	//MainnetChainConfig is the chain parameters to run a node on the main network.
-	MainnetChainConfig = &ChainConfig{ //Q Mainnet
+	MainnetChainConfig = &ChainConfig{ //QGOV Mainnet
 		ChainID:             big.NewInt(35441),
 		HomesteadBlock:      big.NewInt(0),
 		EIP150Block:         big.NewInt(0),
@@ -619,7 +619,7 @@ func (c *ChainConfig) IsCancun(num *big.Int) bool {
 	return isForked(c.CancunBlock, num)
 }
 
-// IsAthos returns whether num is either equal to the IsAthos (Q HF001) fork block or greater.
+// IsAthos returns whether num is either equal to the IsAthos (QGOV HF001) fork block or greater.
 func (c *ChainConfig) IsAthos(num *big.Int) bool {
 	if c.AthosBlock != nil && c.AthosBlock.Uint64() == 0 {
 		c.AthosBlock = nil

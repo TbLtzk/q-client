@@ -161,7 +161,7 @@ var (
 		Category: flags.EthCategory,
 	}
 
-	// Q networks
+	// QGOV networks
 	DevnetFlag = &cli.BoolFlag{
 		Name:     "devnet",
 		Usage:    "Devnet network: pre-configured poa short-lived test network",
