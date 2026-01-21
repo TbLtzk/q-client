@@ -1020,7 +1020,8 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 	}
 
 	if len(presentFiles) > 0 {
-		p.asyncSendConstitutionFiles(cm, presentFiles) // TODO check constitution drafts
+		// Actually run asynchronously to avoid blocking the handler
+		go p.asyncSendConstitutionFiles(cm, presentFiles) // TODO check constitution drafts
 	}
 
 	return nil
