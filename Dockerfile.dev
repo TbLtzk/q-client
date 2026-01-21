@@ -1,0 +1,25 @@
+FROM golang:1.21-alpine
+
+# Install common build dependencies
+RUN apk add --no-cache \
+    git \
+    wget \
+    gcc \
+    musl-dev \
+    linux-headers \
+    make
+
+# Pre-download goimports dependencies to cache them
+# This will download and cache the module, making subsequent runs faster
+RUN go run golang.org/x/tools/cmd/goimports@v0.19.0 -h > /dev/null 2>&1 || true
+
+# Pre-install golangci-lint
+RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.55.2 && \
+    mv ./bin/golangci-lint /usr/local/bin/golangci-lint && \
+    rm -rf ./bin
+
+# Verify installations
+RUN golangci-lint --version
+
+WORKDIR /workspace
+
