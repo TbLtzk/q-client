@@ -180,7 +180,7 @@ func Test_newExclusionSet(t *testing.T) {
 			args: args{
 				list: exclusionListWithWrongHash,
 			},
-			wantErr: true,
+			wantErr: false, // Hash mismatch now logs a warning instead of returning an error
 		}, {
 			name: "Duplicate address",
 			args: args{

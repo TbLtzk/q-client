@@ -254,7 +254,10 @@ func TestHandleExclusionSet(t *testing.T) {
 	defer p1.Disconnect(p2p.DiscRequested)
 
 	listWithWrongHash := randomExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 3, defNumAccounts, true)
+	// Calculate the correct hash before changing it
+	correctHash := listWithWrongHash.Hash
 	listWithWrongHash.Hash = common.BytesToHash(randBytes(1))
+	correctHashPtr := &correctHash
 
 	tests := []struct {
 		name         string
@@ -262,6 +265,7 @@ func TestHandleExclusionSet(t *testing.T) {
 		msg          common.ValidatorExclusionList
 		err          error
 		shouldAccept bool
+		expectedHash *common.Hash // Optional: expected hash if different from msg.Hash (e.g., for wrong hash test)
 	}{
 		{
 			name:         "Exclusion list with 100% signatures",
@@ -302,8 +306,9 @@ func TestHandleExclusionSet(t *testing.T) {
 			name:         "Exclusion list with wrong hash",
 			code:         ExclusionListMsg,
 			msg:          listWithWrongHash,
-			err:          errHashMismatch,
-			shouldAccept: false,
+			err:          nil,            // Hash mismatch now logs a warning instead of returning an error
+			shouldAccept: true,           // List is accepted if signatures are valid (signatures are validated against calculated hash)
+			expectedHash: correctHashPtr, // The accepted hash should be the calculated hash, not the wrong provided hash
 		},
 	}
 
@@ -313,8 +318,19 @@ func TestHandleExclusionSet(t *testing.T) {
 			if !errors.Is(err, test.err) {
 				t.Errorf("Expected error '%v', got '%v'", test.err, err)
 			}
-			if test.shouldAccept && test.msg.Hash != rm.activeExSet.hash {
-				t.Error("List wasn't accepted")
+			if test.shouldAccept {
+				expectedHash := test.msg.Hash
+				if test.expectedHash != nil {
+					expectedHash = *test.expectedHash
+				}
+				if rm.activeExSet == nil || rm.activeExSet.hash != expectedHash {
+					t.Errorf("List wasn't accepted or has wrong hash. Expected: %s, Got: %v", expectedHash.Hex(), func() string {
+						if rm.activeExSet == nil {
+							return "nil"
+						}
+						return rm.activeExSet.hash.Hex()
+					}())
+				}
 			}
 			if (!test.shouldAccept && rm.activeExSet != nil && rm.activeExSet.hash != common.Hash{}) {
 				t.Error("List was accepted")
