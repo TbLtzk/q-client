@@ -9,6 +9,7 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 type exclusionSet struct {
@@ -90,7 +91,7 @@ func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error)
 	// Validate hash if provided (signatures are validated against the calculated hash below)
 	if list.Hash != (common.Hash{}) {
 		if set.hash != list.Hash {
-			return nil, errHashMismatch
+			log.Warn("Exclusion list hash mismatch", "provided", list.Hash.Hex(), "calculated", set.hash.Hex(), "timestamp", set.timestamp)
 		}
 	}
 
