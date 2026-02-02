@@ -46,6 +46,14 @@ func NewTestModeRegistry() *Registry {
 	}
 }
 
+// NewTestModeRegistryWithRewardReceiver returns a test registry with the given reward receiver (for tests that expect a specific coinbase, e.g. miner sealing work).
+func NewTestModeRegistryWithRewardReceiver(rewardReceiver common.Address) *Registry {
+	return &Registry{
+		defaultRewardReceiver: rewardReceiver,
+		isTestMode:            true,
+	}
+}
+
 func NewTestModeRegistryWithMocks(validators ValidatorsI, aliases AccountAliasesI) *Registry {
 	return &Registry{
 		defaultRewardReceiver: common.HexToAddress("0x92C35a964624D9cbF90c2A0525e116093FAF867E"),

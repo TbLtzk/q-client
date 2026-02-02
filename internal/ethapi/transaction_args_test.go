@@ -294,17 +294,10 @@ func newBackendMock() *backendMock {
 	}
 }
 
-func (b *backendMock) activateLondon() {
-	b.current.Number = big.NewInt(1100)
-}
-
 func (b *backendMock) GasBuffer() float64 {
 	return 1
 }
 
-func (b *backendMock) deactivateLondon() {
-	b.current.Number = big.NewInt(900)
-}
 func (b *backendMock) setFork(fork string) error {
 	if fork == "legacy" {
 		b.current.Number = big.NewInt(900)

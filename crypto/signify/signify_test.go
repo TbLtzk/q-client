@@ -21,7 +21,6 @@ package signify
 
 import (
 	crand "crypto/rand"
-	"math/rand"
 	"os"
 	"testing"
 

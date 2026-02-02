@@ -34,6 +34,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/eth/tracers"
+
 	// force-load js tracers to trigger registration
 	_ "gitlab.com/q-dev/q-client/eth/tracers/js"
 	"gitlab.com/q-dev/q-client/eth/tracers/logger"

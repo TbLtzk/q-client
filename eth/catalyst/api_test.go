@@ -187,9 +187,9 @@ func TestEth2PrepareAndGetPayload(t *testing.T) {
 
 	api := NewConsensusAPI(ethservice)
 
-	// Put the 10th block's tx in the pool and produce a new block
+	// Put the 10th block's tx in the pool and produce a new block (sync add so payload build sees them)
 	txs := blocks[9].Transactions()
-	ethservice.TxPool().Add(txs, true, false)
+	ethservice.TxPool().Add(txs, true, true)
 	blockParams := engine.PayloadAttributes{
 		Timestamp: blocks[8].Time() + 5,
 	}
@@ -202,8 +202,8 @@ func TestEth2PrepareAndGetPayload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error preparing payload, err=%v", err)
 	}
-	// give the payload some time to be built
-	time.Sleep(100 * time.Millisecond)
+	// give the payload builder time to include txs (runs in goroutine after empty block)
+	time.Sleep(250 * time.Millisecond)
 	payloadID := (&miner.BuildPayloadArgs{
 		Parent:       fcState.HeadBlockHash,
 		Timestamp:    blockParams.Timestamp,
@@ -313,7 +313,7 @@ func TestEth2NewBlock(t *testing.T) {
 		statedb, _ := ethservice.BlockChain().StateAt(parent.Root())
 		nonce := statedb.GetNonce(testAddr)
 		tx, _ := types.SignTx(types.NewContractCreation(nonce, new(big.Int), 1000000, big.NewInt(2*params.InitialBaseFee), logCode), types.LatestSigner(ethservice.BlockChain().Config()), testKey)
-		ethservice.TxPool().Add([]*types.Transaction{tx}, true, false)
+		ethservice.TxPool().Add([]*types.Transaction{tx}, true, true)
 
 		execData, err := assembleWithTransactions(api, parent.Hash(), &engine.PayloadAttributes{
 			Timestamp: parent.Time() + 5,

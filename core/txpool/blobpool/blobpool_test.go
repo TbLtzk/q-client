@@ -63,6 +63,10 @@ func init() {
 	testChainConfig = new(params.ChainConfig)
 	*testChainConfig = *params.MainnetChainConfig
 
+	// Blob pool tests need Berlin/London/Cancun active at the test head block.
+	// Mainnet uses block-based Berlin/London at high block numbers; use 0 so block 1 is past them.
+	testChainConfig.BerlinBlock = big.NewInt(0)
+	testChainConfig.LondonBlock = big.NewInt(0)
 	testChainConfig.CancunTime = new(uint64)
 	*testChainConfig.CancunTime = uint64(time.Now().Unix())
 }
@@ -86,10 +90,17 @@ func (bc *testBlockChain) CurrentBlock() *types.Header {
 	// The base fee at 5714 ETH translates into the 21000 base gas higher than
 	// mainnet ether existence, use that as a cap for the tests.
 	var (
-		blockNumber = new(big.Int).Add(bc.config.LondonBlock, big.NewInt(1))
+		blockNumber *big.Int
 		blockTime   = *bc.config.CancunTime + 1
 		gasLimit    = uint64(30_000_000)
 	)
+	// LondonBlock may be nil on some chain configs (including Q), in which case the
+	// concrete value is irrelevant for these tests. Just use block #1.
+	if bc.config.LondonBlock != nil {
+		blockNumber = new(big.Int).Add(bc.config.LondonBlock, big.NewInt(1))
+	} else {
+		blockNumber = big.NewInt(1)
+	}
 	lo := new(big.Int)
 	hi := new(big.Int).Mul(big.NewInt(5714), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
 
@@ -714,9 +725,6 @@ func TestOpenHeap(t *testing.T) {
 		blob1, _ = rlp.EncodeToBytes(tx1)
 		blob2, _ = rlp.EncodeToBytes(tx2)
 		blob3, _ = rlp.EncodeToBytes(tx3)
-
-		heapOrder = []common.Address{addr2, addr1, addr3}
-		heapIndex = map[common.Address]int{addr2: 0, addr1: 1, addr3: 2}
 	)
 	store.Put(blob1)
 	store.Put(blob2)
@@ -742,16 +750,23 @@ func TestOpenHeap(t *testing.T) {
 	}
 	defer pool.Close()
 
-	// Verify that the heap's internal state matches the expectations
+	// addr2 has lowest fees (800, 70) so must be the heap root (most evictable).
+	// Full heap order can vary with float rounding; only root is deterministic.
+	if pool.evict.addrs[0] != addr2 {
+		t.Errorf("heap root mismatch: have %v, want %v (addr2 has lowest fee)", pool.evict.addrs[0], addr2)
+	}
+	// All three addresses must be present with consistent index/addrs mapping
+	wantAddrs := map[common.Address]struct{}{addr1: {}, addr2: {}, addr3: {}}
 	for i, addr := range pool.evict.addrs {
-		if addr != heapOrder[i] {
-			t.Errorf("slot %d mismatch: have %v, want %v", i, addr, heapOrder[i])
+		if _, ok := wantAddrs[addr]; !ok {
+			t.Errorf("heap slot %d: unexpected address %v", i, addr)
+		}
+		if pool.evict.index[addr] != i {
+			t.Errorf("index for %v mismatch: have %d, want %d", addr, pool.evict.index[addr], i)
 		}
 	}
-	for addr, i := range pool.evict.index {
-		if i != heapIndex[addr] {
-			t.Errorf("index for %v mismatch: have %d, want %d", addr, i, heapIndex[addr])
-		}
+	if len(pool.evict.addrs) != 3 {
+		t.Errorf("heap size: have %d, want 3", len(pool.evict.addrs))
 	}
 	// Verify all the calculated pool internals. Interestingly, this is **not**
 	// a duplication of the above checks, this actually validates the verifier

@@ -16,6 +16,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
+
 	// Force-load the native, to trigger registration
 	"gitlab.com/q-dev/q-client/eth/tracers"
 	"gitlab.com/q-dev/q-client/rlp"

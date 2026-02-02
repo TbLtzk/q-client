@@ -23,7 +23,7 @@ import (
 	"math/big"
 	"testing"
 
-	"gitlab.com/q-dev/q-client"
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core"

@@ -36,7 +36,6 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/event"
-	"gitlab.com/q-dev/q-client/internal/utils"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/trie"
@@ -334,13 +333,6 @@ func (w *worker) setExtra(extra []byte) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.extra = extra
-}
-
-// setGasTip sets the minimum miner tip needed to include a non-local transaction.
-func (w *worker) setGasTip(tip *big.Int) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.tip = uint256.MustFromBig(tip)
 }
 
 // setRecommitInterval updates the interval for miner sealing work recommitting.
@@ -977,8 +969,9 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		header.ParentBeaconRoot = genParams.beaconRoot
 	}
 	// Run the consensus preparation with the default or customized consensus engine.
-	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
-	if w.isRunning() {
+	// Only set the coinbase from the worker when in automatic sealing (no explicit parent)
+	// and none was requested. getSealingBlock can pass coinbase explicitly (including zero).
+	if w.isRunning() && genParams.coinbase == (common.Address{}) && genParams.parentHash == (common.Hash{}) {
 		if w.coinbase == (common.Address{}) {
 			log.Error("Refusing to mine without etherbase")
 			return nil, errors.New("Refusing to mine without etherbase")
@@ -1241,9 +1234,4 @@ func signalToErr(signal int32) error {
 	default:
 		panic(fmt.Errorf("undefined signal %d", signal))
 	}
-}
-
-func (w *worker) prepareSystemTx(accountManager *accounts.Manager, env *environment, pool *txpool.TxPool) map[common.Address][]*txpool.LazyTransaction {
-	systemTxPreparer := utils.New(w.chainConfig, w.engine, env.state, env.header, env.signer, w.gpp)
-	return systemTxPreparer.PrepareSystemTx(accountManager, pool)
 }

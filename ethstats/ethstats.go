@@ -31,7 +31,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"gitlab.com/q-dev/q-client"
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/mclock"
 	"gitlab.com/q-dev/q-client/consensus"

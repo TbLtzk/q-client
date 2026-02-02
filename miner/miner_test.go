@@ -24,7 +24,9 @@ import (
 	"time"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/clique"
+	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/state"
@@ -316,11 +318,8 @@ func createMiner(t *testing.T) (*Miner, *event.TypeMux, func(skipMiner bool)) {
 	statedb, _ := state.New(bc.Genesis().Root(), bc.StateCache(), nil)
 	blockchain := &testBlockChain{bc.Genesis().Root(), chainConfig, statedb, 10000000, new(event.Feed)}
 
-	pool := core.NewTxPool(testTxPoolConfig, chainConfig, blockchain, &core.NoopGasPriceProvider{})
-	backend := NewMockBackend(bc, pool)
-	pool := legacypool.New(testTxPoolConfig, blockchain)
+	pool := legacypool.New(testTxPoolConfig, blockchain, &core.NoopGasPriceProvider{})
 	txpool, _ := txpool.New(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain, []txpool.SubPool{pool})
-
 	backend := NewMockBackend(bc, txpool)
 	// Create event Mux
 	mux := new(event.TypeMux)

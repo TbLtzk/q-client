@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/q-dev/q-client"
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/event"
 	"gitlab.com/q-dev/q-client/rpc"

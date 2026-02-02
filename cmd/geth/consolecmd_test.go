@@ -26,14 +26,13 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/params"
 )
 
 const (
-	ipcAPIs  = "admin:1.0 debug:1.0 engine:1.0 eth:1.0 ethash:1.0 gov:1.0 govPub:1.0 miner:1.0 net:1.0 personal:1.0 rpc:1.0 trace:1.0 txpool:1.0 web3:1.0"
-	ipcAPIs  = "admin:1.0 clique:1.0 debug:1.0 engine:1.0 eth:1.0 miner:1.0 net:1.0 rpc:1.0 txpool:1.0 web3:1.0"
-	httpAPIs = "eth:1.0 net:1.0 rpc:1.0 web3:1.0"
+	ipcAPIsEthash = "admin:1.0 debug:1.0 engine:1.0 eth:1.0 ethash:1.0 gov:1.0 govPub:1.0 miner:1.0 net:1.0 personal:1.0 rpc:1.0 trace:1.0 txpool:1.0 web3:1.0"
+	ipcAPIsClique = "admin:1.0 clique:1.0 debug:1.0 engine:1.0 eth:1.0 gov:1.0 govPub:1.0 indexer:1.0 miner:1.0 net:1.0 rpc:1.0 trace:1.0 txpool:1.0 web3:1.0"
+	httpAPIs      = "eth:1.0 net:1.0 rpc:1.0 web3:1.0"
 )
 
 // spawns geth with the given command line args, using a set of flags to minimise
@@ -67,7 +66,7 @@ func TestConsoleWelcome(t *testing.T) {
 	geth.SetTemplateFunc("niltime", func() string {
 		return time.Unix(1548854791, 0).Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
 	})
-	geth.SetTemplateFunc("apis", func() string { return ipcAPIs })
+	geth.SetTemplateFunc("apis", func() string { return ipcAPIsClique })
 
 	// Verify the actual welcome message to the required template
 	geth.Expect(`
@@ -108,7 +107,7 @@ func TestAttachWelcome(t *testing.T) {
 		"--ws", "--ws.port", wsPort)
 	t.Run("ipc", func(t *testing.T) {
 		waitForEndpoint(t, ipc, 3*time.Second)
-		testAttachWelcome(t, geth, "ipc:"+ipc, ipcAPIs)
+		testAttachWelcome(t, geth, "ipc:"+ipc, ipcAPIsClique)
 	})
 	t.Run("http", func(t *testing.T) {
 		endpoint := "http://127.0.0.1:" + httpPort

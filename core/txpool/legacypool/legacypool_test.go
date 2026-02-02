@@ -163,9 +163,7 @@ func setupPoolWithConfig(config *params.ChainConfig) (*LegacyPool, *ecdsa.Privat
 	blockchain := newTestBlockChain(config, 10000000, statedb, new(event.Feed))
 
 	key, _ := crypto.GenerateKey()
-	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-
-	pool := New(testTxPoolConfig, blockchain)
+	pool := New(testTxPoolConfig, blockchain, &core.NoopGasPriceProvider{})
 	if err := pool.Init(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver()); err != nil {
 		panic(err)
 	}
@@ -285,11 +283,9 @@ func TestStateChangeDuringReset(t *testing.T) {
 	tx0 := transaction(0, 100000, key)
 	tx1 := transaction(1, 100000, key)
 
-	pool := New(testTxPoolConfig, blockchain)
+	pool := New(testTxPoolConfig, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
-	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	defer pool.Stop()
 
 	nonce := pool.Nonce(address)
 	if nonce != 0 {
@@ -354,9 +350,6 @@ func TestInvalidTransactions(t *testing.T) {
 	}
 
 	tx = transaction(1, 100000, key)
-	pool.priceLimit = big.NewInt(1000)
-	if err := pool.AddRemote(tx); err != ErrUnderpriced {
-		t.Error("expected", ErrUnderpriced, "got", err)
 	pool.gasTip.Store(big.NewInt(1000))
 	if err, want := pool.addRemote(tx), txpool.ErrUnderpriced; !errors.Is(err, want) {
 		t.Errorf("want %v have %v", want, err)
@@ -710,9 +703,7 @@ func TestPostponing(t *testing.T) {
 	statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	blockchain := newTestBlockChain(params.TestChainConfig, 1000000, statedb, new(event.Feed))
 
-	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	defer pool.Stop()
-	pool := New(testTxPoolConfig, blockchain)
+	pool := New(testTxPoolConfig, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 
@@ -929,7 +920,7 @@ func testQueueGlobalLimiting(t *testing.T, nolocals bool) {
 	config.NoLocals = nolocals
 	config.GlobalQueue = config.AccountQueue*3 - 1 // reduce the queue limits to shorten test time (-1 to make it non divisible)
 
-	pool := New(config, blockchain, &NoopGasPriceProvider{})
+	pool := New(config, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 
@@ -1022,9 +1013,7 @@ func testQueueTimeLimiting(t *testing.T, nolocals bool) {
 	config.Lifetime = time.Second
 	config.NoLocals = nolocals
 
-	pool := NewTxPool(config, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	defer pool.Stop()
-	pool := New(config, blockchain)
+	pool := New(config, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(config.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 
@@ -1209,9 +1198,7 @@ func TestPendingGlobalLimiting(t *testing.T) {
 	config := testTxPoolConfig
 	config.GlobalSlots = config.AccountSlots * 10
 
-	pool := NewTxPool(config, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	defer pool.Stop()
-	pool := New(config, blockchain)
+	pool := New(config, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(config.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 
@@ -1315,9 +1302,7 @@ func TestCapClearsFromAll(t *testing.T) {
 	config.AccountQueue = 2
 	config.GlobalSlots = 8
 
-	pool := NewTxPool(config, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	defer pool.Stop()
-	pool := New(config, blockchain)
+	pool := New(config, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(config.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 
@@ -1350,9 +1335,7 @@ func TestPendingMinimumAllowance(t *testing.T) {
 	config := testTxPoolConfig
 	config.GlobalSlots = 1
 
-	pool := NewTxPool(config, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	defer pool.Stop()
-	pool := New(config, blockchain)
+	pool := New(config, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(config.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 
@@ -1398,9 +1381,7 @@ func TestRepricing(t *testing.T) {
 	statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	blockchain := newTestBlockChain(params.TestChainConfig, 1000000, statedb, new(event.Feed))
 
-	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	defer pool.Stop()
-	pool := New(testTxPoolConfig, blockchain)
+	pool := New(testTxPoolConfig, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 
@@ -1522,7 +1503,7 @@ func TestMinGasPriceEnforced(t *testing.T) {
 
 	txPoolConfig := DefaultConfig
 	txPoolConfig.NoLocals = true
-	pool := New(txPoolConfig, blockchain)
+	pool := New(txPoolConfig, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(txPoolConfig.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 
@@ -1693,9 +1674,7 @@ func TestRepricingKeepsLocals(t *testing.T) {
 	statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	blockchain := newTestBlockChain(eip1559Config, 1000000, statedb, new(event.Feed))
 
-	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	defer pool.Stop()
-	pool := New(testTxPoolConfig, blockchain)
+	pool := New(testTxPoolConfig, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 
@@ -1773,9 +1752,7 @@ func TestUnderpricing(t *testing.T) {
 	config.GlobalSlots = 2
 	config.GlobalQueue = 2
 
-	pool := NewTxPool(config, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	defer pool.Stop()
-	pool := New(config, blockchain)
+	pool := New(config, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(config.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 
@@ -1890,9 +1867,7 @@ func TestStableUnderpricing(t *testing.T) {
 	config.GlobalSlots = 128
 	config.GlobalQueue = 0
 
-	pool := NewTxPool(config, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	defer pool.Stop()
-	pool := New(config, blockchain)
+	pool := New(config, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(config.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 
@@ -2121,9 +2096,7 @@ func TestDeduplication(t *testing.T) {
 	statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	blockchain := newTestBlockChain(params.TestChainConfig, 1000000, statedb, new(event.Feed))
 
-	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	defer pool.Stop()
-	pool := New(testTxPoolConfig, blockchain)
+	pool := New(testTxPoolConfig, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 
@@ -2190,9 +2163,7 @@ func TestReplacement(t *testing.T) {
 	statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	blockchain := newTestBlockChain(params.TestChainConfig, 1000000, statedb, new(event.Feed))
 
-	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	defer pool.Stop()
-	pool := New(testTxPoolConfig, blockchain)
+	pool := New(testTxPoolConfig, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 
@@ -2404,8 +2375,7 @@ func testJournaling(t *testing.T, nolocals bool) {
 	config.Journal = journal
 	config.Rejournal = time.Second
 
-	pool := NewTxPool(config, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	pool := New(config, blockchain)
+	pool := New(config, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(config.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 
 	// Create two test accounts to ensure remotes expire but locals do not
@@ -2443,8 +2413,7 @@ func testJournaling(t *testing.T, nolocals bool) {
 	statedb.SetNonce(crypto.PubkeyToAddress(local.PublicKey), 1)
 	blockchain = newTestBlockChain(params.TestChainConfig, 1000000, statedb, new(event.Feed))
 
-	pool = NewTxPool(config, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	pool = New(config, blockchain)
+	pool = New(config, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(config.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 
 	pending, queued = pool.Stats()
@@ -2470,10 +2439,8 @@ func testJournaling(t *testing.T, nolocals bool) {
 	pool.Close()
 
 	statedb.SetNonce(crypto.PubkeyToAddress(local.PublicKey), 1)
-	blockchain = &testBlockChain{1000000, statedb, new(event.Feed)}
-	pool = NewTxPool(config, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
 	blockchain = newTestBlockChain(params.TestChainConfig, 1000000, statedb, new(event.Feed))
-	pool = New(config, blockchain)
+	pool = New(config, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(config.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 
 	pending, queued = pool.Stats()
@@ -2504,9 +2471,7 @@ func TestStatusCheck(t *testing.T) {
 	statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	blockchain := newTestBlockChain(params.TestChainConfig, 1000000, statedb, new(event.Feed))
 
-	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain, &NoopGasPriceProvider{})
-	defer pool.Stop()
-	pool := New(testTxPoolConfig, blockchain)
+	pool := New(testTxPoolConfig, blockchain, &core.NoopGasPriceProvider{})
 	pool.Init(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), blockchain.CurrentBlock(), makeAddressReserver())
 	defer pool.Close()
 

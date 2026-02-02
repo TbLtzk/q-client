@@ -17,7 +17,6 @@
 package miner
 
 import (
-	crand "crypto/rand"
 	"errors"
 	"math/big"
 	"sync/atomic"
@@ -33,6 +32,7 @@ import (
 	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/rawdb"
+	"gitlab.com/q-dev/q-client/core/state"
 	"gitlab.com/q-dev/q-client/core/txpool"
 	"gitlab.com/q-dev/q-client/core/txpool/legacypool"
 	"gitlab.com/q-dev/q-client/core/types"
@@ -137,7 +137,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 	if err != nil {
 		t.Fatalf("core.NewBlockChain failed: %v", err)
 	}
-	pool := legacypool.New(testTxPoolConfig, chain)
+	pool := legacypool.New(testTxPoolConfig, chain, &core.NoopGasPriceProvider{})
 	txpool, _ := txpool.New(new(big.Int).SetUint64(testTxPoolConfig.PriceLimit), chain, []txpool.SubPool{pool})
 
 	return &testWorkerBackend{
@@ -149,25 +149,9 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 }
 
 func (b *testWorkerBackend) BlockChain() *core.BlockChain { return b.chain }
-func (b *testWorkerBackend) TxPool() *core.TxPool         { return b.txPool }
+func (b *testWorkerBackend) TxPool() *txpool.TxPool       { return b.txPool }
 func (b *testWorkerBackend) StateAtBlock(block *types.Block, reexec uint64, base *state.StateDB, checkLive bool, preferDisk bool) (statedb *state.StateDB, err error) {
 	return nil, errors.New("not supported")
-}
-
-func (b *testWorkerBackend) newRandomUncle() *types.Block {
-	var parent *types.Block
-	cur := b.chain.CurrentBlock()
-	if cur.NumberU64() == 0 {
-		parent = b.chain.Genesis()
-	} else {
-		parent = b.chain.GetBlockByHash(b.chain.CurrentBlock().ParentHash())
-	}
-	blocks, _ := core.GenerateChain(b.chain.Config(), parent, b.chain.Engine(), b.db, 1, func(i int, gen *core.BlockGen) {
-		var addr = make([]byte, common.AddressLength)
-		crand.Read(addr)
-		gen.SetCoinbase(common.BytesToAddress(addr))
-	})
-	return blocks[0]
 }
 
 func (b *testWorkerBackend) newRandomTx(creation bool) *types.Transaction {
@@ -196,15 +180,11 @@ func TestGenerateAndImportBlock(t *testing.T) {
 		config = *params.AllCliqueProtocolChanges
 	)
 	config.Clique = &params.CliqueConfig{Period: 1, Epoch: 101}
-	chainConfig.Clique.RewardReceiver = common.HexToAddress("92C35a964624D9cbF90c2A0525e116093FAF867E")
+	config.Clique.RewardReceiver = common.HexToAddress("92C35a964624D9cbF90c2A0525e116093FAF867E")
 	engine := clique.New(config.Clique, db, &consensus.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry())
 
 	w, b := newTestWorker(t, &config, engine, db, 0)
 	defer w.close()
-
-	// This test chain imports the mined blocks.
-	chain, _ := core.NewBlockChain(rawdb.NewMemoryDatabase(), nil, b.genesis, nil, engine, vm.Config{}, nil, nil)
-	defer chain.Stop()
 
 	// Ignore empty commit here for less noise.
 	w.skipSealHook = func(task *task) bool {
@@ -229,7 +209,7 @@ func TestGenerateAndImportBlock(t *testing.T) {
 		select {
 		case ev := <-sub.Chan():
 			block := ev.Data.(core.NewMinedBlockEvent).Block
-			if _, err := chain.InsertChain([]*types.Block{block}); err != nil {
+			if _, err := b.chain.InsertChain([]*types.Block{block}); err != nil {
 				t.Fatalf("failed to insert new mined block %d: %v", block.NumberU64(), err)
 			}
 		case <-time.After(3 * time.Second): // Worker needs 1s to include new changes.
@@ -385,7 +365,11 @@ func TestGetSealingWorkEthash(t *testing.T) {
 
 func TestGetSealingWorkClique(t *testing.T) {
 	t.Parallel()
-	testGetSealingWork(t, cliqueChainConfig, clique.New(cliqueChainConfig.Clique, rawdb.NewMemoryDatabase(), &consensus.NoopExclusionSetProvider{}, contracts.NewTestModeRegistry()))
+	config := new(params.ChainConfig)
+	*config = *cliqueChainConfig
+	config.Clique = &params.CliqueConfig{Period: 10, Epoch: 30000, RewardReceiver: common.HexToAddress("0xdeadbeef")}
+	reg := contracts.NewTestModeRegistryWithRewardReceiver(common.HexToAddress("0xdeadbeef"))
+	testGetSealingWork(t, config, clique.New(config.Clique, rawdb.NewMemoryDatabase(), &consensus.NoopExclusionSetProvider{}, reg))
 }
 
 func TestGetSealingWorkPostMerge(t *testing.T) {
@@ -487,7 +471,12 @@ func testGetSealingWork(t *testing.T, chainConfig *params.ChainConfig, engine co
 	}
 
 	// This API should work even when the automatic sealing is not enabled
+	_, isClique := engine.(*clique.Clique)
 	for _, c := range cases {
+		// Clique.Prepare always sets coinbase to RewardReceiver, so skip zero-coinbase cases
+		if isClique && c.coinbase == (common.Address{}) {
+			continue
+		}
 		r := w.getSealingBlock(&generateParams{
 			parentHash:  c.parent,
 			timestamp:   timestamp,

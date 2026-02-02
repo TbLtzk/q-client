@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
-	"gitlab.com/q-dev/q-client/accounts/abi"
 )
 
 // TestReplicate can be used to replicate crashers from the fuzzing tests.

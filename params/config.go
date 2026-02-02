@@ -676,7 +676,11 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 		{name: "istanbulBlock", block: c.IstanbulBlock},
 		{name: "muirGlacierBlock", block: c.MuirGlacierBlock, optional: true},
 		{name: "berlinBlock", block: c.BerlinBlock},
-		{name: "athosBlock", block: c.AthosBlock},
+		// Athos is a Q-specific fork; treat it as optional so external
+		// configs (e.g. upstream hive test chains) that don't define it
+		// but do define later timestamp forks (Cancun, Prague, ...) still
+		// pass fork-order validation.
+		{name: "athosBlock", block: c.AthosBlock, optional: true},
 		// {name: "londonBlock", block: c.LondonBlock},
 		// {name: "arrowGlacierBlock", block: c.ArrowGlacierBlock, optional: true},
 		// {name: "grayGlacierBlock", block: c.GrayGlacierBlock, optional: true},

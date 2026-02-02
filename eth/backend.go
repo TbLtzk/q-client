@@ -338,17 +338,20 @@ func (s *Ethereum) APIs() []rpc.API {
 	apis := ethapi.GetAPIs(s.APIBackend)
 
 	// Append any APIs exposed explicitly by the consensus engine
-	apis = append(apis, s.engine.APIs(s.BlockChain())...)
-	cliqueApi := s.engine.APIs(s.BlockChain())[0]
-	switch cliqueApi.Service.(type) {
-	case *clique.API:
-		indexerr := indexer.New(cliqueApi.Service.(*clique.API))
-		apis = append(apis, rpc.API{
-			Namespace: "indexer",
-			Version:   "1.0",
-			Service:   indexer.NewIndexerAPI(indexerr),
-			Public:    true,
-		})
+	engineAPIs := s.engine.APIs(s.BlockChain())
+	apis = append(apis, engineAPIs...)
+
+	// If the consensus engine exposes a Clique API, attach the indexer API too.
+	if len(engineAPIs) > 0 {
+		if cliqueApi, ok := engineAPIs[0].Service.(*clique.API); ok {
+			indexerr := indexer.New(cliqueApi)
+			apis = append(apis, rpc.API{
+				Namespace: "indexer",
+				Version:   "1.0",
+				Service:   indexer.NewIndexerAPI(indexerr),
+				Public:    true,
+			})
+		}
 	}
 
 	// Append all the local APIs and return

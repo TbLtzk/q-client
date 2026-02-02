@@ -31,6 +31,14 @@ import (
 
 	"github.com/mattn/go-colorable"
 	"golang.org/x/exp/slog"
+
+	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/node"
+	"gitlab.com/q-dev/q-client/p2p"
+	"gitlab.com/q-dev/q-client/p2p/enode"
+	"gitlab.com/q-dev/q-client/p2p/simulations/adapters"
+	"gitlab.com/q-dev/q-client/rpc"
 )
 
 func TestMain(m *testing.M) {

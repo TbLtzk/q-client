@@ -17,19 +17,13 @@
 package core
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/consensus"
-	"gitlab.com/q-dev/q-client/consensus/beacon"
-	"gitlab.com/q-dev/q-client/consensus/clique"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core/rawdb"
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
-	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/params"
 )
 

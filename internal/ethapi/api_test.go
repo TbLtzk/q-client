@@ -32,7 +32,7 @@ import (
 
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/q-dev/q-client"
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
@@ -617,6 +617,7 @@ func (b testBackend) SubscribePendingLogsEvent(ch chan<- []*types.Log) event.Sub
 	panic("implement me")
 }
 func (b testBackend) BloomStatus() (uint64, uint64) { panic("implement me") }
+func (b testBackend) GasBuffer() float64            { return 1.0 }
 func (b testBackend) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {
 	panic("implement me")
 }

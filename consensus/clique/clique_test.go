@@ -17,6 +17,7 @@
 package clique
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"errors"
 	"math/big"
@@ -37,7 +38,15 @@ import (
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/trie"
 )
+
+// signersAscending implements sort.Interface for []common.Address (by hash for deterministic order).
+type signersAscending []common.Address
+
+func (s signersAscending) Len() int           { return len(s) }
+func (s signersAscending) Less(i, j int) bool { return bytes.Compare(s[i][:], s[j][:]) < 0 }
+func (s signersAscending) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 // This test case is a repro of an annoying bug that took us forever to catch.
 // In Clique PoA networks (Görli, etc), consecutive blocks might have
@@ -157,6 +166,7 @@ func TestForkChoice(t *testing.T) {
 	sort.Sort(signersAscending(addresses))
 
 	genSpec := &core.Genesis{
+		Config:    params.AllCliqueProtocolChanges,
 		ExtraData: make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
 		Alloc: map[common.Address]core.GenesisAccount{
 			addresses[0]: {Balance: big.NewInt(10000000000000000)},
@@ -167,7 +177,8 @@ func TestForkChoice(t *testing.T) {
 	for i := 0; i < signersCount; i++ {
 		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addresses[i][:])
 	}
-	genesis := genSpec.MustCommit(db)
+	triedb := trie.NewDatabase(db, trie.HashDefaults)
+	genesis := genSpec.MustCommit(db, triedb)
 
 	var chain *core.BlockChain
 
@@ -185,7 +196,7 @@ func TestForkChoice(t *testing.T) {
 	commonBlocks := generateChain(t, params.AllCliqueProtocolChanges, genesis, engine, db, commonBlocksCount, addresses, keys, reg, false)
 
 	//foreign chain is canonical
-	chain, _ = core.NewBlockChain(db, nil, params.AllCliqueProtocolChanges, engine, vm.Config{}, shouldPreserve, nil)
+	chain, _ = core.NewBlockChain(db, nil, genSpec, nil, engine, vm.Config{}, shouldPreserve, nil)
 	if _, err := chain.InsertChain(commonBlocks); err != nil {
 		t.Fatalf("failed to insert commonBlocks blocks: %v", err)
 	}
@@ -209,7 +220,7 @@ func TestForkChoice(t *testing.T) {
 	} else {
 		minHash = localBlocksCase1[len(localBlocksCase1)-1].Hash()
 	}
-	if chain.CurrentBlock().Header().Hash() != minHash {
+	if chain.CurrentBlock().Hash() != minHash {
 		t.Errorf("Rule 4 failed")
 	}
 }
@@ -282,9 +293,10 @@ func testBlockChoiceRule4(t *testing.T) {
 	for i := 0; i < signersCount; i++ {
 		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addrs[i][:])
 	}
-	genesis := genSpec.MustCommit(db)
+	triedb := trie.NewDatabase(db, trie.HashDefaults)
+	genesis := genSpec.MustCommit(db, triedb)
 
-	chain, _ := core.NewBlockChain(db, nil, params.AllCliqueProtocolChanges, engine, vm.Config{}, nil, nil)
+	chain, _ := core.NewBlockChain(db, nil, genSpec, nil, engine, vm.Config{}, nil, nil)
 	defer chain.Stop()
 
 	// Generate two chains. The side chain's last block hash will differ
@@ -366,6 +378,7 @@ func TestFallbackToDefaultSigners(t *testing.T) {
 	}
 
 	genSpec := &core.Genesis{
+		Config:    params.AllCliqueProtocolChanges,
 		ExtraData: make([]byte, extraVanity+common.AddressLength*genesisSignersCount+extraSeal),
 		Alloc: map[common.Address]core.GenesisAccount{
 			addrs[0]: {Balance: big.NewInt(10000000000000000)},
@@ -375,7 +388,8 @@ func TestFallbackToDefaultSigners(t *testing.T) {
 	for i := 0; i < genesisSignersCount; i++ {
 		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addrs[i][:])
 	}
-	genesis := genSpec.MustCommit(db)
+	triedb := trie.NewDatabase(db, trie.HashDefaults)
+	genesis := genSpec.MustCommit(db, triedb)
 
 	blocks, _ := core.GenerateChain(params.AllCliqueProtocolChanges, genesis, engine, db, genesisSignersCount*2, func(i int, block *core.BlockGen) {})
 
@@ -393,7 +407,7 @@ func TestFallbackToDefaultSigners(t *testing.T) {
 		blocks[i] = block.WithSeal(header)
 	}
 
-	chain, _ := core.NewBlockChain(db, nil, params.AllCliqueProtocolChanges, engine, vm.Config{}, nil, nil)
+	chain, _ := core.NewBlockChain(db, nil, genSpec, nil, engine, vm.Config{}, nil, nil)
 	defer chain.Stop()
 
 	if _, err := chain.InsertChain(blocks); err != nil {
@@ -406,22 +420,23 @@ func TestFallbackToDefaultSigners(t *testing.T) {
 	for _, signer := range addrs {
 		exclusionSetProvider.Set[signer] = []common.BlockRange{
 			{
-				StartAddress: currentBlock.NumberU64(),
-				EndAddress:   currentBlock.NumberU64() + 1000,
+				StartAddress: currentBlock.Number.Uint64(),
+				EndAddress:   currentBlock.Number.Uint64() + 1000,
 			},
 		}
 	}
 	excludedSigners := engine.exclusionSetProvider.ExclusionSetValidators()
 	assert.Equal(t, len(excludedSigners), genesisSignersCount)
 
-	snap, err := engine.snapshot(chain, currentBlock.NumberU64(), currentBlock.Hash(), nil, false)
+	snap, err := engine.snapshot(chain, currentBlock.Number.Uint64(), currentBlock.Hash(), nil, false)
 	if err != nil {
 		t.Fatalf("faield to get snapshot of last block: %v", err)
 	}
 
-	assert.Equal(t, len(filterSigners(currentBlock.NumberU64(), snap.SignersList(), excludedSigners)), 0)
+	assert.Equal(t, len(filterSigners(currentBlock.Number.Uint64(), snap.SignersList(), excludedSigners)), 0)
 
-	blocks, _ = core.GenerateChain(params.AllCliqueProtocolChanges, chain.CurrentBlock(), engine, db, 1, func(i int, block *core.BlockGen) {})
+	curHeader := chain.CurrentBlock()
+	blocks, _ = core.GenerateChain(params.AllCliqueProtocolChanges, chain.GetBlock(curHeader.Hash(), curHeader.Number.Uint64()), engine, db, 1, func(i int, block *core.BlockGen) {})
 
 	// Try to sign a new block with all validators banned
 	block := blocks[0]
@@ -439,7 +454,7 @@ func TestFallbackToDefaultSigners(t *testing.T) {
 		t.Fatalf("failed to insert the new block: %v", err)
 	}
 
-	snap, err = engine.snapshot(chain, chain.CurrentBlock().NumberU64(), chain.CurrentBlock().Hash(), nil, false)
+	snap, err = engine.snapshot(chain, chain.CurrentBlock().Number.Uint64(), chain.CurrentBlock().Hash(), nil, false)
 	if err != nil {
 		t.Fatalf("faield to get snapshot of last block: %v", err)
 	}
@@ -475,6 +490,7 @@ func TestReorgExclusionSet(t *testing.T) {
 	sort.Sort(signersAscending(addresses))
 
 	genSpec := &core.Genesis{
+		Config:     params.AllCliqueProtocolChanges,
 		ExtraData:  make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
 		Alloc:      map[common.Address]core.GenesisAccount{},
 		BaseFee:    big.NewInt(params.InitialBaseFee),
@@ -484,8 +500,10 @@ func TestReorgExclusionSet(t *testing.T) {
 		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addresses[i][:])
 	}
 
-	genesis1 := genSpec.MustCommit(db1)
-	genesis2 := genSpec.MustCommit(db2)
+	triedb1 := trie.NewDatabase(db1, trie.HashDefaults)
+	triedb2 := trie.NewDatabase(db2, trie.HashDefaults)
+	genesis1 := genSpec.MustCommit(db1, triedb1)
+	genesis2 := genSpec.MustCommit(db2, triedb2)
 
 	commonBlocks1 := generateChain(t, params.AllCliqueProtocolChanges, genesis1, engine1, db1, commonBlocksCount,
 		addresses, keys, reg1, false)
@@ -493,13 +511,13 @@ func TestReorgExclusionSet(t *testing.T) {
 		addresses, keys, reg2, false)
 
 	// Insert common blocks
-	chain1, _ := core.NewBlockChain(db1, nil, params.AllCliqueProtocolChanges, engine1, vm.Config{},
+	chain1, _ := core.NewBlockChain(db1, nil, genSpec, nil, engine1, vm.Config{},
 		nil, nil)
 	defer chain1.Stop()
 	if _, err := chain1.InsertChain(commonBlocks1); err != nil {
 		t.Fatalf("failed to insert commonBlocks blocks: %v", err)
 	}
-	chain2, _ := core.NewBlockChain(db2, nil, params.AllCliqueProtocolChanges, engine2, vm.Config{},
+	chain2, _ := core.NewBlockChain(db2, nil, genSpec, nil, engine2, vm.Config{},
 		nil, nil)
 	defer chain2.Stop()
 	if _, err := chain2.InsertChain(commonBlocks2); err != nil {
@@ -507,7 +525,8 @@ func TestReorgExclusionSet(t *testing.T) {
 	}
 
 	blocksToGenerate := signersCount * 3
-	sideChain := generateChain(t, params.AllCliqueProtocolChanges, chain2.CurrentBlock(), engine2, db2,
+	curHeader := chain2.CurrentBlock()
+	sideChain := generateChain(t, params.AllCliqueProtocolChanges, chain2.GetBlock(curHeader.Hash(), curHeader.Number.Uint64()), engine2, db2,
 		blocksToGenerate, addresses, keys, reg2, true)
 
 	// Modify exclusion set of the first blockchain
@@ -579,8 +598,10 @@ func TestReorgRegistry(t *testing.T) {
 		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addresses1[i][:])
 	}
 
-	genesis1 := genSpec.MustCommit(db1)
-	genesis2 := genSpec.MustCommit(db2)
+	triedb1 := trie.NewDatabase(db1, trie.HashDefaults)
+	triedb2 := trie.NewDatabase(db2, trie.HashDefaults)
+	genesis1 := genSpec.MustCommit(db1, triedb1)
+	genesis2 := genSpec.MustCommit(db2, triedb2)
 
 	commonBlocks1 := generateChain(t, params.AllCliqueProtocolChanges, genesis1, engine1, db1, commonBlocksCount,
 		addresses1, keys, reg1, false)
@@ -588,13 +609,13 @@ func TestReorgRegistry(t *testing.T) {
 		addresses2, keys, reg2, false)
 
 	// Insert common blocks
-	chain1, _ := core.NewBlockChain(db1, nil, params.AllCliqueProtocolChanges, engine1, vm.Config{},
+	chain1, _ := core.NewBlockChain(db1, nil, genSpec, nil, engine1, vm.Config{},
 		nil, nil)
 	defer chain1.Stop()
 	if _, err := chain1.InsertChain(commonBlocks1); err != nil {
 		t.Fatalf("failed to insert commonBlocks blocks: %v", err)
 	}
-	chain2, _ := core.NewBlockChain(db2, nil, params.AllCliqueProtocolChanges, engine2, vm.Config{},
+	chain2, _ := core.NewBlockChain(db2, nil, genSpec, nil, engine2, vm.Config{},
 		nil, nil)
 	defer chain2.Stop()
 	if _, err := chain2.InsertChain(commonBlocks2); err != nil {
@@ -617,7 +638,8 @@ func TestReorgRegistry(t *testing.T) {
 
 	// Generate side chain with different validators list
 	blocksToGenerate := signersCount * 3
-	sideChain := generateChain(t, params.AllCliqueProtocolChanges, chain2.CurrentBlock(), engine2, db2,
+	curHeader := chain2.CurrentBlock()
+	sideChain := generateChain(t, params.AllCliqueProtocolChanges, chain2.GetBlock(curHeader.Hash(), curHeader.Number.Uint64()), engine2, db2,
 		blocksToGenerate, addresses2, keys, reg2, true)
 
 	_, err := chain1.InsertChain(sideChain)

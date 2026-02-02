@@ -116,9 +116,8 @@ func newTestBackendWithGenerator(blocks int, shanghai bool, generator func(int, 
 	txconfig := legacypool.DefaultConfig
 	txconfig.Journal = "" // Don't litter the disk with test journals
 
-	pool := legacypool.New(txconfig, chain)
+	pool := legacypool.New(txconfig, chain, &core.NoopGasPriceProvider{})
 	txpool, _ := txpool.New(new(big.Int).SetUint64(txconfig.PriceLimit), chain, []txpool.SubPool{pool})
-	core.NewTxPool(txconfig, params.TestChainConfig, chain, &core.NoopGasPriceProvider{}),
 	return &testBackend{
 		db:     db,
 		chain:  chain,
