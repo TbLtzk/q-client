@@ -19,10 +19,10 @@ package rlpx
 import (
 	"bytes"
 	"crypto/ecdsa"
+	crand "crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"io"
-	"math/rand"
 	"net"
 	"reflect"
 	"strings"
@@ -392,9 +392,8 @@ func BenchmarkThroughput(b *testing.B) {
 		conn1, conn2  = NewConn(pipe1, nil), NewConn(pipe2, &keyA.PublicKey)
 		handshakeDone = make(chan error, 1)
 		msgdata       = make([]byte, 1024)
-		rand          = rand.New(rand.NewSource(1337))
 	)
-	rand.Read(msgdata)
+	crand.Read(msgdata)
 
 	// Server side.
 	go func() {

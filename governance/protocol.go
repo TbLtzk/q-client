@@ -8,16 +8,14 @@ import (
 // Constants to match up protocol versions and messages
 const (
 	protocolName = "qgov" // protocolName is the official short name of the protocol used during capability negotiation.
-	qgov2        = 2      //TODO decide when to remove this outdated protocol
-	qgov3        = 3
-	qgov4        = 4
+	qgov5        = 5      // Exclusion sets new algorithm
 )
 
 // ProtocolVersions are the supported versions of the gov protocol (first is primary).
-var ProtocolVersions = []uint{qgov2, qgov3, qgov4}
+var ProtocolVersions = []uint{qgov5}
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
-var protocolLengths = map[uint]uint64{qgov2: 3, qgov3: 4, qgov4: 7}
+var protocolLengths = map[uint]uint64{qgov5: 7}
 
 // maximum possible number of root nodes
 const maxNRootNodes = 101
@@ -25,7 +23,18 @@ const maxNRootNodes = 101
 // Maximum cap on the size of a protocol message.
 // (doubled max cap list)
 const protocolMaxMsgSize = 2*maxNRootNodes*(crypto.SignatureLength+common.AddressLength) + common.HashLength
-const maxConstitutionFileSize = 512000 //TODO define correct value
+
+// maxConstitutionFileSize limits the size of the compressed governance payload
+// that can be received over the wire.
+const maxConstitutionFileSize = 512000 // TODO define correct value
+
+// maxConstitutionDecompressedSize limits the size of a single decompressed
+// constitution file. This prevents gzip "zip bombs" from exhausting memory.
+const maxConstitutionDecompressedSize int64 = 1 * 1024 * 1024 // 1 MiB
+
+// maxConstitutionTotalDecompressedSize limits the total size of all
+// decompressed constitution files carried in a single message.
+const maxConstitutionTotalDecompressedSize int64 = 2 * 1024 * 1024 // 2 MiB
 
 // protocol message codes
 const (

@@ -125,3 +125,7 @@ Default quota values are set to 3 per Root node/24 hours. If you want to change 
 
 ### Fixed
 - Logging configuration
+
+## [1.4.0] - 2024-11
+### Changed
+- Exclusion set validation changed to the new version

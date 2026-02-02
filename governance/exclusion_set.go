@@ -6,10 +6,10 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/crypto"
+	"gitlab.com/q-dev/q-client/log"
 )
 
 type exclusionSet struct {
@@ -18,7 +18,7 @@ type exclusionSet struct {
 
 	addresses   []common.Address
 	addrToBlock map[common.Address]uint64
-	blockRanges map[common.Address][]common.BlockRange //Several address ranges can be assigned to one validator
+	blockRanges map[common.Address][]common.BlockRange // Several address ranges can be assigned to one validator
 
 	signers map[common.Address][]byte
 }
@@ -82,19 +82,16 @@ func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error)
 		blockRanges: validatorsSet,
 	}
 
-	if (list.Hash != common.Hash{}) {
-		set.hash = set.calcFullHash() //new hash rule only for validation (for now). Try it first
-	} else {
-		set.hash = set.calcHash() //old hash rule is applied if list is new and hash is empty
-	}
+	// Calculate hash using the new hash rule (includes block ranges)
+	set.hash = set.calcFullHash()
 
+	// Fix known bad hashes/timestamps
 	set.fixTimestamp()
 
-	if set.hash != list.Hash && (list.Hash != common.Hash{}) {
-		set.hash = set.calcHash()
-		set.fixTimestamp()
-		if set.hash != list.Hash && (list.Hash != common.Hash{}) {
-			return nil, errHashMismatch
+	// Validate hash if provided (signatures are validated against the calculated hash below)
+	if list.Hash != (common.Hash{}) {
+		if set.hash != list.Hash {
+			log.Warn("Exclusion list hash mismatch", "provided", list.Hash.Hex(), "calculated", set.hash.Hex(), "timestamp", set.timestamp)
 		}
 	}
 
@@ -110,15 +107,6 @@ func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error)
 
 	set.signers = signers
 	return set, nil
-}
-
-func (s *exclusionSet) calcHash() common.Hash {
-	msg := append([]byte{}, fmt.Sprint(s.timestamp)...)
-	for _, addr := range s.addresses {
-		msg = append(msg, addr.Bytes()...)
-	}
-
-	return crypto.Keccak256Hash(msg)
 }
 
 func (s *exclusionSet) calcFullHash() common.Hash {

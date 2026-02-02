@@ -22,7 +22,7 @@ RUN git config --global url."https://${USERNAME}:${BUILD_TOKEN}@gitlab.com/".ins
 RUN cd /q-client && make all
 
 # Pull all binaries into a second stage deploy alpine container
-FROM ${PROXY}${ARCH}alpine:latest
+FROM ${ARCH}alpine:latest
 
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /q-client/build/bin/* /usr/local/bin/

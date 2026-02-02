@@ -106,6 +106,19 @@ func (api *API) GetSignersAtHash(hash common.Hash) ([]common.Address, error) {
 	return snap.SignersList(), nil
 }
 
+// GetSignersShortList retrieves the list of active signers
+func (api *API) GetSignersShortList(hash common.Hash) ([]common.Address, error) {
+	header := api.chain.GetHeaderByHash(hash)
+	if header == nil {
+		return nil, errUnknownBlock
+	}
+	snap, err := api.clique.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, true)
+	if err != nil {
+		return nil, err
+	}
+	return api.clique.getValidatorsShortlist(header.Number.Uint64(), snap)
+}
+
 // Proposals returns the current proposals the node tries to uphold and vote on.
 func (api *API) Proposals() map[common.Address]bool {
 	api.clique.lock.RLock()

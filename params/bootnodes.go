@@ -94,32 +94,32 @@ var V5Bootnodes = []string{
 }
 
 // -----------------------------------------
-// Q Networks
+// QGOV Networks
 // -----------------------------------------
 
 // MainnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Q network.
+// QGOV network.
 var MainnetBootnodes = []string{
-	"enode://22adab037308f02abbb0fd7e831c75afa367b36615b2a0358a5c4673912cf384de6c8e688371822488622ebee383aeea5d41087160cb70484a9f1671876871b1@bootnode.q.org:30301",
-	"enode://3021f73a6f14f8594384923f7f0228f81a806d1708e5c046db12661bdce6b0f10625fae12771aa36f7a4d1f110d4e5a589bf3d34ec4b1d2c6d10e382d90f6983@extrabootnode.q.org:30314",
-	"enode://34b9e4e18bc37e4437bc0a9b10ac8ae5d0aab2b2e827310e90ec1012e818d07962b162d98e083ec5487e0cf87d1ffefb46332ec05209ec82fb675ae7afe3e241@extrabootnode.q.org:30315",
-	"enode://f6204e3d971ec3dce74b8af2933e33551993790ab789500b82c80276f9e97e41b310f08d4a6cfdf330e72c6136f8df85a11fa923410f277f9c743f8a77e105f1@extrabootnode.q.org:30316",
+	"enode://e07f45cca23066cc11d6203474f7f0ae47577000d7770a78c3ef9917b36f658d800f6f349f9e2975e08e697049bb6f2a0fd7cb4df6815823bc9ef5603a364d10@bootnode.qgov.io:30301",
+	"enode://3021f73a6f14f8594384923f7f0228f81a806d1708e5c046db12661bdce6b0f10625fae12771aa36f7a4d1f110d4e5a589bf3d34ec4b1d2c6d10e382d90f6983@extrabootnode.qgov.io:0?discport=30314",
+	"enode://11a2bfe309031c8a63654fd8446ddc57109f88cebfdac84126a0a85ab17a8703c1ecc4f927b63788f73e569a89981dd564746db1cff3c0eee85c0e17ade64e69@extrabootnode.qgov.io:0?discport=30315",
+	"enode://dda52613b668c9fa50de506001e66480c8e52342345931355fd8f40fb8e1ba06c6c8b5e1b78c29172e2313fe3f8864ed4405b9a79ec9617d9142b15f5f04345c@extrabootnode.qgov.io:0?discport=30316",
 }
 
 // DevnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Q devnet network.
+// QGOV devnet network.
 var DevnetBootnodes = []string{
 	"enode://3dc52b0fefeda02972816dfae089c266ed4cba79c6a153cc5676da26a3122215e1d3865ef27b3391f88272d2fee1f36e238cebce5deb00c5a2fea763d8ebd99b@bootnode.qdevnet.org:30301",
 	"enode://70b402c7e1b6f13c8cb61c980acc13745b961b6862124ec674d14dbf93bbdd8a74e9086c8a0e2b7807060a83c6481dca34eadf9425cdc98ca7f1fddbfc0bb37c@54.73.188.73:30311",
 }
 
 // TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Q testnet network.
+// QGOV testnet network.
 var TestnetBootnodes = []string{
-	"enode://88ba6bd2d11752c42f3a4bb038f4eee35456c0cfc3484305d4a35c5072b3c6fb6a1ab6553ad8330f3de119724076e0e498d1af4d9175befe6ba4583a6b99c0dd@bootnode.qtestnet.org:30301",
-	"enode://c610793186e4f719c1ace0983459c6ec7984d676e4a323681a1cbc8a67f506d1eccc4e164e53c2929019ed0e5cfc1bc800662d6fb47c36e978ab94c417031ac8@extrabootnode.qtestnet.org:30304",
-	"enode://8eff01a7e5a66c5630cbd22149e069bbf8a8a22370cef61b232179e21ba8c7b74d40e8ee5aa62c54d145f7fc671b851e5ccbfe124fce75944cf1b06e29c55c80@extrabootnode.qtestnet.org:30305",
-	"enode://7a8ade64b79961a7752daedc4104ca4b79f1a67a10ea5c9721e7115d820dbe7599fe9e03c9c315081ccf6a2afb0b6652ee4965e38f066fe5bf129abd6d26df58@extrabootnode.qtestnet.org:30306",
+	"enode://fdb91b62c3ffd93fbd979a2b8acd02b4b039191b9fbc2f50ab212dc2fd2b747714ea3500c89d9370a3f7389e422361e8ca82176c9323207273033faa5c7f97cc@bootnode.qgov-test.io:30305",
+	"enode://3021f73a6f14f8594384923f7f0228f81a806d1708e5c046db12661bdce6b0f10625fae12771aa36f7a4d1f110d4e5a589bf3d34ec4b1d2c6d10e382d90f6983@extrabootnode.qgov-test.io:0?discport=30324",
+	"enode://34b9e4e18bc37e4437bc0a9b10ac8ae5d0aab2b2e827310e90ec1012e818d07962b162d98e083ec5487e0cf87d1ffefb46332ec05209ec82fb675ae7afe3e241@extrabootnode.qgov-test.io:0?discport=30325",
+	"enode://f6204e3d971ec3dce74b8af2933e33551993790ab789500b82c80276f9e97e41b310f08d4a6cfdf330e72c6136f8df85a11fa923410f277f9c743f8a77e105f1@extrabootnode.qgov-test.io:0?discport=30326",
 }
 
 const dnsPrefix = "enrtree://ALOTQTGPWL46IKN6REI34RXFTPPI4CFZZW46ZFRTM4U73ID3B7HHK@"
@@ -128,16 +128,14 @@ const dnsPrefix = "enrtree://ALOTQTGPWL46IKN6REI34RXFTPPI4CFZZW46ZFRTM4U73ID3B7H
 // genesis hash and protocol. See https://github.com/ethereum/discv4-dns-lists for more
 // information.
 func KnownDNSNetwork(genesis common.Hash, protocol string) string {
-	var net string
 	switch genesis {
 	case MainnetGenesisHash:
-		net = "mainnet"
+		return dnsPrefix + "discovery.qgov.io"
 	case TestnetGenesisHash:
-		net = "testnet"
+		return dnsPrefix + "discovery.qgov-test.io"
 	case DevnetGenesisHash:
 		return dnsPrefix + "discovery.qdevnet.org"
 	default:
 		return ""
 	}
-	return dnsPrefix + net + ".discovery.q.org"
 }

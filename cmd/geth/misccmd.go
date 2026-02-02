@@ -73,7 +73,7 @@ func printVersion(ctx *cli.Context) error {
 	git, _ := version.VCS()
 
 	fmt.Println(strings.Title(clientIdentifier))
-	fmt.Println("Q-Client Version:", params.QVersionWithMeta)
+	fmt.Println("QGOV-Client Version:", params.QVersionWithMeta)
 	fmt.Println("Geth Version:", params.VersionWithMeta)
 	if git.Commit != "" {
 		fmt.Println("Git Commit:", git.Commit)

@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
-
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/ethdb/leveldb"
@@ -453,7 +452,7 @@ func (db *database) addExclusionSetToQuarantine(set *exclusionSet) error {
 	}
 	for _, exSet := range exRecords {
 		if exSet.hash == set.hash {
-			return nil //It's already there
+			return nil // It's already there
 		}
 		resSets = append(resSets, exSet.makeList())
 	}
@@ -526,7 +525,7 @@ func (db *database) getExclusionSetsFromQuarantine() ([]exclusionSet, error) {
 	for i := range exclusionLists {
 		set, err := newExclusionSet(&exclusionLists[i])
 		if err != nil {
-			//don't return error, just skip this list
+			// don't return error, just skip this list
 			continue
 		}
 		sets = append(sets, *set)

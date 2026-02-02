@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
@@ -182,7 +181,7 @@ func newTestRootManagerWithAccounts(t *testing.T, isRootNode, useAliases bool, n
 	}
 	mocks.NewMockAccountAliases(accountAliases)
 
-	//Active root set
+	// Active root set
 	rootList := common.RootList{
 		Timestamp: 1680255000,
 		Nodes:     roots,
@@ -204,7 +203,7 @@ func newTestRootManagerWithAccounts(t *testing.T, isRootNode, useAliases bool, n
 
 	rm.active.updateAliases(accountAliases)
 
-	//InitBlockchain should be also present here, but it's not necessary for all tests, so init it manually
+	// InitBlockchain should be also present here, but it's not necessary for all tests, so init it manually
 
 	return &TestRootManager{
 		RootManager:      rm,
@@ -490,8 +489,8 @@ func TestProposeExclusionSet(t *testing.T) {
 			_, err = rm.proposeExclusionSet(set, tt.Force)
 			if err != nil && !tt.WantErr {
 				if tt.Name == "Correct exclusion list" && errors.Is(err, errProposedExclusionListObsolete) {
-					//Special case. Obsolete exclusion list is not an error. List becomes active after proposal, and upgrade fails
-					//TODO Possibly, modify the amount of root nodes to avoid automatic upgrade
+					// Special case. Obsolete exclusion list is not an error. List becomes active after proposal, and upgrade fails
+					// TODO Possibly, modify the amount of root nodes to avoid automatic upgrade
 					return
 				}
 				t.Errorf("proposeExclusionSet() error = %v, wantErr %v", err, tt.WantErr)
@@ -543,7 +542,7 @@ func TestAcceptProposedExclusionSet(t *testing.T) {
 }
 
 func TestIsAcceptableExclusionSet(t *testing.T) {
-	//testData := loadTestExclusionSetsData(t)
+	// testData := loadTestExclusionSetsData(t)
 
 	rm := newTestRootManager(t, true, false)
 
@@ -557,7 +556,7 @@ func TestIsAcceptableExclusionSet(t *testing.T) {
 }
 
 func TestProposeRootSet(t *testing.T) {
-	//First one is simple, non RN should not be able to propose root set
+	// First one is simple, non RN should not be able to propose root set
 	testProposeRootSetByNonRN(t)
 	testProposeRootSetByRN(t)
 }
@@ -567,8 +566,8 @@ func testProposeRootSetByRN(t *testing.T) {
 	rm := newTestRootManager(t, true, false)
 	active := rm.active
 
-	//Following test cases are synthetic, as RM must have root account unlocked to propose root set
-	//Following test cases are synthetic, as RM must have root account unlocked to propose root set
+	// Following test cases are synthetic, as RM must have root account unlocked to propose root set
+	// Following test cases are synthetic, as RM must have root account unlocked to propose root set
 	setGreater := active.copy()
 	setGreater.timestamp = setGreater.timestamp + 1
 	setGreater.hash = setGreater.calcHash()
@@ -619,7 +618,7 @@ func testProposeRootSetByRN(t *testing.T) {
 func testProposeRootSetByNonRN(t *testing.T) {
 	testData := loadTestRootSetsData(t)
 	rm := newTestRootManager(t, false, false)
-	//no need to have blockchain instance here, skip creating it
+	// no need to have blockchain instance here, skip creating it
 
 	_, err := rm.proposeRootSet(testData[0].Set, testData[0].Force)
 	if err == nil {
@@ -655,7 +654,7 @@ func testAcceptProposedRootListByRN(t *testing.T) {
 
 	var testData []rootListTestData
 
-	//Following test cases are synthetic, as RM must have root account unlocked to propose root set
+	// Following test cases are synthetic, as RM must have root account unlocked to propose root set
 	setGreater := active.copy()
 	setGreater.timestamp = setGreater.timestamp + 1
 	setGreater.hash = setGreater.calcHash()
@@ -674,8 +673,8 @@ func testAcceptProposedRootListByRN(t *testing.T) {
 		WantErr: true,
 	})
 
-	//It might seem that here should be a test case with a greater timestamp,
-	//but since verification of the set isn't done in acceptProposedRootList, it's not needed.
+	// It might seem that here should be a test case with a greater timestamp,
+	// but since verification of the set isn't done in acceptProposedRootList, it's not needed.
 
 	for _, tt := range testData {
 		t.Run(tt.Name, func(t *testing.T) {
@@ -703,7 +702,7 @@ func newTestChain(t *testing.T, rm *RootManager) *core.BlockChain {
 		key, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		addr   = crypto.PubkeyToAddress(key.PublicKey)
 		engine = clique.New(params.AllCliqueProtocolChanges.Clique, db, rm, rm.reg)
-		//signer      = new(types.HomesteadSigner)
+		// signer      = new(types.HomesteadSigner)
 		extraVanity = 32
 		extraSeal   = crypto.SignatureLength
 		diffInTurn  = big.NewInt(2) // Block difficulty for in-turn signatures
@@ -751,12 +750,12 @@ func newTestChain(t *testing.T, rm *RootManager) *core.BlockChain {
 func randomExclusionSet(t *testing.T, add int64) exclusionSet {
 	var set exclusionSet
 
-	set.timestamp = uint64(time.Now().Unix() + add) //This will help to have different exclusion sets
+	set.timestamp = uint64(time.Now().Unix() + add) // This will help to have different exclusion sets
 	set.signers = make(map[common.Address][]byte)
 	for i := 0; i < 10; i++ {
 		set.addresses = append(set.addresses, common.Address{byte(i + int(add))})
 	}
-	set.hash = set.calcHash()
+	set.hash = set.calcFullHash()
 	return set
 }
 
@@ -774,7 +773,7 @@ func testQuotaExceedsByNumber(t *testing.T) {
 	rm.ProposalQuotaMax = 3
 	rm.ProposalQuotaTimeWindow = 24 * time.Hour
 
-	//Last set will overflow the quota
+	// Last set will overflow the quota
 	for i := 0; i < int(rm.ProposalQuotaMax+1); i++ {
 		set := randomExclusionSet(t, int64(rand.Intn(1000)))
 		rm.signExclusionSet(&set)
@@ -794,20 +793,20 @@ func testQuotaExceedsWithExpiredEntries(t *testing.T) {
 	rm.ProposalQuotaMax = 3
 	rm.ProposalQuotaTimeWindow = 30 * time.Second
 
-	//Create 3 sets that will be added to the quota storage
-	//Last set will overflow the quota
+	// Create 3 sets that will be added to the quota storage
+	// Last set will overflow the quota
 	for i := 0; i < 5; i++ {
 		set := randomExclusionSet(t, int64(i))
 		rm.signExclusionSet(&set)
 
-		//Will add set to the quota storage
+		// Will add set to the quota storage
 		rm.isSetQuotaExceeded(&set)
 	}
 
-	//Need to wait till time window expires
+	// Need to wait till time window expires
 	time.Sleep(rm.ProposalQuotaTimeWindow + 1)
 
-	//This set shouldn't cause quota overflow
+	// This set shouldn't cause quota overflow
 	set := randomExclusionSet(t, 6)
 	rm.signExclusionSet(&set)
 

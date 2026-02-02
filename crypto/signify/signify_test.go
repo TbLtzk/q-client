@@ -20,7 +20,8 @@
 package signify
 
 import (
-	"crypto/rand"
+	crand "crypto/rand"
+	"math/rand"
 	"os"
 	"testing"
 
@@ -41,7 +42,7 @@ func TestSignify(t *testing.T) {
 	defer tmpFile.Close()
 
 	data := make([]byte, 1024)
-	rand.Read(data)
+	crand.Read(data)
 	tmpFile.Write(data)
 
 	if err = tmpFile.Close(); err != nil {
@@ -83,7 +84,7 @@ func TestSignifyTrustedCommentTooManyLines(t *testing.T) {
 	defer tmpFile.Close()
 
 	data := make([]byte, 1024)
-	rand.Read(data)
+	crand.Read(data)
 	tmpFile.Write(data)
 
 	if err = tmpFile.Close(); err != nil {
@@ -106,7 +107,7 @@ func TestSignifyTrustedCommentTooManyLinesLF(t *testing.T) {
 	defer tmpFile.Close()
 
 	data := make([]byte, 1024)
-	rand.Read(data)
+	crand.Read(data)
 	tmpFile.Write(data)
 
 	if err = tmpFile.Close(); err != nil {
@@ -129,7 +130,7 @@ func TestSignifyTrustedCommentEmpty(t *testing.T) {
 	defer tmpFile.Close()
 
 	data := make([]byte, 1024)
-	rand.Read(data)
+	crand.Read(data)
 	tmpFile.Write(data)
 
 	if err = tmpFile.Close(); err != nil {

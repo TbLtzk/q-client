@@ -76,7 +76,21 @@ func (api *IndexerAPI) getOutOfTurnStatsFromSnapshot(header *types.Header, snaps
 		return nil, err
 	}
 	origAccount := actualSigner
-	if api.indexer.clique.ChainHeaderReader().Config().IsAthos(header.Number) {
+
+	signers, err := api.indexer.clique.GetSignersShortList(header.Hash())
+	if err != nil {
+		return nil, err
+	}
+
+	isActSignerValidator := false
+	for _, sig := range signers {
+		if sig == actualSigner {
+			isActSignerValidator = true
+			break
+		}
+	}
+
+	if api.indexer.clique.ChainHeaderReader().Config().IsAthos(header.Number) && !isActSignerValidator {
 		origAccount = api.indexer.clique.Clique().UnAliasAccounts([]common.Address{actualSigner},
 			api.indexer.clique.ChainHeaderReader().Config().IsAthos(api.indexer.clique.ChainHeaderReader().CurrentHeader().Number))[0]
 	}

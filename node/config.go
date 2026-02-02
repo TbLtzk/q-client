@@ -53,7 +53,7 @@ type Config struct {
 	// UserIdent, if set, is used as an additional component in the devp2p node identifier.
 	UserIdent string `toml:",omitempty"`
 
-	// Q-Client version number
+	// QGOV-Client version number
 	QVersion string `toml:"-"`
 
 	// Version should be set to the version number of the program. It is used
@@ -308,7 +308,7 @@ func (c *Config) NodeName() string {
 		configName = "Geth"
 	}
 	if c.QVersion != "" {
-		name += "Q-Client/v" + c.QVersion + "/"
+		name += "QGOV-Client/v" + c.QVersion + "/"
 	}
 	name += configName
 	if c.UserIdent != "" {

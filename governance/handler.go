@@ -182,9 +182,6 @@ func (h *handler) listenForRNApprovals() {
 		select {
 		case approval := <-h.approvalCh:
 			for _, p := range h.peers.all() {
-				if p.version < qgov3 {
-					continue
-				}
 				log.Debug("Sending approval list root node approvals", "to", p.id)
 				p.asyncSendApprovals(approval)
 			}
@@ -202,9 +199,6 @@ func (h *handler) broadcastApprovals() {
 		select {
 		case msg := <-h.approvalEventCh:
 			for _, p := range h.peers.all() {
-				if p.version < qgov3 {
-					continue
-				}
 				if msg.fromID == p.id {
 					continue
 				}
@@ -219,18 +213,14 @@ func (h *handler) broadcastApprovals() {
 
 func (h *handler) broadcastConstitutionRequest(request *common.ConstitutionFilesRequest) {
 	for _, p := range h.peers.all() {
-		if p.version >= qgov4 {
-			p.sendConstitutionFileRequest(request)
-		}
+		p.sendConstitutionFileRequest(request)
 	}
 }
 
 //nolint:unused
 func (h *handler) broadcastKnownConstitutionFiles(files *common.KnownConstitutionFilesMessage) {
 	for _, p := range h.peers.all() {
-		if p.version >= qgov4 {
-			p.sendKnownConstitutionFiles(files)
-		}
+		p.sendKnownConstitutionFiles(files)
 	}
 }
 
@@ -328,11 +318,9 @@ func (h *handler) runPeer(p *peer) error {
 		h.propagateExclusionSet(status.currentExSet)
 	}
 
-	if p.version >= qgov3 {
-		approvals := rm.db.getLastApprovals()
-		if err = p.sendApprovalList(approvals); err != nil {
-			p.Log().Warn("failed to send approval", "err", err, "root-set", approvals)
-		}
+	approvals := rm.db.getLastApprovals()
+	if err = p.sendApprovalList(approvals); err != nil {
+		p.Log().Warn("failed to send approval", "err", err, "root-set", approvals)
 	}
 
 	h.peers.register(p)
@@ -371,15 +359,13 @@ func (h *handler) runPeer(p *peer) error {
 		}
 	}
 
-	if p.version >= qgov4 {
-		h.constitutionManager.insureLatestHashIsHandled()
+	h.constitutionManager.insureLatestHashIsHandled()
 
-		newReq := common.ConstitutionFilesRequest{Hashes: h.constitutionManager.requiredHashes}
-		p.sendConstitutionFileRequest(&newReq)
+	newReq := common.ConstitutionFilesRequest{Hashes: h.constitutionManager.requiredHashes}
+	p.sendConstitutionFileRequest(&newReq)
 
-		filesReq := common.KnownConstitutionFilesMessage{Hashes: h.constitutionManager.knownHashes}
-		p.sendKnownConstitutionFiles(&filesReq)
-	}
+	filesReq := common.KnownConstitutionFilesMessage{Hashes: h.constitutionManager.knownHashes}
+	p.sendKnownConstitutionFiles(&filesReq)
 
 	h.peerWG.Add(1)
 	defer h.peerWG.Done()
@@ -585,6 +571,8 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 		requiredHashes[hash] = struct{}{}
 	}
 
+	var totalDecompressedSize int64
+
 	for _, file := range response.Files {
 		if _, ok := requiredHashes[file.Hash]; !ok {
 			log.Error("Received constitution file with non-requested hash", "hash", file.Hash)
@@ -596,9 +584,34 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 		if e1 != nil {
 			return e1
 		}
-		output, e2 := io.ReadAll(gzreader)
+
+		// Protect against gzip bombs by limiting decompressed size.
+		limitedReader := &io.LimitedReader{
+			R: gzreader,
+			// Allow one extra byte to reliably detect overflow beyond the limit.
+			N: maxConstitutionDecompressedSize + 1,
+		}
+
+		output, e2 := io.ReadAll(limitedReader)
+		_ = gzreader.Close()
 		if e2 != nil {
 			return e2
+		}
+
+		if int64(len(output)) > maxConstitutionDecompressedSize {
+			log.Warn("Received constitution file exceeds decompressed size limit",
+				"hash", file.Hash,
+				"limit", maxConstitutionDecompressedSize,
+				"size", len(output))
+			return errors.New("received constitution file exceeds decompressed size limit")
+		}
+
+		totalDecompressedSize += int64(len(output))
+		if totalDecompressedSize > maxConstitutionTotalDecompressedSize {
+			log.Warn("Total decompressed size of constitution files in message exceeds limit",
+				"limit", maxConstitutionTotalDecompressedSize,
+				"size", totalDecompressedSize)
+			return errors.New("total decompressed size of constitution files in message exceeds limit")
 		}
 
 		receivedHash := h.constitutionManager.getHashByFileContent(output)
@@ -884,8 +897,8 @@ func (h *handler) handleIncomingApproval(p *peer, received *common.RootNodeAppro
 	}
 
 	if received.BlockNumber.Uint64()%rm.bc.Config().Clique.Epoch != 0 {
-		log.Info("Received root node approval list contains invalid block number", "blockNumber", received.BlockNumber)
-		return nil
+		log.Error("Received root node approval list contains invalid block number", "blockNumber", received.BlockNumber)
+		return errInvalidApprovalBlockNumber
 	}
 	if received.BlockNumber.Uint64() == 0 {
 		return nil
@@ -1007,7 +1020,8 @@ func (h *handler) handleConstitutionFileRequest(p *peer, received *common.Consti
 	}
 
 	if len(presentFiles) > 0 {
-		p.asyncSendConstitutionFiles(cm, presentFiles) // TODO check constitution drafts
+		// Actually run asynchronously to avoid blocking the handler
+		go p.asyncSendConstitutionFiles(cm, presentFiles) // TODO check constitution drafts
 	}
 
 	return nil

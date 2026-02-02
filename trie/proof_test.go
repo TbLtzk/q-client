@@ -49,6 +49,10 @@ func randBytes(n int) []byte {
 	return r
 }
 
+func init() {
+	mrand.New(mrand.NewSource(time.Now().UnixNano()))
+}
+
 // makeProvers creates Merkle trie provers based on different implementations to
 // test all variations.
 func makeProvers(trie *Trie) []func(key []byte) *memorydb.Database {
