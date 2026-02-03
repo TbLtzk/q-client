@@ -35,9 +35,10 @@ services:
     volumes:
       - .:/workspace
     working_dir: /workspace
-    # Build dependencies are pre-installed in the image
+    # Use module cache so CGO deps (e.g. blst) have full source; go mod vendor prunes them (golang/go#26366)
     environment:
       - CGO_ENABLED=1
+      - GOFLAGS=-mod=mod
     # Default command - can be overridden
     command: go test ./...
     profiles:
