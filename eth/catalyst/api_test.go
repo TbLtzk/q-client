@@ -124,15 +124,17 @@ func TestEth2AssembleBlock(t *testing.T) {
 }
 
 // assembleWithTransactions tries to assemble a block, retrying until it has 'want',
-// number of transactions in it, or it has retried three times.
+// number of transactions in it, or it has retried enough times (with short sleeps
+// so the tx pool can include pending txs in CI/slow environments).
 func assembleWithTransactions(api *ConsensusAPI, parentHash common.Hash, params *engine.PayloadAttributes, want int) (execData *engine.ExecutableData, err error) {
-	for retries := 3; retries > 0; retries-- {
+	for retries := 10; retries > 0; retries-- {
 		execData, err = assembleBlock(api, parentHash, params)
 		if err != nil {
 			return nil, err
 		}
 		if have, want := len(execData.Transactions), want; have != want {
 			err = fmt.Errorf("invalid number of transactions, have %d want %d", have, want)
+			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 		return execData, nil

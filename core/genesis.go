@@ -425,6 +425,9 @@ func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 // IsVerkle indicates whether the state is already stored in a verkle
 // tree at genesis time.
 func (g *Genesis) IsVerkle() bool {
+	if g.Config == nil {
+		return false
+	}
 	return g.Config.IsVerkle(new(big.Int).SetUint64(g.Number), g.Timestamp)
 }
 
