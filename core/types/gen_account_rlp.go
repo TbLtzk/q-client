@@ -2,8 +2,11 @@
 
 package types
 
-import "gitlab.com/q-dev/q-client/rlp"
-import "io"
+import (
+	"io"
+
+	"gitlab.com/q-dev/q-client/rlp"
+)
 
 func (obj *StateAccount) EncodeRLP(_w io.Writer) error {
 	w := rlp.NewEncoderBuffer(_w)

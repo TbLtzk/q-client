@@ -35,6 +35,7 @@ import (
 	"gitlab.com/q-dev/q-client/console/prompt"
 	"gitlab.com/q-dev/q-client/eth"
 	"gitlab.com/q-dev/q-client/eth/downloader"
+
 	// Force-load the tracer engines to trigger registration
 	_ "gitlab.com/q-dev/q-client/eth/tracers/js"
 	_ "gitlab.com/q-dev/q-client/eth/tracers/native"

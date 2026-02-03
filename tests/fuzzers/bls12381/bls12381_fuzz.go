@@ -30,9 +30,9 @@ import (
 	gnark "github.com/consensys/gnark-crypto/ecc/bls12-381"
 	"github.com/consensys/gnark-crypto/ecc/bls12-381/fp"
 	"github.com/consensys/gnark-crypto/ecc/bls12-381/fr"
+	blst "github.com/supranational/blst/bindings/go"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto/bls12381"
-	blst "github.com/supranational/blst/bindings/go"
 )
 
 func fuzzCrossPairing(data []byte) int {
