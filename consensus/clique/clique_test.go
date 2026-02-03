@@ -283,7 +283,7 @@ func testBlockChoiceRule4(t *testing.T) {
 	sort.Sort(signersAscending(addrs))
 
 	genSpec := &core.Genesis{
-		Config: params.AllCliqueProtocolChanges,
+		Config:    params.AllCliqueProtocolChanges,
 		ExtraData: make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
 		Alloc: map[common.Address]core.GenesisAccount{
 			addrs[0]: {Balance: big.NewInt(10000000000000000)},

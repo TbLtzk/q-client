@@ -360,7 +360,8 @@ func TestUpdatedKeyfileContents(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	time.Sleep(200 * time.Millisecond) // allow filesystem watcher to see the change (CI/Docker can be slow)
+	// Watcher debounce is 500ms (watch.go) before rescan; wait for it + margin so cache updates before we poll
+	time.Sleep(700 * time.Millisecond)
 	wantAccounts = []accounts.Account{cachetestAccounts[1]}
 	wantAccounts[0].URL = accounts.URL{Scheme: KeyStoreScheme, Path: file}
 	if err := waitForAccounts(wantAccounts, ks); err != nil {
@@ -377,7 +378,7 @@ func TestUpdatedKeyfileContents(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	time.Sleep(200 * time.Millisecond) // allow filesystem watcher to see the change
+	time.Sleep(700 * time.Millisecond) // same as first replacement: watcher debounce + margin
 	wantAccounts = []accounts.Account{cachetestAccounts[2]}
 	wantAccounts[0].URL = accounts.URL{Scheme: KeyStoreScheme, Path: file}
 	if err := waitForAccounts(wantAccounts, ks); err != nil {
