@@ -22,7 +22,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/q-dev/q-client"
+	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/params"
 )
