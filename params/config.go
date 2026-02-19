@@ -477,7 +477,7 @@ func (c *ChainConfig) Description() string {
 	//	banner += fmt.Sprintf(" - Cancun:                      %-8v\n", c.CancunBlock)
 	// }
 	if c.AthosBlock != nil {
-		banner += fmt.Sprintf(" - Athos:    	                  %-8v (https://gitlab.com/q-dev/QIPs)\n", c.AthosBlock)
+		banner += fmt.Sprintf(" - Athos:    	                  %-8v (https://gitlab.com/q-dev/execution-specs/-/blob/master/network-upgrades/mainnet-upgrades/athos.adoc)\n", c.AthosBlock)
 	}
 	banner += fmt.Sprintf(" - Berlin:                      #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/berlin.md)\n", c.BerlinBlock)
 	banner += fmt.Sprintf(" - London:                      #%-8v (https://github.com/ethereum/execution-specs/blob/master/network-upgrades/mainnet-upgrades/london.md)\n", c.LondonBlock)
@@ -680,14 +680,14 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 		// configs (e.g. upstream hive test chains) that don't define it
 		// but do define later timestamp forks (Cancun, Prague, ...) still
 		// pass fork-order validation.
-		{name: "athosBlock", block: c.AthosBlock, optional: true},
+		{name: "athosBlock", block: c.AthosBlock},
 		// {name: "londonBlock", block: c.LondonBlock},
 		// {name: "arrowGlacierBlock", block: c.ArrowGlacierBlock, optional: true},
 		// {name: "grayGlacierBlock", block: c.GrayGlacierBlock, optional: true},
 		// {name: "mergeNetsplitBlock", block: c.MergeNetsplitBlock, optional: true},
 		// {name: "shanghaiTime", timestamp: c.ShanghaiTime},
-		{name: "cancunTime", timestamp: c.CancunTime, optional: true},
-		{name: "pragueTime", timestamp: c.PragueTime, optional: true},
+		// {name: "cancunTime", timestamp: c.CancunTime, optional: true},
+		// {name: "pragueTime", timestamp: c.PragueTime, optional: true},
 		// {name: "verkleTime", timestamp: c.VerkleTime, optional: true},
 	} {
 		if lastFork.name != "" {
