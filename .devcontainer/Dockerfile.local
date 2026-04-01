@@ -1,0 +1,33 @@
+# ---------- Builder ----------
+    FROM golang:1.22-bullseye AS builder
+
+    WORKDIR /src
+    
+    # Enable Go module cache across rebuilds
+    COPY go.mod go.sum ./
+    RUN go mod download
+    
+    # Copy the rest of the source
+    COPY . .
+    
+    # Build geth (q-client) with tags used by Makefile
+    RUN CGO_ENABLED=0 go build -tags urfave_cli_no_docs,ckzg -trimpath \
+        -o /build/geth ./cmd/geth
+    
+    # ---------- Runtime ----------
+    FROM debian:12-slim
+    
+    RUN apt-get update && apt-get install -y ca-certificates wget && rm -rf /var/lib/apt/lists/*
+    
+    WORKDIR /app
+    
+    # Copy built binary
+    COPY --from=builder /build/geth /usr/local/bin/geth
+    
+    # Data dir as volume
+    VOLUME ["/data"]
+    
+    # Default working dir for geth
+    WORKDIR /data
+    
+    ENTRYPOINT ["geth"]
