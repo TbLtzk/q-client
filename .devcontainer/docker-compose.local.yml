@@ -1,0 +1,36 @@
+services:
+  q-client:
+    image: q-client:local
+    build:
+      context: ../.
+      dockerfile: .devcontainer/Dockerfile.local
+    container_name: q-client-local
+    # restart: unless-stopped
+
+    # Map data dir to host for persistence
+    volumes:
+      - ./data:/data
+
+    # Expose P2P + auth RPC ports (adjust as needed)
+    ports:
+      - "${EXT_PORT:-30303}:30303/tcp"
+      - "${EXT_PORT:-30303}:30303/udp"
+      - "8551:8551"
+
+    command:
+      - --testnet
+      - --ethstats=${ETHSTATS_NAME}:${ETHSTATS_SECRET}@${ETHSTATS_HOST}
+      - --datadir=/data
+      - --syncmode=${SYNCMODE}
+      # - --bootnodes=${BOOTNODE1_ADDR},${BOOTNODE2_ADDR},${BOOTNODE3_ADDR}
+      - --verbosity=${VERBOSITY}
+      - --nat=extip:${IP}
+      - --port=${EXT_PORT}
+      - --snapshot=${SNAPSHOT}
+      - --miner.etherbase=${ADDRESS}
+      - --unlock=${ADDRESS}
+      - --password=${PASSWORD_FILE}
+      - --nodekey=${NODEKEY_FILE}
+      - --mine
+      # - --miner.gasprice=1
+      - --rpc.allow-unprotected-txs
