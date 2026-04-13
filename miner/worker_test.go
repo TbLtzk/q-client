@@ -17,6 +17,7 @@
 package miner
 
 import (
+	"crypto/ecdsa"
 	"errors"
 	"math/big"
 	"sync/atomic"
@@ -59,12 +60,12 @@ var (
 	cliqueChainConfig *params.ChainConfig
 
 	// Test accounts
-	testBankKey, _  = crypto.GenerateKey()
-	testBankAddress = crypto.PubkeyToAddress(testBankKey.PublicKey)
+	testBankKey     *ecdsa.PrivateKey
+	testBankAddress common.Address
 	testBankFunds   = big.NewInt(1000000000000000000)
 
-	testUserKey, _  = crypto.GenerateKey()
-	testUserAddress = crypto.PubkeyToAddress(testUserKey.PublicKey)
+	testUserKey     *ecdsa.PrivateKey
+	testUserAddress common.Address
 
 	// Test transactions
 	pendingTxs []*types.Transaction
@@ -77,6 +78,20 @@ var (
 )
 
 func init() {
+	var err error
+	// Keep fixtures deterministic across runs/branches.
+	testBankKey, err = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	if err != nil {
+		panic(err)
+	}
+	testBankAddress = crypto.PubkeyToAddress(testBankKey.PublicKey)
+
+	testUserKey, err = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
+	if err != nil {
+		panic(err)
+	}
+	testUserAddress = crypto.PubkeyToAddress(testUserKey.PublicKey)
+
 	testTxPoolConfig = legacypool.DefaultConfig
 	testTxPoolConfig.Journal = ""
 	ethashChainConfig = new(params.ChainConfig)
@@ -215,6 +230,90 @@ func TestGenerateAndImportBlock(t *testing.T) {
 		case <-time.After(3 * time.Second): // Worker needs 1s to include new changes.
 			t.Fatalf("timeout")
 		}
+	}
+}
+
+// TestProduceThenImportAcceptsMinedBlock verifies a correctness invariant:
+// a locally mined non-empty block must be importable by the same client rules.
+//
+// This currently fails on update/geth-new and serves as a regression test.
+func TestProduceThenImportAcceptsMinedBlock(t *testing.T) {
+	var (
+		producerDB = rawdb.NewMemoryDatabase()
+		consumerDB = rawdb.NewMemoryDatabase()
+		config     = *params.AllCliqueProtocolChanges
+	)
+	config.Clique = &params.CliqueConfig{Period: 1, Epoch: 101}
+	config.Clique.RewardReceiver = common.HexToAddress("92C35a964624D9cbF90c2A0525e116093FAF867E")
+
+	registry := contracts.NewTestModeRegistryWithRewardReceiver(config.Clique.RewardReceiver)
+	producerEngine := clique.New(config.Clique, producerDB, &consensus.NoopExclusionSetProvider{}, registry)
+
+	w, backend := newTestWorker(t, &config, producerEngine, producerDB, 0)
+	defer w.close()
+
+	// Ignore empty commits: we need a non-empty mined block.
+	w.skipSealHook = func(task *task) bool {
+		return len(task.receipts) == 0
+	}
+	sub := w.mux.Subscribe(core.NewMinedBlockEvent{})
+	defer sub.Unsubscribe()
+
+	w.start()
+	time.Sleep(time.Second)
+
+	backend.txPool.Add([]*types.Transaction{backend.newRandomTx(false)}, true, false)
+
+	var mined *types.Block
+	select {
+	case ev := <-sub.Chan():
+		mined = ev.Data.(core.NewMinedBlockEvent).Block
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout waiting for non-empty mined block")
+	}
+	if mined == nil || len(mined.Transactions()) == 0 {
+		t.Fatalf("expected non-empty mined block, got tx count %d", len(mined.Transactions()))
+	}
+	t.Logf(
+		"mined block #%d hash=%s txs=%d root=%s receiptRoot=%s",
+		mined.NumberU64(),
+		mined.Hash(),
+		len(mined.Transactions()),
+		mined.Root(),
+		mined.ReceiptHash(),
+	)
+
+	consumerEngine := clique.New(
+		config.Clique,
+		consumerDB,
+		&consensus.NoopExclusionSetProvider{},
+		contracts.NewTestModeRegistryWithRewardReceiver(config.Clique.RewardReceiver),
+	)
+	consumerChain, err := core.NewBlockChain(
+		consumerDB,
+		&core.CacheConfig{TrieDirtyDisabled: true},
+		backend.genesis,
+		nil,
+		consumerEngine,
+		vm.Config{},
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("failed to construct consumer chain: %v", err)
+	}
+	defer consumerChain.Stop()
+
+	_, err = consumerChain.InsertChain([]*types.Block{mined})
+	if err != nil {
+		t.Fatalf(
+			"self-produced block import failed (unexpected): block #%d hash=%s root=%s receiptRoot=%s err=%v",
+			mined.NumberU64(),
+			mined.Hash(),
+			mined.Root(),
+			mined.ReceiptHash(),
+			err,
+		)
 	}
 }
 
