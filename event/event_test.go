@@ -100,7 +100,6 @@ func TestSubscribeDuplicateType(t *testing.T) {
 }
 
 func TestMuxConcurrent(t *testing.T) {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
 	mux := new(TypeMux)
 	defer mux.Stop()
 

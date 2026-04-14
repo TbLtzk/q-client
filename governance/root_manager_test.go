@@ -23,6 +23,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/params"
+	"gitlab.com/q-dev/q-client/trie"
 )
 
 var (
@@ -716,14 +717,16 @@ func newTestChain(t *testing.T, rm *RootManager) *core.BlockChain {
 		BaseFee: big.NewInt(params.InitialBaseFee),
 	}
 	copy(genspec.ExtraData[extraVanity:], addr[:])
-	genesis := genspec.MustCommit(db)
-
-	config := params.AllCliqueProtocolChanges
+	config := new(params.ChainConfig)
+	*config = *params.AllCliqueProtocolChanges
 	config.AthosBlock = new(big.Int).SetUint64(1)
+	genspec.Config = config
+	triedb := trie.NewDatabase(db, trie.HashDefaults)
+	genesis := genspec.MustCommit(db, triedb)
 
-	chain, _ := core.NewBlockChain(db, nil, config, engine, vm.Config{}, nil, nil)
+	chain, _ := core.NewBlockChain(db, nil, genspec, nil, engine, vm.Config{}, nil, nil)
 
-	blocks, _ := core.GenerateChain(config, genesis, engine, db, 5000, func(i int, block *core.BlockGen) {
+	blocks, _ := core.GenerateChain(genspec.Config, genesis, engine, db, 5000, func(i int, block *core.BlockGen) {
 		block.SetDifficulty(diffInTurn)
 	})
 	for i, block := range blocks {

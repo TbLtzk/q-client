@@ -17,17 +17,24 @@
 package trie
 
 import (
-	"testing"
-
-	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/ethdb/memorydb"
+	"gitlab.com/q-dev/q-client/core/rawdb"
+	"gitlab.com/q-dev/q-client/ethdb"
+	"gitlab.com/q-dev/q-client/trie/triedb/hashdb"
+	"gitlab.com/q-dev/q-client/trie/triedb/pathdb"
 )
 
-// Tests that the trie database returns a missing trie node error if attempting
-// to retrieve the meta root.
-func TestDatabaseMetarootFetch(t *testing.T) {
-	db := NewDatabase(memorydb.New())
-	if _, err := db.Node(common.Hash{}); err == nil {
-		t.Fatalf("metaroot retrieval succeeded")
+// newTestDatabase initializes the trie database with specified scheme.
+func newTestDatabase(diskdb ethdb.Database, scheme string) *Database {
+	config := &Config{Preimages: false}
+	if scheme == rawdb.HashScheme {
+		config.HashDB = &hashdb.Config{
+			CleanCacheSize: 0,
+		} // disable clean cache
+	} else {
+		config.PathDB = &pathdb.Config{
+			CleanCacheSize: 0,
+			DirtyCacheSize: 0,
+		} // disable clean/dirty cache
 	}
+	return NewDatabase(diskdb, config)
 }

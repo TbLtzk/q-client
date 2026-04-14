@@ -26,6 +26,9 @@ chaindata/
 .project
 .settings
 
+# Go module cache used by docker-compose (test, lint, goimports)
+.go-mod-cache/
+
 # used by the Makefile
 /build/_workspace/
 /build/cache/
@@ -52,6 +55,9 @@ profile.cov
 /dashboard/assets/package-lock.json
 
 **/yarn-error.log
+logs/
+
+tests/spec-tests/
 
 # MacOS version file replacement backup
 version.go-E

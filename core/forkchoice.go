@@ -49,9 +49,9 @@ type ForkChoice struct {
 	// local td is equal to the extern one. It can be nil for light
 	// client
 
-	//As we use Clique as engine, we need to obey rule #3 of Eip3436
-	//Choose the block whose validator had the least recent in-turn block assignment
-	//This function is introduced because original preserve doesn't know anything about the external header
+	// As we use Clique as engine, we need to obey rule #3 of Eip3436
+	// Choose the block whose validator had the least recent in-turn block assignment
+	// This function is introduced because original preserve doesn't know anything about the external header
 	preserve func(header *types.Header, externalHeader *types.Header) bool
 }
 
@@ -90,13 +90,13 @@ func (f *ForkChoice) ReorgNeeded(currentHeader *types.Header, externalHeader *ty
 		if externalNum < currentNum {
 			reorg = true
 		} else if externalNum == currentNum {
-			//Preserve check is modified in order to attempt of applying rule#3 from https://eips.ethereum.org/EIPS/eip-3436
-			//If header numbers are the same, then choose the block whose validator had the least recent in-turn block assignment
+			// Preserve check is modified in order to attempt of applying rule#3 from https://eips.ethereum.org/EIPS/eip-3436
+			// If header numbers are the same, then choose the block whose validator had the least recent in-turn block assignment
 			var currentPreserve, externPreserve bool
 			if f.preserve != nil {
 				currentPreserve, externPreserve = f.preserve(currentHeader, externalHeader), f.preserve(externalHeader, currentHeader)
 			}
-			//If both headers are from the same validator, then choose the block with the lower hash
+			// If both headers are from the same validator, then choose the block with the lower hash
 			if currentPreserve && externPreserve {
 				// EIP-3436 rule #4
 				// Apply external chain if it has the lower hash

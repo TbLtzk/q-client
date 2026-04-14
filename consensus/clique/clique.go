@@ -27,16 +27,15 @@ import (
 	"sync"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
-	"golang.org/x/crypto/sha3"
-
+	"github.com/holiman/uint256"
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
-	_ "gitlab.com/q-dev/q-client/accounts/keystore"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/hexutil"
+	"gitlab.com/q-dev/q-client/common/lru"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/misc"
+	"gitlab.com/q-dev/q-client/consensus/misc/eip1559"
 	"gitlab.com/q-dev/q-client/contracts"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/state"
@@ -49,6 +48,7 @@ import (
 	"gitlab.com/q-dev/q-client/rpc"
 	"gitlab.com/q-dev/q-client/sentryMonitor"
 	"gitlab.com/q-dev/q-client/trie"
+	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -61,9 +61,8 @@ const (
 
 // Clique proof-of-authority protocol constants.
 var (
-	CliqueBlockReward = new(big.Int).Div(new(big.Int).Mul(big.NewInt(params.Ether), big.NewInt(15)), big.NewInt(10)) // Block reward in wei for successfully mining a block
-
-	epochLength = uint64(30000) // Default number of blocks after which to checkpoint and reset the pending votes
+	CliqueBlockReward = uint256.NewInt(0).Div(uint256.NewInt(0).Mul(uint256.NewInt(params.Ether), uint256.NewInt(15)), uint256.NewInt(10)) // Block reward in wei for successfully mining a block
+	epochLength       = uint64(30000)                                                                                                      // Default number of blocks after which to checkpoint and reset the pending votes
 
 	extraVanity = 32                     // Fixed number of extra-data prefix bytes reserved for signer vanity
 	extraSeal   = crypto.SignatureLength // Fixed number of extra-data suffix bytes reserved for signer seal
@@ -151,11 +150,11 @@ var (
 type SignerFn func(signer accounts.Account, mimeType string, message []byte) ([]byte, error)
 
 // ecrecover extracts the Ethereum account address from a signed header.
-func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, error) {
+func ecrecover(header *types.Header, sigcache *sigLRU) (common.Address, error) {
 	// If the signature's already cached, return that
 	hash := header.Hash()
 	if address, known := sigcache.Get(hash); known {
-		return address.(common.Address), nil
+		return address, nil
 	}
 	// Retrieve the signature from the header extra-data
 	if len(header.Extra) < extraSeal {
@@ -197,8 +196,8 @@ type Clique struct {
 	config *params.CliqueConfig // Consensus engine configuration parameters
 	db     ethdb.Database       // Database to store and retrieve snapshot checkpoints
 
-	recents    *lru.ARCCache // Snapshots for recent block to speed up reorgs
-	signatures *lru.ARCCache // Signatures of recent blocks to speed up mining
+	recents    *lru.Cache[common.Hash, *Snapshot] // Snapshots for recent block to speed up reorgs
+	signatures *sigLRU                            // Signatures of recent blocks to speed up mining
 
 	proposals map[common.Address]bool // Current list of proposals we are pushing
 
@@ -230,8 +229,8 @@ func New(
 		conf.Epoch = epochLength
 	}
 	// Allocate the snapshot caches and create the engine
-	recents, _ := lru.NewARC(inmemorySnapshots)
-	signatures, _ := lru.NewARC(inmemorySignatures)
+	recents := lru.NewCache[common.Hash, *Snapshot](inmemorySnapshots)
+	signatures := lru.NewCache[common.Hash, common.Address](inmemorySignatures)
 
 	return &Clique{
 		config:               &conf,
@@ -255,7 +254,7 @@ func (c *Clique) Author(header *types.Header) (common.Address, error) {
 	defer c.authorLock.RUnlock()
 
 	return c.latestRewardReceiver, nil
-	//return ecrecover(header, c.signatures)
+	// return ecrecover(header, c.signatures)
 }
 
 func (c *Clique) Signer() common.Address {
@@ -266,14 +265,14 @@ func (c *Clique) Signer() common.Address {
 }
 
 // VerifyHeader checks whether a header conforms to the consensus rules.
-func (c *Clique) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header, seal bool) error {
+func (c *Clique) VerifyHeader(chain consensus.ChainHeaderReader, header *types.Header) error {
 	return c.verifyHeader(chain, header, nil)
 }
 
 // VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers. Thechecks for blacklisted signers and
 // method returns a quit channel to abort the operations and a results channel to
 // retrieve the async verifications (the order is that of the input slice).
-func (c *Clique) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
+func (c *Clique) VerifyHeaders(chain consensus.ChainHeaderReader, headers []*types.Header) (chan<- struct{}, <-chan error) {
 	abort := make(chan struct{})
 	results := make(chan error, len(headers))
 
@@ -356,9 +355,24 @@ func (c *Clique) verifyHeader(chain consensus.ChainHeaderReader, header *types.H
 	if header.GasLimit > params.MaxGasLimit {
 		return fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, params.MaxGasLimit)
 	}
-	// If all checks passed, validate any special fields for hard forks
-	if err := misc.VerifyForkHashes(chain.Config(), header, false); err != nil {
-		return err
+	if chain.Config().IsShanghai(header.Number, header.Time) {
+		return errors.New("clique does not support shanghai fork")
+	}
+	// Verify the non-existence of withdrawalsHash.
+	if header.WithdrawalsHash != nil {
+		return fmt.Errorf("invalid withdrawalsHash: have %x, expected nil", header.WithdrawalsHash)
+	}
+	if chain.Config().IsCancun(header.Number, header.Time) {
+		return errors.New("clique does not support cancun fork")
+	}
+	// Verify the non-existence of cancun-specific header fields
+	switch {
+	case header.ExcessBlobGas != nil:
+		return fmt.Errorf("invalid excessBlobGas: have %d, expected nil", header.ExcessBlobGas)
+	case header.BlobGasUsed != nil:
+		return fmt.Errorf("invalid blobGasUsed: have %d, expected nil", header.BlobGasUsed)
+	case header.ParentBeaconRoot != nil:
+		return fmt.Errorf("invalid parentBeaconRoot, have %#x, expected nil", header.ParentBeaconRoot)
 	}
 	// All basic checks passed, verify cascading fields
 	return c.verifyCascadingFields(chain, header, parents)
@@ -399,7 +413,7 @@ func (c *Clique) verifyCascadingFields(chain consensus.ChainHeaderReader, header
 		if err := misc.VerifyGaslimit(parent.GasLimit, header.GasLimit); err != nil {
 			return err
 		}
-	} else if err := misc.VerifyEip1559Header(chain.Config(), parent, header); err != nil {
+	} else if err := eip1559.VerifyEIP1559Header(chain.Config(), parent, header); err != nil {
 		// Verify the header's EIP-1559 attributes.
 		return err
 	}
@@ -474,7 +488,7 @@ func (c *Clique) updateProposals(chain consensus.ChainHeaderReader, number uint6
 	if chain.Config().IsAthos(new(big.Int).SetUint64(number)) {
 		filteredWithAliases := c.aliasAccounts(filtered, true)
 
-		//we need to filter one more time because exclusion list can contain the alias but not the validator itself for some reasons.
+		// we need to filter one more time because exclusion list can contain the alias but not the validator itself for some reasons.
 		snap.Signers = toSet(filterSigners(number, filteredWithAliases, excludedSigners))
 	}
 
@@ -544,12 +558,12 @@ func (c *Clique) aliasAccounts(filtered []common.Address, isAthos bool) []common
 		return filtered
 	}
 	providerAliases := c.registry.AccountAliases(nil)
-	if providerAliases == nil { //signers are set already
+	if providerAliases == nil { // signers are set already
 		log.Error("failed to get account aliases list from smart contract")
 		return filtered
 	}
 
-	blockSealingPurpose, _ := new(big.Int).SetString("ac1c67647cbdc0261ee21863e0dcd233307d62845e0ab39b5e890ce32de5a917", 16) //crypto.Keccak256([]byte("BLOCK_SEALING")
+	blockSealingPurpose, _ := new(big.Int).SetString("ac1c67647cbdc0261ee21863e0dcd233307d62845e0ab39b5e890ce32de5a917", 16) // crypto.Keccak256([]byte("BLOCK_SEALING")
 	var purposes []*big.Int
 	for range filtered {
 		purposes = append(purposes, blockSealingPurpose)
@@ -568,12 +582,12 @@ func (c *Clique) UnAliasAccounts(filtered []common.Address, isAthos bool) []comm
 		return filtered
 	}
 	providerAliases := c.registry.AccountAliases(nil)
-	if providerAliases == nil { //signers are set already
+	if providerAliases == nil { // signers are set already
 		log.Error("failed to get account aliases list from smart contract")
 		return filtered
 	}
 
-	blockSealingPurpose, _ := new(big.Int).SetString("ac1c67647cbdc0261ee21863e0dcd233307d62845e0ab39b5e890ce32de5a917", 16) //crypto.Keccak256([]byte("BLOCK_SEALING")
+	blockSealingPurpose, _ := new(big.Int).SetString("ac1c67647cbdc0261ee21863e0dcd233307d62845e0ab39b5e890ce32de5a917", 16) // crypto.Keccak256([]byte("BLOCK_SEALING")
 	var purposes []*big.Int
 	for range filtered {
 		purposes = append(purposes, blockSealingPurpose)
@@ -604,7 +618,7 @@ func (c *Clique) snapshot(chain consensus.ChainHeaderReader, number uint64, hash
 	for snap == nil {
 		// If an in-memory snapshot was found, use that
 		if s, ok := c.recents.Get(hash); ok {
-			snap = s.(*Snapshot)
+			snap = s
 			break
 		}
 		// If an on-disk checkpoint snapshot can be found, use that
@@ -844,23 +858,27 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 	return nil
 }
 
-// Finalize implements consensus.Engine, ensuring no uncles are set, nor block
-// rewards given.
-func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) {
+// Finalize implements consensus.Engine. There is no post-transaction
+// consensus rules in clique, do nothing here.
+func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, withdrawals []*types.Withdrawal) {
 	c.accumulateRewards(state)
 
-	// No block rewards in PoA, so the state remains as is and uncles are dropped
-	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
-	header.UncleHash = types.CalcUncleHash(nil)
+	// No block rewards in PoA, so the state remains as is
 }
 
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,
 // nor block rewards given, and returns the final block.
-func (c *Clique) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+func (c *Clique) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
+	if len(withdrawals) > 0 {
+		return nil, errors.New("clique does not support withdrawals")
+	}
 	// Finalize block
-	c.Finalize(chain, header, state, txs, uncles)
+	c.Finalize(chain, header, state, txs, uncles, nil)
 
-	// Assemble and return the final block for sealing
+	// Assign the final state root to header.
+	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+
+	// Assemble and return the final block for sealing.
 	return types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil)), nil
 }
 
@@ -1037,6 +1055,18 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 	if header.BaseFee != nil {
 		enc = append(enc, header.BaseFee)
 	}
+	if header.WithdrawalsHash != nil {
+		panic("unexpected withdrawal hash value in clique")
+	}
+	if header.ExcessBlobGas != nil {
+		panic("unexpected excess blob gas value in clique")
+	}
+	if header.BlobGasUsed != nil {
+		panic("unexpected blob gas used value in clique")
+	}
+	if header.ParentBeaconRoot != nil {
+		panic("unexpected parent beacon root value in clique")
+	}
 	if err := rlp.Encode(w, enc); err != nil {
 		panic("can't encode: " + err.Error())
 	}
@@ -1095,7 +1125,7 @@ func toSet(signers []common.Address) map[common.Address]struct{} {
 }
 
 func (c *Clique) ChooseBlockWithMostRecentSigner(chain *core.BlockChain, header *types.Header, externalHeader *types.Header) (*types.Header, error) {
-	//In this case, header numbers should be the same, so take it from local header
+	// In this case, header numbers should be the same, so take it from local header
 	number := header.Number.Uint64()
 	if number == 0 {
 		return nil, errUnknownBlock
@@ -1131,7 +1161,7 @@ func (c *Clique) ChooseBlockWithMostRecentSigner(chain *core.BlockChain, header 
 		}
 	}
 
-	//We have no information about signer, so return local header
+	// We have no information about signer, so return local header
 	if externalIndex == 0 {
 		return header, nil
 	}

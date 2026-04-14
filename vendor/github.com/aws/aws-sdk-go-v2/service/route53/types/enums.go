@@ -35,9 +35,9 @@ const (
 	ChangeActionUpsert ChangeAction = "UPSERT"
 )
 
-// Values returns all known values for ChangeAction. Note that this can be expanded
-// in the future, and so it is only as up to date as the client. The ordering of
-// this slice is not guaranteed to be stable across updates.
+// Values returns all known values for ChangeAction. Note that this can be
+// expanded in the future, and so it is only as up to date as the client. The
+// ordering of this slice is not guaranteed to be stable across updates.
 func (ChangeAction) Values() []ChangeAction {
 	return []ChangeAction{
 		"CREATE",
@@ -54,13 +54,31 @@ const (
 	ChangeStatusInsync  ChangeStatus = "INSYNC"
 )
 
-// Values returns all known values for ChangeStatus. Note that this can be expanded
-// in the future, and so it is only as up to date as the client. The ordering of
-// this slice is not guaranteed to be stable across updates.
+// Values returns all known values for ChangeStatus. Note that this can be
+// expanded in the future, and so it is only as up to date as the client. The
+// ordering of this slice is not guaranteed to be stable across updates.
 func (ChangeStatus) Values() []ChangeStatus {
 	return []ChangeStatus{
 		"PENDING",
 		"INSYNC",
+	}
+}
+
+type CidrCollectionChangeAction string
+
+// Enum values for CidrCollectionChangeAction
+const (
+	CidrCollectionChangeActionPut            CidrCollectionChangeAction = "PUT"
+	CidrCollectionChangeActionDeleteIfExists CidrCollectionChangeAction = "DELETE_IF_EXISTS"
+)
+
+// Values returns all known values for CidrCollectionChangeAction. Note that this
+// can be expanded in the future, and so it is only as up to date as the client.
+// The ordering of this slice is not guaranteed to be stable across updates.
+func (CidrCollectionChangeAction) Values() []CidrCollectionChangeAction {
+	return []CidrCollectionChangeAction{
+		"PUT",
+		"DELETE_IF_EXISTS",
 	}
 }
 
@@ -74,14 +92,18 @@ const (
 	CloudWatchRegionUsWest2      CloudWatchRegion = "us-west-2"
 	CloudWatchRegionCaCentral1   CloudWatchRegion = "ca-central-1"
 	CloudWatchRegionEuCentral1   CloudWatchRegion = "eu-central-1"
+	CloudWatchRegionEuCentral2   CloudWatchRegion = "eu-central-2"
 	CloudWatchRegionEuWest1      CloudWatchRegion = "eu-west-1"
 	CloudWatchRegionEuWest2      CloudWatchRegion = "eu-west-2"
 	CloudWatchRegionEuWest3      CloudWatchRegion = "eu-west-3"
 	CloudWatchRegionApEast1      CloudWatchRegion = "ap-east-1"
 	CloudWatchRegionMeSouth1     CloudWatchRegion = "me-south-1"
+	CloudWatchRegionMeCentral1   CloudWatchRegion = "me-central-1"
 	CloudWatchRegionApSouth1     CloudWatchRegion = "ap-south-1"
+	CloudWatchRegionApSouth2     CloudWatchRegion = "ap-south-2"
 	CloudWatchRegionApSoutheast1 CloudWatchRegion = "ap-southeast-1"
 	CloudWatchRegionApSoutheast2 CloudWatchRegion = "ap-southeast-2"
+	CloudWatchRegionApSoutheast3 CloudWatchRegion = "ap-southeast-3"
 	CloudWatchRegionApNortheast1 CloudWatchRegion = "ap-northeast-1"
 	CloudWatchRegionApNortheast2 CloudWatchRegion = "ap-northeast-2"
 	CloudWatchRegionApNortheast3 CloudWatchRegion = "ap-northeast-3"
@@ -91,10 +113,14 @@ const (
 	CloudWatchRegionCnNorth1     CloudWatchRegion = "cn-north-1"
 	CloudWatchRegionAfSouth1     CloudWatchRegion = "af-south-1"
 	CloudWatchRegionEuSouth1     CloudWatchRegion = "eu-south-1"
+	CloudWatchRegionEuSouth2     CloudWatchRegion = "eu-south-2"
 	CloudWatchRegionUsGovWest1   CloudWatchRegion = "us-gov-west-1"
 	CloudWatchRegionUsGovEast1   CloudWatchRegion = "us-gov-east-1"
 	CloudWatchRegionUsIsoEast1   CloudWatchRegion = "us-iso-east-1"
+	CloudWatchRegionUsIsoWest1   CloudWatchRegion = "us-iso-west-1"
 	CloudWatchRegionUsIsobEast1  CloudWatchRegion = "us-isob-east-1"
+	CloudWatchRegionApSoutheast4 CloudWatchRegion = "ap-southeast-4"
+	CloudWatchRegionIlCentral1   CloudWatchRegion = "il-central-1"
 )
 
 // Values returns all known values for CloudWatchRegion. Note that this can be
@@ -108,14 +134,18 @@ func (CloudWatchRegion) Values() []CloudWatchRegion {
 		"us-west-2",
 		"ca-central-1",
 		"eu-central-1",
+		"eu-central-2",
 		"eu-west-1",
 		"eu-west-2",
 		"eu-west-3",
 		"ap-east-1",
 		"me-south-1",
+		"me-central-1",
 		"ap-south-1",
+		"ap-south-2",
 		"ap-southeast-1",
 		"ap-southeast-2",
+		"ap-southeast-3",
 		"ap-northeast-1",
 		"ap-northeast-2",
 		"ap-northeast-3",
@@ -125,10 +155,14 @@ func (CloudWatchRegion) Values() []CloudWatchRegion {
 		"cn-north-1",
 		"af-south-1",
 		"eu-south-1",
+		"eu-south-2",
 		"us-gov-west-1",
 		"us-gov-east-1",
 		"us-iso-east-1",
+		"us-iso-west-1",
 		"us-isob-east-1",
+		"ap-southeast-4",
+		"il-central-1",
 	}
 }
 
@@ -195,6 +229,7 @@ const (
 	HealthCheckTypeTcp              HealthCheckType = "TCP"
 	HealthCheckTypeCalculated       HealthCheckType = "CALCULATED"
 	HealthCheckTypeCloudwatchMetric HealthCheckType = "CLOUDWATCH_METRIC"
+	HealthCheckTypeRecoveryControl  HealthCheckType = "RECOVERY_CONTROL"
 )
 
 // Values returns all known values for HealthCheckType. Note that this can be
@@ -209,6 +244,7 @@ func (HealthCheckType) Values() []HealthCheckType {
 		"TCP",
 		"CALCULATED",
 		"CLOUDWATCH_METRIC",
+		"RECOVERY_CONTROL",
 	}
 }
 
@@ -230,6 +266,22 @@ func (HostedZoneLimitType) Values() []HostedZoneLimitType {
 	}
 }
 
+type HostedZoneType string
+
+// Enum values for HostedZoneType
+const (
+	HostedZoneTypePrivateHostedZone HostedZoneType = "PrivateHostedZone"
+)
+
+// Values returns all known values for HostedZoneType. Note that this can be
+// expanded in the future, and so it is only as up to date as the client. The
+// ordering of this slice is not guaranteed to be stable across updates.
+func (HostedZoneType) Values() []HostedZoneType {
+	return []HostedZoneType{
+		"PrivateHostedZone",
+	}
+}
+
 type InsufficientDataHealthStatus string
 
 // Enum values for InsufficientDataHealthStatus
@@ -239,9 +291,10 @@ const (
 	InsufficientDataHealthStatusLastKnownStatus InsufficientDataHealthStatus = "LastKnownStatus"
 )
 
-// Values returns all known values for InsufficientDataHealthStatus. Note that this
-// can be expanded in the future, and so it is only as up to date as the client.
-// The ordering of this slice is not guaranteed to be stable across updates.
+// Values returns all known values for InsufficientDataHealthStatus. Note that
+// this can be expanded in the future, and so it is only as up to date as the
+// client. The ordering of this slice is not guaranteed to be stable across
+// updates.
 func (InsufficientDataHealthStatus) Values() []InsufficientDataHealthStatus {
 	return []InsufficientDataHealthStatus{
 		"Healthy",
@@ -260,8 +313,8 @@ const (
 	ResettableElementNameChildHealthChecks        ResettableElementName = "ChildHealthChecks"
 )
 
-// Values returns all known values for ResettableElementName. Note that this can be
-// expanded in the future, and so it is only as up to date as the client. The
+// Values returns all known values for ResettableElementName. Note that this can
+// be expanded in the future, and so it is only as up to date as the client. The
 // ordering of this slice is not guaranteed to be stable across updates.
 func (ResettableElementName) Values() []ResettableElementName {
 	return []ResettableElementName{
@@ -303,8 +356,10 @@ const (
 	ResourceRecordSetRegionEuWest2      ResourceRecordSetRegion = "eu-west-2"
 	ResourceRecordSetRegionEuWest3      ResourceRecordSetRegion = "eu-west-3"
 	ResourceRecordSetRegionEuCentral1   ResourceRecordSetRegion = "eu-central-1"
+	ResourceRecordSetRegionEuCentral2   ResourceRecordSetRegion = "eu-central-2"
 	ResourceRecordSetRegionApSoutheast1 ResourceRecordSetRegion = "ap-southeast-1"
 	ResourceRecordSetRegionApSoutheast2 ResourceRecordSetRegion = "ap-southeast-2"
+	ResourceRecordSetRegionApSoutheast3 ResourceRecordSetRegion = "ap-southeast-3"
 	ResourceRecordSetRegionApNortheast1 ResourceRecordSetRegion = "ap-northeast-1"
 	ResourceRecordSetRegionApNortheast2 ResourceRecordSetRegion = "ap-northeast-2"
 	ResourceRecordSetRegionApNortheast3 ResourceRecordSetRegion = "ap-northeast-3"
@@ -314,9 +369,14 @@ const (
 	ResourceRecordSetRegionCnNorthwest1 ResourceRecordSetRegion = "cn-northwest-1"
 	ResourceRecordSetRegionApEast1      ResourceRecordSetRegion = "ap-east-1"
 	ResourceRecordSetRegionMeSouth1     ResourceRecordSetRegion = "me-south-1"
+	ResourceRecordSetRegionMeCentral1   ResourceRecordSetRegion = "me-central-1"
 	ResourceRecordSetRegionApSouth1     ResourceRecordSetRegion = "ap-south-1"
+	ResourceRecordSetRegionApSouth2     ResourceRecordSetRegion = "ap-south-2"
 	ResourceRecordSetRegionAfSouth1     ResourceRecordSetRegion = "af-south-1"
 	ResourceRecordSetRegionEuSouth1     ResourceRecordSetRegion = "eu-south-1"
+	ResourceRecordSetRegionEuSouth2     ResourceRecordSetRegion = "eu-south-2"
+	ResourceRecordSetRegionApSoutheast4 ResourceRecordSetRegion = "ap-southeast-4"
+	ResourceRecordSetRegionIlCentral1   ResourceRecordSetRegion = "il-central-1"
 )
 
 // Values returns all known values for ResourceRecordSetRegion. Note that this can
@@ -333,8 +393,10 @@ func (ResourceRecordSetRegion) Values() []ResourceRecordSetRegion {
 		"eu-west-2",
 		"eu-west-3",
 		"eu-central-1",
+		"eu-central-2",
 		"ap-southeast-1",
 		"ap-southeast-2",
+		"ap-southeast-3",
 		"ap-northeast-1",
 		"ap-northeast-2",
 		"ap-northeast-3",
@@ -344,9 +406,14 @@ func (ResourceRecordSetRegion) Values() []ResourceRecordSetRegion {
 		"cn-northwest-1",
 		"ap-east-1",
 		"me-south-1",
+		"me-central-1",
 		"ap-south-1",
+		"ap-south-2",
 		"af-south-1",
 		"eu-south-1",
+		"eu-south-2",
+		"ap-southeast-4",
+		"il-central-1",
 	}
 }
 
@@ -418,9 +485,9 @@ const (
 	StatisticMinimum     Statistic = "Minimum"
 )
 
-// Values returns all known values for Statistic. Note that this can be expanded in
-// the future, and so it is only as up to date as the client. The ordering of this
-// slice is not guaranteed to be stable across updates.
+// Values returns all known values for Statistic. Note that this can be expanded
+// in the future, and so it is only as up to date as the client. The ordering of
+// this slice is not guaranteed to be stable across updates.
 func (Statistic) Values() []Statistic {
 	return []Statistic{
 		"Average",
@@ -461,15 +528,20 @@ const (
 	VPCRegionEuWest2      VPCRegion = "eu-west-2"
 	VPCRegionEuWest3      VPCRegion = "eu-west-3"
 	VPCRegionEuCentral1   VPCRegion = "eu-central-1"
+	VPCRegionEuCentral2   VPCRegion = "eu-central-2"
 	VPCRegionApEast1      VPCRegion = "ap-east-1"
 	VPCRegionMeSouth1     VPCRegion = "me-south-1"
 	VPCRegionUsGovWest1   VPCRegion = "us-gov-west-1"
 	VPCRegionUsGovEast1   VPCRegion = "us-gov-east-1"
 	VPCRegionUsIsoEast1   VPCRegion = "us-iso-east-1"
+	VPCRegionUsIsoWest1   VPCRegion = "us-iso-west-1"
 	VPCRegionUsIsobEast1  VPCRegion = "us-isob-east-1"
+	VPCRegionMeCentral1   VPCRegion = "me-central-1"
 	VPCRegionApSoutheast1 VPCRegion = "ap-southeast-1"
 	VPCRegionApSoutheast2 VPCRegion = "ap-southeast-2"
+	VPCRegionApSoutheast3 VPCRegion = "ap-southeast-3"
 	VPCRegionApSouth1     VPCRegion = "ap-south-1"
+	VPCRegionApSouth2     VPCRegion = "ap-south-2"
 	VPCRegionApNortheast1 VPCRegion = "ap-northeast-1"
 	VPCRegionApNortheast2 VPCRegion = "ap-northeast-2"
 	VPCRegionApNortheast3 VPCRegion = "ap-northeast-3"
@@ -479,11 +551,14 @@ const (
 	VPCRegionCnNorth1     VPCRegion = "cn-north-1"
 	VPCRegionAfSouth1     VPCRegion = "af-south-1"
 	VPCRegionEuSouth1     VPCRegion = "eu-south-1"
+	VPCRegionEuSouth2     VPCRegion = "eu-south-2"
+	VPCRegionApSoutheast4 VPCRegion = "ap-southeast-4"
+	VPCRegionIlCentral1   VPCRegion = "il-central-1"
 )
 
-// Values returns all known values for VPCRegion. Note that this can be expanded in
-// the future, and so it is only as up to date as the client. The ordering of this
-// slice is not guaranteed to be stable across updates.
+// Values returns all known values for VPCRegion. Note that this can be expanded
+// in the future, and so it is only as up to date as the client. The ordering of
+// this slice is not guaranteed to be stable across updates.
 func (VPCRegion) Values() []VPCRegion {
 	return []VPCRegion{
 		"us-east-1",
@@ -494,15 +569,20 @@ func (VPCRegion) Values() []VPCRegion {
 		"eu-west-2",
 		"eu-west-3",
 		"eu-central-1",
+		"eu-central-2",
 		"ap-east-1",
 		"me-south-1",
 		"us-gov-west-1",
 		"us-gov-east-1",
 		"us-iso-east-1",
+		"us-iso-west-1",
 		"us-isob-east-1",
+		"me-central-1",
 		"ap-southeast-1",
 		"ap-southeast-2",
+		"ap-southeast-3",
 		"ap-south-1",
+		"ap-south-2",
 		"ap-northeast-1",
 		"ap-northeast-2",
 		"ap-northeast-3",
@@ -512,5 +592,8 @@ func (VPCRegion) Values() []VPCRegion {
 		"cn-north-1",
 		"af-south-1",
 		"eu-south-1",
+		"eu-south-2",
+		"ap-southeast-4",
+		"il-central-1",
 	}
 }

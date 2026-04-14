@@ -3,12 +3,14 @@ package goja
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
 	"strconv"
 	"strings"
 	"unicode/utf16"
+	"unicode/utf8"
 
 	"github.com/dop251/goja/unistring"
 )
@@ -16,9 +18,12 @@ import (
 const hex = "0123456789abcdef"
 
 func (r *Runtime) builtinJSON_parse(call FunctionCall) Value {
-	d := json.NewDecoder(bytes.NewBufferString(call.Argument(0).toString().String()))
+	d := json.NewDecoder(strings.NewReader(call.Argument(0).toString().String()))
 
 	value, err := r.builtinJSON_decodeValue(d)
+	if errors.Is(err, io.EOF) {
+		panic(r.newError(r.global.SyntaxError, "Unexpected end of JSON input (%v)", err.Error()))
+	}
 	if err != nil {
 		panic(r.newError(r.global.SyntaxError, err.Error()))
 	}
@@ -171,11 +176,13 @@ type _builtinJSON_stringifyContext struct {
 	replacerFunction func(FunctionCall) Value
 	gap, indent      string
 	buf              bytes.Buffer
+	allAscii         bool
 }
 
 func (r *Runtime) builtinJSON_stringify(call FunctionCall) Value {
 	ctx := _builtinJSON_stringifyContext{
-		r: r,
+		r:        r,
+		allAscii: true,
 	}
 
 	replacer, _ := call.Argument(1).(*Object)
@@ -189,7 +196,7 @@ func (r *Runtime) builtinJSON_stringify(call FunctionCall) Value {
 				var name string
 				value := replacer.self.getIdx(valueInt(int64(index)), nil)
 				switch v := value.(type) {
-				case valueFloat, valueInt, valueString:
+				case valueFloat, valueInt, String:
 					name = value.String()
 				case *Object:
 					switch v.self.className() {
@@ -242,7 +249,7 @@ func (r *Runtime) builtinJSON_stringify(call FunctionCall) Value {
 				ctx.gap = strings.Repeat(" ", int(num))
 			}
 		} else {
-			if s, ok := spaceValue.(valueString); ok {
+			if s, ok := spaceValue.(String); ok {
 				str := s.String()
 				if len(str) > 10 {
 					ctx.gap = str[:10]
@@ -254,7 +261,13 @@ func (r *Runtime) builtinJSON_stringify(call FunctionCall) Value {
 	}
 
 	if ctx.do(call.Argument(0)) {
-		return newStringValue(ctx.buf.String())
+		if ctx.allAscii {
+			return asciiString(ctx.buf.String())
+		} else {
+			return &importedString{
+				s: ctx.buf.String(),
+			}
+		}
 	}
 	return _undefined
 }
@@ -306,13 +319,14 @@ func (ctx *_builtinJSON_stringifyContext) str(key Value, holder *Object) bool {
 					panic(err)
 				}
 				ctx.buf.Write(b)
+				ctx.allAscii = false
 				return true
 			} else {
 				switch o1.className() {
 				case classNumber:
-					value = o1.toPrimitiveNumber()
+					value = o1.val.ordinaryToPrimitiveNumber()
 				case classString:
-					value = o1.toPrimitiveString()
+					value = o1.val.ordinaryToPrimitiveString()
 				case classBoolean:
 					if o.ToInteger() != 0 {
 						value = valueTrue
@@ -331,7 +345,7 @@ func (ctx *_builtinJSON_stringifyContext) str(key Value, holder *Object) bool {
 		} else {
 			ctx.buf.WriteString("false")
 		}
-	case valueString:
+	case String:
 		ctx.quote(value1)
 	case valueInt:
 		ctx.buf.WriteString(value.String())
@@ -462,9 +476,9 @@ func (ctx *_builtinJSON_stringifyContext) jo(object *Object) {
 	ctx.buf.WriteByte('}')
 }
 
-func (ctx *_builtinJSON_stringifyContext) quote(str valueString) {
+func (ctx *_builtinJSON_stringifyContext) quote(str String) {
 	ctx.buf.WriteByte('"')
-	reader := &lenientUtf16Decoder{utf16Reader: str.utf16Reader(0)}
+	reader := &lenientUtf16Decoder{utf16Reader: str.utf16Reader()}
 	for {
 		r, _, err := reader.ReadRune()
 		if err != nil {
@@ -498,6 +512,9 @@ func (ctx *_builtinJSON_stringifyContext) quote(str valueString) {
 					ctx.buf.WriteByte(hex[r&0xF])
 				} else {
 					ctx.buf.WriteRune(r)
+					if ctx.allAscii && r >= utf8.RuneSelf {
+						ctx.allAscii = false
+					}
 				}
 			}
 		}
@@ -506,7 +523,7 @@ func (ctx *_builtinJSON_stringifyContext) quote(str valueString) {
 }
 
 func (r *Runtime) initJSON() {
-	JSON := r.newBaseObject(r.global.ObjectPrototype, "JSON")
+	JSON := r.newBaseObject(r.global.ObjectPrototype, classObject)
 	JSON._putProp("parse", r.newNativeFunc(r.builtinJSON_parse, nil, "parse", nil, 2), true, false, true)
 	JSON._putProp("stringify", r.newNativeFunc(r.builtinJSON_stringify, nil, "stringify", nil, 3), true, false, true)
 	JSON._putSym(SymToStringTag, valueProp(asciiString(classJSON), false, false, true))

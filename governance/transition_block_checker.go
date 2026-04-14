@@ -56,7 +56,7 @@ func (c *transitionBlockChecker) checkTransitionBlockLater(header *types.Header)
 
 	// if header number + cfg.transitionBlockVerifiedBlocks < current block number
 	// check the header later to make sure it is in canonical chain
-	if new(big.Int).Add(big.NewInt(c.transitionBlockVerifiedBlocks), header.Number).Cmp(c.bc.CurrentBlock().Number()) < 0 {
+	if new(big.Int).Add(big.NewInt(c.transitionBlockVerifiedBlocks), header.Number).Cmp(c.bc.CurrentBlock().Number) < 0 {
 		return false, nil
 	}
 
@@ -104,7 +104,7 @@ func (c *transitionBlockChecker) checkTransitionBlock(header *types.Header) {
 	}
 
 	// Skip if canonical chain isn't mature enough
-	if new(big.Int).Add(big.NewInt(c.transitionBlockVerifiedBlocks), header.Number).Cmp(c.bc.CurrentBlock().Number()) > 0 {
+	if new(big.Int).Add(big.NewInt(c.transitionBlockVerifiedBlocks), header.Number).Cmp(c.bc.CurrentBlock().Number) > 0 {
 		return
 	}
 

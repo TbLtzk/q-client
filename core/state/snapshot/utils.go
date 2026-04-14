@@ -23,9 +23,9 @@ import (
 
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/core/rawdb"
+	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/ethdb"
 	"gitlab.com/q-dev/q-client/log"
-	"gitlab.com/q-dev/q-client/rlp"
 )
 
 // CheckDanglingStorage iterates the snap storage data, and verifies that all
@@ -98,8 +98,8 @@ func CheckJournalAccount(db ethdb.KeyValueStore, hash common.Hash) error {
 	baseRoot := rawdb.ReadSnapshotRoot(db)
 	fmt.Printf("Disklayer: Root: %x\n", baseRoot)
 	if data := rawdb.ReadAccountSnapshot(db, hash); data != nil {
-		account := new(Account)
-		if err := rlp.DecodeBytes(data, account); err != nil {
+		account, err := types.FullAccount(data)
+		if err != nil {
 			panic(err)
 		}
 		fmt.Printf("\taccount.nonce: %d\n", account.Nonce)
@@ -129,8 +129,8 @@ func CheckJournalAccount(db ethdb.KeyValueStore, hash common.Hash) error {
 		}
 		fmt.Printf("Disklayer+%d: Root: %x, parent %x\n", depth, root, pRoot)
 		if data, ok := accounts[hash]; ok {
-			account := new(Account)
-			if err := rlp.DecodeBytes(data, account); err != nil {
+			account, err := types.FullAccount(data)
+			if err != nil {
 				panic(err)
 			}
 			fmt.Printf("\taccount.nonce: %d\n", account.Nonce)

@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
 	"math/bits"
 	"strings"
@@ -40,7 +41,11 @@ var (
 )
 
 // ToBig returns a big.Int version of z.
+// Return `nil` if z is nil
 func (z *Int) ToBig() *big.Int {
+	if z == nil {
+		return nil
+	}
 	b := new(big.Int)
 	switch maxWords { // Compile-time check.
 	case 4: // 64-bit architectures.
@@ -60,7 +65,11 @@ func (z *Int) ToBig() *big.Int {
 
 // FromBig is a convenience-constructor from big.Int.
 // Returns a new Int and whether overflow occurred.
+// OBS: If b is `nil`, this method returns `nil, false`
 func FromBig(b *big.Int) (*Int, bool) {
+	if b == nil {
+		return nil, false
+	}
 	z := &Int{}
 	overflow := z.SetFromBig(b)
 	return z, overflow
@@ -68,12 +77,53 @@ func FromBig(b *big.Int) (*Int, bool) {
 
 // MustFromBig is a convenience-constructor from big.Int.
 // Returns a new Int and panics if overflow occurred.
+// OBS: If b is `nil`, this method does _not_ panic, but
+// instead returns `nil`
 func MustFromBig(b *big.Int) *Int {
+	if b == nil {
+		return nil
+	}
 	z := &Int{}
 	if z.SetFromBig(b) {
 		panic("overflow")
 	}
 	return z
+}
+
+// Float64 returns the float64 value nearest to x.
+//
+// Note: The `big.Float` version of `Float64` also returns an 'Accuracy', indicating
+// whether the value was too small or too large to be represented by a
+// `float64`. However, the `uint256` type is unable to represent values
+// out of scope (|x| < math.SmallestNonzeroFloat64 or |x| > math.MaxFloat64),
+// therefore this method does not return any accuracy.
+func (z *Int) Float64() float64 {
+	if z.IsUint64() {
+		return float64(z.Uint64())
+	}
+	// See [1] for a detailed walkthrough of IEEE 754 conversion
+	//
+	// 1: https://www.wikihow.com/Convert-a-Number-from-Decimal-to-IEEE-754-Floating-Point-Representation
+
+	bitlen := uint64(z.BitLen())
+
+	// Normalize the number, by shifting it so that the MSB is shifted out.
+	y := new(Int).Lsh(z, uint(1+256-bitlen))
+	// The number with the leading 1 shifted out is the fraction.
+	fraction := y[3]
+
+	// The exp is calculated from the number of shifts, adjusted with the bias.
+	// double-precision uses 1023 as bias
+	biased_exp := 1023 + bitlen - 1
+
+	// The IEEE 754 double-precision layout is as follows:
+	//  1 sign bit (we don't bother with this, since it's always zero for uints)
+	// 11 exponent bits
+	// 52 fraction bits
+	// --------
+	// 64 bits
+
+	return math.Float64frombits(biased_exp<<52 | fraction>>12)
 }
 
 // SetFromHex sets z from the given string, interpreted as a hexadecimal number.
@@ -85,7 +135,6 @@ func MustFromBig(b *big.Int) *Int {
 // - This method does not accept negative zero as valid, e.g "-0x0",
 //   - (this method does not accept any negative input as valid)
 func (z *Int) SetFromHex(hex string) error {
-	z.Clear()
 	return z.fromHex(hex)
 }
 
@@ -97,6 +146,7 @@ func (z *Int) fromHex(hex string) error {
 	if len(hex) > 66 {
 		return ErrBig256Range
 	}
+	z.Clear()
 	end := len(hex)
 	for i := 0; i < 4; i++ {
 		start := end - 16
@@ -127,10 +177,25 @@ func FromHex(hex string) (*Int, error) {
 	return &z, nil
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler
+// MustFromHex is a convenience-constructor to create an Int from
+// a hexadecimal string.
+// Returns a new Int and panics if any error occurred.
+func MustFromHex(hex string) *Int {
+	var z Int
+	if err := z.fromHex(hex); err != nil {
+		panic(err)
+	}
+	return &z
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler. This method
+// can unmarshal either hexadecimal or decimal.
+// - For hexadecimal, the input _must_ be prefixed with 0x or 0X
 func (z *Int) UnmarshalText(input []byte) error {
-	z.Clear()
-	return z.fromHex(string(input))
+	if len(input) >= 2 && input[0] == '0' && (input[1] == 'x' || input[1] == 'X') {
+		return z.fromHex(string(input))
+	}
+	return z.fromDecimal(string(input))
 }
 
 // SetFromBig converts a big.Int to Int and sets the value to z.
@@ -552,26 +617,36 @@ func (z *Int) EncodeRLP(w io.Writer) error {
 }
 
 // MarshalText implements encoding.TextMarshaler
+// MarshalText marshals using the decimal representation (compatible with big.Int)
 func (z *Int) MarshalText() ([]byte, error) {
-	return []byte(z.Hex()), nil
+	return []byte(z.Dec()), nil
 }
 
 // MarshalJSON implements json.Marshaler.
+// MarshalJSON marshals using the 'decimal string' representation. This is _not_ compatible
+// with big.Int: big.Int marshals into JSON 'native' numeric format.
+//
+// The JSON  native format is, on some platforms, (e.g. javascript), limited to 53-bit large
+// integer space. Thus, U256 uses string-format, which is not compatible with
+// big.int (big.Int refuses to unmarshal a string representation).
 func (z *Int) MarshalJSON() ([]byte, error) {
-	return []byte(`"` + z.Hex() + `"`), nil
+	return []byte(`"` + z.Dec() + `"`), nil
 }
 
-// UnmarshalJSON implements json.Unmarshaler.
+// UnmarshalJSON implements json.Unmarshaler. UnmarshalJSON accepts either
+// - Quoted string: either hexadecimal OR decimal
+// - Not quoted string: only decimal
 func (z *Int) UnmarshalJSON(input []byte) error {
 	if len(input) < 2 || input[0] != '"' || input[len(input)-1] != '"' {
-		return ErrNonString
+		// if not quoted, it must be decimal
+		return z.fromDecimal(string(input))
 	}
 	return z.UnmarshalText(input[1 : len(input)-1])
 }
 
-// String returns the hex encoding of b.
+// String returns the decimal encoding of b.
 func (z *Int) String() string {
-	return z.Hex()
+	return z.Dec()
 }
 
 const (
@@ -667,7 +742,7 @@ func (dst *Int) scanScientificFromString(src string) error {
 // In MariaDB/MySQL, this will work with the Numeric/Decimal types up to 65 digits, however any more and you should use either VarChar or Char(79)
 // In SqLite, use TEXT
 func (src *Int) Value() (driver.Value, error) {
-	return src.ToBig().String(), nil
+	return src.Dec(), nil
 }
 
 var (
@@ -677,7 +752,6 @@ var (
 	ErrEmptyNumber      = errors.New("hex string \"0x\"")
 	ErrLeadingZero      = errors.New("hex number with leading zero digits")
 	ErrBig256Range      = errors.New("hex number > 256 bits")
-	ErrNonString        = errors.New("non-string")
 	ErrBadBufferLength  = errors.New("bad ssz buffer length")
 	ErrBadEncodedLength = errors.New("bad ssz encoded length")
 )

@@ -10,17 +10,16 @@ type errorObject struct {
 	stackPropAdded bool
 }
 
-func (e *errorObject) formatStack() valueString {
-	var b valueStringBuilder
-	if name := e.getStr("name", nil); name != nil {
-		b.WriteString(name.toString())
-		b.WriteRune('\n')
-	} else {
-		b.WriteASCII("Error\n")
+func (e *errorObject) formatStack() String {
+	var b StringBuilder
+	val := writeErrorString(&b, e.val)
+	if val != nil {
+		b.WriteString(val)
 	}
+	b.WriteRune('\n')
 
 	for _, frame := range e.stack {
-		b.WriteASCII("\tat ")
+		b.writeASCII("\tat ")
 		frame.WriteToValueBuilder(&b)
 		b.WriteRune('\n')
 	}
@@ -129,7 +128,7 @@ func (r *Runtime) builtin_Error(args []Value, proto *Object) *Object {
 }
 
 func (r *Runtime) builtin_AggregateError(args []Value, proto *Object) *Object {
-	obj := r.newErrorObject(proto, classAggError)
+	obj := r.newErrorObject(proto, classError)
 	if len(args) > 1 && args[1] != nil && args[1] != _undefined {
 		obj._putProp("message", args[1].toString(), true, false, true)
 	}
@@ -142,7 +141,42 @@ func (r *Runtime) builtin_AggregateError(args []Value, proto *Object) *Object {
 	return obj.val
 }
 
-func (r *Runtime) createErrorPrototype(name valueString) *Object {
+func writeErrorString(sb *StringBuilder, obj *Object) String {
+	var nameStr, msgStr String
+	name := obj.self.getStr("name", nil)
+	if name == nil || name == _undefined {
+		nameStr = asciiString("Error")
+	} else {
+		nameStr = name.toString()
+	}
+	msg := obj.self.getStr("message", nil)
+	if msg == nil || msg == _undefined {
+		msgStr = stringEmpty
+	} else {
+		msgStr = msg.toString()
+	}
+	if nameStr.Length() == 0 {
+		return msgStr
+	}
+	if msgStr.Length() == 0 {
+		return nameStr
+	}
+	sb.WriteString(nameStr)
+	sb.WriteString(asciiString(": "))
+	sb.WriteString(msgStr)
+	return nil
+}
+
+func (r *Runtime) error_toString(call FunctionCall) Value {
+	var sb StringBuilder
+	val := writeErrorString(&sb, r.toObject(call.This))
+	if val != nil {
+		return val
+	}
+	return sb.String()
+}
+
+func (r *Runtime) createErrorPrototype(name String) *Object {
 	o := r.newBaseObject(r.global.ErrorPrototype, classObject)
 	o._putProp("message", stringEmpty, true, false, true)
 	o._putProp("name", name, true, false, true)

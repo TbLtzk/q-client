@@ -100,7 +100,6 @@ func randSlice(min, max uint32) []byte {
 }
 
 func TestDifficultyCalculators(t *testing.T) {
-	rand.New(rand.NewSource(2))
 	for i := 0; i < 5000; i++ {
 		// 1 to 300 seconds diff
 		var timeDelta = uint64(1 + rand.Uint32()%3000)

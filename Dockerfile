@@ -5,26 +5,23 @@ ARG VERSION=""
 ARG BUILDNUM=""
 
 # Build Geth in a stock Go builder container
-FROM golang:1.19-alpine as builder
+FROM golang:1.21-alpine as builder
 
 RUN apk add --no-cache make gcc musl-dev linux-headers git
 
-# Fetch dependencies
-# RUN go get -u ./...
+# Copy module files first so we can download deps (and so verify has go.mod)
+COPY go.mod go.sum ./
 
-# Verify dependencies
-RUN go mod verify
+# Verify and download dependencies (use module cache; vendor prunes C sources for blst - golang/go#26366)
+RUN go mod verify && go mod download
 
-# Update vendor
-RUN go mod vendor
-
-# Build geth
+# Build geth (use -mod=mod so module cache is used; vendor does not include blst C headers)
 ADD . /q-client
 ARG BUILD_TOKEN
 ARG USERNAME=oauth2
 RUN git config --global url."https://${USERNAME}:${BUILD_TOKEN}@gitlab.com/".insteadOf https://gitlab.com/
 RUN go env -w GOPRIVATE=gitlab.com/q-dev/*
-RUN cd /q-client && make geth
+RUN cd /q-client && GOFLAGS=-mod=mod make geth
 
 # Pull Geth into a second stage deploy alpine container
 FROM ${ARCH}alpine:latest

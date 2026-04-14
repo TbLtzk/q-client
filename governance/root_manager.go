@@ -92,6 +92,8 @@ type RootManager struct {
 
 	ApprovalMaxFailures    uint64
 	transitionBlockChecker *transitionBlockChecker
+	quarantineTicker       *time.Ticker
+	quarantineTickerDone   chan struct{}
 }
 
 // Config of root manager
@@ -175,6 +177,9 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 		ProposalQuotaTimeWindow: cfg.ProposalQuotaTimeWindow,
 
 		ApprovalMaxFailures: cfg.ApprovalMaxFailures,
+
+		quarantineTicker:     time.NewTicker(time.Minute),
+		quarantineTickerDone: make(chan struct{}),
 	}
 
 	manager.transitionBlockChecker = newTransitionBlockChecker(
@@ -311,7 +316,7 @@ func (s *RootManager) signExclusionSet(set *exclusionSet) bool {
 }
 
 func (s *RootManager) isExclusionSetMeetsQuarantineCriteria(blockNumber uint64) bool {
-	currentBlock := s.bc.CurrentBlock().Number().Uint64()
+	currentBlock := s.bc.CurrentBlock().Number.Uint64()
 	rewindLimit := s.maxRewindLimit() // TODO reconsider this logic
 
 	// Check if set can cause a rewind
@@ -384,7 +389,7 @@ func (s *RootManager) validateOldExclusionSet(set *exclusionSet) error {
 		return nil
 	}
 
-	currentBlock := s.bc.CurrentBlock().Number().Uint64()
+	currentBlock := s.bc.CurrentBlock().Number.Uint64()
 
 	if s.activeExSet != nil {
 		// current members of exclusion list should be left unchanged
@@ -438,7 +443,7 @@ func (s *RootManager) validateNewExclusionSet(proposedSet *exclusionSet) error {
 		return nil
 	}
 
-	currentBlock := s.bc.CurrentBlock().Number()
+	currentBlock := s.bc.CurrentBlock().Number
 
 	if s.activeExSet != nil {
 		// Upgraded L0 governance
@@ -1130,7 +1135,7 @@ func (s *RootManager) ValidatePreviousTransitionBlockSignature() {
 	if s.bc == nil {
 		return
 	}
-	currentBlock := s.bc.CurrentBlock().Number().Uint64()
+	currentBlock := s.bc.CurrentBlock().Number.Uint64()
 	previousTransitionBlock := currentBlock - currentBlock%s.bc.Config().Clique.Epoch
 	s.HandleTransitionBlockSignature(s.bc.GetBlockByNumber(previousTransitionBlock).Header())
 }
@@ -1169,7 +1174,7 @@ func (s *RootManager) HandleTransitionBlockSignature(header *types.Header) {
 		return
 	}
 
-	currentBlock := s.bc.CurrentBlock().Number().Uint64()
+	currentBlock := s.bc.CurrentBlock().Number.Uint64()
 	if s.dl != nil && s.dl.Progress().HighestBlock > currentBlock {
 		currentBlock = s.dl.Progress().HighestBlock
 		log.Debug("Co-sign during sync", "block_to_co-sign", header.Number.Uint64(), "latest_block", currentBlock)
@@ -1218,7 +1223,7 @@ func (s *RootManager) isAthosReached() bool {
 	if s.bc == nil {
 		return false
 	}
-	currentBlock := s.bc.CurrentBlock().Number()
+	currentBlock := s.bc.CurrentBlock().Number
 	return s.bc.Config().IsAthos(currentBlock)
 }
 
@@ -1258,13 +1263,17 @@ func (s *RootManager) notifyExclusionSetIsQuarantined(set *exclusionSet, current
 }
 
 func (s *RootManager) startQuarantineRoutine() {
-	quarantineTicker := time.NewTicker(time.Minute)
 	for {
 		if s.bc == nil {
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		<-quarantineTicker.C
+		select {
+		case <-s.quarantineTickerDone:
+			return
+		case <-s.quarantineTicker.C:
+			// nothing to do if we are not root node
+		}
 
 		// send proposed to quarantine if meets criteria
 		if s.proposedExSet != nil {
@@ -1282,6 +1291,11 @@ func (s *RootManager) startQuarantineRoutine() {
 	}
 }
 
+func (s *RootManager) stop() {
+	s.quarantineTickerDone <- struct{}{}
+	s.quarantineTicker.Stop()
+}
+
 func (s *RootManager) notifyQuarantine() {
 	s.quarantineLock.Lock()
 	defer s.quarantineLock.Unlock()
@@ -1293,7 +1307,7 @@ func (s *RootManager) notifyQuarantine() {
 		log.Warn("You have exclusion lists in the quarantine. You can see them with command: gov.quarantinedExclusionLists()")
 		for i := range sets {
 			earliestBlock := sets[i].earliestBlockFromDiff(s.activeExSet)
-			s.notifyExclusionSetIsQuarantined(&sets[i], s.bc.CurrentBlock().Number().Uint64(), earliestBlock, s.maxRewindLimit())
+			s.notifyExclusionSetIsQuarantined(&sets[i], s.bc.CurrentBlock().Number.Uint64(), earliestBlock, s.maxRewindLimit())
 		}
 	}
 }

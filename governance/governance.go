@@ -69,6 +69,7 @@ func (g *Governance) Start() error {
 // Stop Governance service.
 func (g *Governance) Stop() error {
 	g.handler.stop()
+	g.RootManager.stop()
 	log.Info("governance svc is down")
 	return nil
 }

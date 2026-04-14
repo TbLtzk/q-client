@@ -1,7 +1,6 @@
 package goja
 
 import (
-	"fmt"
 	"hash/maphash"
 	"io"
 	"math"
@@ -30,14 +29,48 @@ func (rr *asciiRuneReader) ReadRune() (r rune, size int, err error) {
 	return
 }
 
-func (s asciiString) reader(start int) io.RuneReader {
+type asciiUtf16Reader struct {
+	s   asciiString
+	pos int
+}
+
+func (rr *asciiUtf16Reader) readChar() (c uint16, err error) {
+	if rr.pos < len(rr.s) {
+		c = uint16(rr.s[rr.pos])
+		rr.pos++
+	} else {
+		err = io.EOF
+	}
+	return
+}
+
+func (rr *asciiUtf16Reader) ReadRune() (r rune, size int, err error) {
+	if rr.pos < len(rr.s) {
+		r = rune(rr.s[rr.pos])
+		rr.pos++
+		size = 1
+	} else {
+		err = io.EOF
+	}
+	return
+}
+
+func (s asciiString) Reader() io.RuneReader {
 	return &asciiRuneReader{
-		s: s[start:],
+		s: s,
 	}
 }
 
-func (s asciiString) utf16Reader(start int) io.RuneReader {
-	return s.reader(start)
+func (s asciiString) utf16Reader() utf16Reader {
+	return &asciiUtf16Reader{
+		s: s,
+	}
+}
+
+func (s asciiString) utf16RuneReader() io.RuneReader {
+	return &asciiUtf16Reader{
+		s: s,
+	}
 }
 
 func (s asciiString) utf16Runes() []rune {
@@ -116,7 +149,7 @@ func (s asciiString) ToInteger() int64 {
 	return i
 }
 
-func (s asciiString) toString() valueString {
+func (s asciiString) toString() String {
 	return s
 }
 
@@ -180,15 +213,12 @@ func (s asciiString) ToObject(r *Runtime) *Object {
 }
 
 func (s asciiString) SameAs(other Value) bool {
-	if otherStr, ok := other.(asciiString); ok {
-		return s == otherStr
-	}
-	return false
+	return s.StrictEquals(other)
 }
 
 func (s asciiString) Equals(other Value) bool {
-	if o, ok := other.(asciiString); ok {
-		return s == o
+	if s.StrictEquals(other) {
+		return true
 	}
 
 	if o, ok := other.(valueInt); ok {
@@ -219,6 +249,11 @@ func (s asciiString) StrictEquals(other Value) bool {
 	if otherStr, ok := other.(asciiString); ok {
 		return s == otherStr
 	}
+	if otherStr, ok := other.(*importedString); ok {
+		if otherStr.u == nil {
+			return string(s) == otherStr.s
+		}
+	}
 	return false
 }
 
@@ -236,49 +271,49 @@ func (s asciiString) hash(hash *maphash.Hash) uint64 {
 	return h
 }
 
-func (s asciiString) charAt(idx int) rune {
-	return rune(s[idx])
+func (s asciiString) CharAt(idx int) uint16 {
+	return uint16(s[idx])
 }
 
-func (s asciiString) length() int {
+func (s asciiString) Length() int {
 	return len(s)
 }
 
-func (s asciiString) concat(other valueString) valueString {
-	switch other := other.(type) {
-	case asciiString:
-		return asciiString(s + other)
-	case unicodeString:
-		b := make([]uint16, len(s)+len(other))
+func (s asciiString) Concat(other String) String {
+	a, u := devirtualizeString(other)
+	if u != nil {
+		b := make([]uint16, len(s)+len(u))
 		b[0] = unistring.BOM
 		for i := 0; i < len(s); i++ {
 			b[i+1] = uint16(s[i])
 		}
-		copy(b[len(s)+1:], other[1:])
+		copy(b[len(s)+1:], u[1:])
 		return unicodeString(b)
-	default:
-		panic(fmt.Errorf("unknown string type: %T", other))
 	}
+	return s + a
 }
 
-func (s asciiString) substring(start, end int) valueString {
+func (s asciiString) Substring(start, end int) String {
 	return s[start:end]
 }
 
-func (s asciiString) compareTo(other valueString) int {
+func (s asciiString) CompareTo(other String) int {
 	switch other := other.(type) {
 	case asciiString:
 		return strings.Compare(string(s), string(other))
 	case unicodeString:
 		return strings.Compare(string(s), other.String())
+	case *importedString:
+		return strings.Compare(string(s), other.s)
 	default:
-		panic(fmt.Errorf("unknown string type: %T", other))
+		panic(newTypeError("Internal bug: unknown string type: %T", other))
 	}
 }
 
-func (s asciiString) index(substr valueString, start int) int {
-	if substr, ok := substr.(asciiString); ok {
-		p := strings.Index(string(s[start:]), string(substr))
+func (s asciiString) index(substr String, start int) int {
+	a, u := devirtualizeString(substr)
+	if u == nil {
+		p := strings.Index(string(s[start:]), string(a))
 		if p >= 0 {
 			return p + start
 		}
@@ -286,25 +321,26 @@ func (s asciiString) index(substr valueString, start int) int {
 	return -1
 }
 
-func (s asciiString) lastIndex(substr valueString, pos int) int {
-	if substr, ok := substr.(asciiString); ok {
-		end := pos + len(substr)
+func (s asciiString) lastIndex(substr String, pos int) int {
+	a, u := devirtualizeString(substr)
+	if u == nil {
+		end := pos + len(a)
 		var ss string
 		if end > len(s) {
 			ss = string(s)
 		} else {
 			ss = string(s[:end])
 		}
-		return strings.LastIndex(ss, string(substr))
+		return strings.LastIndex(ss, string(a))
 	}
 	return -1
 }
 
-func (s asciiString) toLower() valueString {
+func (s asciiString) toLower() String {
 	return asciiString(strings.ToLower(string(s)))
 }
 
-func (s asciiString) toUpper() valueString {
+func (s asciiString) toUpper() String {
 	return asciiString(strings.ToUpper(string(s)))
 }
 

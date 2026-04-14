@@ -19,9 +19,9 @@ commands:
 
 jobs:
 
-  go120:
+  go121:
     docker:
-      - image: cimg/go:1.20
+      - image: cimg/go:1.21
     steps:
       - run:
           name: "Install tools"
@@ -44,7 +44,8 @@ jobs:
       - run:
           name: "Fuzzing"
           command: |
-            GOCACHE=/home/circleci/project/corpus-v3 go test . -run - -fuzz . -fuzztime 1m
+            GOCACHE=/home/circleci/project/corpus-v3 go test . -run - -fuzz FuzzBase10StringCompare -fuzztime 30s
+            GOCACHE=/home/circleci/project/corpus-v3 go test . -run - -fuzz FuzzDecimal -fuzztime 30s
       - save_cache:
           key: corpus-v3-{{ epoch }}
           paths:
@@ -75,6 +76,13 @@ jobs:
           name: "Test (PPC64 emulation)"
           command: qemu-ppc64-static uint256.test.ppc64 -test.v
 
+  go120:
+    docker:
+      - image: cimg/go:1.20
+    steps:
+      - checkout
+      - test
+
   go119:
     docker:
       - image: cimg/go:1.19
@@ -84,13 +92,13 @@ jobs:
 
 
 
-
 workflows:
   version: 2
   uint256:
     jobs:
+      - go121
       - go120
       - go119
       - bigendian:
           requires:
-            - go120
+            - go121

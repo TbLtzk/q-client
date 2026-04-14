@@ -3,7 +3,8 @@
 variables:
   RELEASE_IMAGE_NAME: "qblockchain/q-client"
   RELEASE_IMAGE_NAME_ARM: "qblockchain/q-client-arm"
-
+  # Use module cache (not vendor) so CGO deps like blst have full source; cache GOMODCACHE in CI
+  GOFLAGS: "-mod=mod"
 
 .before_script_template:
   before_script:
@@ -20,6 +21,12 @@ test:
   image: golang:1.21
   stage: test
   extends: .before_script_template
+  variables:
+    CGO_ENABLED: "1"
+  cache:
+    key: go-mod-${CI_COMMIT_REF_SLUG}
+    paths:
+      - /go/pkg/mod
   only:
     - merge_requests
     - master
@@ -37,6 +44,10 @@ lint:
   image: golang:1.21.3
   stage: test
   extends: .before_script_template
+  cache:
+    key: go-mod-${CI_COMMIT_REF_SLUG}
+    paths:
+      - /go/pkg/mod
   only:
     - merge_requests
     - master

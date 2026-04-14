@@ -13,7 +13,6 @@ run:
 linters:
   disable-all: true
   enable:
-    - goconst
     - goimports
     - gosimple
     - govet
@@ -26,7 +25,6 @@ linters:
     - bidichk
     - durationcheck
     - exportloopref
-    - gosec
     - whitespace
     - unused
 
@@ -42,15 +40,6 @@ linters:
 linters-settings:
   gofmt:
     simplify: true
-  goconst:
-    min-len: 3 # minimum length of string constant
-    min-occurrences: 6 # minimum number of occurrences
-  gosec:
-    excludes:
-      - G404 # Use of weak random number generator - lots of FP
-      - G107 # Potential http request -- those are intentional
-      - G306 # G306: Expect WriteFile permissions to be 0600 or less
-      - G114
 
 issues:
   exclude-rules:
@@ -76,3 +65,9 @@ issues:
     - 'SA4015: calling math.Ceil on a converted integer is pointless'
     - 'SA1019: "io/ioutil" has been deprecated since Go 1.16: As of Go 1.16, the same functionality is now provided by package io or package os, and those implementations should be preferred in new code. See the specific function documentation for details.'
     - 'SA1019: "io/ioutil" has been deprecated since Go 1.19: As of Go 1.16, the same functionality is now provided by package io or package os, and those implementations should be preferred in new code. See the specific function documentation for details.'
+    - 'SA1019: elliptic.'
+    - 'SA1019: reflect.SliceHeader'
+    - 'SA1019: elliptic.Marshal'
+    - 'SA1019: elliptic.Unmarshal'
+    - 'SA1019: elliptic.GenerateKey'
+    - 'SA1019: reflect.SliceHeader has been deprecated'

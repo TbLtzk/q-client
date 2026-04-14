@@ -26,24 +26,23 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/q-dev/q-client/core"
-
 	"gitlab.com/q-dev/q-client/params"
 )
 
 const (
-	ipcAPIs  = "admin:1.0 debug:1.0 engine:1.0 eth:1.0 ethash:1.0 gov:1.0 govPub:1.0 miner:1.0 net:1.0 personal:1.0 rpc:1.0 trace:1.0 txpool:1.0 web3:1.0"
-	httpAPIs = "eth:1.0 net:1.0 rpc:1.0 web3:1.0"
+	ipcAPIsEthash = "admin:1.0 debug:1.0 engine:1.0 eth:1.0 ethash:1.0 gov:1.0 govPub:1.0 miner:1.0 net:1.0 personal:1.0 rpc:1.0 trace:1.0 txpool:1.0 web3:1.0"
+	ipcAPIsClique = "admin:1.0 clique:1.0 debug:1.0 engine:1.0 eth:1.0 gov:1.0 govPub:1.0 indexer:1.0 miner:1.0 net:1.0 rpc:1.0 trace:1.0 txpool:1.0 web3:1.0"
+	httpAPIs      = "eth:1.0 net:1.0 rpc:1.0 web3:1.0"
 )
 
 // spawns geth with the given command line args, using a set of flags to minimise
 // memory and disk IO. If the args don't set --datadir, the
 // child g gets a temporary data directory.
 func runMinimalGeth(t *testing.T, args ...string) *testgeth {
-	// --ropsten to make the 'writing genesis to disk' faster (no accounts)
+	// --goerli to make the 'writing genesis to disk' faster (no accounts)
 	// --networkid=1337 to avoid cache bump
 	// --syncmode=full to avoid allocating fast sync bloom
-	allArgs := []string{"--ropsten", "--networkid", "1337", "--authrpc.port", "0", "--syncmode=full", "--port", "0",
+	allArgs := []string{"--goerli", "--networkid", "1337", "--authrpc.port", "0", "--syncmode=full", "--port", "0",
 		"--nat", "none", "--nodiscover", "--maxpeers", "0", "--cache", "64",
 		"--datadir.minfreedisk", "0"}
 	return runGeth(t, append(allArgs, args...)...)
@@ -52,6 +51,7 @@ func runMinimalGeth(t *testing.T, args ...string) *testgeth {
 // Tests that a node embedded within a console can be started up properly and
 // then terminated by closing the input stream.
 func TestConsoleWelcome(t *testing.T) {
+	t.Parallel()
 	coinbase := "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
 
 	// Start a geth console, make sure it's cleaned up and terminate the console
@@ -64,10 +64,9 @@ func TestConsoleWelcome(t *testing.T) {
 	geth.SetTemplateFunc("gethver", func() string { return params.VersionWithCommit("", "") })
 	geth.SetTemplateFunc("qver", func() string { return params.QVersionWithMeta })
 	geth.SetTemplateFunc("niltime", func() string {
-		return time.Unix(int64(core.DefaultGenesisBlock().Timestamp), 0).
-			Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
+		return time.Unix(1548854791, 0).Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
 	})
-	geth.SetTemplateFunc("apis", func() string { return ipcAPIs })
+	geth.SetTemplateFunc("apis", func() string { return ipcAPIsClique })
 
 	// Verify the actual welcome message to the required template
 	geth.Expect(`
@@ -108,7 +107,7 @@ func TestAttachWelcome(t *testing.T) {
 		"--ws", "--ws.port", wsPort)
 	t.Run("ipc", func(t *testing.T) {
 		waitForEndpoint(t, ipc, 3*time.Second)
-		testAttachWelcome(t, geth, "ipc:"+ipc, ipcAPIs)
+		testAttachWelcome(t, geth, "ipc:"+ipc, ipcAPIsClique)
 	})
 	t.Run("http", func(t *testing.T) {
 		endpoint := "http://127.0.0.1:" + httpPort
@@ -120,11 +119,11 @@ func TestAttachWelcome(t *testing.T) {
 		waitForEndpoint(t, endpoint, 3*time.Second)
 		testAttachWelcome(t, geth, endpoint, httpAPIs)
 	})
-	geth.ExpectExit()
+	geth.Kill()
 }
 
 func testAttachWelcome(t *testing.T, geth *testgeth, endpoint, apis string) {
-	// Attach to a running geth note and terminate immediately
+	// Attach to a running geth node and terminate immediately
 	attach := runGeth(t, "attach", endpoint)
 	defer attach.ExpectExit()
 	attach.CloseStdin()
@@ -137,8 +136,7 @@ func testAttachWelcome(t *testing.T, geth *testgeth, endpoint, apis string) {
 	attach.SetTemplateFunc("qver", func() string { return params.QVersionWithMeta })
 	attach.SetTemplateFunc("etherbase", func() string { return geth.Etherbase })
 	attach.SetTemplateFunc("niltime", func() string {
-		return time.Unix(int64(core.DefaultGenesisBlock().Timestamp), 0).
-			Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
+		return time.Unix(1548854791, 0).Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
 	})
 	attach.SetTemplateFunc("ipc", func() bool { return strings.HasPrefix(endpoint, "ipc") })
 	attach.SetTemplateFunc("datadir", func() string { return geth.Datadir })

@@ -1,5 +1,8 @@
 version: '3.8'
 
+# Go module cache is mounted from host so dependencies are reused across runs (avoids re-downloading).
+# Bind mount .go-mod-cache/ (gitignored) to container's /go/pkg/mod (GOPATH/pkg/mod in image).
+
 services:
   goimports:
     image: q-client-dev:latest
@@ -8,6 +11,7 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - .:/workspace
+      - .go-mod-cache:/go/pkg/mod
     working_dir: /workspace
     # goimports is pre-installed in the image
     command: go run golang.org/x/tools/cmd/goimports@v0.19.0 -w .
@@ -21,6 +25,7 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - .:/workspace
+      - .go-mod-cache:/go/pkg/mod
     working_dir: /workspace
     # golangci-lint is pre-installed in the image
     command: golangci-lint run --config .golangci.yml ./...
@@ -34,10 +39,12 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - .:/workspace
+      - .go-mod-cache:/go/pkg/mod
     working_dir: /workspace
-    # Build dependencies are pre-installed in the image
+    # Use module cache so CGO deps (e.g. blst) have full source; go mod vendor prunes them (golang/go#26366)
     environment:
       - CGO_ENABLED=1
+      - GOFLAGS=-mod=mod
     # Default command - can be overridden
     command: go test ./...
     profiles:

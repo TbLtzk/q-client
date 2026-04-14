@@ -20,7 +20,7 @@ package blst
 // # include <unistd.h>
 // static void handler(int signum)
 // {   ssize_t n = write(2, "Caught SIGILL in blst_cgo_init, "
-//                          "consult <blst>/bindinds/go/README.md.\n", 70);
+//                          "consult <blst>/bindings/go/README.md.\n", 70);
 //     _exit(128+SIGILL);
 //     (void)n;
 // }
@@ -91,6 +91,26 @@ package blst
 //         blst_p2_from_affine(m, p), p = m;
 //     blst_p2_mult(m, p, scalar, nbits);
 //     blst_p2_add_or_double(acc, acc, m);
+// }
+//
+// static void go_p1_sub_assign(blst_p1 *a, const blst_fp *x, bool affine)
+// {   blst_p1 minus_b;
+//     if (affine)
+//         blst_p1_from_affine(&minus_b, (const blst_p1_affine*)x);
+//     else
+//         minus_b = *(const blst_p1*)x;
+//     blst_p1_cneg(&minus_b, 1);
+//     blst_p1_add_or_double(a, a, &minus_b);
+// }
+//
+// static void go_p2_sub_assign(blst_p2 *a, const blst_fp2 *x, bool affine)
+// {   blst_p2 minus_b;
+//     if (affine)
+//         blst_p2_from_affine(&minus_b, (const blst_p2_affine*)x);
+//     else
+//         minus_b = *(const blst_p2*)x;
+//     blst_p2_cneg(&minus_b, 1);
+//     blst_p2_add_or_double(a, a, &minus_b);
 // }
 //
 // static bool go_scalar_from_bendian(blst_scalar *ret, const byte *in)
@@ -187,6 +207,92 @@ func KeyGen(ikm []byte, optional ...[]byte) *SecretKey {
 	}
 	C.blst_keygen(&sk, (*C.byte)(&ikm[0]), C.size_t(len(ikm)),
 		infoP, C.size_t(len(info)))
+	// Postponing secret key zeroing till garbage collection can be too
+	// late to be effective, but every little bit helps...
+	runtime.SetFinalizer(&sk, func(sk *SecretKey) { sk.Zeroize() })
+	return &sk
+}
+
+func KeyGenV3(ikm []byte, optional ...[]byte) *SecretKey {
+	if len(ikm) < 32 {
+		return nil
+	}
+	var sk SecretKey
+	var info []byte
+	var infoP *C.byte
+	if len(optional) > 0 {
+		info = optional[0]
+		if len(info) > 0 {
+			infoP = (*C.byte)(&info[0])
+		}
+	}
+	C.blst_keygen_v3(&sk, (*C.byte)(&ikm[0]), C.size_t(len(ikm)),
+		infoP, C.size_t(len(info)))
+	// Postponing secret key zeroing till garbage collection can be too
+	// late to be effective, but every little bit helps...
+	runtime.SetFinalizer(&sk, func(sk *SecretKey) { sk.Zeroize() })
+	return &sk
+}
+
+func KeyGenV45(ikm []byte, salt []byte, optional ...[]byte) *SecretKey {
+	if len(ikm) < 32 {
+		return nil
+	}
+	var sk SecretKey
+	var info []byte
+	var infoP *C.byte
+	if len(optional) > 0 {
+		info = optional[0]
+		if len(info) > 0 {
+			infoP = (*C.byte)(&info[0])
+		}
+	}
+	C.blst_keygen_v4_5(&sk, (*C.byte)(&ikm[0]), C.size_t(len(ikm)),
+		(*C.byte)(&salt[0]), C.size_t(len(salt)),
+		infoP, C.size_t(len(info)))
+	// Postponing secret key zeroing till garbage collection can be too
+	// late to be effective, but every little bit helps...
+	runtime.SetFinalizer(&sk, func(sk *SecretKey) { sk.Zeroize() })
+	return &sk
+}
+
+func KeyGenV5(ikm []byte, salt []byte, optional ...[]byte) *SecretKey {
+	if len(ikm) < 32 {
+		return nil
+	}
+	var sk SecretKey
+	var info []byte
+	var infoP *C.byte
+	if len(optional) > 0 {
+		info = optional[0]
+		if len(info) > 0 {
+			infoP = (*C.byte)(&info[0])
+		}
+	}
+	C.blst_keygen_v5(&sk, (*C.byte)(&ikm[0]), C.size_t(len(ikm)),
+		(*C.byte)(&salt[0]), C.size_t(len(salt)),
+		infoP, C.size_t(len(info)))
+	// Postponing secret key zeroing till garbage collection can be too
+	// late to be effective, but every little bit helps...
+	runtime.SetFinalizer(&sk, func(sk *SecretKey) { sk.Zeroize() })
+	return &sk
+}
+
+func DeriveMasterEip2333(ikm []byte) *SecretKey {
+	if len(ikm) < 32 {
+		return nil
+	}
+	var sk SecretKey
+	C.blst_derive_master_eip2333(&sk, (*C.byte)(&ikm[0]), C.size_t(len(ikm)))
+	// Postponing secret key zeroing till garbage collection can be too
+	// late to be effective, but every little bit helps...
+	runtime.SetFinalizer(&sk, func(sk *SecretKey) { sk.Zeroize() })
+	return &sk
+}
+
+func (master *SecretKey) DeriveChildEip2333(child_index uint32) *SecretKey {
+	var sk SecretKey
+	C.blst_derive_child_eip2333(&sk, master, C.uint(child_index))
 	// Postponing secret key zeroing till garbage collection can be too
 	// late to be effective, but every little bit helps...
 	runtime.SetFinalizer(&sk, func(sk *SecretKey) { sk.Zeroize() })
@@ -706,10 +812,7 @@ func (agg *P2Aggregate) Aggregate(elmts []*P2Affine,
 		return true
 	}
 	getter := func(i uint32, _ *P2Affine) *P2Affine { return elmts[i] }
-	if !agg.aggregate(getter, groupcheck, len(elmts)) {
-		return false
-	}
-	return true
+	return agg.aggregate(getter, groupcheck, len(elmts))
 }
 
 // Aggregate compressed elements
@@ -725,10 +828,7 @@ func (agg *P2Aggregate) AggregateCompressed(elmts [][]byte,
 		}
 		return p
 	}
-	if !agg.aggregate(getter, groupcheck, len(elmts)) {
-		return false
-	}
-	return true
+	return agg.aggregate(getter, groupcheck, len(elmts))
 }
 
 func (agg *P2Aggregate) AddAggregate(other *P2Aggregate) {
@@ -1289,10 +1389,7 @@ func (agg *P1Aggregate) Aggregate(elmts []*P1Affine,
 		return true
 	}
 	getter := func(i uint32, _ *P1Affine) *P1Affine { return elmts[i] }
-	if !agg.aggregate(getter, groupcheck, len(elmts)) {
-		return false
-	}
-	return true
+	return agg.aggregate(getter, groupcheck, len(elmts))
 }
 
 // Aggregate compressed elements
@@ -1308,10 +1405,7 @@ func (agg *P1Aggregate) AggregateCompressed(elmts [][]byte,
 		}
 		return p
 	}
-	if !agg.aggregate(getter, groupcheck, len(elmts)) {
-		return false
-	}
-	return true
+	return agg.aggregate(getter, groupcheck, len(elmts))
 }
 
 func (agg *P1Aggregate) AddAggregate(other *P1Aggregate) {
@@ -1575,7 +1669,7 @@ func (dummy *P1Affine) BatchUncompress(in [][]byte) []*P1Affine {
 			result = false
 		}
 	}
-	if atomic.LoadInt32(&valid) == 0 || result == false {
+	if atomic.LoadInt32(&valid) == 0 || !result {
 		return nil
 	}
 	return pointsPtrs
@@ -1632,6 +1726,28 @@ func (p1 *P1) AddAssign(pointIf interface{}) *P1 {
 func (p1 *P1) Add(pointIf interface{}) *P1 {
 	ret := *p1
 	return ret.AddAssign(pointIf)
+}
+
+func (p1 *P1) SubAssign(pointIf interface{}) *P1 {
+	var x *Fp
+	var affine C.bool
+	switch val := pointIf.(type) {
+	case *P1:
+		x = &val.x
+		affine = false
+	case *P1Affine:
+		x = &val.x
+		affine = true
+	default:
+		panic(fmt.Sprintf("unsupported type %T", val))
+	}
+	C.go_p1_sub_assign(p1, x, affine)
+	return p1
+}
+
+func (p1 *P1) Sub(pointIf interface{}) *P1 {
+	ret := *p1
+	return ret.SubAssign(pointIf)
 }
 
 func P1Generator() *P1 {
@@ -2262,7 +2378,7 @@ func (dummy *P2Affine) BatchUncompress(in [][]byte) []*P2Affine {
 			result = false
 		}
 	}
-	if atomic.LoadInt32(&valid) == 0 || result == false {
+	if atomic.LoadInt32(&valid) == 0 || !result {
 		return nil
 	}
 	return pointsPtrs
@@ -2319,6 +2435,28 @@ func (p2 *P2) AddAssign(pointIf interface{}) *P2 {
 func (p2 *P2) Add(pointIf interface{}) *P2 {
 	ret := *p2
 	return ret.AddAssign(pointIf)
+}
+
+func (p2 *P2) SubAssign(pointIf interface{}) *P2 {
+	var x *Fp2
+	var affine C.bool
+	switch val := pointIf.(type) {
+	case *P2:
+		x = &val.x
+		affine = false
+	case *P2Affine:
+		x = &val.x
+		affine = true
+	default:
+		panic(fmt.Sprintf("unsupported type %T", val))
+	}
+	C.go_p2_sub_assign(p2, x, affine)
+	return p2
+}
+
+func (p2 *P2) Sub(pointIf interface{}) *P2 {
+	ret := *p2
+	return ret.SubAssign(pointIf)
 }
 
 func P2Generator() *P2 {
@@ -3097,7 +3235,17 @@ func breakdown(nbits, window, ncpus int) (int, int, int) {
 
 	if nbits > window*ncpus {
 		nx = 1
-		wnd = window - bits.Len(uint(ncpus)/4)
+		wnd = bits.Len(uint(ncpus) / 4)
+		if (window + wnd) > 18 {
+			wnd = window - wnd
+		} else {
+			wnd = (nbits/window + ncpus - 1) / ncpus
+			if (nbits/(window+1)+ncpus-1)/ncpus < wnd {
+				wnd = window + 1
+			} else {
+				wnd = window
+			}
+		}
 	} else {
 		nx = 2
 		wnd = window - 2

@@ -1,4 +1,4 @@
-// Copyright 2020 ConsenSys Software Inc.
+// Copyright 2020 Consensys Software Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -73,6 +73,14 @@ func (p *G1Jac) ScalarMultiplicationAffine(a *G1Affine, s *big.Int) *G1Jac {
 	return p
 }
 
+// ScalarMultiplicationBase computes and returns p = g ⋅ s where g is the prime subgroup generator
+func (p *G1Affine) ScalarMultiplicationBase(s *big.Int) *G1Affine {
+	var _p G1Jac
+	_p.mulGLV(&g1Gen, s)
+	p.FromJacobian(&_p)
+	return p
+}
+
 // Add adds two point in affine coordinates.
 // This should rarely be used as it is very inefficient compared to Jacobian
 func (p *G1Affine) Add(a, b *G1Affine) *G1Affine {
@@ -80,6 +88,16 @@ func (p *G1Affine) Add(a, b *G1Affine) *G1Affine {
 	p1.FromAffine(a)
 	p2.FromAffine(b)
 	p1.AddAssign(&p2)
+	p.FromJacobian(&p1)
+	return p
+}
+
+// Double doubles a point in affine coordinates.
+// This should rarely be used as it is very inefficient compared to Jacobian
+func (p *G1Affine) Double(a *G1Affine) *G1Affine {
+	var p1 G1Jac
+	p1.FromAffine(a)
+	p1.Double(&p1)
 	p.FromJacobian(&p1)
 	return p
 }
@@ -166,17 +184,30 @@ func (p *G1Jac) Set(a *G1Jac) *G1Jac {
 
 // Equal tests if two points (in Jacobian coordinates) are equal
 func (p *G1Jac) Equal(a *G1Jac) bool {
-
-	if p.Z.IsZero() && a.Z.IsZero() {
-		return true
+	// If one point is infinity, the other must also be infinity.
+	if p.Z.IsZero() {
+		return a.Z.IsZero()
 	}
-	_p := G1Affine{}
-	_p.FromJacobian(p)
+	// If the other point is infinity, return false since we can't
+	// the following checks would be incorrect.
+	if a.Z.IsZero() {
+		return false
+	}
 
-	_a := G1Affine{}
-	_a.FromJacobian(a)
+	var pZSquare, aZSquare fp.Element
+	pZSquare.Square(&p.Z)
+	aZSquare.Square(&a.Z)
 
-	return _p.X.Equal(&_a.X) && _p.Y.Equal(&_a.Y)
+	var lhs, rhs fp.Element
+	lhs.Mul(&p.X, &aZSquare)
+	rhs.Mul(&a.X, &pZSquare)
+	if !lhs.Equal(&rhs) {
+		return false
+	}
+	lhs.Mul(&p.Y, &aZSquare).Mul(&lhs, &a.Z)
+	rhs.Mul(&a.Y, &pZSquare).Mul(&rhs, &p.Z)
+
+	return lhs.Equal(&rhs)
 }
 
 // Neg computes -G
@@ -379,7 +410,7 @@ func (p *G1Jac) IsOnCurve() bool {
 }
 
 // IsInSubGroup returns true if p is on the r-torsion, false otherwise.
-// BN curves are of prime order i.e. E(𝔽p) is the full group
+// the curve is of prime order i.e. E(𝔽p) is the full group
 // so we just check that the point is on the curve.
 func (p *G1Jac) IsInSubGroup() bool {
 
@@ -393,8 +424,11 @@ func (p *G1Jac) mulWindowed(a *G1Jac, s *big.Int) *G1Jac {
 	var res G1Jac
 	var ops [3]G1Jac
 
-	res.Set(&g1Infinity)
 	ops[0].Set(a)
+	if s.Sign() == -1 {
+		ops[0].Neg(&ops[0])
+	}
+	res.Set(&g1Infinity)
 	ops[1].Double(&ops[0])
 	ops[2].Set(&ops[0]).AddAssign(&ops[1])
 
@@ -498,6 +532,77 @@ func (p *G1Jac) mulGLV(a *G1Jac, s *big.Int) *G1Jac {
 	return p
 }
 
+// JointScalarMultiplicationBase computes [s1]g+[s2]a using Straus-Shamir technique
+// where g is the prime subgroup generator
+func (p *G1Jac) JointScalarMultiplicationBase(a *G1Affine, s1, s2 *big.Int) *G1Jac {
+
+	var res, p1, p2 G1Jac
+	res.Set(&g1Infinity)
+	p1.Set(&g1Gen)
+	p2.FromAffine(a)
+
+	var table [15]G1Jac
+
+	var k1, k2 big.Int
+	if s1.Sign() == -1 {
+		k1.Neg(s1)
+		table[0].Neg(&p1)
+	} else {
+		k1.Set(s1)
+		table[0].Set(&p1)
+	}
+	if s2.Sign() == -1 {
+		k2.Neg(s2)
+		table[3].Neg(&p2)
+	} else {
+		k2.Set(s2)
+		table[3].Set(&p2)
+	}
+
+	// precompute table (2 bits sliding window)
+	table[1].Double(&table[0])
+	table[2].Set(&table[1]).AddAssign(&table[0])
+	table[4].Set(&table[3]).AddAssign(&table[0])
+	table[5].Set(&table[3]).AddAssign(&table[1])
+	table[6].Set(&table[3]).AddAssign(&table[2])
+	table[7].Double(&table[3])
+	table[8].Set(&table[7]).AddAssign(&table[0])
+	table[9].Set(&table[7]).AddAssign(&table[1])
+	table[10].Set(&table[7]).AddAssign(&table[2])
+	table[11].Set(&table[7]).AddAssign(&table[3])
+	table[12].Set(&table[11]).AddAssign(&table[0])
+	table[13].Set(&table[11]).AddAssign(&table[1])
+	table[14].Set(&table[11]).AddAssign(&table[2])
+
+	var s [2]fr.Element
+	s[0] = s[0].SetBigInt(&k1).Bits()
+	s[1] = s[1].SetBigInt(&k2).Bits()
+
+	maxBit := k1.BitLen()
+	if k2.BitLen() > maxBit {
+		maxBit = k2.BitLen()
+	}
+	hiWordIndex := (maxBit - 1) / 64
+
+	for i := hiWordIndex; i >= 0; i-- {
+		mask := uint64(3) << 62
+		for j := 0; j < 32; j++ {
+			res.Double(&res).Double(&res)
+			b1 := (s[0][i] & mask) >> (62 - 2*j)
+			b2 := (s[1][i] & mask) >> (62 - 2*j)
+			if b1|b2 != 0 {
+				s := (b2<<2 | b1)
+				res.AddAssign(&table[s-1])
+			}
+			mask = mask >> 2
+		}
+	}
+
+	p.Set(&res)
+	return p
+
+}
+
 // -------------------------------------------------------------------------------------------------
 // Jacobian extended
 
@@ -514,6 +619,10 @@ func (p *g1JacExtended) setInfinity() *g1JacExtended {
 	p.ZZ = fp.Element{}
 	p.ZZZ = fp.Element{}
 	return p
+}
+
+func (p *g1JacExtended) IsZero() bool {
+	return p.ZZ.IsZero()
 }
 
 // fromJacExtended sets Q in affine coordinates
@@ -909,7 +1018,7 @@ func BatchScalarMultiplicationG1(base *G1Affine, scalars []fr.Element) []G1Affin
 					continue
 				}
 
-				// if msbWindow bit is set, we need to substract
+				// if msbWindow bit is set, we need to subtract
 				if digit&1 == 0 {
 					// add
 					p.AddMixed(&baseTableAff[(digit>>1)-1])
