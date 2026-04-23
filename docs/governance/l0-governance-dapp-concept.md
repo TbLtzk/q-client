@@ -418,3 +418,111 @@ Outcome:
 - Backward compatibility with legacy console-based governance flows must be defined explicitly.
 - Public RPC nodes may be unwilling to expose any governance-related mutators unless the submission API is tightly scoped and abuse-resistant.
 - The exact treatment of aliases in off-chain signatures must be documented clearly so root nodes understand which account should sign.
+
+## Development backlog
+
+This backlog is scoped as **engineering work** split between `q-client`, HQ (or another dapp), and supporting documentation. Estimates use **person-days** (one developer working full-time on that item); ranges reflect uncertainty (integration, review cycles, regression testing).
+
+Assumptions:
+
+- One engineer familiar with Go/`q-client` governance and Ethereum signing.
+- HQ codebase is separate; HQ estimates are indicative only (depends on framework and existing patterns).
+
+### Estimate legend
+
+
+| Range        | Typical meaning                                                  |
+| ------------ | ---------------------------------------------------------------- |
+| **0.5–1 pd** | Small change, tests localized, low risk                          |
+| **2–4 pd**   | Medium feature, touches several files, needs integration tests   |
+| **5–10 pd**  | Larger refactor or new protocol surface, cross-team coordination |
+| **10+ pd**   | Epic-sized; split into milestones                                |
+
+
+Priority: **P0** = blocking minimal viable flow, **P1** = production UX / safety, **P2** = polish and ops.
+
+---
+
+### Epic A — `q-client`: ingest externally signed governance (Phase 1)
+
+
+| ID  | Item                                                                                                                                                                                        | Priority | Depends on | Estimate   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------- | ---------- |
+| A1  | Extract shared validation/import path used by both `handler.handleRootSet` / `handleExclusionSet` and a new RPC entry point; avoid duplicating quorum and alias logic                       | P0       | —          | **5–8 pd** |
+| A2  | Add public RPC methods to submit signed `RootList` / `ValidatorExclusionList` payloads (names TBD); wire to shared import path; unit tests against existing fixtures                        | P0       | A1         | **3–5 pd** |
+| A3  | Register APIs in `governance.Governance.APIs()`, `internal/web3ext/web3ext.go`; optional `ethclient` wrappers                                                                               | P0       | A2         | **1–2 pd** |
+| A4  | Policy decision + implementation: expose only submission methods on HTTP/WS (relax or specialize `filterProtectedAPIs` for new namespace or allowlisted methods) without opening full `gov` | P0       | A2         | **2–4 pd** |
+| A5  | Spam/abuse limits on public submission path (payload size, rate limits, configurable disable)                                                                                               | P1       | A2         | **2–4 pd** |
+| A6  | Regression tests: p2p + RPC paths produce equivalent state for same signed payload                                                                                                          | P1       | A1–A2      | **3–5 pd** |
+
+
+**Epic A subtotal (rough):** **16–28 pd**
+
+---
+
+### Epic B — Typed / MetaMask-friendly signing (Phase 2)
+
+
+| ID  | Item                                                                                                                                                                                           | Priority | Depends on      | Estimate                              |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------- | ------------------------------------- |
+| B1  | Specify versioned EIP-712 (or equivalent) domain and types for root-list and exclusion-list proposals; document encoding rules matching on-chain-off-chain identity (chain ID, purpose string) | P0       | Epic A baseline | **3–5 pd**                            |
+| B2  | Implement verification in `q-client`: recover signer from typed data, map to active root / alias rules, merge into internal sets                                                               | P0       | B1, A1          | **5–8 pd**                            |
+| B3  | RPC: `govPub`-style methods returning **canonical signing payload** for a given proposal (helps dapps build identical typed data)                                                              | P1       | B1              | **2–4 pd**                            |
+| B4  | Backward compatibility tests: legacy console/raw-hash flow unchanged; new typed path coexists                                                                                                  | P1       | B2              | **2–4 pd**                            |
+| B5  | Security review pass (replay, cross-chain, ambiguous alias signing)                                                                                                                            | P1       | B2              | **1–3 pd** (review only; fixes extra) |
+
+
+**Epic B subtotal (rough):** **13–24 pd**
+
+---
+
+### Epic C — HQ (or target dapp): L0 governance UI
+
+
+| ID  | Item                                                                                                                                               | Priority | Depends on                   | Estimate    |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------- | ----------- |
+| C1  | Navigation + route for L0 governance subpage; feature flag                                                                                         | P0       | Stable read RPC (`govPub`)   | **1–2 pd**  |
+| C2  | Connect wallet; detect root-node eligibility (active list + optional alias resolution via existing contracts/APIs)                                 | P0       | —                            | **3–6 pd**  |
+| C3  | Views: active / proposed / desired root list and exclusion list; diff vs on-chain / active (reuse logic similar to `diffRootList` semantics in UI) | P0       | C2                           | **5–10 pd** |
+| C4  | Flow: review proposal → sign (typed data via Epic B, or interim raw-hash prototype) → submit to configurable RPC URL                               | P0       | Epic A (+ B for MetaMask UX) | **5–10 pd** |
+| C5  | Signature progress indicator (threshold %, list of signers); error handling for stale / rejected proposals                                         | P1       | C3–C4                        | **3–6 pd**  |
+| C6  | Copy, warnings, links to official docs; optional telemetry (no sensitive data)                                                                     | P2       | C4                           | **2–4 pd**  |
+
+
+**Epic C subtotal (rough):** **19–38 pd**
+
+---
+
+### Epic D — Documentation, operations, release
+
+
+| ID  | Item                                                                                                                                             | Priority | Depends on                 | Estimate     |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------------------------- | ------------ |
+| D1  | Update public docs ([L0 governance](https://docs.qgov.io/layer0-governance/#layer-0-governance-of-root-nodes)) with dapp path + RPC requirements | P1       | Epic A (+ B as applicable) | **1–2 pd**   |
+| D2  | Runbook: which RPC endpoints operators may expose; firewall / rate limit recommendations                                                         | P1       | A4–A5                      | **1–2 pd**   |
+| D3  | Release notes, migration note for root nodes (console still supported)                                                                           | P2       | D1                         | **0.5–1 pd** |
+
+
+**Epic D subtotal (rough):** **2.5–5 pd**
+
+---
+
+### Milestone rollup (indicative)
+
+
+| Milestone             | Scope                       | Overlap-friendly calendar note                                          | Rough total   |
+| --------------------- | --------------------------- | ----------------------------------------------------------------------- | ------------- |
+| **M1 — Backend MVP**  | Epic A (A1–A4, minimal A5)  | Enables scripted or wallet-external signing without full MetaMask story | **~12–20 pd** |
+| **M2 — Wallet-ready** | Epic B + remainder of A5–A6 | Typed signing + hardening                                               | **~18–32 pd** |
+| **M3 — HQ GA**        | Epic C + D                  | Parallelizable once M1 read/submit contract is stable                   | **~21–43 pd** |
+
+
+**End-to-end (all epics, sequential pessimistic sum):** roughly **50–95 person-days** (~~**2.5–5 months** for one full-time engineer). With **parallel tracks** (e.g. one backend + one frontend once RPC shapes are fixed), calendar time can compress toward **~~2–3 months** depending on review and QA.
+
+### Suggested sequencing
+
+1. Lock **RPC shapes** and **security policy** for public submission (short design spike: **1–2 pd**).
+2. Deliver **M1** so integrations can start without waiting for EIP-712.
+3. Parallelize **M3** UI shell + read-only governance dashboard using existing `govPub` while backend finishes ingest.
+4. Land **M2** before promoting MetaMask-first UX to non-technical root nodes.
+
