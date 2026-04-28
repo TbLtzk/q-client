@@ -14,6 +14,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
@@ -231,6 +232,154 @@ func TestHandleRootSet(t *testing.T) {
 			}
 		})
 		rm.active = startRootList
+	}
+}
+
+func TestImportRootList(t *testing.T) {
+	tests := []struct {
+		name              string
+		list              func(t *testing.T, rm *TestRootManager) common.RootList
+		beforeImport      func(t *testing.T, rm *TestRootManager, list common.RootList)
+		assertAfterImport func(t *testing.T, rm *TestRootManager, list common.RootList)
+	}{
+		{
+			name: "known signer stores proposed list",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+			},
+			assertAfterImport: func(t *testing.T, rm *TestRootManager, list common.RootList) {
+				if rm.proposed == nil || rm.proposed.hash != list.Hash {
+					t.Fatalf("expected proposed root list %s, got %v", list.Hash.Hex(), rm.proposed)
+				}
+				if rm.active.hash == list.Hash {
+					t.Fatal("single-signature root list was upgraded")
+				}
+			},
+		},
+		{
+			name: "unknown signer is ignored",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, nil, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+			},
+			assertAfterImport: func(t *testing.T, rm *TestRootManager, list common.RootList) {
+				if rm.proposed != nil {
+					t.Fatalf("expected unknown signer root list to be ignored, got %s", rm.proposed.hash.Hex())
+				}
+			},
+		},
+		{
+			name: "duplicate signature is ignored",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+				list.Signatures = append(list.Signatures, list.Signatures[0])
+				return list
+			},
+			assertAfterImport: func(t *testing.T, rm *TestRootManager, list common.RootList) {
+				if rm.proposed == nil || rm.proposed.hash != list.Hash {
+					t.Fatalf("expected proposed root list %s, got %v", list.Hash.Hex(), rm.proposed)
+				}
+				if len(rm.proposed.signers) != 1 {
+					t.Fatalf("expected one unique signature, got %d", len(rm.proposed.signers))
+				}
+			},
+		},
+		{
+			name: "obsolete timestamp is ignored",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+			},
+			beforeImport: func(t *testing.T, rm *TestRootManager, list common.RootList) {
+				newer := randomRootList(t, rm, int64(list.Timestamp+1), 10, 1, true)
+				set, err := newRootSet(&newer)
+				if err != nil {
+					t.Fatal(err)
+				}
+				set.updateAliases(rm.getAliasesOfRoots(set.rootAddresses))
+				rm.proposed = set
+			},
+			assertAfterImport: func(t *testing.T, rm *TestRootManager, list common.RootList) {
+				if rm.proposed == nil || rm.proposed.hash == list.Hash {
+					t.Fatal("obsolete root list replaced newer proposal")
+				}
+			},
+		},
+		{
+			name: "threshold signatures upgrade active list",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, defNumAccounts-1, true)
+			},
+			assertAfterImport: func(t *testing.T, rm *TestRootManager, list common.RootList) {
+				if rm.active.hash != list.Hash {
+					t.Fatalf("expected active root list %s, got %s", list.Hash.Hex(), rm.active.hash.Hex())
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rm := newTestRootManager(t, false, true)
+			gov, err := New(rm.RootManager, tmpDirName(t))
+			if err != nil {
+				t.Fatalf("Failed to create Governance: %v", err)
+			}
+			if err := gov.Start(); err != nil {
+				t.Fatalf("Failed to start Governance: %v", err)
+			}
+
+			list := tt.list(t, rm)
+			if tt.beforeImport != nil {
+				tt.beforeImport(t, rm, list)
+			}
+			if err := gov.handler.importRootList(&list); err != nil {
+				t.Fatalf("importRootList returned error: %v", err)
+			}
+			tt.assertAfterImport(t, rm, list)
+		})
+	}
+}
+
+func TestImportRootListDoesNotRequireLocalSigning(t *testing.T) {
+	rm := newTestRootManager(t, true, false)
+	gov, err := New(rm.RootManager, tmpDirName(t))
+	if err != nil {
+		t.Fatalf("Failed to create Governance: %v", err)
+	}
+	if err := gov.Start(); err != nil {
+		t.Fatalf("Failed to start Governance: %v", err)
+	}
+
+	list := common.RootList{
+		Timestamp: uint64(time.Now().Add(5 * time.Minute).Unix()),
+		Nodes: []common.Address{
+			common.BytesToAddress(randBytes(common.AddressLength)),
+			common.BytesToAddress(randBytes(common.AddressLength)),
+			common.BytesToAddress(randBytes(common.AddressLength)),
+		},
+	}
+	set, err := newRootSet(&list)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signature, err := rm.SignHash(accounts.Account{Address: rm.active.rootAddresses[0]}, set.hash.Bytes())
+	if err != nil {
+		t.Fatalf("failed to sign root list: %v", err)
+	}
+	list.Hash = set.hash
+	list.Signatures = [][]byte{signature}
+
+	if err := gov.handler.importRootList(&list); err != nil {
+		t.Fatalf("importRootList returned error: %v", err)
+	}
+
+	if rm.active.hash == list.Hash {
+		t.Fatal("import locally signed the root list and upgraded it")
+	}
+	if rm.proposed == nil || rm.proposed.hash != list.Hash {
+		t.Fatalf("expected imported root list to be proposed, got %v", rm.proposed)
+	}
+	if len(rm.proposed.signers) != 1 {
+		t.Fatalf("expected import to keep only supplied signature, got %d signatures", len(rm.proposed.signers))
 	}
 }
 
