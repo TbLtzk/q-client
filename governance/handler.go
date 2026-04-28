@@ -353,7 +353,7 @@ func (h *handler) runPeer(p *peer) error {
 	} {
 		our, their := set.our, set.their
 		if shouldPropagateExcl(our, their, rm.active) {
-			if err = h.handleExclusionSet(p, their); err != nil {
+			if err = h.importExclusionSet(p.id, their, true); err != nil {
 				return err
 			}
 		}
@@ -770,15 +770,22 @@ func (h *handler) handleExclusionList(p *peer, msg p2p.Msg) error {
 		return err
 	}
 
-	received, err := newExclusionSet(&list)
+	return h.importExclusionListFrom(p.id, &list, true)
+}
+
+func (h *handler) importExclusionList(list *common.ValidatorExclusionList) error {
+	return h.importExclusionListFrom("", list, false)
+}
+
+func (h *handler) importExclusionListFrom(fromID string, list *common.ValidatorExclusionList, signLocal bool) error {
+	received, err := newExclusionSet(list)
 	if err != nil {
 		return err
 	}
-
-	return h.handleExclusionSet(p, received)
+	return h.importExclusionSet(fromID, received, signLocal)
 }
 
-func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
+func (h *handler) importExclusionSet(fromID string, received *exclusionSet, signLocal bool) error {
 	if received.blockRanges == nil && received.addrToBlock != nil {
 		for address, blockAddress := range received.addrToBlock {
 			received.blockRanges[address] = []common.BlockRange{
@@ -815,7 +822,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			received.mergeSignatures(rm.desiredExSet.hash, rm.desiredExSet.signers)
 		}
 
-		if rm.isRootNode(false) {
+		if signLocal && rm.isRootNode(false) {
 			rm.signExclusionSet(received)
 		}
 
@@ -825,7 +832,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 	case rm.activeExSet != nil && rm.activeExSet.hash == received.hash:
 		// On very start of the node account can be not unlocked, so isRootNode can return false
 		signatureAdded := false // In case when alias changed
-		if rm.isRootNode(false) {
+		if signLocal && rm.isRootNode(false) {
 			signatureAdded = rm.signExclusionSet(rm.activeExSet)
 		}
 		newSignatures := rm.activeExSet.mergeSignatures(received.hash, received.signers)
@@ -833,8 +840,8 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			return nil
 		}
 
-		log.Debug("Received new exclusion list signatures", "from", p.id, "singers", toSigners(newSignatures))
-		h.exEventCh <- &exclusionSetEvent{fromID: p.id, set: rm.activeExSet.copy()}
+		log.Debug("Received new exclusion list signatures", "from", fromID, "singers", toSigners(newSignatures))
+		h.exEventCh <- &exclusionSetEvent{fromID: fromID, set: rm.activeExSet.copy()}
 		rm.db.saveActiveExclusionSet(rm.activeExSet)
 	case rm.desiredExSet != nil && rm.desiredExSet.hash == received.hash:
 		newSignatures := rm.desiredExSet.mergeSignatures(received.hash, received.signers)
@@ -842,9 +849,9 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 			return nil
 		}
 
-		log.Debug("Received new desired exclusion list signatures", "from", p.id, "singers", toSigners(newSignatures))
+		log.Debug("Received new desired exclusion list signatures", "from", fromID, "singers", toSigners(newSignatures))
 		if !rm.getActiveRootSet(true).isEnoughExSetSignatures(rm.desiredExSet) {
-			h.exEventCh <- &exclusionSetEvent{fromID: p.id, set: rm.desiredExSet}
+			h.exEventCh <- &exclusionSetEvent{fromID: fromID, set: rm.desiredExSet}
 			rm.db.saveDesiredExclusionSet(rm.desiredExSet)
 			return nil
 		}
@@ -859,7 +866,7 @@ func (h *handler) handleExclusionSet(p *peer, received *exclusionSet) error {
 		}
 
 		if !rm.isAcceptableExclusionSet(rm.proposedExSet) {
-			h.exEventCh <- &exclusionSetEvent{fromID: p.id, set: rm.proposedExSet.copy()}
+			h.exEventCh <- &exclusionSetEvent{fromID: fromID, set: rm.proposedExSet.copy()}
 			rm.db.saveProposedExclusionSet(rm.proposedExSet)
 			return nil
 		}

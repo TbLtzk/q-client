@@ -489,6 +489,189 @@ func TestHandleExclusionSet(t *testing.T) {
 	}
 }
 
+func TestImportExclusionList(t *testing.T) {
+	tests := []struct {
+		name              string
+		initChain         bool
+		list              func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList
+		beforeImport      func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList)
+		assertAfterImport func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList)
+	}{
+		{
+			name: "known signer stores proposed list",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+			},
+			assertAfterImport: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList) {
+				if rm.proposedExSet == nil || rm.proposedExSet.hash != list.Hash {
+					t.Fatalf("expected proposed exclusion list %s, got %v", list.Hash.Hex(), rm.proposedExSet)
+				}
+				if rm.activeExSet.hash == list.Hash {
+					t.Fatal("single-signature exclusion list was upgraded")
+				}
+			},
+		},
+		{
+			name: "unknown signer is ignored",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, nil, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+			},
+			assertAfterImport: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList) {
+				if rm.proposedExSet != nil {
+					t.Fatalf("expected unknown signer exclusion list to be ignored, got %s", rm.proposedExSet.hash.Hex())
+				}
+			},
+		},
+		{
+			name: "duplicate signature is ignored",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+				list.Signatures = append(list.Signatures, list.Signatures[0])
+				return list
+			},
+			assertAfterImport: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList) {
+				if rm.proposedExSet == nil || rm.proposedExSet.hash != list.Hash {
+					t.Fatalf("expected proposed exclusion list %s, got %v", list.Hash.Hex(), rm.proposedExSet)
+				}
+				if len(rm.proposedExSet.signers) != 1 {
+					t.Fatalf("expected one unique signature, got %d", len(rm.proposedExSet.signers))
+				}
+			},
+		},
+		{
+			name: "obsolete timestamp is ignored",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+			},
+			beforeImport: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList) {
+				newer := signedExclusionList(t, rm, list.Timestamp+1, 2, 1, true, 7000)
+				set, err := newExclusionSet(&newer)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rm.proposedExSet = set
+			},
+			assertAfterImport: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList) {
+				if rm.proposedExSet == nil || rm.proposedExSet.hash == list.Hash {
+					t.Fatal("obsolete exclusion list replaced newer proposal")
+				}
+			},
+		},
+		{
+			name:      "threshold signatures upgrade active list",
+			initChain: true,
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, defNumAccounts-1, true, 6000)
+			},
+			assertAfterImport: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList) {
+				if rm.activeExSet == nil || rm.activeExSet.hash != list.Hash {
+					t.Fatalf("expected active exclusion list %s, got %v", list.Hash.Hex(), rm.activeExSet)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rm := newTestRootManager(t, false, true)
+			if tt.initChain {
+				bc := newTestChain(t, rm.RootManager)
+				defer bc.Stop()
+				rm.InitBlockChain(bc)
+			}
+			gov, err := New(rm.RootManager, tmpDirName(t))
+			if err != nil {
+				t.Fatalf("Failed to create Governance: %v", err)
+			}
+			if err := gov.Start(); err != nil {
+				t.Fatalf("Failed to start Governance: %v", err)
+			}
+
+			list := tt.list(t, rm)
+			if tt.beforeImport != nil {
+				tt.beforeImport(t, rm, list)
+			}
+			if err := gov.handler.importExclusionList(&list); err != nil {
+				t.Fatalf("importExclusionList returned error: %v", err)
+			}
+			tt.assertAfterImport(t, rm, list)
+		})
+	}
+}
+
+func TestImportExclusionListDoesNotRequireLocalSigning(t *testing.T) {
+	rm := newTestRootManager(t, true, false)
+	gov, err := New(rm.RootManager, tmpDirName(t))
+	if err != nil {
+		t.Fatalf("Failed to create Governance: %v", err)
+	}
+	if err := gov.Start(); err != nil {
+		t.Fatalf("Failed to start Governance: %v", err)
+	}
+
+	list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, false, 6000)
+	if err := gov.handler.importExclusionList(&list); err != nil {
+		t.Fatalf("importExclusionList returned error: %v", err)
+	}
+
+	if rm.activeExSet != nil && rm.activeExSet.hash == list.Hash {
+		t.Fatal("import locally signed the exclusion list and upgraded it")
+	}
+	if rm.proposedExSet == nil || rm.proposedExSet.hash != list.Hash {
+		t.Fatalf("expected imported exclusion list to be proposed, got %v", rm.proposedExSet)
+	}
+	if len(rm.proposedExSet.signers) != 1 {
+		t.Fatalf("expected import to keep only supplied signature, got %d signatures", len(rm.proposedExSet.signers))
+	}
+}
+
+func TestImportExclusionListPreservesQuarantine(t *testing.T) {
+	earliestBlock := uint64(2)
+	rm := newTestRootManager(t, true, false)
+	bc := newTestChain(t, rm.RootManager)
+	defer bc.Stop()
+	rm.InitBlockChain(bc)
+	rm.setMaxRewindLimit(100)
+
+	list := rm.activeExSet.copy().makeList()
+	list.Timestamp++
+	list.Signatures = nil
+	list.Hash = common.Hash{}
+	list.Validators = append(list.Validators, common.ExcludedValidator{
+		Address: common.HexToAddress("0x2B01035cDa82a02fb135EBd68676Fa17FdcAD365"),
+		Block:   earliestBlock,
+	})
+	set, err := newExclusionSet(&list)
+	if err != nil {
+		t.Fatalf("Can't create new test exclusion set: %v", err)
+	}
+	rm.signExclusionSet(set)
+	list = set.makeList()
+
+	gov, err := New(rm.RootManager, tmpDirName(t))
+	if err != nil {
+		t.Fatalf("Failed to create Governance: %v", err)
+	}
+	if err := gov.Start(); err != nil {
+		t.Fatalf("Failed to start Governance: %v", err)
+	}
+
+	currentExclusionSet := rm.activeExSet.copy()
+	if err := gov.handler.importExclusionList(&list); err != nil {
+		t.Fatalf("importExclusionList returned error: %v", err)
+	}
+	if currentExclusionSet.hash != rm.activeExSet.hash {
+		t.Fatalf("active exclusion set changed for quarantined import")
+	}
+	qSets, err := rm.db.getExclusionSetsFromQuarantine()
+	if err != nil {
+		t.Fatalf("Failed to get exclusion sets from quarantine: %v", err)
+	}
+	if len(qSets) != 1 || qSets[0].hash != set.hash {
+		t.Fatalf("expected quarantined exclusion set %s, got %v", set.hash.Hex(), qSets)
+	}
+}
+
 func TestHandleConstitution(t *testing.T) {
 	rm := newTestRootManager(t, false, true)
 	bc := newTestChain(t, rm.RootManager)
@@ -892,6 +1075,64 @@ func randomExclusionList(t *testing.T, rm *TestRootManager, timestamp uint64, va
 		} else {
 			privateKeys = append(privateKeys, rm.rootPrivateKeys[:signersCount]...)
 		}
+	} else {
+		for i := 0; i < signersCount; i++ {
+			privateKey, err := crypto.GenerateKey()
+			if err != nil {
+				t.Error(errors.Wrap(err, "failed to generate random private key"))
+			}
+			privateKeys = append(privateKeys, privateKey)
+		}
+	}
+
+	for _, key := range privateKeys {
+		sig, err := crypto.Sign(exclusionList.Hash.Bytes(), key)
+		if err != nil {
+			t.Error(errors.Wrap(err, "failed to sign hash"))
+		}
+		exclusionList.Signatures = append(exclusionList.Signatures, sig)
+	}
+
+	return exclusionList
+}
+
+func signedExclusionList(t *testing.T, rm *TestRootManager, timestamp uint64, validatorsCount, signersCount int, signByAlias bool, blockStart uint64) common.ValidatorExclusionList {
+	exclusionList := common.ValidatorExclusionList{
+		Timestamp:  timestamp,
+		Validators: make([]common.ExcludedValidator, 0, validatorsCount),
+		Signatures: make([][]byte, 0, signersCount),
+	}
+	for i := 0; i < validatorsCount; i++ {
+		block := blockStart + uint64(i)
+		exclusionList.Validators = append(exclusionList.Validators, common.ExcludedValidator{
+			Address:  common.BytesToAddress(randBytes(common.AddressLength)),
+			Block:    block,
+			EndBlock: block + 100,
+		})
+	}
+
+	exclusionSet, err := newExclusionSet(&exclusionList)
+	if err != nil {
+		t.Error(err)
+	}
+	exclusionList.Hash = exclusionSet.hash
+
+	privateKeys := make([]*ecdsa.PrivateKey, 0)
+	if rm != nil && signersCount <= len(rm.rootPrivateKeys) {
+		if signByAlias {
+			privateKeys = append(privateKeys, rm.aliasPrivateKeys[:signersCount]...)
+		} else {
+			privateKeys = append(privateKeys, rm.rootPrivateKeys[:signersCount]...)
+		}
+	} else if rm != nil && signersCount <= len(rm.RootManager.manager.Accounts()) {
+		for _, account := range rm.RootManager.manager.Accounts()[:signersCount] {
+			signature, err := rm.SignHash(accounts.Account{Address: account}, exclusionList.Hash.Bytes())
+			if err != nil {
+				t.Error(errors.Wrap(err, "failed to sign hash"))
+			}
+			exclusionList.Signatures = append(exclusionList.Signatures, signature)
+		}
+		return exclusionList
 	} else {
 		for i := 0; i < signersCount; i++ {
 			privateKey, err := crypto.GenerateKey()

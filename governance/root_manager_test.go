@@ -870,7 +870,7 @@ func TestQuarantineExclusionSet(t *testing.T) {
 
 	t.Log("Handling exclusion set")
 	currentExclusionSet := rm.activeExSet.copy()
-	err = gov.handler.handleExclusionSet(&p, set)
+	err = gov.handler.importExclusionSet(p.id, set, true)
 	if err != nil {
 		t.Fatalf("Failed to handle exclusion list: %v", err)
 	}
