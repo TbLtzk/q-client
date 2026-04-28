@@ -1335,7 +1335,7 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	}
 }
 
-// Prevents opening gov api as external endpoint
+// Prevents opening private gov api as an external endpoint while allowing govPub.
 func filterProtectedAPIs(ret []string, ns string, gcmodevalue string) []string {
 	res := []string{}
 	for _, api := range ret {

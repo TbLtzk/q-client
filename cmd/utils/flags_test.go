@@ -65,3 +65,23 @@ func Test_SplitTagsFlag(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterProtectedAPIsBlocksPrivateGovOnly(t *testing.T) {
+	t.Parallel()
+
+	got := filterProtectedAPIs([]string{"eth", " gov ", "govPub", "web3"}, "http", ArchiveValue)
+	want := []string{"eth", "govPub", "web3"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("filterProtectedAPIs() = %v, want %v", got, want)
+	}
+}
+
+func TestFilterProtectedAPIsAllowsGovPubOnWebSocket(t *testing.T) {
+	t.Parallel()
+
+	got := filterProtectedAPIs([]string{"govPub"}, "ws", ArchiveValue)
+	want := []string{"govPub"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("filterProtectedAPIs() = %v, want %v", got, want)
+	}
+}
