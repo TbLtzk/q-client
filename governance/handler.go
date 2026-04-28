@@ -337,7 +337,7 @@ func (h *handler) runPeer(p *peer) error {
 	} {
 		our, their := set.our, set.their
 		if shouldPropagateRoots(our, their, rm.active) {
-			if err = h.handleRootSet(p, their); err != nil {
+			if err = h.importRootSet(p.id, their, true); err != nil {
 				return err
 			}
 		}
@@ -514,13 +514,7 @@ func (h *handler) handleRootListMsg(p *peer, msg p2p.Msg) error {
 		return err
 	}
 
-	received, err := newRootSet(&list)
-	if err != nil {
-		return err
-	}
-	received.updateAliases(h.rootManager.getAliasesOfRoots(received.rootAddresses))
-
-	return h.handleRootSet(p, received)
+	return h.importRootListFrom(p.id, &list, true)
 }
 
 func (h *handler) handleApprovalMsg(p *peer, msg p2p.Msg) error {
@@ -662,10 +656,24 @@ func (h *handler) handleConstitutionFilesMsg(p *peer, msg p2p.Msg) error {
 	return nil
 }
 
-func (h *handler) handleRootSet(p *peer, received *rootSet) error {
+func (h *handler) importRootList(list *common.RootList) error {
+	return h.importRootListFrom("", list, false)
+}
+
+func (h *handler) importRootListFrom(fromID string, list *common.RootList, signLocal bool) error {
+	received, err := newRootSet(list)
+	if err != nil {
+		return err
+	}
+	return h.importRootSet(fromID, received, signLocal)
+}
+
+func (h *handler) importRootSet(fromID string, received *rootSet, signLocal bool) error {
 	rm := h.rootManager
 	rm.rootLock.Lock()
 	defer rm.rootLock.Unlock()
+
+	received.updateAliases(rm.getAliasesOfRoots(received.rootAddresses))
 
 	// Check if the received root set is acceptable (spam protection)
 	// Skip this check if the received root set is the same as the active one
@@ -683,7 +691,7 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 
 	switch {
 	case rm.active.isAcceptable(received) && (rm.desired == nil || rm.desired.hash != received.hash):
-		if rm.isRootNode(false) {
+		if signLocal && rm.isRootNode(false) {
 			rm.signRootSet(received)
 		}
 
@@ -691,7 +699,7 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 
 		h.rootEventCh <- &rootSetEvent{set: received}
 	case rm.active.hash == received.hash:
-		if rm.isRootNode(false) {
+		if signLocal && rm.isRootNode(false) {
 			rm.signRootSet(rm.active)
 		}
 		newSignatures := rm.active.mergeSignatures(received.hash, received.signers)
@@ -699,8 +707,8 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 			return nil
 		}
 
-		log.Debug("Received active root list signatures", "from", p.id, "signers", toSigners(newSignatures))
-		h.rootEventCh <- &rootSetEvent{fromID: p.id, set: rm.active.copy()}
+		log.Debug("Received active root list signatures", "from", fromID, "signers", toSigners(newSignatures))
+		h.rootEventCh <- &rootSetEvent{fromID: fromID, set: rm.active.copy()}
 
 		rm.db.saveActiveRootSet(rm.active)
 	case rm.desired != nil && rm.desired.hash == received.hash:
@@ -709,9 +717,9 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 			return nil
 		}
 
-		log.Debug("Received desired root list signatures", "from", p.id, "signers", toSigners(newSignatures))
+		log.Debug("Received desired root list signatures", "from", fromID, "signers", toSigners(newSignatures))
 		if !rm.active.isAcceptable(rm.desired) {
-			h.rootEventCh <- &rootSetEvent{fromID: p.id, set: rm.desired.copy()}
+			h.rootEventCh <- &rootSetEvent{fromID: fromID, set: rm.desired.copy()}
 			rm.db.saveDesiredRootSet(rm.desired)
 			return nil
 		}
@@ -724,9 +732,9 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 			return nil
 		}
 
-		log.Debug("Received proposed root list signatures", "from", p.id, "signers", toSigners(newSignatures))
+		log.Debug("Received proposed root list signatures", "from", fromID, "signers", toSigners(newSignatures))
 		if !rm.active.isAcceptable(rm.proposed) {
-			h.rootEventCh <- &rootSetEvent{fromID: p.id, set: rm.proposed.copy()}
+			h.rootEventCh <- &rootSetEvent{fromID: fromID, set: rm.proposed.copy()}
 			rm.db.saveProposedRootSet(rm.proposed)
 			return nil
 		}
@@ -738,7 +746,7 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 		if len(signers) == 0 {
 			log.Debug("Ignoring proposed root list: not signed by any known root node",
 				"hash", received.hash.Hex(),
-				"from", p.id)
+				"from", fromID)
 			return nil
 		}
 
@@ -749,7 +757,7 @@ func (h *handler) handleRootSet(p *peer, received *rootSet) error {
 
 		rm.proposed = received
 		rm.db.saveProposedRootSet(rm.proposed)
-		h.rootEventCh <- &rootSetEvent{fromID: p.id, set: received}
+		h.rootEventCh <- &rootSetEvent{fromID: fromID, set: received}
 		log.Warn("Received a new proposed root list", "hash", received.hash.Hex(), "timestamp", received.timestamp)
 	}
 
