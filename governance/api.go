@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/log"
+	"gitlab.com/q-dev/q-client/rlp"
 )
 
 // GovernanceAPI. (shouldn't be opened via http/ws)
@@ -49,6 +50,10 @@ func (a *GovernancePublicAPI) OnchainRootList() *RootList {
 }
 
 func (a *GovernancePublicAPI) SubmitSignedRootList(list common.RootList) (common.Hash, error) {
+	if err := a.gov.RootManager.validatePublicSubmissionAllowed(list); err != nil {
+		return common.Hash{}, err
+	}
+
 	set, err := newRootSet(&list)
 	if err != nil {
 		return common.Hash{}, errors.Wrap(err, "invalid signed root list")
@@ -156,6 +161,10 @@ func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusio
 }
 
 func (a *GovernancePublicAPI) SubmitSignedExclusionList(list common.ValidatorExclusionList) (common.Hash, error) {
+	if err := a.gov.RootManager.validatePublicSubmissionAllowed(list); err != nil {
+		return common.Hash{}, err
+	}
+
 	set, err := newExclusionSet(&list)
 	if err != nil {
 		return common.Hash{}, errors.Wrap(err, "invalid signed exclusion list")
@@ -180,6 +189,26 @@ func (a *GovernancePublicAPI) SubmitSignedExclusionList(list common.ValidatorExc
 	}
 
 	return set.hash, nil
+}
+
+func (s *RootManager) validatePublicSubmissionAllowed(list interface{}) error {
+	if s.DisablePublicSubmission {
+		return errPublicGovernanceSubmissionDisabled
+	}
+
+	size, _, err := rlp.EncodeToReader(list)
+	if err != nil {
+		return err
+	}
+	if size > protocolMaxMsgSize {
+		return errMsgTooLarge
+	}
+
+	return nil
+}
+
+func (s *RootManager) isProposalQuotaDisabled() bool {
+	return s.ProposalQuotaMax == 0
 }
 
 func (a *GovernanceAPI) AcceptQuarantinedExclusionList(hash *common.Hash) error {
