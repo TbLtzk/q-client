@@ -179,6 +179,59 @@ func TestToFilterArg(t *testing.T) {
 	}
 }
 
+type governanceSubmissionTestAPI struct {
+	rootList      common.RootList
+	exclusionList common.ValidatorExclusionList
+}
+
+func (api *governanceSubmissionTestAPI) SubmitSignedRootList(list common.RootList) common.Hash {
+	api.rootList = list
+	return list.Hash
+}
+
+func (api *governanceSubmissionTestAPI) SubmitSignedExclusionList(list common.ValidatorExclusionList) common.Hash {
+	api.exclusionList = list
+	return list.Hash
+}
+
+func TestGovernanceSubmissionWrappers(t *testing.T) {
+	server := rpc.NewServer()
+	api := new(governanceSubmissionTestAPI)
+	if err := server.RegisterName("govPub", api); err != nil {
+		t.Fatalf("failed to register govPub API: %v", err)
+	}
+	client := NewClient(rpc.DialInProc(server))
+	defer client.Close()
+
+	rootList := common.RootList{
+		Timestamp:  1,
+		Nodes:      []common.Address{common.HexToAddress("0x1")},
+		Hash:       common.HexToHash("0x1234"),
+		Signatures: [][]byte{{1, 2, 3}},
+	}
+	rootHash, err := client.SubmitSignedRootList(context.Background(), rootList)
+	if err != nil {
+		t.Fatalf("SubmitSignedRootList returned error: %v", err)
+	}
+	if rootHash != rootList.Hash || !reflect.DeepEqual(api.rootList, rootList) {
+		t.Fatalf("unexpected root submission result hash=%s list=%v", rootHash.Hex(), api.rootList)
+	}
+
+	exclusionList := common.ValidatorExclusionList{
+		Timestamp:  2,
+		Validators: []common.ExcludedValidator{{Address: common.HexToAddress("0x2"), Block: 10, EndBlock: 20}},
+		Hash:       common.HexToHash("0x5678"),
+		Signatures: [][]byte{{4, 5, 6}},
+	}
+	exclusionHash, err := client.SubmitSignedExclusionList(context.Background(), exclusionList)
+	if err != nil {
+		t.Fatalf("SubmitSignedExclusionList returned error: %v", err)
+	}
+	if exclusionHash != exclusionList.Hash || !reflect.DeepEqual(api.exclusionList, exclusionList) {
+		t.Fatalf("unexpected exclusion submission result hash=%s list=%v", exclusionHash.Hex(), api.exclusionList)
+	}
+}
+
 var (
 	testKey, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	testAddr    = crypto.PubkeyToAddress(testKey.PublicKey)
