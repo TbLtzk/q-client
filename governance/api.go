@@ -48,6 +48,33 @@ func (a *GovernancePublicAPI) OnchainRootList() *RootList {
 	return newRootList(a.gov.RootManager.getOnchainRootSet(true))
 }
 
+func (a *GovernancePublicAPI) SubmitSignedRootList(list common.RootList) (common.Hash, error) {
+	set, err := newRootSet(&list)
+	if err != nil {
+		return common.Hash{}, errors.Wrap(err, "invalid signed root list")
+	}
+	if set == nil || len(set.signers) == 0 {
+		return common.Hash{}, errors.New("signed root list has no signatures")
+	}
+
+	rm := a.gov.RootManager
+	before, err := rm.snapshotRootListImport(set)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	if err := a.gov.handler.importRootList(&list); err != nil {
+		return common.Hash{}, err
+	}
+
+	after := rm.rootListImportSnapshot(set.hash)
+	if !after.changedFrom(before) {
+		return common.Hash{}, errors.New("signed root list was not accepted")
+	}
+
+	return set.hash, nil
+}
+
 func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList, force bool) (common.Hash, error) {
 	set, err := newRootSet(&list)
 	if err != nil {
