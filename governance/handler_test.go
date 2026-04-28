@@ -828,6 +828,172 @@ func TestImportExclusionListPreservesQuarantine(t *testing.T) {
 	}
 }
 
+func TestSubmitSignedExclusionList(t *testing.T) {
+	tests := []struct {
+		name              string
+		initChain         bool
+		list              func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList
+		beforeSubmit      func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList)
+		assertAfterSubmit func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList, hash common.Hash)
+		wantErr           bool
+	}{
+		{
+			name: "known signer stores proposed list",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList, hash common.Hash) {
+				if hash != list.Hash {
+					t.Fatalf("expected submitted hash %s, got %s", list.Hash.Hex(), hash.Hex())
+				}
+				if rm.proposedExSet == nil || rm.proposedExSet.hash != list.Hash {
+					t.Fatalf("expected proposed exclusion list %s, got %v", list.Hash.Hex(), rm.proposedExSet)
+				}
+			},
+		},
+		{
+			name: "threshold signatures upgrade active list",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, defNumAccounts-1, true, 6000)
+			},
+			initChain: true,
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList, hash common.Hash) {
+				if rm.activeExSet == nil || rm.activeExSet.hash != list.Hash {
+					t.Fatalf("expected active exclusion list %s, got %v", list.Hash.Hex(), rm.activeExSet)
+				}
+			},
+		},
+		{
+			name: "unknown signer is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, nil, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+			},
+			wantErr: true,
+		},
+		{
+			name: "unsigned list is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+				list.Signatures = nil
+				return list
+			},
+			wantErr: true,
+		},
+		{
+			name: "malformed signature is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+				list.Signatures[0] = randBytes(crypto.SignatureLength)
+				return list
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid range is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+				list.Validators[0].EndBlock = list.Validators[0].Block
+				list.Hash = common.Hash{}
+				list.Signatures = nil
+				set, err := newExclusionSet(&list)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rm.signExclusionSet(set)
+				return set.makeList()
+			},
+			wantErr: true,
+		},
+		{
+			name: "obsolete timestamp is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+			},
+			beforeSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList) {
+				newer := signedExclusionList(t, rm, list.Timestamp+1, 2, 1, true, 7000)
+				set, err := newExclusionSet(&newer)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rm.proposedExSet = set
+			},
+			wantErr: true,
+		},
+		{
+			name: "duplicate is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+			},
+			beforeSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList) {
+				set, err := newExclusionSet(&list)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rm.proposedExSet = set
+			},
+			wantErr: true,
+		},
+		{
+			name:      "quarantined list is rejected",
+			initChain: true,
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				rm.setMaxRewindLimit(100)
+				list := rm.activeExSet.copy().makeList()
+				list.Timestamp++
+				list.Signatures = nil
+				list.Hash = common.Hash{}
+				list.Validators = append(list.Validators, common.ExcludedValidator{
+					Address: common.HexToAddress("0x2B01035cDa82a02fb135EBd68676Fa17FdcAD365"),
+					Block:   2,
+				})
+				set, err := newExclusionSet(&list)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rm.signExclusionSet(set)
+				return set.makeList()
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rm := newTestRootManager(t, false, true)
+			if tt.initChain {
+				rm = newTestRootManager(t, true, false)
+				bc := newTestChain(t, rm.RootManager)
+				defer bc.Stop()
+				rm.InitBlockChain(bc)
+			}
+			gov, err := New(rm.RootManager, tmpDirName(t))
+			if err != nil {
+				t.Fatalf("Failed to create Governance: %v", err)
+			}
+			if err := gov.Start(); err != nil {
+				t.Fatalf("Failed to start Governance: %v", err)
+			}
+
+			api := NewGovernancePublicAPI(gov)
+			list := tt.list(t, rm)
+			if tt.beforeSubmit != nil {
+				tt.beforeSubmit(t, rm, list)
+			}
+			hash, err := api.SubmitSignedExclusionList(list)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected SubmitSignedExclusionList error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("SubmitSignedExclusionList returned error: %v", err)
+			}
+			tt.assertAfterSubmit(t, rm, list, hash)
+		})
+	}
+}
+
 func TestHandleConstitution(t *testing.T) {
 	rm := newTestRootManager(t, false, true)
 	bc := newTestChain(t, rm.RootManager)
