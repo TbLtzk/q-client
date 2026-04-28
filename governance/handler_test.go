@@ -595,6 +595,302 @@ func TestSubmitSignedRootList(t *testing.T) {
 	}
 }
 
+func TestSubmitSignedRootListEquivalentToPeerImport(t *testing.T) {
+	tests := []struct {
+		name           string
+		list           func(t *testing.T, rm *TestRootManager) common.RootList
+		beforeImport   func(t *testing.T, rm *TestRootManager, list common.RootList)
+		wantRPCError   bool
+		compareStates  bool
+		compareNoState bool
+	}{
+		{
+			name: "valid proposal",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+			},
+			compareStates: true,
+		},
+		{
+			name: "threshold upgrade",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, defNumAccounts-1, true)
+			},
+			compareStates: true,
+		},
+		{
+			name: "duplicate proposal",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+			},
+			beforeImport: func(t *testing.T, rm *TestRootManager, list common.RootList) {
+				set, err := newRootSet(&list)
+				if err != nil {
+					t.Fatal(err)
+				}
+				set.updateAliases(rm.getAliasesOfRoots(set.rootAddresses))
+				rm.proposed = set
+			},
+			wantRPCError:   true,
+			compareNoState: true,
+		},
+		{
+			name: "stale proposal",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+			},
+			beforeImport: func(t *testing.T, rm *TestRootManager, list common.RootList) {
+				newer := randomRootList(t, rm, int64(list.Timestamp+1), 10, 1, true)
+				set, err := newRootSet(&newer)
+				if err != nil {
+					t.Fatal(err)
+				}
+				set.updateAliases(rm.getAliasesOfRoots(set.rootAddresses))
+				rm.proposed = set
+			},
+			wantRPCError:   true,
+			compareNoState: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			peerRM := newTestRootManager(t, false, true)
+			rpcRM := newTestRootManager(t, false, true)
+
+			list := tt.list(t, peerRM)
+			cloneRootManagerRootState(rpcRM.RootManager, peerRM.RootManager)
+			if tt.beforeImport != nil {
+				tt.beforeImport(t, peerRM, list)
+				tt.beforeImport(t, rpcRM, list)
+			}
+
+			peerGov, err := New(peerRM.RootManager, tmpDirName(t))
+			if err != nil {
+				t.Fatalf("Failed to create peer Governance: %v", err)
+			}
+			rpcGov, err := New(rpcRM.RootManager, tmpDirName(t))
+			if err != nil {
+				t.Fatalf("Failed to create rpc Governance: %v", err)
+			}
+			if err := peerGov.Start(); err != nil {
+				t.Fatalf("Failed to start peer Governance: %v", err)
+			}
+			if err := rpcGov.Start(); err != nil {
+				t.Fatalf("Failed to start rpc Governance: %v", err)
+			}
+
+			peerBefore := peerRM.rootListImportSnapshot(list.Hash)
+			rpcBefore := rpcRM.rootListImportSnapshot(list.Hash)
+			if err := peerGov.handler.importRootListFrom("peer", &list, false); err != nil {
+				t.Fatalf("peer import failed: %v", err)
+			}
+			_, rpcErr := NewGovernancePublicAPI(rpcGov).SubmitSignedRootList(list)
+			if tt.wantRPCError && rpcErr == nil {
+				t.Fatal("expected RPC import error")
+			}
+			if !tt.wantRPCError && rpcErr != nil {
+				t.Fatalf("RPC import failed: %v", rpcErr)
+			}
+
+			if tt.compareStates {
+				assertRootImportStateEqual(t, peerRM.RootManager, rpcRM.RootManager, list.Hash)
+			}
+			if tt.compareNoState {
+				if peerRM.rootListImportSnapshot(list.Hash).changedFrom(peerBefore) {
+					t.Fatal("peer path mutated state for ignored root list")
+				}
+				if rpcRM.rootListImportSnapshot(list.Hash).changedFrom(rpcBefore) {
+					t.Fatal("RPC path mutated state for ignored root list")
+				}
+			}
+		})
+	}
+}
+
+func cloneRootManagerRootState(dst, src *RootManager) {
+	dst.active = src.active.copy()
+	dst.desired = src.desired.copy()
+	dst.proposed = src.proposed.copy()
+	dst.reg = newTestRegistry()
+	dst.rootQuotaEntries = map[common.Address][]common.ListQuotaEntry{}
+	for signer, entries := range src.rootQuotaEntries {
+		dst.rootQuotaEntries[signer] = append([]common.ListQuotaEntry(nil), entries...)
+	}
+}
+
+func assertRootImportStateEqual(t *testing.T, peerRM, rpcRM *RootManager, hash common.Hash) {
+	t.Helper()
+	if peerRM.rootListImportSnapshot(hash) != rpcRM.rootListImportSnapshot(hash) {
+		t.Fatalf("root import state mismatch: peer=%+v rpc=%+v", peerRM.rootListImportSnapshot(hash), rpcRM.rootListImportSnapshot(hash))
+	}
+}
+
+func assertExclusionImportStateEqual(t *testing.T, peerRM, rpcRM *RootManager, hash common.Hash) {
+	t.Helper()
+	if peerRM.exclusionListImportSnapshot(hash) != rpcRM.exclusionListImportSnapshot(hash) {
+		t.Fatalf("exclusion import state mismatch: peer=%+v rpc=%+v", peerRM.exclusionListImportSnapshot(hash), rpcRM.exclusionListImportSnapshot(hash))
+	}
+}
+
+func TestSubmitSignedExclusionListEquivalentToPeerImport(t *testing.T) {
+	tests := []struct {
+		name           string
+		initChain      bool
+		list           func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList
+		beforeImport   func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList)
+		wantRPCError   bool
+		compareStates  bool
+		compareNoState bool
+		compareQuarant bool
+	}{
+		{
+			name: "valid proposal",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+			},
+			compareStates: true,
+		},
+		{
+			name:      "threshold upgrade",
+			initChain: true,
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, defNumAccounts-1, true, 6000)
+			},
+			compareStates: true,
+		},
+		{
+			name: "duplicate proposal",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+			},
+			beforeImport: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList) {
+				set, err := newExclusionSet(&list)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rm.proposedExSet = set
+			},
+			wantRPCError:   true,
+			compareNoState: true,
+		},
+		{
+			name: "stale proposal",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+			},
+			beforeImport: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList) {
+				newer := signedExclusionList(t, rm, list.Timestamp+1, 2, 1, true, 7000)
+				set, err := newExclusionSet(&newer)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rm.proposedExSet = set
+			},
+			wantRPCError:   true,
+			compareNoState: true,
+		},
+		{
+			name:      "quarantine",
+			initChain: true,
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				rm.setMaxRewindLimit(100)
+				list := rm.activeExSet.copy().makeList()
+				list.Timestamp++
+				list.Signatures = nil
+				list.Hash = common.Hash{}
+				list.Validators = append(list.Validators, common.ExcludedValidator{
+					Address: common.HexToAddress("0x2B01035cDa82a02fb135EBd68676Fa17FdcAD365"),
+					Block:   2,
+				})
+				set, err := newExclusionSet(&list)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rm.signExclusionSet(set)
+				return set.makeList()
+			},
+			wantRPCError:   true,
+			compareQuarant: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			peerRM := newTestRootManager(t, false, true)
+			rpcRM := newTestRootManager(t, false, true)
+			if tt.initChain {
+				peerRM = newTestRootManager(t, true, false)
+				rpcRM = newTestRootManager(t, true, false)
+				peerBC := newTestChain(t, peerRM.RootManager)
+				defer peerBC.Stop()
+				rpcBC := newTestChain(t, rpcRM.RootManager)
+				defer rpcBC.Stop()
+				peerRM.InitBlockChain(peerBC)
+				rpcRM.InitBlockChain(rpcBC)
+			}
+
+			list := tt.list(t, peerRM)
+			cloneRootManagerRootState(rpcRM.RootManager, peerRM.RootManager)
+			rpcRM.activeExSet = peerRM.activeExSet.copy()
+			rpcRM.desiredExSet = peerRM.desiredExSet.copy()
+			rpcRM.proposedExSet = peerRM.proposedExSet.copy()
+			rpcRM.rewindLimit = peerRM.rewindLimit
+			if tt.beforeImport != nil {
+				tt.beforeImport(t, peerRM, list)
+				tt.beforeImport(t, rpcRM, list)
+			}
+
+			peerGov, err := New(peerRM.RootManager, tmpDirName(t))
+			if err != nil {
+				t.Fatalf("Failed to create peer Governance: %v", err)
+			}
+			rpcGov, err := New(rpcRM.RootManager, tmpDirName(t))
+			if err != nil {
+				t.Fatalf("Failed to create rpc Governance: %v", err)
+			}
+			if err := peerGov.Start(); err != nil {
+				t.Fatalf("Failed to start peer Governance: %v", err)
+			}
+			if err := rpcGov.Start(); err != nil {
+				t.Fatalf("Failed to start rpc Governance: %v", err)
+			}
+
+			peerBefore := peerRM.exclusionListImportSnapshot(list.Hash)
+			rpcBefore := rpcRM.exclusionListImportSnapshot(list.Hash)
+			if err := peerGov.handler.importExclusionListFrom("peer", &list, false); err != nil {
+				t.Fatalf("peer import failed: %v", err)
+			}
+			_, rpcErr := NewGovernancePublicAPI(rpcGov).SubmitSignedExclusionList(list)
+			if tt.wantRPCError && rpcErr == nil {
+				t.Fatal("expected RPC import error")
+			}
+			if !tt.wantRPCError && rpcErr != nil {
+				t.Fatalf("RPC import failed: %v", rpcErr)
+			}
+
+			if tt.compareStates {
+				assertExclusionImportStateEqual(t, peerRM.RootManager, rpcRM.RootManager, list.Hash)
+			}
+			if tt.compareNoState {
+				if peerRM.exclusionListImportSnapshot(list.Hash).changedFrom(peerBefore) {
+					t.Fatal("peer path mutated state for ignored exclusion list")
+				}
+				if rpcRM.exclusionListImportSnapshot(list.Hash).changedFrom(rpcBefore) {
+					t.Fatal("RPC path mutated state for ignored exclusion list")
+				}
+			}
+			if tt.compareQuarant {
+				peerChanged := peerRM.exclusionListImportSnapshot(list.Hash).changedFrom(peerBefore)
+				rpcChanged := rpcRM.exclusionListImportSnapshot(list.Hash).changedFrom(rpcBefore)
+				if !peerChanged || rpcChanged {
+					t.Fatalf("expected peer quarantine mutation and RPC rejection, peerChanged=%v rpcChanged=%v", peerChanged, rpcChanged)
+				}
+			}
+		})
+	}
+}
+
 func TestHandleExclusionSet(t *testing.T) {
 	rm := newTestRootManager(t, false, true)
 	bc := newTestChain(t, rm.RootManager)
