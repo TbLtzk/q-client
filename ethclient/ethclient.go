@@ -798,6 +798,18 @@ func (ec *Client) GetProposedRootList(ctx context.Context) (governance.RootList,
 	return res, err
 }
 
+func (ec *Client) SubmitSignedRootList(ctx context.Context, list common.RootList) (common.Hash, error) {
+	var res common.Hash
+	err := ec.c.CallContext(ctx, &res, "govPub_submitSignedRootList", list)
+	return res, err
+}
+
+func (ec *Client) SubmitSignedExclusionList(ctx context.Context, list common.ValidatorExclusionList) (common.Hash, error) {
+	var res common.Hash
+	err := ec.c.CallContext(ctx, &res, "govPub_submitSignedExclusionList", list)
+	return res, err
+}
+
 func toBlockNumArg(number *big.Int) string {
 	if number == nil {
 		return "latest"

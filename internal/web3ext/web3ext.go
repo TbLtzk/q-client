@@ -961,6 +961,11 @@ web3._extend({
 			call: 'govPub_onchainRootList',
 			params: 0
 		}),
+		new web3._extend.Method({
+			name: 'submitSignedRootList',
+			call: 'govPub_submitSignedRootList',
+			params: 1
+		}),
 	    new web3._extend.Method({
 			name: 'diffRootList',
 			call: 'govPub_diffRootList',
@@ -980,6 +985,11 @@ web3._extend({
 			name: 'proposedExclusionList',
 			call: 'govPub_proposedExclusionList',
 			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'submitSignedExclusionList',
+			call: 'govPub_submitSignedExclusionList',
+			params: 1
 		}),
 	    new web3._extend.Method({
 			name: 'diffExclusionList',
