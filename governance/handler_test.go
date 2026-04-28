@@ -391,6 +391,62 @@ func TestSubmitSignedRootList(t *testing.T) {
 		assertAfterSubmit func(t *testing.T, rm *TestRootManager, list common.RootList, hash common.Hash, err error)
 	}{
 		{
+			name: "disabled submissions are rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+			},
+			beforeSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList) {
+				rm.DisablePublicSubmission = true
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList, hash common.Hash, err error) {
+				if !errors.Is(err, errPublicGovernanceSubmissionDisabled) {
+					t.Fatalf("expected disabled submission error, got hash %s err %v", hash.Hex(), err)
+				}
+				if rm.proposed != nil {
+					t.Fatalf("disabled submission changed proposed state: %v", rm.proposed)
+				}
+			},
+		},
+		{
+			name: "oversized payload is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, nil, time.Now().Add(5*time.Minute).Unix(), 2*maxNRootNodes+1, 2*maxNRootNodes+1, true)
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList, hash common.Hash, err error) {
+				if !errors.Is(err, errMsgTooLarge) {
+					t.Fatalf("expected oversized root list error, got hash %s err %v", hash.Hex(), err)
+				}
+				if rm.proposed != nil {
+					t.Fatalf("oversized root list changed proposed state: %v", rm.proposed)
+				}
+			},
+		},
+		{
+			name: "quota exceeded is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+			},
+			beforeSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList) {
+				rm.ProposalQuotaMax = 1
+				rm.ProposalQuotaTimeWindow = time.Hour
+				set, err := newRootSet(&list)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rm.rootQuotaEntries[rm.active.knownSigners(set.signers)[0]] = []common.ListQuotaEntry{
+					{Hash: common.BytesToHash(randBytes(common.HashLength)), Timestamp: uint64(time.Now().Unix())},
+				}
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList, hash common.Hash, err error) {
+				if err == nil {
+					t.Fatalf("expected quota error, got hash %s", hash.Hex())
+				}
+				if rm.proposed != nil {
+					t.Fatalf("quota rejected root list changed proposed state: %v", rm.proposed)
+				}
+			},
+		},
+		{
 			name: "known signer stores proposed list",
 			list: func(t *testing.T, rm *TestRootManager) common.RootList {
 				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
@@ -834,15 +890,74 @@ func TestSubmitSignedExclusionList(t *testing.T) {
 		initChain         bool
 		list              func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList
 		beforeSubmit      func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList)
-		assertAfterSubmit func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList, hash common.Hash)
+		assertAfterSubmit func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList, hash common.Hash, err error)
 		wantErr           bool
 	}{
+		{
+			name: "disabled submissions are rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+			},
+			beforeSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList) {
+				rm.DisablePublicSubmission = true
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList, hash common.Hash, err error) {
+				if !errors.Is(err, errPublicGovernanceSubmissionDisabled) {
+					t.Fatalf("expected disabled submission error, got hash %s err %v", hash.Hex(), err)
+				}
+				if rm.proposedExSet != nil {
+					t.Fatalf("disabled submission changed proposed state: %v", rm.proposedExSet)
+				}
+			},
+		},
+		{
+			name: "oversized payload is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return randomExclusionList(t, nil, uint64(time.Now().Add(5*time.Minute).Unix()), 2*maxNRootNodes+1, 2*maxNRootNodes+1, true)
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList, hash common.Hash, err error) {
+				if !errors.Is(err, errMsgTooLarge) {
+					t.Fatalf("expected oversized exclusion list error, got hash %s err %v", hash.Hex(), err)
+				}
+				if rm.proposedExSet != nil {
+					t.Fatalf("oversized exclusion list changed proposed state: %v", rm.proposedExSet)
+				}
+			},
+		},
+		{
+			name: "quota exceeded is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+			},
+			beforeSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList) {
+				rm.ProposalQuotaMax = 1
+				rm.ProposalQuotaTimeWindow = time.Hour
+				set, err := newExclusionSet(&list)
+				if err != nil {
+					t.Fatal(err)
+				}
+				rm.exclusionQuotaEntries[rm.getActiveRootSet(true).knownSigners(set.signers)[0]] = []common.ListQuotaEntry{
+					{Hash: common.BytesToHash(randBytes(common.HashLength)), Timestamp: uint64(time.Now().Unix())},
+				}
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList, hash common.Hash, err error) {
+				if err == nil {
+					t.Fatalf("expected quota error, got hash %s", hash.Hex())
+				}
+				if rm.proposedExSet != nil {
+					t.Fatalf("quota rejected exclusion list changed proposed state: %v", rm.proposedExSet)
+				}
+			},
+		},
 		{
 			name: "known signer stores proposed list",
 			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
 				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
 			},
-			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList, hash common.Hash) {
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList, hash common.Hash, err error) {
+				if err != nil {
+					t.Fatalf("SubmitSignedExclusionList returned error: %v", err)
+				}
 				if hash != list.Hash {
 					t.Fatalf("expected submitted hash %s, got %s", list.Hash.Hex(), hash.Hex())
 				}
@@ -857,7 +972,10 @@ func TestSubmitSignedExclusionList(t *testing.T) {
 				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, defNumAccounts-1, true, 6000)
 			},
 			initChain: true,
-			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList, hash common.Hash) {
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList, hash common.Hash, err error) {
+				if err != nil {
+					t.Fatalf("SubmitSignedExclusionList returned error: %v", err)
+				}
 				if rm.activeExSet == nil || rm.activeExSet.hash != list.Hash {
 					t.Fatalf("expected active exclusion list %s, got %v", list.Hash.Hex(), rm.activeExSet)
 				}
@@ -980,6 +1098,10 @@ func TestSubmitSignedExclusionList(t *testing.T) {
 				tt.beforeSubmit(t, rm, list)
 			}
 			hash, err := api.SubmitSignedExclusionList(list)
+			if tt.assertAfterSubmit != nil {
+				tt.assertAfterSubmit(t, rm, list, hash, err)
+				return
+			}
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected SubmitSignedExclusionList error")
@@ -989,7 +1111,7 @@ func TestSubmitSignedExclusionList(t *testing.T) {
 			if err != nil {
 				t.Fatalf("SubmitSignedExclusionList returned error: %v", err)
 			}
-			tt.assertAfterSubmit(t, rm, list, hash)
+			tt.assertAfterSubmit(t, rm, list, hash, err)
 		})
 	}
 }

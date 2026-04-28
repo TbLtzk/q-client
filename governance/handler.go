@@ -474,7 +474,7 @@ func (s *RootManager) snapshotRootListImport(set *rootSet) (rootListImportSnapsh
 		return rootListImportSnapshot{}, errProposedRootListObsolete
 	}
 	if s.active == nil || s.active.hash != set.hash {
-		exceeded, err := s.isSetQuotaExceeded(set)
+		exceeded, err := s.isSetQuotaExceededDryRun(set)
 		if err != nil {
 			return rootListImportSnapshot{}, err
 		}
@@ -567,6 +567,16 @@ func (s *RootManager) snapshotExclusionListImport(set *exclusionSet) (exclusionL
 
 	if s.getActiveRootSet(true).isEnoughExSetSignatures(set) && s.exclusionSetWouldQuarantine(set) {
 		return exclusionListImportSnapshot{}, errors.New("signed exclusion list would be quarantined")
+	}
+
+	if s.activeExSet == nil || s.activeExSet.hash != set.hash {
+		exceeded, err := s.isSetQuotaExceededDryRun(set)
+		if err != nil {
+			return exclusionListImportSnapshot{}, err
+		}
+		if exceeded {
+			return exclusionListImportSnapshot{}, errors.New("exclusion list quota exceeded")
+		}
 	}
 
 	return s.exclusionListImportSnapshotLocked(set.hash), nil
