@@ -44,6 +44,9 @@ var (
 	errProposedApprovalListEmpty  = errors.New("proposed approval list is empty")
 	errInvalidApprovalBlockNumber = errors.New("proposed approval list contains wrong block number")
 	errExclusionListQuotaExceeded = errors.New("exclusion list quota exceeded")
+
+	errPublicGovernanceSubmissionDisabled = errors.New("public governance submission is disabled")
+	errGovernanceSubmissionTooLarge       = errors.New("governance submission is too large")
 )
 
 // RootManager stores root and exclusion lists.
@@ -86,6 +89,7 @@ type RootManager struct {
 	exclusionQuotaEntries map[common.Address][]common.ListQuotaEntry
 
 	ProposalQuotaMax        uint
+	DisablePublicSubmission bool
 	rootQuotaLock           sync.Mutex
 	ProposalQuotaTimeWindow time.Duration
 	exclusionQuotaLock      sync.Mutex
@@ -103,6 +107,7 @@ type Config struct {
 	ProposalQuotaTimeWindow       time.Duration
 	ApprovalMaxFailures           uint64
 	TransitionBlockVerifiedBlocks uint64
+	DisablePublicSubmission       bool
 }
 
 type DiffEntry struct {
@@ -174,6 +179,7 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 		exclusionQuotaEntries: exclusionQuotaEntries,
 
 		ProposalQuotaMax:        cfg.ProposalQuotaMax,
+		DisablePublicSubmission: cfg.DisablePublicSubmission,
 		ProposalQuotaTimeWindow: cfg.ProposalQuotaTimeWindow,
 
 		ApprovalMaxFailures: cfg.ApprovalMaxFailures,
@@ -1363,6 +1369,14 @@ func (s *RootManager) acceptQuarantinedExclusionSet(hash *common.Hash) error {
 }
 
 func (s *RootManager) isSetQuotaExceeded(received interface{}) (bool, error) {
+	return s.checkSetQuotaExceeded(received, true)
+}
+
+func (s *RootManager) isSetQuotaExceededDryRun(received interface{}) (bool, error) {
+	return s.checkSetQuotaExceeded(received, false)
+}
+
+func (s *RootManager) checkSetQuotaExceeded(received interface{}, mutate bool) (bool, error) {
 	var (
 		prefix         []byte
 		hash           common.Hash
@@ -1406,8 +1420,8 @@ func (s *RootManager) isSetQuotaExceeded(received interface{}) (bool, error) {
 		}
 	}
 
-	// Need to save cleaned quotas anyway.
-	if !reflect.DeepEqual(currentEntries, resEntries) {
+	// Need to save cleaned quotas anyway when this is the mutating import path.
+	if mutate && !reflect.DeepEqual(currentEntries, resEntries) {
 		if err := s.saveQuotas(received, resEntries, prefix); err != nil {
 			return false, errors.Wrap(err, "failed to save quota entries")
 		}
@@ -1425,7 +1439,7 @@ func (s *RootManager) isSetQuotaExceeded(received interface{}) (bool, error) {
 
 	// Check if there's already an entry for this signer or if the quota is exceeded
 	if entries, ok := resEntries[signer]; ok {
-		if len(entries) >= int(s.ProposalQuotaMax) {
+		if s.ProposalQuotaMax > 0 && len(entries) >= int(s.ProposalQuotaMax) {
 			// Quota exceeded
 			return true, nil
 		}
@@ -1435,6 +1449,14 @@ func (s *RootManager) isSetQuotaExceeded(received interface{}) (bool, error) {
 				return false, nil
 			}
 		}
+	}
+
+	if s.ProposalQuotaMax > 0 && len(resEntries[signer]) >= int(s.ProposalQuotaMax) {
+		return true, nil
+	}
+
+	if !mutate {
+		return false, nil
 	}
 
 	// We are here, this means that no entry found and quota is not exceeded. Add new entry
