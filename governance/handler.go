@@ -516,6 +516,116 @@ func (s *RootManager) rootListImportSnapshotLocked(hash common.Hash) rootListImp
 	return snapshot
 }
 
+type exclusionListImportSnapshot struct {
+	activeSigners   int
+	desiredSigners  int
+	proposedSigners int
+	quarantineSize  int
+
+	activeHash   common.Hash
+	desiredHash  common.Hash
+	proposedHash common.Hash
+}
+
+func (s exclusionListImportSnapshot) changedFrom(before exclusionListImportSnapshot) bool {
+	return s.activeHash != before.activeHash ||
+		s.desiredHash != before.desiredHash ||
+		s.proposedHash != before.proposedHash ||
+		s.activeSigners != before.activeSigners ||
+		s.desiredSigners != before.desiredSigners ||
+		s.proposedSigners != before.proposedSigners ||
+		s.quarantineSize != before.quarantineSize
+}
+
+func (s *RootManager) snapshotExclusionListImport(set *exclusionSet) (exclusionListImportSnapshot, error) {
+	if set == nil {
+		return exclusionListImportSnapshot{}, errProposedExclusionListEmpty
+	}
+
+	if err := validateExclusionSetRanges(set); err != nil {
+		return exclusionListImportSnapshot{}, err
+	}
+
+	s.exLock.Lock()
+	defer s.exLock.Unlock()
+
+	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
+	if len(s.getActiveRootSet(true).knownSigners(set.signers)) == 0 {
+		return exclusionListImportSnapshot{}, errors.New("signed exclusion list has no active root signatures")
+	}
+
+	obsoleteByActive := s.activeExSet != nil && set.hash != s.activeExSet.hash && set.timestamp <= s.activeExSet.timestamp
+	obsoleteByDesired := s.desiredExSet != nil && set.hash != s.desiredExSet.hash && set.timestamp <= s.desiredExSet.timestamp
+	obsoleteByProposed := s.proposedExSet != nil && set.hash != s.proposedExSet.hash && set.timestamp <= s.proposedExSet.timestamp
+	if obsoleteByActive || obsoleteByDesired || obsoleteByProposed {
+		return exclusionListImportSnapshot{}, errProposedExclusionListObsolete
+	}
+
+	if s.isExclusionSetInQuarantine(set) {
+		return exclusionListImportSnapshot{}, errors.New("signed exclusion list is quarantined")
+	}
+
+	if s.getActiveRootSet(true).isEnoughExSetSignatures(set) && s.exclusionSetWouldQuarantine(set) {
+		return exclusionListImportSnapshot{}, errors.New("signed exclusion list would be quarantined")
+	}
+
+	return s.exclusionListImportSnapshotLocked(set.hash), nil
+}
+
+func validateExclusionSetRanges(set *exclusionSet) error {
+	for address, ranges := range set.blockRanges {
+		for _, blockRange := range ranges {
+			if !blockRange.IsValid() {
+				return errors.Errorf("invalid exclusion list range for %s", address.Hex())
+			}
+		}
+	}
+	return nil
+}
+
+func (s *RootManager) exclusionSetWouldQuarantine(set *exclusionSet) bool {
+	if s.bc == nil {
+		return false
+	}
+	if len(set.addrToBlockRangeExclusiveDiff(s.activeExSet)) == 0 {
+		return false
+	}
+	return s.isExclusionSetMeetsQuarantineCriteria(set.earliestBlockFromDiff(s.activeExSet))
+}
+
+func (s *RootManager) exclusionListImportSnapshot(hash common.Hash) exclusionListImportSnapshot {
+	s.exLock.Lock()
+	defer s.exLock.Unlock()
+
+	return s.exclusionListImportSnapshotLocked(hash)
+}
+
+func (s *RootManager) exclusionListImportSnapshotLocked(hash common.Hash) exclusionListImportSnapshot {
+	snapshot := exclusionListImportSnapshot{}
+	if s.activeExSet != nil {
+		snapshot.activeHash = s.activeExSet.hash
+		if s.activeExSet.hash == hash {
+			snapshot.activeSigners = len(s.activeExSet.signers)
+		}
+	}
+	if s.desiredExSet != nil {
+		snapshot.desiredHash = s.desiredExSet.hash
+		if s.desiredExSet.hash == hash {
+			snapshot.desiredSigners = len(s.desiredExSet.signers)
+		}
+	}
+	if s.proposedExSet != nil {
+		snapshot.proposedHash = s.proposedExSet.hash
+		if s.proposedExSet.hash == hash {
+			snapshot.proposedSigners = len(s.proposedExSet.signers)
+		}
+	}
+	if qSets, err := s.db.getExclusionSetsFromQuarantine(); err == nil {
+		snapshot.quarantineSize = len(qSets)
+	}
+	return snapshot
+}
+
 func (h *handler) propagateRootSet(set *rootSet) {
 	if set != nil {
 		h.rootEventCh <- &rootSetEvent{set: set}
