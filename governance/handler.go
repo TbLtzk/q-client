@@ -433,6 +433,89 @@ func areSignersEqual(ourSigners, theirSigners map[common.Address][]byte) bool {
 	return true
 }
 
+type rootListImportSnapshot struct {
+	activeSigners   int
+	desiredSigners  int
+	proposedSigners int
+
+	activeHash   common.Hash
+	desiredHash  common.Hash
+	proposedHash common.Hash
+}
+
+func (s rootListImportSnapshot) changedFrom(before rootListImportSnapshot) bool {
+	return s.activeHash != before.activeHash ||
+		s.desiredHash != before.desiredHash ||
+		s.proposedHash != before.proposedHash ||
+		s.activeSigners != before.activeSigners ||
+		s.desiredSigners != before.desiredSigners ||
+		s.proposedSigners != before.proposedSigners
+}
+
+func (s *RootManager) snapshotRootListImport(set *rootSet) (rootListImportSnapshot, error) {
+	if set == nil {
+		return rootListImportSnapshot{}, errProposedRootListEmpty
+	}
+
+	s.rootLock.Lock()
+	defer s.rootLock.Unlock()
+
+	set.updateAliases(s.getAliasesOfRoots(set.rootAddresses))
+	if len(s.active.knownSigners(set.signers)) == 0 {
+		return rootListImportSnapshot{}, errors.New("signed root list has no active root signatures")
+	}
+	if set.hash != s.active.hash && set.timestamp <= s.active.timestamp {
+		return rootListImportSnapshot{}, errProposedRootListObsolete
+	}
+	if s.desired != nil && set.hash != s.desired.hash && set.timestamp <= s.desired.timestamp {
+		return rootListImportSnapshot{}, errProposedRootListObsolete
+	}
+	if s.proposed != nil && set.hash != s.proposed.hash && set.timestamp <= s.proposed.timestamp {
+		return rootListImportSnapshot{}, errProposedRootListObsolete
+	}
+	if s.active == nil || s.active.hash != set.hash {
+		exceeded, err := s.isSetQuotaExceeded(set)
+		if err != nil {
+			return rootListImportSnapshot{}, err
+		}
+		if exceeded {
+			return rootListImportSnapshot{}, errors.New("root list quota exceeded")
+		}
+	}
+
+	return s.rootListImportSnapshotLocked(set.hash), nil
+}
+
+func (s *RootManager) rootListImportSnapshot(hash common.Hash) rootListImportSnapshot {
+	s.rootLock.Lock()
+	defer s.rootLock.Unlock()
+
+	return s.rootListImportSnapshotLocked(hash)
+}
+
+func (s *RootManager) rootListImportSnapshotLocked(hash common.Hash) rootListImportSnapshot {
+	snapshot := rootListImportSnapshot{}
+	if s.active != nil {
+		snapshot.activeHash = s.active.hash
+		if s.active.hash == hash {
+			snapshot.activeSigners = len(s.active.signers)
+		}
+	}
+	if s.desired != nil {
+		snapshot.desiredHash = s.desired.hash
+		if s.desired.hash == hash {
+			snapshot.desiredSigners = len(s.desired.signers)
+		}
+	}
+	if s.proposed != nil {
+		snapshot.proposedHash = s.proposed.hash
+		if s.proposed.hash == hash {
+			snapshot.proposedSigners = len(s.proposed.signers)
+		}
+	}
+	return snapshot
+}
+
 func (h *handler) propagateRootSet(set *rootSet) {
 	if set != nil {
 		h.rootEventCh <- &rootSetEvent{set: set}
