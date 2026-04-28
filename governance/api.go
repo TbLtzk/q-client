@@ -155,6 +155,33 @@ func (a *GovernanceAPI) ProposeExclusionListUpdate(list common.ValidatorExclusio
 	return set.hash, nil
 }
 
+func (a *GovernancePublicAPI) SubmitSignedExclusionList(list common.ValidatorExclusionList) (common.Hash, error) {
+	set, err := newExclusionSet(&list)
+	if err != nil {
+		return common.Hash{}, errors.Wrap(err, "invalid signed exclusion list")
+	}
+	if len(set.signers) == 0 {
+		return common.Hash{}, errors.New("signed exclusion list has no signatures")
+	}
+
+	rm := a.gov.RootManager
+	before, err := rm.snapshotExclusionListImport(set)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	if err := a.gov.handler.importExclusionList(&list); err != nil {
+		return common.Hash{}, err
+	}
+
+	after := rm.exclusionListImportSnapshot(set.hash)
+	if !after.changedFrom(before) {
+		return common.Hash{}, errors.New("signed exclusion list was not accepted")
+	}
+
+	return set.hash, nil
+}
+
 func (a *GovernanceAPI) AcceptQuarantinedExclusionList(hash *common.Hash) error {
 	return a.gov.RootManager.acceptQuarantinedExclusionSet(hash)
 }
