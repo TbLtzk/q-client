@@ -383,6 +383,162 @@ func TestImportRootListDoesNotRequireLocalSigning(t *testing.T) {
 	}
 }
 
+func TestSubmitSignedRootList(t *testing.T) {
+	tests := []struct {
+		name              string
+		list              func(t *testing.T, rm *TestRootManager) common.RootList
+		beforeSubmit      func(t *testing.T, rm *TestRootManager, list common.RootList)
+		assertAfterSubmit func(t *testing.T, rm *TestRootManager, list common.RootList, hash common.Hash, err error)
+	}{
+		{
+			name: "known signer stores proposed list",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList, hash common.Hash, err error) {
+				if err != nil {
+					t.Fatalf("SubmitSignedRootList returned error: %v", err)
+				}
+				if hash != list.Hash {
+					t.Fatalf("expected hash %s, got %s", list.Hash.Hex(), hash.Hex())
+				}
+				if rm.proposed == nil || rm.proposed.hash != list.Hash {
+					t.Fatalf("expected proposed root list %s, got %v", list.Hash.Hex(), rm.proposed)
+				}
+			},
+		},
+		{
+			name: "threshold signatures upgrade active list",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, defNumAccounts-1, true)
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList, hash common.Hash, err error) {
+				if err != nil {
+					t.Fatalf("SubmitSignedRootList returned error: %v", err)
+				}
+				if hash != list.Hash {
+					t.Fatalf("expected hash %s, got %s", list.Hash.Hex(), hash.Hex())
+				}
+				if rm.active.hash != list.Hash {
+					t.Fatalf("expected active root list %s, got %s", list.Hash.Hex(), rm.active.hash.Hex())
+				}
+			},
+		},
+		{
+			name: "malformed hash is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+				list.Hash = common.BytesToHash(randBytes(1))
+				return list
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList, hash common.Hash, err error) {
+				if !errors.Is(err, errHashMismatch) {
+					t.Fatalf("expected hash mismatch, got hash %s err %v", hash.Hex(), err)
+				}
+				if rm.proposed != nil {
+					t.Fatalf("malformed root list changed proposed state: %v", rm.proposed)
+				}
+			},
+		},
+		{
+			name: "invalid signature is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+				list.Signatures[0] = randBytes(crypto.SignatureLength)
+				return list
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList, hash common.Hash, err error) {
+				if !errors.Is(err, errInvalidSignature) {
+					t.Fatalf("expected invalid signature, got hash %s err %v", hash.Hex(), err)
+				}
+				if rm.proposed != nil {
+					t.Fatalf("invalid signature changed proposed state: %v", rm.proposed)
+				}
+			},
+		},
+		{
+			name: "unknown signer is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, nil, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList, hash common.Hash, err error) {
+				if err == nil {
+					t.Fatalf("expected unknown signer rejection, got hash %s", hash.Hex())
+				}
+				if rm.proposed != nil {
+					t.Fatalf("unknown signer changed proposed state: %v", rm.proposed)
+				}
+			},
+		},
+		{
+			name: "obsolete timestamp is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+			},
+			beforeSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList) {
+				newer := randomRootList(t, rm, int64(list.Timestamp+1), 10, 1, true)
+				set, err := newRootSet(&newer)
+				if err != nil {
+					t.Fatal(err)
+				}
+				set.updateAliases(rm.getAliasesOfRoots(set.rootAddresses))
+				rm.proposed = set
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList, hash common.Hash, err error) {
+				if err == nil {
+					t.Fatalf("expected obsolete root list rejection, got hash %s", hash.Hex())
+				}
+				if rm.proposed == nil || rm.proposed.hash == list.Hash {
+					t.Fatal("obsolete root list replaced newer proposal")
+				}
+			},
+		},
+		{
+			name: "duplicate is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
+			},
+			beforeSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList) {
+				set, err := newRootSet(&list)
+				if err != nil {
+					t.Fatal(err)
+				}
+				set.updateAliases(rm.getAliasesOfRoots(set.rootAddresses))
+				rm.proposed = set
+			},
+			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList, hash common.Hash, err error) {
+				if err == nil {
+					t.Fatalf("expected duplicate root list rejection, got hash %s", hash.Hex())
+				}
+				if rm.proposed == nil || rm.proposed.hash != list.Hash || len(rm.proposed.signers) != 1 {
+					t.Fatalf("duplicate root list changed proposed state: %v", rm.proposed)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rm := newTestRootManager(t, false, true)
+			gov, err := New(rm.RootManager, tmpDirName(t))
+			if err != nil {
+				t.Fatalf("Failed to create Governance: %v", err)
+			}
+			if err := gov.Start(); err != nil {
+				t.Fatalf("Failed to start Governance: %v", err)
+			}
+			api := NewGovernancePublicAPI(gov)
+
+			list := tt.list(t, rm)
+			if tt.beforeSubmit != nil {
+				tt.beforeSubmit(t, rm, list)
+			}
+			hash, err := api.SubmitSignedRootList(list)
+			tt.assertAfterSubmit(t, rm, list, hash, err)
+		})
+	}
+}
+
 func TestHandleExclusionSet(t *testing.T) {
 	rm := newTestRootManager(t, false, true)
 	bc := newTestChain(t, rm.RootManager)
