@@ -156,7 +156,7 @@ Introduce a new explicit signing scheme for dapp-based L0 governance, ideally ba
 
 ### How it works
 
-1. The dapp fetches the current governance state from `govPub`.
+1. The dapp fetches read-heavy governance state from the existing HQ/indexer monitoring APIs where available.
 2. The dapp builds a proposal object and shows a diff to the root node.
 3. MetaMask signs a typed governance message.
 4. The dapp submits the signed typed payload to a public submission endpoint.
@@ -188,16 +188,22 @@ This is the recommended target architecture.
 Responsibilities:
 
 - discover whether the connected wallet is an active root node,
-- show active / proposed / desired root and exclusion lists,
-- show diffs against on-chain or active state,
+- reuse the existing root-node monitoring/indexer read model for active / proposed root and exclusion lists where possible,
+- show diffs against on-chain or active state without duplicating the current monitoring dashboard,
 - create proposals,
 - collect signatures,
 - submit signed payloads to a public node endpoint,
 - show signature status and threshold progress.
 
-### 2. Public governance submission API in `q-client`
+### 2. HQ/indexer read model
 
-New externally safe RPC methods should be introduced for signed submissions.
+HQ already has a root-node monitoring page backed by indexer endpoints for L0 root lists, exclusion lists, signer data, and operational metrics. The L0 governance UX should treat those indexer-backed APIs as the preferred source for read-heavy dashboard state because they can cache and aggregate data that would otherwise be redundantly fetched by every UI client from RPC nodes.
+
+The dedicated governance page should therefore be an action and review layer on top of the existing monitoring approach, not a parallel read dashboard. It should reuse existing monitoring components and helpers where they fit, and only add new read endpoints when the current indexer model cannot answer an action-critical question.
+
+### 3. Public governance submission API in `q-client`
+
+New externally safe RPC methods should be introduced for signed submissions and canonical signing helpers.
 
 Suggested examples:
 
@@ -208,13 +214,13 @@ Suggested examples:
 - `govPub_getGovernanceSigningPayload`
 - `govPub_getGovernanceProposalStatus`
 
-These methods should be limited to signed payload ingestion and read operations. They should not expose arbitrary internal `gov` mutators.
+These methods should be limited to signed payload ingestion, canonical signing payload construction, and narrowly scoped status checks that are required for safe signing. They should not expose arbitrary internal `gov` mutators and should not replace the indexer as the default source for read-heavy dashboard data.
 
-### 3. Existing `qgov` p2p propagation
+### 4. Existing `qgov` p2p propagation
 
 No fundamental protocol redesign is required. The existing relay logic should remain the transport used after a node accepts a submission.
 
-### 4. Governance state ingestion layer
+### 5. Governance state ingestion layer
 
 Internally, `q-client` should gain a new "import signed governance set" path that:
 
@@ -311,9 +317,11 @@ Changes:
 
 This matters especially if public RPC nodes are allowed to accept L0 governance submissions.
 
-## 6. Add governance-specific read APIs for dapp UX
+## 6. Add action-critical governance helper APIs for dapp UX
 
-Existing `govPub` methods already expose useful state, but the dapp would benefit from higher-level read endpoints:
+HQ should continue to use its existing indexer-backed monitoring APIs for read-heavy dashboard state such as active/proposed L0 root lists, exclusion lists, signer data, and operational metrics. This avoids many UI clients repeatedly asking public RPC nodes for the same data and keeps caching/aggregation in the indexer layer.
+
+`q-client` may still need narrowly scoped read helpers for action-critical signing flows:
 
 - proposal diff preview,
 - signature threshold progress,
@@ -321,7 +329,7 @@ Existing `govPub` methods already expose useful state, but the dapp would benefi
 - normalized active / proposed / desired status,
 - "needs your signature" status for the connected root node.
 
-These are not strictly required for the backend architecture, but they are highly valuable for user adoption.
+These helpers should be treated as canonical signing/status checks, not as a replacement for the existing monitoring read model.
 
 ## Signature Strategy Recommendation
 
@@ -395,7 +403,8 @@ Outcome:
 ## Phase 3: HQ integration
 
 - add an L0 governance subpage,
-- show proposal diffs and signer progress,
+- reuse existing root-node monitoring/indexer data for read-heavy L0 state,
+- show proposal diffs and signer progress in a focused action/review UX,
 - support propose, accept, and co-sign flows,
 - guide users with warnings and confirmations.
 
@@ -481,11 +490,11 @@ Priority: **P0** = blocking minimal viable flow, **P1** = production UX / safety
 
 | ID  | Item                                                                                                                                               | Priority | Depends on                   | Estimate    |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------- | ----------- |
-| C1  | Navigation + route for L0 governance subpage; feature flag                                                                                         | P0       | Stable read RPC (`govPub`)   | **1–2 pd**  |
-| C2  | Connect wallet; detect root-node eligibility (active list + optional alias resolution via existing contracts/APIs)                                 | P0       | —                            | **3–6 pd**  |
-| C3  | Views: active / proposed / desired root list and exclusion list; diff vs on-chain / active (reuse logic similar to `diffRootList` semantics in UI) | P0       | C2                           | **5–10 pd** |
+| C1  | Navigation + route for L0 governance subpage; feature flag; reuse or deep-link from existing root-node monitoring UX                               | P0       | Existing monitoring route    | **1–2 pd**  |
+| C2  | Connect wallet; detect root-node eligibility using existing indexer/monitoring root data plus wallet state                                         | P0       | Existing monitoring data     | **2–4 pd**  |
+| C3  | Action/review views for active / proposed root and exclusion lists; reuse monitoring context/helpers and avoid a duplicate read dashboard           | P0       | C1–C2                        | **3–6 pd**  |
 | C4  | Flow: review proposal → sign (typed data via Epic B, or interim raw-hash prototype) → submit to configurable RPC URL                               | P0       | Epic A (+ B for MetaMask UX) | **5–10 pd** |
-| C5  | Signature progress indicator (threshold %, list of signers); error handling for stale / rejected proposals                                         | P1       | C3–C4                        | **3–6 pd**  |
+| C5  | Signature progress indicator using indexer signer data where sufficient and q-client status helpers only for action-critical gaps                  | P1       | C3–C4                        | **2–4 pd**  |
 | C6  | Copy, warnings, links to official docs; optional telemetry (no sensitive data)                                                                     | P2       | C4                           | **2–4 pd**  |
 
 
@@ -523,6 +532,6 @@ Priority: **P0** = blocking minimal viable flow, **P1** = production UX / safety
 
 1. Lock **RPC shapes** and **security policy** for public submission (short design spike: **1–2 pd**).
 2. Deliver **M1** so integrations can start without waiting for EIP-712.
-3. Parallelize **M3** UI shell + read-only governance dashboard using existing `govPub` while backend finishes ingest.
+3. Parallelize **M3** UI shell + action/review layer using existing HQ/indexer monitoring reads while backend finishes ingest.
 4. Land **M2** before promoting MetaMask-first UX to non-technical root nodes.
 
