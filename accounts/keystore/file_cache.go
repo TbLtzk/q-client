@@ -29,9 +29,14 @@ import (
 
 // fileCache is a cache of files seen during scan of keystore.
 type fileCache struct {
-	all     mapset.Set[string] // Set of all files from the keystore folder
-	lastMod time.Time          // Last time instance when a file was modified
-	mu      sync.Mutex
+	all   mapset.Set[string] // Set of all files from the keystore folder
+	files map[string]fileInfo
+	mu    sync.Mutex
+}
+
+type fileInfo struct {
+	modTime time.Time
+	size    int64
 }
 
 // scan performs a new scan on the given directory, compares against the already
@@ -52,8 +57,8 @@ func (fc *fileCache) scan(keyDir string) (mapset.Set[string], mapset.Set[string]
 	// Iterate all the files and gather their metadata
 	all := mapset.NewThreadUnsafeSet[string]()
 	mods := mapset.NewThreadUnsafeSet[string]()
+	current := make(map[string]fileInfo)
 
-	var newLastMod time.Time
 	for _, fi := range files {
 		path := filepath.Join(keyDir, fi.Name())
 		// Skip any non-key files from the folder
@@ -68,12 +73,10 @@ func (fc *fileCache) scan(keyDir string) (mapset.Set[string], mapset.Set[string]
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		modified := info.ModTime()
-		if modified.After(fc.lastMod) {
+		file := fileInfo{modTime: info.ModTime(), size: info.Size()}
+		current[path] = file
+		if previous, ok := fc.files[path]; ok && previous != file {
 			mods.Add(path)
-		}
-		if modified.After(newLastMod) {
-			newLastMod = modified
 		}
 	}
 	t2 := time.Now()
@@ -83,7 +86,7 @@ func (fc *fileCache) scan(keyDir string) (mapset.Set[string], mapset.Set[string]
 	creates := all.Difference(fc.all)   // Creates = current - previous
 	updates := mods.Difference(creates) // Updates = modified - creates
 
-	fc.all, fc.lastMod = all, newLastMod
+	fc.all, fc.files = all, current
 	t3 := time.Now()
 
 	// Report on the scanning stats and return
