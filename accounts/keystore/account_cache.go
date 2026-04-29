@@ -202,13 +202,7 @@ func (ac *accountCache) find(a accounts.Account) (accounts.Account, error) {
 func (ac *accountCache) maybeReload() {
 	ac.mu.Lock()
 
-	if ac.watcher.running {
-		ac.mu.Unlock()
-		return // A watcher is running and will keep the cache up-to-date.
-	}
-	if ac.throttle == nil {
-		ac.throttle = time.NewTimer(0)
-	} else {
+	if ac.throttle != nil {
 		select {
 		case <-ac.throttle.C:
 		default:
@@ -216,9 +210,16 @@ func (ac *accountCache) maybeReload() {
 			return // The cache was reloaded recently.
 		}
 	}
-	// No watcher running, start it.
-	ac.watcher.start()
-	ac.throttle.Reset(minReloadInterval)
+	// Start the watcher if needed, but still do a throttled scan while it is
+	// running. Some filesystems can coalesce content-replacement events.
+	if !ac.watcher.running {
+		ac.watcher.start()
+	}
+	if ac.throttle == nil {
+		ac.throttle = time.NewTimer(minReloadInterval)
+	} else {
+		ac.throttle.Reset(minReloadInterval)
+	}
 	ac.mu.Unlock()
 	ac.scanAccounts()
 }
