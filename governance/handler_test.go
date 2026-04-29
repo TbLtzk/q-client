@@ -752,10 +752,9 @@ func TestSubmitSignedExclusionListEquivalentToPeerImport(t *testing.T) {
 			compareStates: true,
 		},
 		{
-			name:      "threshold upgrade",
-			initChain: true,
+			name: "threshold upgrade",
 			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
-				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, defNumAccounts-1, true, 6000)
+				return signedActiveExclusionList(t, rm, defNumAccounts-1, true)
 			},
 			compareStates: true,
 		},
@@ -1066,10 +1065,9 @@ func TestImportExclusionList(t *testing.T) {
 			},
 		},
 		{
-			name:      "threshold signatures upgrade active list",
-			initChain: true,
+			name: "threshold signatures upgrade active list",
 			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
-				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, defNumAccounts-1, true, 6000)
+				return signedActiveExclusionList(t, rm, defNumAccounts-1, true)
 			},
 			assertAfterImport: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList) {
 				if rm.activeExSet == nil || rm.activeExSet.hash != list.Hash {
@@ -1265,9 +1263,8 @@ func TestSubmitSignedExclusionList(t *testing.T) {
 		{
 			name: "threshold signatures upgrade active list",
 			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
-				return signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, defNumAccounts-1, true, 6000)
+				return signedActiveExclusionList(t, rm, defNumAccounts-1, true)
 			},
-			initChain: true,
 			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.ValidatorExclusionList, hash common.Hash, err error) {
 				if err != nil {
 					t.Fatalf("SubmitSignedExclusionList returned error: %v", err)
@@ -1892,4 +1889,35 @@ func signedExclusionList(t *testing.T, rm *TestRootManager, timestamp uint64, va
 	}
 
 	return exclusionList
+}
+
+func signedActiveExclusionListWithTimestamp(t *testing.T, rm *TestRootManager, timestamp uint64, signersCount int, signByAlias bool) common.ValidatorExclusionList {
+	list := rm.activeExSet.copy().makeList()
+	list.Timestamp = timestamp
+	list.Signatures = nil
+	list.Hash = common.Hash{}
+	set, err := newExclusionSet(&list)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	privateKeys := make([]*ecdsa.PrivateKey, 0, signersCount)
+	if signByAlias {
+		privateKeys = append(privateKeys, rm.aliasPrivateKeys[:signersCount]...)
+	} else {
+		privateKeys = append(privateKeys, rm.rootPrivateKeys[:signersCount]...)
+	}
+	for _, key := range privateKeys {
+		sig, err := crypto.Sign(set.hash.Bytes(), key)
+		if err != nil {
+			t.Error(errors.Wrap(err, "failed to sign hash"))
+		}
+		list.Signatures = append(list.Signatures, sig)
+	}
+	list.Hash = set.hash
+	return list
+}
+
+func signedActiveExclusionList(t *testing.T, rm *TestRootManager, signersCount int, signByAlias bool) common.ValidatorExclusionList {
+	return signedActiveExclusionListWithTimestamp(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), signersCount, signByAlias)
 }
