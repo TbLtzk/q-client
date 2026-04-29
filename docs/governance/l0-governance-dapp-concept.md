@@ -207,6 +207,7 @@ New externally safe RPC methods should be introduced for signed submissions and 
 
 Suggested examples:
 
+- `govPub_l0GovernanceCapabilities`
 - `govPub_submitSignedRootList`
 - `govPub_submitSignedExclusionList`
 - `govPub_appendRootListSignature`
@@ -216,9 +217,13 @@ Suggested examples:
 
 These methods should be limited to signed payload ingestion, canonical signing payload construction, and narrowly scoped status checks that are required for safe signing. They should not expose arbitrary internal `gov` mutators and should not replace the indexer as the default source for read-heavy dashboard data.
 
+The dapp should probe the RPC endpoint configured for the connected wallet before enabling signing or submission controls. If the node does not expose the required L0 governance capabilities, the dapp should keep monitoring/read-only views usable, disable action controls, and explain that the selected RPC endpoint does not yet support external L0 governance signing/submission.
+
 ### 4. Existing `qgov` p2p propagation
 
 No fundamental protocol redesign is required. The existing relay logic should remain the transport used after a node accepts a submission.
+
+Because the recommended compatibility model keeps the p2p payloads unchanged, adding external submission and typed-signature verification does not by itself require a `qgov` p2p protocol version bump. Capability discovery should happen at the RPC/API layer instead. A p2p protocol version bump should be reserved for changes to the `qgov` wire messages, message codes, or peer negotiation semantics.
 
 ### 5. Governance state ingestion layer
 
@@ -246,6 +251,7 @@ Files primarily affected:
 Changes:
 
 - add public RPC methods for signed governance submission,
+- add a public capabilities method that advertises supported L0 governance submission methods, signing schemes, signing-payload versions, and status-helper support,
 - keep them in `govPub` or another explicitly public namespace,
 - do not expose the existing unrestricted `gov` mutators externally.
 
@@ -323,6 +329,7 @@ HQ should continue to use its existing indexer-backed monitoring APIs for read-h
 
 `q-client` may still need narrowly scoped read helpers for action-critical signing flows:
 
+- endpoint capability discovery,
 - proposal diff preview,
 - signature threshold progress,
 - signer list with alias resolution,
@@ -416,6 +423,7 @@ Outcome:
 
 - Public submission endpoints must not be equivalent to exposing the private `gov` namespace.
 - Signed submissions should be the only mutating operations exposed publicly.
+- The dapp should disable signing/submission controls when the connected RPC endpoint does not advertise the required L0 governance capabilities.
 - Payloads must contain network/domain separation data to prevent replay across networks or contexts.
 - Timestamp and staleness validation must remain strict.
 - Signature counting must continue to respect active root membership and alias resolution.
@@ -427,6 +435,7 @@ Outcome:
 - Backward compatibility with legacy console-based governance flows must be defined explicitly.
 - Public RPC nodes may be unwilling to expose any governance-related mutators unless the submission API is tightly scoped and abuse-resistant.
 - The exact treatment of aliases in off-chain signatures must be documented clearly so root nodes understand which account should sign.
+- Capability discovery should not rely only on `rpc_modules` or deprecated RPC namespace version metadata; it should use an explicit governance capability response that the dapp can evaluate before enabling controls.
 
 ## Development backlog
 
