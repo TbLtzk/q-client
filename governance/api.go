@@ -207,10 +207,6 @@ func (s *RootManager) validatePublicSubmissionAllowed(list interface{}) error {
 	return nil
 }
 
-func (s *RootManager) isProposalQuotaDisabled() bool {
-	return s.ProposalQuotaMax == 0
-}
-
 func (a *GovernanceAPI) AcceptQuarantinedExclusionList(hash *common.Hash) error {
 	return a.gov.RootManager.acceptQuarantinedExclusionSet(hash)
 }

@@ -46,7 +46,6 @@ var (
 	errExclusionListQuotaExceeded = errors.New("exclusion list quota exceeded")
 
 	errPublicGovernanceSubmissionDisabled = errors.New("public governance submission is disabled")
-	errGovernanceSubmissionTooLarge       = errors.New("governance submission is too large")
 )
 
 // RootManager stores root and exclusion lists.
