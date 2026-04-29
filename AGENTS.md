@@ -26,3 +26,14 @@ When an agent considers its assigned issue complete:
 - Mark the pull request as ready for review.
 - Comment on the issue with a link to the pull request, or explain why the issue is complete without a pull request.
 - Move the issue to `In review` on the project board.
+
+## Pre-merge QA
+
+Before considering governance or RPC work ready for review, run the narrow checks that match the changed packages and include CI-like coverage for the affected area. For external L0 governance changes, use at least:
+
+- `go test -timeout=20m -p 1 ./governance`
+- `go test ./governance ./ethclient ./internal/web3ext ./cmd/utils`
+- `go test ./governance -run '^$'`
+- `go run build/ci.go lint` when the local environment has the same native dependencies as CI, including `blst` headers.
+
+Automated tests must not depend on live testnets, public RPC endpoints, or other external networks. Use in-process RPC servers, generated chains, fixtures, and mocks instead.
