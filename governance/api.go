@@ -80,6 +80,34 @@ func (a *GovernancePublicAPI) SubmitSignedRootList(list common.RootList) (common
 	return set.hash, nil
 }
 
+func (a *GovernancePublicAPI) SubmitTypedSignedRootList(list common.RootList) (common.Hash, error) {
+	if err := a.gov.RootManager.validatePublicSubmissionAllowed(list); err != nil {
+		return common.Hash{}, err
+	}
+
+	set, err := a.gov.RootManager.newTypedSignedRootSet(list)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	rm := a.gov.RootManager
+	before, err := rm.snapshotRootListImport(set)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	if err := a.gov.handler.importRootSet("", set, false); err != nil {
+		return common.Hash{}, err
+	}
+
+	after := rm.rootListImportSnapshot(set.hash)
+	if !after.changedFrom(before) {
+		return common.Hash{}, errors.New("typed signed root list was not accepted")
+	}
+
+	return set.hash, nil
+}
+
 func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList, force bool) (common.Hash, error) {
 	set, err := newRootSet(&list)
 	if err != nil {
