@@ -219,6 +219,34 @@ func (a *GovernancePublicAPI) SubmitSignedExclusionList(list common.ValidatorExc
 	return set.hash, nil
 }
 
+func (a *GovernancePublicAPI) SubmitTypedSignedExclusionList(list common.ValidatorExclusionList) (common.Hash, error) {
+	if err := a.gov.RootManager.validatePublicSubmissionAllowed(list); err != nil {
+		return common.Hash{}, err
+	}
+
+	set, err := a.gov.RootManager.newTypedSignedExclusionSet(list)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	rm := a.gov.RootManager
+	before, err := rm.snapshotExclusionListImport(set)
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	if err := a.gov.handler.importExclusionSet("", set, false); err != nil {
+		return common.Hash{}, err
+	}
+
+	after := rm.exclusionListImportSnapshot(set.hash)
+	if !after.changedFrom(before) {
+		return common.Hash{}, errors.New("typed signed exclusion list was not accepted")
+	}
+
+	return set.hash, nil
+}
+
 func (s *RootManager) validatePublicSubmissionAllowed(list interface{}) error {
 	if s.DisablePublicSubmission {
 		return errPublicGovernanceSubmissionDisabled

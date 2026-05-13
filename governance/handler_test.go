@@ -859,6 +859,182 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 	}
 }
 
+func TestSubmitTypedSignedExclusionList(t *testing.T) {
+	makeTypedExclusionList := func(t *testing.T, rm *TestRootManager, signByAlias bool) common.ValidatorExclusionList {
+		t.Helper()
+
+		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+		unsigned := list
+		unsigned.Signatures = nil
+
+		payloadHash := common.NewExclusionListSigningPayloadV1(rm.networkId, unsigned).Hash()
+
+		var key *ecdsa.PrivateKey
+		if signByAlias {
+			key = rm.aliasPrivateKeys[0]
+		} else {
+			key = rm.rootPrivateKeys[0]
+		}
+		signature, err := crypto.Sign(payloadHash.Bytes(), key)
+		if err != nil {
+			t.Fatalf("failed to sign typed exclusion payload: %v", err)
+		}
+		list.Signatures = [][]byte{signature}
+		return list
+	}
+
+	makeTypedExclusionListWithChainID := func(t *testing.T, rm *TestRootManager, chainID uint64) common.ValidatorExclusionList {
+		t.Helper()
+
+		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+		unsigned := list
+		unsigned.Signatures = nil
+
+		payloadHash := common.NewExclusionListSigningPayloadV1(chainID, unsigned).Hash()
+		signature, err := crypto.Sign(payloadHash.Bytes(), rm.aliasPrivateKeys[0])
+		if err != nil {
+			t.Fatalf("failed to sign typed exclusion payload: %v", err)
+		}
+		list.Signatures = [][]byte{signature}
+		return list
+	}
+
+	makeTypedExclusionListWithAlteredTimestamp := func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+		t.Helper()
+
+		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+		unsigned := list
+		unsigned.Signatures = nil
+		unsigned.Timestamp++
+
+		payloadHash := common.NewExclusionListSigningPayloadV1(rm.networkId, unsigned).Hash()
+		signature, err := crypto.Sign(payloadHash.Bytes(), rm.aliasPrivateKeys[0])
+		if err != nil {
+			t.Fatalf("failed to sign typed exclusion payload: %v", err)
+		}
+		list.Signatures = [][]byte{signature}
+		return list
+	}
+
+	makeTypedExclusionListWithWrongProposalType := func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+		t.Helper()
+
+		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+		unsigned := list
+		unsigned.Signatures = nil
+
+		payload := common.NewExclusionListSigningPayloadV1(rm.networkId, unsigned)
+		payload.Metadata.ProposalType = common.GovernanceProposalTypeRootList
+		signature, err := crypto.Sign(payload.Hash().Bytes(), rm.aliasPrivateKeys[0])
+		if err != nil {
+			t.Fatalf("failed to sign typed exclusion payload: %v", err)
+		}
+		list.Signatures = [][]byte{signature}
+		return list
+	}
+
+	makeTypedExclusionListWithAlteredValidators := func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+		t.Helper()
+
+		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+		unsigned := list
+		unsigned.Signatures = nil
+		unsigned.Validators = append([]common.ExcludedValidator(nil), list.Validators...)
+		unsigned.Validators[0].EndBlock++
+
+		payloadHash := common.NewExclusionListSigningPayloadV1(rm.networkId, unsigned).Hash()
+		signature, err := crypto.Sign(payloadHash.Bytes(), rm.aliasPrivateKeys[0])
+		if err != nil {
+			t.Fatalf("failed to sign typed exclusion payload: %v", err)
+		}
+		list.Signatures = [][]byte{signature}
+		return list
+	}
+
+	tests := []struct {
+		name    string
+		list    func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList
+		wantErr bool
+	}{
+		{
+			name: "valid typed signature from active alias is accepted",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return makeTypedExclusionList(t, rm, true)
+			},
+		},
+		{
+			name: "typed signature from root key instead of alias is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return makeTypedExclusionList(t, rm, false)
+			},
+			wantErr: true,
+		},
+		{
+			name: "typed signature with wrong chain id is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return makeTypedExclusionListWithChainID(t, rm, rm.networkId+1)
+			},
+			wantErr: true,
+		},
+		{
+			name: "typed signature over altered timestamp is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return makeTypedExclusionListWithAlteredTimestamp(t, rm)
+			},
+			wantErr: true,
+		},
+		{
+			name: "typed signature with wrong proposal type is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return makeTypedExclusionListWithWrongProposalType(t, rm)
+			},
+			wantErr: true,
+		},
+		{
+			name: "typed signature over altered validator ranges is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
+				return makeTypedExclusionListWithAlteredValidators(t, rm)
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rm := newTestRootManager(t, false, true)
+			gov, err := New(rm.RootManager, tmpDirName(t))
+			if err != nil {
+				t.Fatalf("Failed to create Governance: %v", err)
+			}
+			if err := gov.Start(); err != nil {
+				t.Fatalf("Failed to start Governance: %v", err)
+			}
+
+			list := tt.list(t, rm)
+			hash, err := NewGovernancePublicAPI(gov).SubmitTypedSignedExclusionList(list)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got hash %s", hash.Hex())
+				}
+				if rm.proposedExSet != nil && rm.proposedExSet.hash == list.Hash {
+					t.Fatalf("rejected typed exclusion list changed proposed state: %v", rm.proposedExSet)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("SubmitTypedSignedExclusionList returned error: %v", err)
+			}
+			if hash != list.Hash {
+				t.Fatalf("expected hash %s, got %s", list.Hash.Hex(), hash.Hex())
+			}
+			if rm.proposedExSet == nil || rm.proposedExSet.hash != list.Hash {
+				t.Fatalf("expected proposed exclusion list %s, got %v", list.Hash.Hex(), rm.proposedExSet)
+			}
+		})
+	}
+}
+
 func cloneRootManagerRootState(dst, src *RootManager) {
 	dst.active = src.active.copy()
 	dst.desired = src.desired.copy()
