@@ -708,6 +708,157 @@ func TestSubmitSignedRootListEquivalentToPeerImport(t *testing.T) {
 	}
 }
 
+func TestSubmitTypedSignedRootList(t *testing.T) {
+	makeTypedRootList := func(t *testing.T, rm *TestRootManager, signByAlias bool) common.RootList {
+		t.Helper()
+
+		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 0, true)
+		unsigned := list
+		unsigned.Signatures = nil
+
+		payloadHash := common.NewRootListSigningPayloadV1(rm.networkId, unsigned).Hash()
+
+		var key *ecdsa.PrivateKey
+		if signByAlias {
+			key = rm.aliasPrivateKeys[0]
+		} else {
+			key = rm.rootPrivateKeys[0]
+		}
+		signature, err := crypto.Sign(payloadHash.Bytes(), key)
+		if err != nil {
+			t.Fatalf("failed to sign typed root payload: %v", err)
+		}
+		list.Signatures = [][]byte{signature}
+		return list
+	}
+
+	makeTypedRootListWithChainID := func(t *testing.T, rm *TestRootManager, chainID uint64) common.RootList {
+		t.Helper()
+
+		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 0, true)
+		unsigned := list
+		unsigned.Signatures = nil
+
+		payloadHash := common.NewRootListSigningPayloadV1(chainID, unsigned).Hash()
+		signature, err := crypto.Sign(payloadHash.Bytes(), rm.aliasPrivateKeys[0])
+		if err != nil {
+			t.Fatalf("failed to sign typed root payload: %v", err)
+		}
+		list.Signatures = [][]byte{signature}
+		return list
+	}
+
+	makeTypedRootListWithAlteredPayload := func(t *testing.T, rm *TestRootManager) common.RootList {
+		t.Helper()
+
+		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 0, true)
+		unsigned := list
+		unsigned.Signatures = nil
+		unsigned.Timestamp++
+
+		payloadHash := common.NewRootListSigningPayloadV1(rm.networkId, unsigned).Hash()
+		signature, err := crypto.Sign(payloadHash.Bytes(), rm.aliasPrivateKeys[0])
+		if err != nil {
+			t.Fatalf("failed to sign typed root payload: %v", err)
+		}
+		list.Signatures = [][]byte{signature}
+		return list
+	}
+
+	makeTypedRootListWithWrongProposalType := func(t *testing.T, rm *TestRootManager) common.RootList {
+		t.Helper()
+
+		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 0, true)
+		unsigned := list
+		unsigned.Signatures = nil
+
+		payload := common.NewRootListSigningPayloadV1(rm.networkId, unsigned)
+		payload.Metadata.ProposalType = common.GovernanceProposalTypeExclusionList
+		signature, err := crypto.Sign(payload.Hash().Bytes(), rm.aliasPrivateKeys[0])
+		if err != nil {
+			t.Fatalf("failed to sign typed root payload: %v", err)
+		}
+		list.Signatures = [][]byte{signature}
+		return list
+	}
+
+	tests := []struct {
+		name    string
+		list    func(t *testing.T, rm *TestRootManager) common.RootList
+		wantErr bool
+	}{
+		{
+			name: "valid typed signature from active alias is accepted",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return makeTypedRootList(t, rm, true)
+			},
+		},
+		{
+			name: "typed signature from root key instead of alias is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return makeTypedRootList(t, rm, false)
+			},
+			wantErr: true,
+		},
+		{
+			name: "typed signature with wrong chain id is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return makeTypedRootListWithChainID(t, rm, rm.networkId+1)
+			},
+			wantErr: true,
+		},
+		{
+			name: "typed signature over altered payload fields is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return makeTypedRootListWithAlteredPayload(t, rm)
+			},
+			wantErr: true,
+		},
+		{
+			name: "typed signature with wrong proposal type is rejected",
+			list: func(t *testing.T, rm *TestRootManager) common.RootList {
+				return makeTypedRootListWithWrongProposalType(t, rm)
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rm := newTestRootManager(t, false, true)
+			gov, err := New(rm.RootManager, tmpDirName(t))
+			if err != nil {
+				t.Fatalf("Failed to create Governance: %v", err)
+			}
+			if err := gov.Start(); err != nil {
+				t.Fatalf("Failed to start Governance: %v", err)
+			}
+
+			list := tt.list(t, rm)
+			hash, err := NewGovernancePublicAPI(gov).SubmitTypedSignedRootList(list)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got hash %s", hash.Hex())
+				}
+				if rm.proposed != nil && rm.proposed.hash == list.Hash {
+					t.Fatalf("rejected typed root list changed proposed state: %v", rm.proposed)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("SubmitTypedSignedRootList returned error: %v", err)
+			}
+			if hash != list.Hash {
+				t.Fatalf("expected hash %s, got %s", list.Hash.Hex(), hash.Hex())
+			}
+			if rm.proposed == nil || rm.proposed.hash != list.Hash {
+				t.Fatalf("expected proposed root list %s, got %v", list.Hash.Hex(), rm.proposed)
+			}
+		})
+	}
+}
+
 func cloneRootManagerRootState(dst, src *RootManager) {
 	dst.active = src.active.copy()
 	dst.desired = src.desired.copy()
