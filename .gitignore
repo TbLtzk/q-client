@@ -46,6 +46,10 @@ profile.cov
 # VS Code
 .vscode
 
+# Cursor: machine-specific project rules (not for cloud agents / teammates)
+.cursor/rules/local/
+.cursor/rules/*.local.mdc
+
 # dashboard
 /dashboard/assets/flow-typed
 /dashboard/assets/node_modules
