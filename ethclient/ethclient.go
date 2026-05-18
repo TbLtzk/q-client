@@ -810,6 +810,30 @@ func (ec *Client) SubmitSignedExclusionList(ctx context.Context, list common.Val
 	return res, err
 }
 
+func (ec *Client) SigningPayloadRootListV1(ctx context.Context, list common.RootList) (common.RootListSigningPayload, error) {
+	var res common.RootListSigningPayload
+	err := ec.c.CallContext(ctx, &res, "govPub_signingPayloadRootListV1", list)
+	return res, err
+}
+
+func (ec *Client) SigningPayloadExclusionListV1(ctx context.Context, list common.ValidatorExclusionList) (common.ExclusionListSigningPayload, error) {
+	var res common.ExclusionListSigningPayload
+	err := ec.c.CallContext(ctx, &res, "govPub_signingPayloadExclusionListV1", list)
+	return res, err
+}
+
+func (ec *Client) SigningPayloadRootListV1WithDigest(ctx context.Context, list common.RootList) (common.RootListSigningPayloadV1WithDigest, error) {
+	var res common.RootListSigningPayloadV1WithDigest
+	err := ec.c.CallContext(ctx, &res, "govPub_signingPayloadRootListV1WithDigest", list)
+	return res, err
+}
+
+func (ec *Client) SigningPayloadExclusionListV1WithDigest(ctx context.Context, list common.ValidatorExclusionList) (common.ExclusionListSigningPayloadV1WithDigest, error) {
+	var res common.ExclusionListSigningPayloadV1WithDigest
+	err := ec.c.CallContext(ctx, &res, "govPub_signingPayloadExclusionListV1WithDigest", list)
+	return res, err
+}
+
 func toBlockNumArg(number *big.Int) string {
 	if number == nil {
 		return "latest"

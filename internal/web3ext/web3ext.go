@@ -966,6 +966,16 @@ web3._extend({
 			call: 'govPub_submitSignedRootList',
 			params: 1
 		}),
+		new web3._extend.Method({
+			name: 'signingPayloadRootListV1',
+			call: 'govPub_signingPayloadRootListV1',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'signingPayloadRootListV1WithDigest',
+			call: 'govPub_signingPayloadRootListV1WithDigest',
+			params: 1
+		}),
 	    new web3._extend.Method({
 			name: 'diffRootList',
 			call: 'govPub_diffRootList',
@@ -989,6 +999,16 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'submitSignedExclusionList',
 			call: 'govPub_submitSignedExclusionList',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'signingPayloadExclusionListV1',
+			call: 'govPub_signingPayloadExclusionListV1',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'signingPayloadExclusionListV1WithDigest',
+			call: 'govPub_signingPayloadExclusionListV1WithDigest',
 			params: 1
 		}),
 	    new web3._extend.Method({
