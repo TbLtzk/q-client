@@ -247,11 +247,88 @@ func (a *GovernancePublicAPI) SubmitTypedSignedExclusionList(list common.Validat
 	return set.hash, nil
 }
 
-func (s *RootManager) validatePublicSubmissionAllowed(list interface{}) error {
-	if s.DisablePublicSubmission {
-		return errPublicGovernanceSubmissionDisabled
+// SigningPayloadRootListV1 returns the canonical QGOV v1 typed signing payload for a root-list proposal.
+// The node uses its configured network id as chainId (same as typed-signature verification).
+// Signatures on the input list are ignored. Proposal content must match list.Hash when hash is set.
+func (a *GovernancePublicAPI) SigningPayloadRootListV1(list common.RootList) (common.RootListSigningPayload, error) {
+	return a.rootListSigningPayloadV1(list)
+}
+
+// SigningPayloadRootListV1WithDigest returns the same payload as SigningPayloadRootListV1 plus the signing digest (Payload.Hash()).
+func (a *GovernancePublicAPI) SigningPayloadRootListV1WithDigest(list common.RootList) (common.RootListSigningPayloadV1WithDigest, error) {
+	p, err := a.rootListSigningPayloadV1(list)
+	if err != nil {
+		return common.RootListSigningPayloadV1WithDigest{}, err
+	}
+	return common.RootListSigningPayloadV1WithDigest{Payload: p, Digest: p.Hash()}, nil
+}
+
+func (a *GovernancePublicAPI) rootListSigningPayloadV1(list common.RootList) (common.RootListSigningPayload, error) {
+	if err := a.gov.RootManager.validateGovPubProposalInputSize(list); err != nil {
+		return common.RootListSigningPayload{}, err
 	}
 
+	unsigned := list
+	unsigned.Signatures = nil
+
+	set, err := newRootSet(&unsigned)
+	if err != nil {
+		return common.RootListSigningPayload{}, errors.Wrap(err, "invalid root list proposal")
+	}
+	if set == nil {
+		return common.RootListSigningPayload{}, errors.New("root list has no nodes")
+	}
+
+	rm := a.gov.RootManager
+	return common.NewRootListSigningPayloadV1(rm.networkId, common.RootList{
+		Timestamp: set.timestamp,
+		Nodes:     set.rootAddresses,
+		Hash:      set.hash,
+	}), nil
+}
+
+// SigningPayloadExclusionListV1 returns the canonical QGOV v1 typed signing payload for an exclusion-list proposal.
+// The node uses its configured network id as chainId (same as typed-signature verification).
+// Signatures on the input list are ignored. When list.Hash is non-zero it must match the computed proposal hash.
+func (a *GovernancePublicAPI) SigningPayloadExclusionListV1(list common.ValidatorExclusionList) (common.ExclusionListSigningPayload, error) {
+	return a.exclusionListSigningPayloadV1(list)
+}
+
+// SigningPayloadExclusionListV1WithDigest returns the same payload as SigningPayloadExclusionListV1 plus the signing digest (Payload.Hash()).
+func (a *GovernancePublicAPI) SigningPayloadExclusionListV1WithDigest(list common.ValidatorExclusionList) (common.ExclusionListSigningPayloadV1WithDigest, error) {
+	p, err := a.exclusionListSigningPayloadV1(list)
+	if err != nil {
+		return common.ExclusionListSigningPayloadV1WithDigest{}, err
+	}
+	return common.ExclusionListSigningPayloadV1WithDigest{Payload: p, Digest: p.Hash()}, nil
+}
+
+func (a *GovernancePublicAPI) exclusionListSigningPayloadV1(list common.ValidatorExclusionList) (common.ExclusionListSigningPayload, error) {
+	if err := a.gov.RootManager.validateGovPubProposalInputSize(list); err != nil {
+		return common.ExclusionListSigningPayload{}, err
+	}
+
+	unsigned := list
+	unsigned.Signatures = nil
+
+	set, err := newExclusionSet(&unsigned)
+	if err != nil {
+		return common.ExclusionListSigningPayload{}, errors.Wrap(err, "invalid exclusion list proposal")
+	}
+	if set == nil {
+		return common.ExclusionListSigningPayload{}, errors.New("invalid exclusion list proposal")
+	}
+	if list.Hash != (common.Hash{}) && set.hash != list.Hash {
+		return common.ExclusionListSigningPayload{}, errHashMismatch
+	}
+
+	rm := a.gov.RootManager
+	source := set.makeList()
+	source.Signatures = nil
+	return common.NewExclusionListSigningPayloadV1(rm.networkId, source), nil
+}
+
+func (s *RootManager) validateGovPubProposalInputSize(list interface{}) error {
 	size, _, err := rlp.EncodeToReader(list)
 	if err != nil {
 		return err
@@ -259,8 +336,15 @@ func (s *RootManager) validatePublicSubmissionAllowed(list interface{}) error {
 	if size > protocolMaxMsgSize {
 		return errMsgTooLarge
 	}
-
 	return nil
+}
+
+func (s *RootManager) validatePublicSubmissionAllowed(list interface{}) error {
+	if s.DisablePublicSubmission {
+		return errPublicGovernanceSubmissionDisabled
+	}
+
+	return s.validateGovPubProposalInputSize(list)
 }
 
 func (a *GovernanceAPI) AcceptQuarantinedExclusionList(hash *common.Hash) error {

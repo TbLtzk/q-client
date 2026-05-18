@@ -8,6 +8,7 @@ import (
 	"math/big"
 	rand2 "math/rand"
 	"os"
+	"reflect"
 	"sort"
 	"testing"
 	"time"
@@ -1033,6 +1034,332 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGovPubSigningPayloadV1(t *testing.T) {
+	t.Run("root list payload matches canonical builder and typed submit", func(t *testing.T) {
+		rm := newTestRootManager(t, false, true)
+		gov, err := New(rm.RootManager, tmpDirName(t))
+		if err != nil {
+			t.Fatalf("Failed to create Governance: %v", err)
+		}
+		if err := gov.Start(); err != nil {
+			t.Fatalf("Failed to start Governance: %v", err)
+		}
+		api := NewGovernancePublicAPI(gov)
+
+		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 0, true)
+		unsigned := list
+		unsigned.Signatures = nil
+		set, err := newRootSet(&unsigned)
+		if err != nil {
+			t.Fatalf("newRootSet: %v", err)
+		}
+		want := common.NewRootListSigningPayloadV1(rm.networkId, common.RootList{
+			Timestamp: set.timestamp,
+			Nodes:     set.rootAddresses,
+			Hash:      set.hash,
+		})
+		got, err := api.SigningPayloadRootListV1(list)
+		if err != nil {
+			t.Fatalf("SigningPayloadRootListV1: %v", err)
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("payload mismatch\n got: %+v\nwant: %+v", got, want)
+		}
+
+		sig, err := crypto.Sign(got.Hash().Bytes(), rm.aliasPrivateKeys[0])
+		if err != nil {
+			t.Fatalf("sign: %v", err)
+		}
+		list.Signatures = [][]byte{sig}
+		if _, err := api.SubmitTypedSignedRootList(list); err != nil {
+			t.Fatalf("SubmitTypedSignedRootList after payload digest: %v", err)
+		}
+	})
+
+	t.Run("root list WithDigest matches plain payload and digest equals Hash", func(t *testing.T) {
+		rm := newTestRootManager(t, false, true)
+		gov, err := New(rm.RootManager, tmpDirName(t))
+		if err != nil {
+			t.Fatalf("Failed to create Governance: %v", err)
+		}
+		if err := gov.Start(); err != nil {
+			t.Fatalf("Failed to start Governance: %v", err)
+		}
+		api := NewGovernancePublicAPI(gov)
+		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 5, 0, true)
+		plain, err := api.SigningPayloadRootListV1(list)
+		if err != nil {
+			t.Fatalf("SigningPayloadRootListV1: %v", err)
+		}
+		bundle, err := api.SigningPayloadRootListV1WithDigest(list)
+		if err != nil {
+			t.Fatalf("SigningPayloadRootListV1WithDigest: %v", err)
+		}
+		if !reflect.DeepEqual(bundle.Payload, plain) {
+			t.Fatalf("WithDigest payload mismatch: %+v vs %+v", bundle.Payload, plain)
+		}
+		if bundle.Digest != plain.Hash() {
+			t.Fatalf("digest %s want payload.Hash %s", bundle.Digest.Hex(), plain.Hash().Hex())
+		}
+	})
+
+	t.Run("root list deterministic under node reordering", func(t *testing.T) {
+		rm := newTestRootManager(t, false, true)
+		gov, err := New(rm.RootManager, tmpDirName(t))
+		if err != nil {
+			t.Fatalf("Failed to create Governance: %v", err)
+		}
+		if err := gov.Start(); err != nil {
+			t.Fatalf("Failed to start Governance: %v", err)
+		}
+		api := NewGovernancePublicAPI(gov)
+
+		scrambled := common.RootList{
+			Timestamp: 1715072400,
+			Hash:      common.Hash{},
+			Nodes: []common.Address{
+				common.HexToAddress("0xA94F5374FCE5EDBC8E2A8697C15331677E6EBF0B"),
+				common.HexToAddress("0xEB3B90FD1862B10D14D71881B32D80E530AD394B"),
+				common.HexToAddress("0x01FDCC35858C76C6ECD459DA0174116FB5A4BFF7"),
+			},
+		}
+		set, err := newRootSet(&scrambled)
+		if err != nil {
+			t.Fatalf("newRootSet: %v", err)
+		}
+		want := common.NewRootListSigningPayloadV1(rm.networkId, common.RootList{
+			Timestamp: set.timestamp,
+			Nodes:     set.rootAddresses,
+			Hash:      set.hash,
+		})
+		got, err := api.SigningPayloadRootListV1(scrambled)
+		if err != nil {
+			t.Fatalf("SigningPayloadRootListV1: %v", err)
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("payload mismatch\n got: %+v\nwant: %+v", got, want)
+		}
+	})
+
+	t.Run("exclusion list deterministic under validator reordering", func(t *testing.T) {
+		rm := newTestRootManager(t, false, true)
+		gov, err := New(rm.RootManager, tmpDirName(t))
+		if err != nil {
+			t.Fatalf("Failed to create Governance: %v", err)
+		}
+		if err := gov.Start(); err != nil {
+			t.Fatalf("Failed to start Governance: %v", err)
+		}
+		api := NewGovernancePublicAPI(gov)
+
+		scrambled := common.ValidatorExclusionList{
+			Timestamp: 1715072400,
+			Hash:      common.Hash{},
+			Validators: []common.ExcludedValidator{
+				{Address: common.HexToAddress("0x10AC88611B540D6E7725198EDB6B9B723E4A6E6D"), Block: 88, EndBlock: 91},
+				{Address: common.HexToAddress("0xC5E8F30E914F3F9D88F2DC72F4C2D4E6FB08D5E2"), Block: 100, EndBlock: 120},
+				{Address: common.HexToAddress("0x10AC88611B540D6E7725198EDB6B9B723E4A6E6D"), Block: 77, EndBlock: 0},
+			},
+		}
+		set, err := newExclusionSet(&scrambled)
+		if err != nil {
+			t.Fatalf("newExclusionSet: %v", err)
+		}
+		source := set.makeList()
+		source.Signatures = nil
+		want := common.NewExclusionListSigningPayloadV1(rm.networkId, source)
+		got, err := api.SigningPayloadExclusionListV1(scrambled)
+		if err != nil {
+			t.Fatalf("SigningPayloadExclusionListV1: %v", err)
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("payload mismatch\n got: %+v\nwant: %+v", got, want)
+		}
+	})
+
+	t.Run("exclusion list payload matches canonical builder and typed submit", func(t *testing.T) {
+		rm := newTestRootManager(t, false, true)
+		gov, err := New(rm.RootManager, tmpDirName(t))
+		if err != nil {
+			t.Fatalf("Failed to create Governance: %v", err)
+		}
+		if err := gov.Start(); err != nil {
+			t.Fatalf("Failed to start Governance: %v", err)
+		}
+		api := NewGovernancePublicAPI(gov)
+
+		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+		unsigned := list
+		unsigned.Signatures = nil
+		set, err := newExclusionSet(&unsigned)
+		if err != nil {
+			t.Fatalf("newExclusionSet: %v", err)
+		}
+		source := set.makeList()
+		source.Signatures = nil
+		want := common.NewExclusionListSigningPayloadV1(rm.networkId, source)
+		got, err := api.SigningPayloadExclusionListV1(list)
+		if err != nil {
+			t.Fatalf("SigningPayloadExclusionListV1: %v", err)
+		}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("payload mismatch\n got: %+v\nwant: %+v", got, want)
+		}
+
+		sig, err := crypto.Sign(got.Hash().Bytes(), rm.aliasPrivateKeys[0])
+		if err != nil {
+			t.Fatalf("sign: %v", err)
+		}
+		list.Signatures = [][]byte{sig}
+		if _, err := api.SubmitTypedSignedExclusionList(list); err != nil {
+			t.Fatalf("SubmitTypedSignedExclusionList after payload digest: %v", err)
+		}
+	})
+
+	t.Run("exclusion list WithDigest matches plain payload and digest equals Hash", func(t *testing.T) {
+		rm := newTestRootManager(t, false, true)
+		gov, err := New(rm.RootManager, tmpDirName(t))
+		if err != nil {
+			t.Fatalf("Failed to create Governance: %v", err)
+		}
+		if err := gov.Start(); err != nil {
+			t.Fatalf("Failed to start Governance: %v", err)
+		}
+		api := NewGovernancePublicAPI(gov)
+		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 7000)
+		plain, err := api.SigningPayloadExclusionListV1(list)
+		if err != nil {
+			t.Fatalf("SigningPayloadExclusionListV1: %v", err)
+		}
+		bundle, err := api.SigningPayloadExclusionListV1WithDigest(list)
+		if err != nil {
+			t.Fatalf("SigningPayloadExclusionListV1WithDigest: %v", err)
+		}
+		if !reflect.DeepEqual(bundle.Payload, plain) {
+			t.Fatalf("WithDigest payload mismatch: %+v vs %+v", bundle.Payload, plain)
+		}
+		if bundle.Digest != plain.Hash() {
+			t.Fatalf("digest %s want payload.Hash %s", bundle.Digest.Hex(), plain.Hash().Hex())
+		}
+	})
+
+	t.Run("root list empty nodes is rejected", func(t *testing.T) {
+		rm := newTestRootManager(t, false, true)
+		gov, err := New(rm.RootManager, tmpDirName(t))
+		if err != nil {
+			t.Fatalf("Failed to create Governance: %v", err)
+		}
+		if err := gov.Start(); err != nil {
+			t.Fatalf("Failed to start Governance: %v", err)
+		}
+		api := NewGovernancePublicAPI(gov)
+		_, err = api.SigningPayloadRootListV1(common.RootList{Timestamp: 1, Nodes: nil})
+		if err == nil {
+			t.Fatal("expected error for empty root list")
+		}
+	})
+
+	t.Run("root list hash mismatch is rejected", func(t *testing.T) {
+		rm := newTestRootManager(t, false, true)
+		gov, err := New(rm.RootManager, tmpDirName(t))
+		if err != nil {
+			t.Fatalf("Failed to create Governance: %v", err)
+		}
+		if err := gov.Start(); err != nil {
+			t.Fatalf("Failed to start Governance: %v", err)
+		}
+		api := NewGovernancePublicAPI(gov)
+		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 3, 0, true)
+		list.Hash = common.BytesToHash([]byte{1, 2, 3})
+		_, err = api.SigningPayloadRootListV1(list)
+		if err == nil {
+			t.Fatal("expected hash mismatch error")
+		}
+		if !errors.Is(err, errHashMismatch) {
+			t.Fatalf("expected errHashMismatch, got %v", err)
+		}
+	})
+
+	t.Run("exclusion list duplicate validator range is rejected", func(t *testing.T) {
+		rm := newTestRootManager(t, false, true)
+		gov, err := New(rm.RootManager, tmpDirName(t))
+		if err != nil {
+			t.Fatalf("Failed to create Governance: %v", err)
+		}
+		if err := gov.Start(); err != nil {
+			t.Fatalf("Failed to start Governance: %v", err)
+		}
+		api := NewGovernancePublicAPI(gov)
+		addr := common.HexToAddress("0x1111111111111111111111111111111111111111")
+		list := common.ValidatorExclusionList{
+			Timestamp: 100,
+			Validators: []common.ExcludedValidator{
+				{Address: addr, Block: 10, EndBlock: 20},
+				{Address: addr, Block: 10, EndBlock: 20},
+			},
+		}
+		_, err = api.SigningPayloadExclusionListV1(list)
+		if err == nil {
+			t.Fatal("expected invalid exclusion list error")
+		}
+	})
+
+	t.Run("exclusion list hash mismatch is rejected", func(t *testing.T) {
+		rm := newTestRootManager(t, false, true)
+		gov, err := New(rm.RootManager, tmpDirName(t))
+		if err != nil {
+			t.Fatalf("Failed to create Governance: %v", err)
+		}
+		if err := gov.Start(); err != nil {
+			t.Fatalf("Failed to start Governance: %v", err)
+		}
+		api := NewGovernancePublicAPI(gov)
+		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
+		list.Hash = common.BytesToHash([]byte{7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7})
+		_, err = api.SigningPayloadExclusionListV1(list)
+		if err == nil {
+			t.Fatal("expected hash mismatch error")
+		}
+		if !errors.Is(err, errHashMismatch) {
+			t.Fatalf("expected errHashMismatch, got %v", err)
+		}
+	})
+
+	t.Run("oversized root list is rejected", func(t *testing.T) {
+		rm := newTestRootManager(t, false, true)
+		gov, err := New(rm.RootManager, tmpDirName(t))
+		if err != nil {
+			t.Fatalf("Failed to create Governance: %v", err)
+		}
+		if err := gov.Start(); err != nil {
+			t.Fatalf("Failed to start Governance: %v", err)
+		}
+		api := NewGovernancePublicAPI(gov)
+		list := randomRootList(t, nil, time.Now().Unix(), 2*maxNRootNodes+1, 2*maxNRootNodes+1, false)
+		_, err = api.SigningPayloadRootListV1(list)
+		if !errors.Is(err, errMsgTooLarge) {
+			t.Fatalf("expected errMsgTooLarge, got %v", err)
+		}
+	})
+
+	t.Run("signing payload allowed when public submission disabled", func(t *testing.T) {
+		rm := newTestRootManager(t, false, true)
+		rm.DisablePublicSubmission = true
+		gov, err := New(rm.RootManager, tmpDirName(t))
+		if err != nil {
+			t.Fatalf("Failed to create Governance: %v", err)
+		}
+		if err := gov.Start(); err != nil {
+			t.Fatalf("Failed to start Governance: %v", err)
+		}
+		api := NewGovernancePublicAPI(gov)
+		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 5, 0, true)
+		if _, err := api.SigningPayloadRootListV1(list); err != nil {
+			t.Fatalf("SigningPayloadRootListV1 with submission disabled: %v", err)
+		}
+	})
 }
 
 func cloneRootManagerRootState(dst, src *RootManager) {
