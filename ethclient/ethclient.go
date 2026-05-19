@@ -834,6 +834,12 @@ func (ec *Client) SigningPayloadExclusionListV1WithDigest(ctx context.Context, l
 	return res, err
 }
 
+func (ec *Client) GetGovernanceProposalStatus(ctx context.Context, proposalType string, hash common.Hash, signer common.Address) (governance.GovernanceProposalStatus, error) {
+	var res governance.GovernanceProposalStatus
+	err := ec.c.CallContext(ctx, &res, "govPub_getGovernanceProposalStatus", proposalType, hash, signer)
+	return res, err
+}
+
 func toBlockNumArg(number *big.Int) string {
 	if number == nil {
 		return "latest"

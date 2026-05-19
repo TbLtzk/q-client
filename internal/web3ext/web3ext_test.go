@@ -19,6 +19,8 @@ func TestGovernanceSubmissionWeb3Extensions(t *testing.T) {
 		"call: 'govPub_signingPayloadExclusionListV1'",
 		"name: 'signingPayloadExclusionListV1WithDigest'",
 		"call: 'govPub_signingPayloadExclusionListV1WithDigest'",
+		"name: 'getGovernanceProposalStatus'",
+		"call: 'govPub_getGovernanceProposalStatus'",
 	} {
 		if !bytes.Contains([]byte(GovPublicJs), []byte(expected)) {
 			t.Fatalf("GovPublicJs missing %q", expected)
