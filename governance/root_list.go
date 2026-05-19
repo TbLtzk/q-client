@@ -173,6 +173,70 @@ func (s *rootSet) knownSigners(signers map[common.Address][]byte) []common.Addre
 	return intersection
 }
 
+// signerThresholdProgress counts proposal signatures using the same rules as isAcceptable / isEnoughExSetSignatures.
+func (s *rootSet) signerThresholdProgress(proposalSigners map[common.Address][]byte, thresholdPercent int) (signedCount, totalRoots, signedPercent int, meetsThreshold bool) {
+	if s == nil || len(s.rootAddresses) == 0 {
+		return 0, 0, 0, false
+	}
+
+	totalRoots = len(s.rootAddresses)
+	for signer := range proposalSigners {
+		for root, alias := range s.aliases {
+			if (signer == root && signer == alias) || (root != alias && signer == alias) {
+				signedCount++
+			}
+		}
+	}
+
+	if totalRoots > 0 {
+		signedPercent = (100 * signedCount) / totalRoots
+	}
+	meetsThreshold = signedPercent >= thresholdPercent
+	return signedCount, totalRoots, signedPercent, meetsThreshold
+}
+
+func (s *rootSet) isKnownActiveSigner(addr common.Address) bool {
+	if s == nil || addr == (common.Address{}) {
+		return false
+	}
+	return len(s.knownSigners(map[common.Address][]byte{addr: nil})) > 0
+}
+
+func (s *rootSet) hasSignedProposal(proposalSigners map[common.Address][]byte, queried common.Address) bool {
+	if s == nil || queried == (common.Address{}) {
+		return false
+	}
+
+	knownOnProposal := s.knownSigners(proposalSigners)
+	for _, signed := range knownOnProposal {
+		if signed == queried {
+			return true
+		}
+	}
+
+	for root, alias := range s.aliases {
+		if root == queried && root != alias {
+			for _, signed := range knownOnProposal {
+				if signed == alias {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+func (s *rootSet) needsSignatureFrom(proposalSigners map[common.Address][]byte, queried common.Address) bool {
+	if queried == (common.Address{}) {
+		return false
+	}
+	if !s.isKnownActiveSigner(queried) {
+		return false
+	}
+	return !s.hasSignedProposal(proposalSigners, queried)
+}
+
 func (s *rootSet) copy() *rootSet {
 	if s == nil {
 		return nil

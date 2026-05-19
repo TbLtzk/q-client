@@ -1011,6 +1011,12 @@ web3._extend({
 			call: 'govPub_signingPayloadExclusionListV1WithDigest',
 			params: 1
 		}),
+		new web3._extend.Method({
+			name: 'getGovernanceProposalStatus',
+			call: 'govPub_getGovernanceProposalStatus',
+			params: 3,
+			inputFormatter: [null, null, web3._extend.formatters.inputAddressFormatter]
+		}),
 	    new web3._extend.Method({
 			name: 'diffExclusionList',
 			call: 'govPub_diffExclusionList',
