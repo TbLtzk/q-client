@@ -112,8 +112,8 @@ For good UX and security, the preferred direction is:
 
 - keep propagation on the existing `qgov` p2p network,
 - add public read and submission APIs for L0 governance,
-- switch the signature format for dapp-based signing to an explicit typed message format,
-- preserve compatibility with the current peer protocol and internal governance state.
+- use an explicit typed message format for MetaMask-friendly signing,
+- preserve compatibility with **`qgov/5`** peers while introducing **`qgov/6`** for typed relay where needed ([phased rollout](#phased-rollout-qgov-versions-typed-relay-and-raw-signatures)).
 
 ## Design Options
 
@@ -160,7 +160,7 @@ Introduce a new explicit signing scheme for dapp-based L0 governance, ideally ba
 2. The dapp builds a proposal object and shows a diff to the root node.
 3. MetaMask signs a typed governance message.
 4. The dapp submits the signed typed payload to a public submission endpoint.
-5. The node verifies the typed signature, converts it into the internal governance set representation, stores it as `proposed` or merges it into `desired` / `active`, and rebroadcasts it via `qgov`.
+5. The node verifies the typed signature. **Network-wide quorum still uses raw signatures over the governance list hash on the existing `RootListMsg` / `ExclusionListMsg` rails** until a later rollout phase (see [Phased rollout: `qgov` versions, typed relay, and raw signatures](#phased-rollout-qgov-versions-typed-relay-and-raw-signatures)). Until then, typed material is relayed on a separate path (e.g. `qgov/6` only) and root nodes that recognize their own attestation mint the corresponding raw signature locally for ingestion and legacy propagation.
 
 ### Advantages
 
@@ -178,6 +178,73 @@ Introduce a new explicit signing scheme for dapp-based L0 governance, ideally ba
 ### Verdict
 
 This is the recommended target architecture.
+
+## Phased rollout: `qgov` versions, typed relay, and raw signatures
+
+This section refines **Option B** for **fleet compatibility**: MetaMask-friendly **typed** signing is the UX target, while **raw** signatures over the list hash remain what existing `qgov` list messages verify until a coordinated later phase.
+
+### `qgov/5` vs `qgov/6` (typed relay gating)
+
+| Version | Typed attestation relay to peer | Notes |
+| ------- | --------------------------------- | ----- |
+| **`qgov/5`** | **No** (do not send typed-relay messages on this sub-protocol) | Matches today’s deployed behavior; peers must not receive payloads they cannot interpret. |
+| **`qgov/6`** | **Yes** (dedicated typed-relay messages between peers that negotiated `6`) | New wire message(s) or codes; only forwarded along connections where both sides speak `6`. |
+
+New clients **implement both** protocol versions so they remain compatible with **`qgov/5`-only** peers while opening **`qgov/6`** sessions to upgraded peers. Typed relay traffic is **not** forwarded onto `qgov/5` links.
+
+*Implementation note:* `governance/protocol.go` currently exposes only **`qgov/5`**; adding **`qgov/6`** is the deliberate interface bump for this behavior.
+
+### Signature deduplication (explicit rule)
+
+- **Storage / merge deduplication** (e.g. `signers` map keys, `mergeSignatures`): keep the **existing rule** — **one entry per recovered signer address** (the Ethereum address recovered from the signature bytes). Do **not** introduce a new deduplication key scheme unless a later phase explicitly changes it.
+- **Quorum and threshold counting** (e.g. `isAcceptable`, alias-aware known signers): keep **existing** active-root and **alias** rules; they are unchanged by this specification.
+
+When **raw** and **typed** encodings can both represent participation by the **same logical root slot** (e.g. different recovered addresses for alias vs main), preventing **double counting** for threshold purposes may require extra rules on top of “map key = recovered address” — see [Root-node alias and signing identity](#root-node-alias-and-signing-identity) and [Open decisions](#open-decisions-after-this-spec).
+
+### Root-node alias and signing identity
+
+**Decision:** When an active root node has a **distinct alias** (`root != alias` in the active root set’s alias map), **external typed signing must use the alias address in MetaMask** (the same address the node uses for in-client governance signing via `signRootSet`). Signing with the **main/root account** when an alias is configured is **invalid** for typed submissions and typed relay.
+
+**Rationale:** In-client signing always uses the alias key when one exists (`governance/root_manager.go`, `signRootSet`). Requiring the same identity off-chain avoids ambiguous “two keys, one slot” behavior and matches quorum counting (`knownSigners` only treats alias signatures as votes when `root != alias`).
+
+**`q-client` behavior today (Epic B):**
+
+| Path | Main-account sig when alias exists |
+| ---- | ---------------------------------- |
+| **Typed RPC** (`SubmitTypedSigned*`) | **Rejected** with error (e.g. `typed root list contains unknown signer`) — recovered main address is not in `active.knownSigners()`. Tests: `typed signature from root key instead of alias is rejected`. |
+| **Typed relay** (`qgov/6`, planned) | Must apply the **same** membership rule: **do not relay** attestations that fail typed signer checks. |
+| **Raw p2p / `newRootSet`** | **Not rejected at crypto parse time** — a valid ECDSA sig over `list.Hash` from the main key is stored in `signers`. It **does not count** toward threshold (`isAcceptable` / `knownSigners`). A **new** proposal whose only signatures are main-key may be **silently ignored** (`importRootSet` default branch: `len(knownSigners)==0` → debug log, `nil` error). Merges on an existing hash can still **store** a main-key entry in `signers` without advancing quorum. |
+
+**Product / API expectations:**
+
+- Dapps should **detect alias vs main** (indexer / `govPub` helpers) and tell the user which address to connect in MetaMask before signing.
+- Typed RPC should return a **clear, stable error** when the recovered signer is a known root main address but not the required alias (implementation improvement over generic “unknown signer”).
+- Phase 1 **self-bridge** (RN mints raw after seeing its own typed attestation): use the **alias** account when configured, same as `signRootSet` — not the main account from a mistaken MetaMask connection.
+
+**When `root == alias`:** No separate alias; main and alias are the same address — typed and raw may use that single address.
+
+### Phase 1 — Typed relay only
+
+**Goals:** deliver typed attestations between **upgraded** peers without breaking **`qgov/5`-only** nodes; keep **raw** signatures as the only votes that merge into list state for threshold **on the legacy list messages** in production.
+
+- New clients can **receive and verify** typed attestations (same membership / replay guards as for raw, as implemented for each path).
+- New clients **propagate** typed attestations **only** to peers with **`qgov/6`** negotiated (see above).
+- New clients **do not** treat typed attestations as full substitutes for raw signatures in internal **quorum state** in this phase: they may track relayed attestations (e.g. dedupe by content hash + signer + proposal id) to **avoid rebroadcast storms**, but **threshold / upgrade** continues to follow **raw** signatures on the normal list ingestion path.
+- On the **existing** root-list / exclusion-list messages (`RootListMsg`, etc.), new clients accept signatures that verify **either** as **raw-over-`list.Hash`** **or** as **typed-over-the-versioned payload digest** (per-signature try order and rules to be defined in implementation). **Production nodes do not place typed signature bytes into `Signatures[]` in Phase 1**; dual verification exists for **tests**, **defense in depth**, and forward compatibility.
+- When a new client receives a valid typed attestation whose recovered signer is **this node’s governance signing account** (the **alias** if configured, otherwise the root address), it **mints the corresponding raw signature** with that same account (matching `signRootSet`) and **ingests** it into the normal set / merge path — so the vote can propagate on **`qgov/5`** rails without requiring the operator to RPC their own validator.
+
+### Phase 2 — Typed ingestion on list messages
+
+- New clients **fully ingest** typed signatures into the same internal structures as raw and propagate merged lists on the **existing** raw-hash rails (both may appear in `Signatures[]` from different signers).
+- The **dedicated typed relay** path may still exist for **ingress** (e.g. first receipt from dapp or peer) but **forwarding** typed relay messages to peers is de-emphasized once list messages carry typed bytes — exact “relay vs list only” split is an implementation detail to lock during Phase 2.
+- **Old (`qgov/5`-only) clients** that cannot verify typed bytes inside `Signatures[]` will **fail** validation — this phase is therefore a **fleet coordination** milestone (upgrade threshold before enabling production mixed lists).
+- **Same signer must not** contribute both a raw and a typed signature if that would **double-count** toward threshold; enforcement must align with the [deduplication](#signature-deduplication-explicit-rule) rules and any [open decisions](#open-decisions-after-this-spec) on identity slots.
+
+### Phase 3 — Abandon raw-over-hash for verification
+
+- New clients **no longer accept** legacy raw-over-`list.Hash` signatures for new submissions (verification hardening / deprecation).
+- Dedicated **typed-only relay** helpers may be **removed** if redundant.
+- Requires an **activation policy** (network config, flag date, or minimum peer version) so operators can plan upgrades.
 
 ## Proposed Architecture
 
@@ -221,9 +288,18 @@ The dapp should probe the RPC endpoint configured for the connected wallet befor
 
 ### 4. Existing `qgov` p2p propagation
 
-No fundamental protocol redesign is required. The existing relay logic should remain the transport used after a node accepts a submission.
+The existing `RootListMsg` / `ExclusionListMsg` / handshake payloads remain the **canonical carrier for raw ECDSA signatures** over the deterministic list hash (`list.Hash`), because that is what all deployed clients verify today (`governance/root_list.go`, `governance/exclusion_set.go`).
 
-Because the recommended compatibility model keeps the p2p payloads unchanged, adding external submission and typed-signature verification does not by itself require a `qgov` p2p protocol version bump. Capability discovery should happen at the RPC/API layer instead. A p2p protocol version bump should be reserved for changes to the `qgov` wire messages, message codes, or peer negotiation semantics.
+**Typed governance attestations must not be placed inside `Signatures[]` on those messages until enough of the fleet supports verifying them there** (see phased rollout below). Until then, typed relay uses an **additional** negotiation surface.
+
+**`qgov` protocol versions (compatibility gate):**
+
+- **`qgov/5`** — behavior as today: root/exclusion list messages and existing message codes only; **no** forwarding of typed-relay messages to peers (and no expectation that peers accept them).
+- **`qgov/6`** — extends the protocol with dedicated wire messages (or codes) for **typed attestation relay** between peers that negotiated this version. New clients **register both** `qgov/5` and `qgov/6` handlers so they interoperate with old peers on `5` while using `6` with upgraded peers for typed relay.
+
+Today `q-client` only implements **`qgov/5`** in `governance/protocol.go`; introducing **`qgov/6`** is the explicit bump that gates “relay typed to peers who can accept it.” RPC capability discovery (`govPub_l0GovernanceCapabilities`, etc.) remains complementary for **submission and signing helpers**, not a substitute for this peer negotiation.
+
+See [Phased rollout: `qgov` versions, typed relay, and raw signatures](#phased-rollout-qgov-versions-typed-relay-and-raw-signatures) for how `5` vs `6` interact with phased ingestion.
 
 ### 5. Governance state ingestion layer
 
@@ -358,32 +434,35 @@ The client should support both:
 - legacy raw-signature governance messages from console-driven nodes,
 - new typed-signature governance messages from dapp-driven nodes.
 
-There are two reasonable compatibility models:
+There are two reasonable **long-term** compatibility models:
 
-### Model 1: RPC accepts typed signatures, p2p continues to exchange legacy internal sets
+**Fleet behavior** (typed relay, `qgov/5` vs `qgov/6`, when typed bytes may appear in `Signatures[]`) is specified in [Phased rollout: `qgov` versions, typed relay, and raw signatures](#phased-rollout-qgov-versions-typed-relay-and-raw-signatures) above.
 
-In this model:
+### Model 1: RPC accepts typed signatures; list messages stay raw-first during early phases
 
-- the public API verifies a typed signature,
-- converts it into the internal set representation,
-- stores only the recovered signer and signature result,
-- and propagates the canonical internal set through the existing protocol.
+In this model (aligned with **Phase 1** in that section):
 
-This is lower impact on the p2p layer, but it requires a clear mapping from typed-signature verification back into the existing internal signer model.
+- the public API verifies typed signatures where exposed;
+- root nodes **self-bridge** to raw for votes that must propagate on **`qgov/5`**;
+- typed attestations **relay on `qgov/6` only** and are not placed in production `Signatures[]` until **Phase 2** coordination.
+
+This avoids breaking **`qgov/5`-only** peers while MetaMask-first UX rolls out.
 
 ### Model 2: Governance protocol evolves to carry signature metadata versioning
 
 In this model:
 
-- both RPC and p2p support multiple signature schemes explicitly.
+- both RPC and p2p support multiple signature schemes explicitly on the wire (**Phase 2+**).
 
 This is cleaner long-term, but larger in scope.
 
 ## Recommendation
 
-Start with Model 1.
+Start with **Model 1** during **Phase 1–2**, then converge toward a single verification path in **Phase 3** if the project commits to deprecating raw-over-hash.
 
-## Suggested Rollout Plan
+## Suggested HQ / product rollout
+
+The **phase numbers below** are **product / engineering milestones** (RPC, refactor, HQ). They are **not** the same as [governance network phases](#phased-rollout-qgov-versions-typed-relay-and-raw-signatures) (typed relay, `qgov/6`, list ingestion, raw deprecation); align both timelines when planning releases.
 
 ## Phase 1: Technical enablement
 
@@ -431,10 +510,23 @@ Outcome:
 
 ## Risks And Open Questions
 
-- MetaMask signing semantics need to be pinned down early. The project should avoid designing around raw-hash signing if the target UX is HQ + MetaMask.
-- Backward compatibility with legacy console-based governance flows must be defined explicitly.
+### Open decisions (after this spec)
+
+The following are **not** fully pinned by this document; they need explicit decisions before implementation tickets close:
+
+1. **`qgov/6` wire shape** — Exact new message codes, payload schema, max size, and whether typed relay is **request/response** or **fire-and-forget gossip** (and how it interacts with `StatusMsg` / handshake).
+2. **Phase 1 dual-verify on list messages** — Strict ordering (try raw then typed vs typed then raw), rejection rules for ambiguous blobs, and whether **malformed** entries fail the whole message or are skipped (affects peer disconnect behavior).
+3. ~~**External vs alias typed signer**~~ — **Resolved:** use **alias in MetaMask** when an alias is configured; reject main-only typed sigs at RPC and typed relay; self-bridge mints raw with alias. See [Root-node alias and signing identity](#root-node-alias-and-signing-identity).
+4. **Phase 2 double-counting** — Reject or collapse **main + alias** encodings for the same logical root where only alias counts for quorum; Phase 1 policy avoids typed-from-main, but raw main-key bytes may still appear on legacy merges until stricter rejection is added.
+5. **Phase 2→3 activation** — Network-wide flag, minimum peer fraction on `qgov/6`, calendar date, or on-chain config; who flips it.
+6. **Unknown `qgov` message handling on `5`** — Ensure old peers never receive `6`-only messages on the wrong session; define behavior if a buggy peer sends them anyway (ignore vs disconnect).
+7. **Typed relay reachability** — Typed traffic only flows on **`qgov/6`** edges. If the graph of `6` sessions is disconnected, some root nodes may not receive attestations until they upgrade peers or use RPC ingress; decide whether **multi-hop relay** on `6`, **dedicated gateways**, or **operator expectations** are acceptable.
+
+### Other risks
+
+- MetaMask signing semantics need to be pinned down early for **typed** payloads (domain, types, chain id).
 - Public RPC nodes may be unwilling to expose any governance-related mutators unless the submission API is tightly scoped and abuse-resistant.
-- The exact treatment of aliases in off-chain signatures must be documented clearly so root nodes understand which account should sign.
+- Alias policy for typed signing is fixed in [Root-node alias and signing identity](#root-node-alias-and-signing-identity); HQ must connect the wallet to the **alias** address when applicable.
 - Capability discovery should not rely only on `rpc_modules` or deprecated RPC namespace version metadata; it should use an explicit governance capability response that the dapp can evaluate before enabling controls.
 
 ## Development backlog
@@ -531,7 +623,7 @@ Priority: **P0** = blocking minimal viable flow, **P1** = production UX / safety
 | Milestone             | Scope                       | Overlap-friendly calendar note                                          | Rough total   |
 | --------------------- | --------------------------- | ----------------------------------------------------------------------- | ------------- |
 | **M1 — Backend MVP**  | Epic A (A1–A4, minimal A5)  | Enables scripted or wallet-external signing without full MetaMask story | **~12–20 pd** |
-| **M2 — Wallet-ready** | Epic B + remainder of A5–A6 | Typed signing + hardening                                               | **~18–32 pd** |
+| **M2 — Wallet-ready** | Epic B + remainder of A5–A6 + `qgov/6` typed relay (Phase 1) | Typed signing, relay gating, hardening                               | **~18–32 pd** |
 | **M3 — HQ GA**        | Epic C + D                  | Parallelizable once M1 read/submit contract is stable                   | **~21–43 pd** |
 
 
