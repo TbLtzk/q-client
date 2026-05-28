@@ -201,6 +201,25 @@ New clients **implement both** protocol versions so they remain compatible with 
 
 When **raw** and **typed** encodings can both represent participation by the **same logical root slot** (e.g. different recovered addresses for alias vs main), preventing **double counting** for threshold purposes may require extra rules on top of “map key = recovered address” — see [Root-node alias and signing identity](#root-node-alias-and-signing-identity) and [Open decisions](#open-decisions-after-this-spec).
 
+### Dual verification on list messages (`Signatures[]`)
+
+Applies to `RootListMsg` / `ExclusionListMsg` when a client accepts more than one scheme in `Signatures[]` (defensive in Phase 1; production-mixed in Phase 2). **`qgov/6` typed relay** uses **typed-only** verification (same as RPC); this section does not apply there.
+
+**Try order (single pass — do not run the second scheme if the first succeeds):**
+
+| Phase | First try | Fallback |
+| ----- | --------- | -------- |
+| **1** | **Raw** over `list.Hash` | **Typed** over the versioned payload digest |
+| **2** | **Typed** over the versioned payload digest | **Raw** over `list.Hash` |
+
+Rationale: match the likely on-wire encoding and avoid building/hashing typed payloads on every signature when p2p list traffic is overwhelmingly raw (Phase 1).
+
+**Dual success (very unlikely):** If a blob would verify under both schemes, treat it as the scheme that was **tested first** (raw in Phase 1, typed in Phase 2). There is no need to always run both verifications.
+
+**Per-entry misses:** If neither scheme verifies, **skip** that `Signatures[]` entry and continue with the rest. Do **not** fail the whole message for a dual-verify miss.
+
+**Whole-message failure:** Fail only on **structural** errors (e.g. invalid or empty node sets, declared `list.Hash` mismatch with calculated hash, decode failures) — the same class of hard rejects as today before merge/import proceeds.
+
 ### Root-node alias and signing identity
 
 **Decision:** When an active root node has a **distinct alias** (`root != alias` in the active root set’s alias map), **external typed signing must use the alias address in MetaMask** (the same address the node uses for in-client governance signing via `signRootSet`). Signing with the **main/root account** when an alias is configured is **invalid** for typed submissions and typed relay.
@@ -230,12 +249,12 @@ When **raw** and **typed** encodings can both represent participation by the **s
 - New clients can **receive and verify** typed attestations (same membership / replay guards as for raw, as implemented for each path).
 - New clients **propagate** typed attestations **only** to peers with **`qgov/6`** negotiated (see above).
 - New clients **do not** treat typed attestations as full substitutes for raw signatures in internal **quorum state** in this phase: they may track relayed attestations (e.g. dedupe by content hash + signer + proposal id) to **avoid rebroadcast storms**, but **threshold / upgrade** continues to follow **raw** signatures on the normal list ingestion path.
-- On the **existing** root-list / exclusion-list messages (`RootListMsg`, etc.), new clients accept signatures that verify **either** as **raw-over-`list.Hash`** **or** as **typed-over-the-versioned payload digest** (per-signature try order and rules to be defined in implementation). **Production nodes do not place typed signature bytes into `Signatures[]` in Phase 1**; dual verification exists for **tests**, **defense in depth**, and forward compatibility.
+- On the **existing** root-list / exclusion-list messages (`RootListMsg`, etc.), new clients use [dual verification on list messages](#dual-verification-on-list-messages-signatures) (**raw first**, then typed; skip per-entry misses). **Production nodes do not place typed signature bytes into `Signatures[]` in Phase 1**; dual verification exists for **tests**, **defense in depth**, and forward compatibility.
 - When a new client receives a valid typed attestation whose recovered signer is **this node’s governance signing account** (the **alias** if configured, otherwise the root address), it **mints the corresponding raw signature** with that same account (matching `signRootSet`) and **ingests** it into the normal set / merge path — so the vote can propagate on **`qgov/5`** rails without requiring the operator to RPC their own validator.
 
 ### Phase 2 — Typed ingestion on list messages
 
-- New clients **fully ingest** typed signatures into the same internal structures as raw and propagate merged lists on the **existing** raw-hash rails (both may appear in `Signatures[]` from different signers).
+- New clients **fully ingest** typed signatures into the same internal structures as raw and propagate merged lists on the **existing** raw-hash rails (both may appear in `Signatures[]` from different signers). Per-signature verification on lists uses [dual verification](#dual-verification-on-list-messages-signatures) with **typed first**, then raw fallback.
 - The **dedicated typed relay** path may still exist for **ingress** (e.g. first receipt from dapp or peer) but **forwarding** typed relay messages to peers is de-emphasized once list messages carry typed bytes — exact “relay vs list only” split is an implementation detail to lock during Phase 2.
 - **Old (`qgov/5`-only) clients** that cannot verify typed bytes inside `Signatures[]` will **fail** validation — this phase is therefore a **fleet coordination** milestone (upgrade threshold before enabling production mixed lists).
 - **Same signer must not** contribute both a raw and a typed signature if that would **double-count** toward threshold; enforcement must align with the [deduplication](#signature-deduplication-explicit-rule) rules and any [open decisions](#open-decisions-after-this-spec) on identity slots.
@@ -515,7 +534,7 @@ Outcome:
 The following are **not** fully pinned by this document; they need explicit decisions before implementation tickets close:
 
 1. **`qgov/6` wire shape** — Exact new message codes, payload schema, max size, and whether typed relay is **request/response** or **fire-and-forget gossip** (and how it interacts with `StatusMsg` / handshake).
-2. **Phase 1 dual-verify on list messages** — Strict ordering (try raw then typed vs typed then raw), rejection rules for ambiguous blobs, and whether **malformed** entries fail the whole message or are skipped (affects peer disconnect behavior).
+2. ~~**Phase 1/2 dual-verify on list messages**~~ — **Resolved:** single-pass order (**raw → typed** in Phase 1, **typed → raw** in Phase 2); if both would verify (very unlikely), credit the **first** scheme tried (no need to run both); **skip** entries that fail both; **fail whole message** only on structural errors. See [Dual verification on list messages](#dual-verification-on-list-messages-signatures). Implemented in `governance/signature_parse.go` (`dualVerifyTypedFirst` flips in Phase 2).
 3. ~~**External vs alias typed signer**~~ — **Resolved:** use **alias in MetaMask** when an alias is configured; reject main-only typed sigs at RPC and typed relay; self-bridge mints raw with alias. See [Root-node alias and signing identity](#root-node-alias-and-signing-identity).
 4. **Phase 2 double-counting** — Reject or collapse **main + alias** encodings for the same logical root where only alias counts for quorum; Phase 1 policy avoids typed-from-main, but raw main-key bytes may still appear on legacy merges until stricter rejection is added.
 5. **Phase 2→3 activation** — Network-wide flag, minimum peer fraction on `qgov/6`, calendar date, or on-chain config; who flips it.

@@ -192,7 +192,7 @@ func Test_newExclusionSet(t *testing.T) {
 			args: args{
 				list: exclusionListWithWrongSignature,
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

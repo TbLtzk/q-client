@@ -50,6 +50,10 @@ func (s *rootSet) calcHash() common.Hash {
 }
 
 func newRootSet(list *common.RootList) (*rootSet, error) {
+	return newRootSetForNetwork(list, 0)
+}
+
+func newRootSetForNetwork(list *common.RootList, networkID uint64) (*rootSet, error) {
 	if list == nil || len(list.Nodes) == 0 {
 		return nil, nil
 	}
@@ -82,18 +86,11 @@ func newRootSet(list *common.RootList) (*rootSet, error) {
 	}
 
 	signers := make(map[common.Address][]byte)
-	hash := set.hash.Bytes()
 	for _, sig := range list.Signatures {
-		pubkey, err := crypto.SigToPub(hash, sig)
-		if err != nil {
-			return nil, errInvalidSignature
+		addr, ok := verifyRootListSignature(set, sig, networkID, dualVerifyTypedFirst)
+		if !ok {
+			continue
 		}
-
-		addr := crypto.PubkeyToAddress(*pubkey)
-		//if _, ok := roots[addr]; !ok {
-		//	continue
-		//}
-
 		signers[addr] = sig
 	}
 

@@ -34,6 +34,10 @@ func (s *exclusionSet) String() string {
 }
 
 func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error) {
+	return newExclusionSetForNetwork(list, 0)
+}
+
+func newExclusionSetForNetwork(list *common.ValidatorExclusionList, networkID uint64) (*exclusionSet, error) {
 	if list == nil {
 		return nil, errInvalidExclusionList
 	}
@@ -97,12 +101,11 @@ func newExclusionSet(list *common.ValidatorExclusionList) (*exclusionSet, error)
 
 	signers := make(map[common.Address][]byte)
 	for _, sig := range list.Signatures {
-		signer, err := crypto.SigToPub(set.hash.Bytes(), sig)
-		if err != nil {
-			return nil, errInvalidSignature
+		addr, ok := verifyExclusionListSignature(set, sig, networkID, dualVerifyTypedFirst)
+		if !ok {
+			continue
 		}
-
-		signers[crypto.PubkeyToAddress(*signer)] = sig
+		signers[addr] = sig
 	}
 
 	set.signers = signers

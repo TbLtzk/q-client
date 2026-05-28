@@ -81,31 +81,7 @@ func (a *GovernancePublicAPI) SubmitSignedRootList(list common.RootList) (common
 }
 
 func (a *GovernancePublicAPI) SubmitTypedSignedRootList(list common.RootList) (common.Hash, error) {
-	if err := a.gov.RootManager.validatePublicSubmissionAllowed(list); err != nil {
-		return common.Hash{}, err
-	}
-
-	set, err := a.gov.RootManager.newTypedSignedRootSet(list)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	rm := a.gov.RootManager
-	before, err := rm.snapshotRootListImport(set)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	if err := a.gov.handler.importRootSet("", set, false); err != nil {
-		return common.Hash{}, err
-	}
-
-	after := rm.rootListImportSnapshot(set.hash)
-	if !after.changedFrom(before) {
-		return common.Hash{}, errors.New("typed signed root list was not accepted")
-	}
-
-	return set.hash, nil
+	return a.gov.handler.ProcessTypedSignedRootList(list)
 }
 
 func (a *GovernanceAPI) ProposeRootListUpdate(list common.RootList, force bool) (common.Hash, error) {
@@ -220,31 +196,7 @@ func (a *GovernancePublicAPI) SubmitSignedExclusionList(list common.ValidatorExc
 }
 
 func (a *GovernancePublicAPI) SubmitTypedSignedExclusionList(list common.ValidatorExclusionList) (common.Hash, error) {
-	if err := a.gov.RootManager.validatePublicSubmissionAllowed(list); err != nil {
-		return common.Hash{}, err
-	}
-
-	set, err := a.gov.RootManager.newTypedSignedExclusionSet(list)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	rm := a.gov.RootManager
-	before, err := rm.snapshotExclusionListImport(set)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	if err := a.gov.handler.importExclusionSet("", set, false); err != nil {
-		return common.Hash{}, err
-	}
-
-	after := rm.exclusionListImportSnapshot(set.hash)
-	if !after.changedFrom(before) {
-		return common.Hash{}, errors.New("typed signed exclusion list was not accepted")
-	}
-
-	return set.hash, nil
+	return a.gov.handler.ProcessTypedSignedExclusionList(list)
 }
 
 // SigningPayloadRootListV1 returns the canonical QGOV v1 typed signing payload for a root-list proposal.

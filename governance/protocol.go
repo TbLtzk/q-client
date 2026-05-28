@@ -9,13 +9,17 @@ import (
 const (
 	protocolName = "qgov" // protocolName is the official short name of the protocol used during capability negotiation.
 	qgov5        = 5      // Exclusion sets new algorithm
+	qgov6        = 6      // Typed attestation relay (Phase 1); list messages unchanged on wire
 )
 
 // ProtocolVersions are the supported versions of the gov protocol (first is primary).
-var ProtocolVersions = []uint{qgov5}
+var ProtocolVersions = []uint{qgov6, qgov5}
 
 // protocolLengths are the number of implemented message corresponding to different protocol versions.
-var protocolLengths = map[uint]uint64{qgov5: 7}
+var protocolLengths = map[uint]uint64{
+	qgov5: 7,
+	qgov6: 9,
+}
 
 // maximum possible number of root nodes
 const maxNRootNodes = 101
@@ -45,6 +49,8 @@ const (
 	ConstitutionFileRequestMsg = 0x04
 	ConstitutionFilesMsg       = 0x05
 	KnownConstitutionFilesMsg  = 0x06
+	TypedRootListRelayMsg      = 0x07 // qgov/6 only
+	TypedExclusionListRelayMsg = 0x08 // qgov/6 only
 )
 
 type statusMsgBody struct {

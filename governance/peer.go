@@ -138,7 +138,7 @@ func (p *peer) handshake(msg statusMsgBody, rm *RootManager) (*peerStatus, error
 		return nil, errInvalidNetworkId
 	}
 
-	currentRootSet, err := newRootSet(&status.CurrentRootList)
+	currentRootSet, err := newRootSetForNetwork(&status.CurrentRootList, rm.networkId)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid current root list")
 	}
@@ -148,7 +148,7 @@ func (p *peer) handshake(msg statusMsgBody, rm *RootManager) (*peerStatus, error
 	}
 	currentRootSet.updateAliases(rm.getAliasesOfRoots(currentRootSet.rootAddresses))
 
-	desiredRootSet, err := newRootSet(&status.DesiredRootList)
+	desiredRootSet, err := newRootSetForNetwork(&status.DesiredRootList, rm.networkId)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid desired root list")
 	}
@@ -156,7 +156,7 @@ func (p *peer) handshake(msg statusMsgBody, rm *RootManager) (*peerStatus, error
 		desiredRootSet.updateAliases(rm.getAliasesOfRoots(desiredRootSet.rootAddresses))
 	}
 
-	proposedRootSet, err := newRootSet(&status.ProposedRootList)
+	proposedRootSet, err := newRootSetForNetwork(&status.ProposedRootList, rm.networkId)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid proposed root list")
 	}
@@ -166,17 +166,17 @@ func (p *peer) handshake(msg statusMsgBody, rm *RootManager) (*peerStatus, error
 
 	// Validators
 
-	currentExSet, err := newExclusionSet(&status.CurrentExclusionList)
+	currentExSet, err := newExclusionSetForNetwork(&status.CurrentExclusionList, rm.networkId)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid exclusion list")
 	}
 
-	desiredExSet, err := newExclusionSet(&status.DesiredExclusionList)
+	desiredExSet, err := newExclusionSetForNetwork(&status.DesiredExclusionList, rm.networkId)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid desired exclusion list")
 	}
 
-	proposedExSet, err := newExclusionSet(&status.ProposedExclusionList)
+	proposedExSet, err := newExclusionSetForNetwork(&status.ProposedExclusionList, rm.networkId)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid proposed exclusion list")
 	}
@@ -312,4 +312,12 @@ func (p *peer) sendKnownConstitutionFiles(files *common.KnownConstitutionFilesMe
 
 func (p *peer) sendConstitutionFiles(files *common.ConstitutionFilesResponse) error {
 	return p2p.Send(p.rw, ConstitutionFilesMsg, files)
+}
+
+func (p *peer) sendTypedRootListRelay(list *common.RootList) error {
+	return p2p.Send(p.rw, TypedRootListRelayMsg, list)
+}
+
+func (p *peer) sendTypedExclusionListRelay(list *common.ValidatorExclusionList) error {
+	return p2p.Send(p.rw, TypedExclusionListRelayMsg, list)
 }
