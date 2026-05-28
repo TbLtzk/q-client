@@ -906,3 +906,71 @@ func TestQuarantineExclusionSet(t *testing.T) {
 	}
 	assert.Lenf(t, qSets, 0, "Quarantine must be empty after exclusion set is accepted")
 }
+
+func TestProposedExclusionSetQuarantineUsesDiff(t *testing.T) {
+	earliestBlock := uint64(2)
+
+	rm := newTestRootManager(t, true, false)
+	bc := newTestChain(t, rm.RootManager)
+	defer bc.Stop()
+	rm.InitBlockChain(bc)
+	rm.setMaxRewindLimit(100)
+
+	t.Run("timestamp only update is not quarantined", func(t *testing.T) {
+		list := rm.activeExSet.copy().makeList()
+		list.Timestamp++
+		list.Signatures = nil
+		list.Hash = common.Hash{}
+
+		set, err := newExclusionSet(&list)
+		if err != nil {
+			t.Fatalf("Can't create timestamp-only exclusion set: %v", err)
+		}
+		rm.signExclusionSet(set)
+		rm.proposedExSet = set
+
+		rm.quarantineProposedExclusionSetIfNeeded()
+
+		if rm.proposedExSet == nil || rm.proposedExSet.hash != set.hash {
+			t.Fatalf("timestamp-only proposed exclusion set was quarantined or removed")
+		}
+		qSets, err := rm.db.getExclusionSetsFromQuarantine()
+		if err != nil {
+			t.Fatalf("Failed to get exclusion sets from quarantine: %v", err)
+		}
+		if len(qSets) != 0 {
+			t.Fatalf("timestamp-only proposed exclusion set was quarantined: %v", qSets)
+		}
+	})
+
+	t.Run("changed range is quarantined", func(t *testing.T) {
+		list := rm.activeExSet.copy().makeList()
+		list.Timestamp++
+		list.Signatures = nil
+		list.Hash = common.Hash{}
+		list.Validators = append(list.Validators, common.ExcludedValidator{
+			Address: common.HexToAddress("0x2B01035cDa82a02fb135EBd68676Fa17FdcAD365"),
+			Block:   earliestBlock,
+		})
+
+		set, err := newExclusionSet(&list)
+		if err != nil {
+			t.Fatalf("Can't create changed exclusion set: %v", err)
+		}
+		rm.signExclusionSet(set)
+		rm.proposedExSet = set
+
+		rm.quarantineProposedExclusionSetIfNeeded()
+
+		if rm.proposedExSet != nil {
+			t.Fatalf("changed proposed exclusion set was not removed after quarantine")
+		}
+		qSets, err := rm.db.getExclusionSetsFromQuarantine()
+		if err != nil {
+			t.Fatalf("Failed to get exclusion sets from quarantine: %v", err)
+		}
+		if len(qSets) != 1 || qSets[0].hash != set.hash {
+			t.Fatalf("changed proposed exclusion set was not quarantined, got %v", qSets)
+		}
+	})
+}

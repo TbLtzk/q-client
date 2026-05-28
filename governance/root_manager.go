@@ -1276,19 +1276,45 @@ func (s *RootManager) startQuarantineRoutine() {
 		}
 
 		// send proposed to quarantine if meets criteria
-		if s.proposedExSet != nil {
-			if s.isExclusionSetMeetsQuarantineCriteria(s.proposedExSet.earliestBlock()) {
-				if err := s.initiateExclusionSetQuarantine(s.proposedExSet); err != nil {
-					log.Error("Failed to quarantine exclusion set", "err", err)
-				}
-				s.proposedExSet = nil
-				s.db.deleteProposedExclusionSet()
-			}
-		}
+		s.quarantineProposedExclusionSetIfNeeded()
 
 		// notify if there's anything in quarantine
 		s.notifyQuarantine()
 	}
+}
+
+func (s *RootManager) quarantineProposedExclusionSetIfNeeded() {
+	s.exLock.Lock()
+	defer s.exLock.Unlock()
+
+	if s.proposedExSet == nil {
+		return
+	}
+
+	earliestBlock, ok := s.proposedExclusionSetRewindBlock()
+	if !ok || !s.isExclusionSetMeetsQuarantineCriteria(earliestBlock) {
+		return
+	}
+
+	if err := s.initiateExclusionSetQuarantine(s.proposedExSet); err != nil {
+		log.Error("Failed to quarantine exclusion set", "err", err)
+	}
+	s.proposedExSet = nil
+	s.db.deleteProposedExclusionSet()
+}
+
+// proposedExclusionSetRewindBlock returns the earliest block that would need
+// revalidation if the proposed set replaced the active set.
+func (s *RootManager) proposedExclusionSetRewindBlock() (uint64, bool) {
+	if s.activeExSet == nil {
+		return s.proposedExSet.earliestBlock(), true
+	}
+
+	diff := s.proposedExSet.addrToBlockRangeExclusiveDiff(s.activeExSet)
+	if len(diff) == 0 {
+		return 0, false
+	}
+	return s.proposedExSet.earliestBlockFromDiff(s.activeExSet), true
 }
 
 func (s *RootManager) stop() {
