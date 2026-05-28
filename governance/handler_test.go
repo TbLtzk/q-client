@@ -498,18 +498,21 @@ func TestSubmitSignedRootList(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid signature is rejected",
+			name: "invalid signature is skipped on dual-verify lists",
 			list: func(t *testing.T, rm *TestRootManager) common.RootList {
-				list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 1, true)
-				list.Signatures[0] = randBytes(crypto.SignatureLength)
+				list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 2, true)
+				list.Signatures[1] = randBytes(crypto.SignatureLength)
 				return list
 			},
 			assertAfterSubmit: func(t *testing.T, rm *TestRootManager, list common.RootList, hash common.Hash, err error) {
-				if !errors.Is(err, errInvalidSignature) {
-					t.Fatalf("expected invalid signature, got hash %s err %v", hash.Hex(), err)
+				if err != nil {
+					t.Fatalf("expected no import error when one invalid sig is skipped, got %v", err)
 				}
-				if rm.proposed != nil {
-					t.Fatalf("invalid signature changed proposed state: %v", rm.proposed)
+				if hash != list.Hash {
+					t.Fatalf("expected hash %s, got %s", list.Hash.Hex(), hash.Hex())
+				}
+				if rm.proposed == nil || rm.proposed.hash != list.Hash {
+					t.Fatalf("expected proposed root list %s, got %v", list.Hash.Hex(), rm.proposed)
 				}
 			},
 		},
@@ -789,7 +792,7 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "valid typed signature from active alias is accepted",
+			name: "valid typed signature from active alias is accepted without quorum merge",
 			list: func(t *testing.T, rm *TestRootManager) common.RootList {
 				return makeTypedRootList(t, rm, true)
 			},
@@ -853,8 +856,9 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 			if hash != list.Hash {
 				t.Fatalf("expected hash %s, got %s", list.Hash.Hex(), hash.Hex())
 			}
-			if rm.proposed == nil || rm.proposed.hash != list.Hash {
-				t.Fatalf("expected proposed root list %s, got %v", list.Hash.Hex(), rm.proposed)
+			// Phase 1 (#25): typed attestations do not merge into quorum state on non-root nodes.
+			if rm.proposed != nil && rm.proposed.hash == list.Hash {
+				t.Fatalf("typed root list must not merge into proposed in phase 1, got %v", rm.proposed)
 			}
 		})
 	}
@@ -958,7 +962,7 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "valid typed signature from active alias is accepted",
+			name: "valid typed signature from active alias is accepted without quorum merge",
 			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
 				return makeTypedExclusionList(t, rm, true)
 			},
@@ -1029,8 +1033,9 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 			if hash != list.Hash {
 				t.Fatalf("expected hash %s, got %s", list.Hash.Hex(), hash.Hex())
 			}
-			if rm.proposedExSet == nil || rm.proposedExSet.hash != list.Hash {
-				t.Fatalf("expected proposed exclusion list %s, got %v", list.Hash.Hex(), rm.proposedExSet)
+			// Phase 1 (#25): typed attestations do not merge into quorum state on non-root nodes.
+			if rm.proposedExSet != nil && rm.proposedExSet.hash == list.Hash {
+				t.Fatalf("typed exclusion list must not merge into proposed in phase 1, got %v", rm.proposedExSet)
 			}
 		})
 	}

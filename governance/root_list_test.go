@@ -78,8 +78,22 @@ func Test_newRootSet(t *testing.T) {
 					},
 				},
 			},
-			want:    nil,
-			wantErr: true,
+			want: &rootSet{
+				timestamp: 1680255617,
+				hash:      common.HexToHash("0xf68af076b760d81d3d2a5071817c7def517a0d60f7e5bec5c65daf6e2dcab855"),
+				rootAddresses: []common.Address{
+					common.HexToAddress("0xEB3B90FD1862B10D14D71881B32D80E530AD394B"),
+					common.HexToAddress("0x01FDCC35858C76C6ECD459DA0174116FB5A4BFF7"),
+					common.HexToAddress("0XA94F5374FCE5EDBC8E2A8697C15331677E6EBF0B"),
+				},
+				aliases: nil,
+				roots: map[common.Address]struct{}{
+					common.HexToAddress("0xEB3B90FD1862B10D14D71881B32D80E530AD394B"): {},
+					common.HexToAddress("0x01FDCC35858C76C6ECD459DA0174116FB5A4BFF7"): {},
+					common.HexToAddress("0XA94F5374FCE5EDBC8E2A8697C15331677E6EBF0B"): {},
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

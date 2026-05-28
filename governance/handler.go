@@ -44,6 +44,10 @@ type handler struct {
 
 	failureCounts map[string]map[uint64]uint64 // peer id => msg code => failures count
 	maxFailures   uint64
+
+	typedRelayDedup       *typedRelayDedup
+	typedRootRelayCh      chan *typedRootRelayEvent
+	typedExclusionRelayCh chan *typedExclusionRelayEvent
 }
 
 func newHandler(rootManager *RootManager, cm *ConstitutionManager) *handler {
@@ -80,6 +84,10 @@ func newHandler(rootManager *RootManager, cm *ConstitutionManager) *handler {
 
 		failureCounts: make(map[string]map[uint64]uint64),
 		maxFailures:   rootManager.ApprovalMaxFailures,
+
+		typedRelayDedup:       newTypedRelayDedup(),
+		typedRootRelayCh:      make(chan *typedRootRelayEvent),
+		typedExclusionRelayCh: make(chan *typedExclusionRelayEvent),
 	}
 }
 
@@ -92,6 +100,9 @@ func (h *handler) run() {
 
 	go h.listenForRNApprovals()
 	go h.broadcastApprovals()
+
+	go h.broadcastTypedRootRelays()
+	go h.broadcastTypedExclusionRelays()
 }
 
 type rootSetEvent struct {
@@ -681,6 +692,10 @@ func (h *handler) handleMsg(p *peer) error {
 		return h.handleConstitutionFilesMsg(p, msg)
 	case KnownConstitutionFilesMsg:
 		return h.handleKnownFilesMsg(p, msg)
+	case TypedRootListRelayMsg:
+		return h.handleTypedRootListRelay(p, msg)
+	case TypedExclusionListRelayMsg:
+		return h.handleTypedExclusionListRelay(p, msg)
 	default:
 		return errUnknownMsgCode
 	}
@@ -864,7 +879,7 @@ func (h *handler) importRootList(list *common.RootList) error {
 }
 
 func (h *handler) importRootListFrom(fromID string, list *common.RootList, signLocal bool) error {
-	received, err := newRootSet(list)
+	received, err := newRootSetForNetwork(list, h.rootManager.networkId)
 	if err != nil {
 		return err
 	}
@@ -981,7 +996,7 @@ func (h *handler) importExclusionList(list *common.ValidatorExclusionList) error
 }
 
 func (h *handler) importExclusionListFrom(fromID string, list *common.ValidatorExclusionList, signLocal bool) error {
-	received, err := newExclusionSet(list)
+	received, err := newExclusionSetForNetwork(list, h.rootManager.networkId)
 	if err != nil {
 		return err
 	}
