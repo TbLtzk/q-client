@@ -1110,6 +1110,7 @@ func (h *handler) importExclusionSet(fromID string, received *exclusionSet, sign
 
 		rm.proposedExSet = received
 		rm.db.saveProposedExclusionSet(rm.proposedExSet)
+		h.exEventCh <- &exclusionSetEvent{fromID: fromID, set: received}
 
 		log.Warn("Received a new proposed exclusion list", "hash", received.hash.Hex(), "timestamp", received.timestamp)
 	}
