@@ -27,14 +27,14 @@ type GovernanceProposalThreshold struct {
 
 // GovernanceProposalStatus is the normalized status of a root-list or exclusion-list proposal hash.
 type GovernanceProposalStatus struct {
-	ProposalType   string                        `json:"proposalType"`
-	Phase          string                        `json:"phase"`
-	Hash           common.Hash                   `json:"hash"`
-	Timestamp      uint64                        `json:"timestamp"`
-	Signers        []common.Address              `json:"signers"`
-	Threshold      GovernanceProposalThreshold   `json:"threshold"`
-	NeedsSignature bool                          `json:"needsSignature"`
-	QueriedSigner  common.Address                `json:"queriedSigner"`
+	ProposalType   string                      `json:"proposalType"`
+	Phase          string                      `json:"phase"`
+	Hash           common.Hash                 `json:"hash"`
+	Timestamp      uint64                      `json:"timestamp"`
+	Signers        []common.Address            `json:"signers"`
+	Threshold      GovernanceProposalThreshold `json:"threshold"`
+	NeedsSignature bool                        `json:"needsSignature"`
+	QueriedSigner  common.Address              `json:"queriedSigner"`
 }
 
 func (a *GovernancePublicAPI) GetGovernanceProposalStatus(proposalType string, hash common.Hash, signer common.Address) (GovernanceProposalStatus, error) {
