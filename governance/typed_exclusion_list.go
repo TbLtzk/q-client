@@ -36,8 +36,8 @@ func (s *RootManager) newTypedSignedExclusionSet(list common.ValidatorExclusionL
 			return nil, errInvalidSignature
 		}
 
-		if len(active.knownSigners(map[common.Address][]byte{signer: signature})) == 0 {
-			return nil, errors.New("typed exclusion list contains unknown signer")
+		if err := validateTypedActiveSigner(active, signer, "exclusion list"); err != nil {
+			return nil, err
 		}
 		signers[signer] = signature
 	}

@@ -876,7 +876,7 @@ func (s *RootManager) getActiveRootSet(lock bool) *rootSet {
 		defer s.rootLock.Unlock()
 	}
 
-	if s.active != nil {
+	if s.active != nil && s.isAthosReached() {
 		s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
 	}
 
@@ -889,7 +889,7 @@ func (s *RootManager) getDesiredRootSet(lock bool) *rootSet {
 		defer s.rootLock.Unlock()
 	}
 
-	if s.desired != nil {
+	if s.desired != nil && s.isAthosReached() {
 		s.desired.aliases = s.getAliasesOfRoots(s.desired.rootAddresses)
 	}
 
@@ -902,7 +902,7 @@ func (s *RootManager) getProposedRootSet(lock bool) *rootSet {
 		defer s.rootLock.Unlock()
 	}
 
-	if s.proposed != nil {
+	if s.proposed != nil && s.isAthosReached() {
 		s.proposed.aliases = s.getAliasesOfRoots(s.proposed.rootAddresses)
 	}
 
