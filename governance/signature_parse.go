@@ -21,16 +21,7 @@ func verifyRootListSignature(set *rootSet, sig []byte, networkID uint64, typedFi
 		return crypto.PubkeyToAddress(*pubkey), true
 	}
 	tryTyped := func() (common.Address, bool) {
-		payloadHash := common.NewRootListSigningPayloadV1(networkID, common.RootList{
-			Timestamp: set.timestamp,
-			Nodes:     set.rootAddresses,
-			Hash:      set.hash,
-		}).Hash()
-		pubkey, err := crypto.SigToPub(payloadHash.Bytes(), sig)
-		if err != nil {
-			return common.Address{}, false
-		}
-		return crypto.PubkeyToAddress(*pubkey), true
+		return verifyRootListEIP712Signature(networkID, set, sig)
 	}
 
 	if typedFirst {
@@ -58,14 +49,7 @@ func verifyExclusionListSignature(set *exclusionSet, sig []byte, networkID uint6
 		return crypto.PubkeyToAddress(*pubkey), true
 	}
 	tryTyped := func() (common.Address, bool) {
-		unsigned := set.makeList()
-		unsigned.Signatures = nil
-		payloadHash := common.NewExclusionListSigningPayloadV1(networkID, unsigned).Hash()
-		pubkey, err := crypto.SigToPub(payloadHash.Bytes(), sig)
-		if err != nil {
-			return common.Address{}, false
-		}
-		return crypto.PubkeyToAddress(*pubkey), true
+		return verifyExclusionListEIP712Signature(networkID, set, sig)
 	}
 
 	if typedFirst {

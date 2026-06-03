@@ -720,19 +720,13 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 		unsigned := list
 		unsigned.Signatures = nil
 
-		payloadHash := common.NewRootListSigningPayloadV1(rm.networkId, unsigned).Hash()
-
 		var key *ecdsa.PrivateKey
 		if signByAlias {
 			key = rm.aliasPrivateKeys[0]
 		} else {
 			key = rm.rootPrivateKeys[0]
 		}
-		signature, err := crypto.Sign(payloadHash.Bytes(), key)
-		if err != nil {
-			t.Fatalf("failed to sign typed root payload: %v", err)
-		}
-		list.Signatures = [][]byte{signature}
+		list.Signatures = [][]byte{signRootListEIP712(t, rm.networkId, list, key)}
 		return list
 	}
 
@@ -743,8 +737,15 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 		unsigned := list
 		unsigned.Signatures = nil
 
-		payloadHash := common.NewRootListSigningPayloadV1(chainID, unsigned).Hash()
-		signature, err := crypto.Sign(payloadHash.Bytes(), rm.aliasPrivateKeys[0])
+		set, err := newRootSet(&unsigned)
+		if err != nil || set == nil {
+			t.Fatalf("newRootSet: %v", err)
+		}
+		digest, err := rootListEIP712Digest(chainID, set.timestamp, set.hash, set.rootAddresses)
+		if err != nil {
+			t.Fatalf("rootListEIP712Digest: %v", err)
+		}
+		signature, err := crypto.Sign(digest.Bytes(), rm.aliasPrivateKeys[0])
 		if err != nil {
 			t.Fatalf("failed to sign typed root payload: %v", err)
 		}
@@ -758,14 +759,15 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 0, true)
 		unsigned := list
 		unsigned.Signatures = nil
-		unsigned.Timestamp++
+		tampered := unsigned
+		tampered.Timestamp++
 
-		payloadHash := common.NewRootListSigningPayloadV1(rm.networkId, unsigned).Hash()
-		signature, err := crypto.Sign(payloadHash.Bytes(), rm.aliasPrivateKeys[0])
-		if err != nil {
-			t.Fatalf("failed to sign typed root payload: %v", err)
+		set, err := newRootSet(&list)
+		if err != nil || set == nil {
+			t.Fatalf("newRootSet: %v", err)
 		}
-		list.Signatures = [][]byte{signature}
+		td := rootListEIP712TypedData(rm.networkId, tampered.Timestamp, set.hash, set.rootAddresses)
+		list.Signatures = [][]byte{signRootListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])}
 		return list
 	}
 
@@ -776,13 +778,13 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 		unsigned := list
 		unsigned.Signatures = nil
 
-		payload := common.NewRootListSigningPayloadV1(rm.networkId, unsigned)
-		payload.Metadata.ProposalType = common.GovernanceProposalTypeExclusionList
-		signature, err := crypto.Sign(payload.Hash().Bytes(), rm.aliasPrivateKeys[0])
-		if err != nil {
-			t.Fatalf("failed to sign typed root payload: %v", err)
+		set, err := newRootSet(&unsigned)
+		if err != nil || set == nil {
+			t.Fatalf("newRootSet: %v", err)
 		}
-		list.Signatures = [][]byte{signature}
+		td := rootListEIP712TypedData(rm.networkId, set.timestamp, set.hash, set.rootAddresses)
+		td.Message["proposalType"] = common.GovernanceProposalTypeExclusionList
+		list.Signatures = [][]byte{signRootListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])}
 		return list
 	}
 
@@ -872,19 +874,13 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 		unsigned := list
 		unsigned.Signatures = nil
 
-		payloadHash := common.NewExclusionListSigningPayloadV1(rm.networkId, unsigned).Hash()
-
 		var key *ecdsa.PrivateKey
 		if signByAlias {
 			key = rm.aliasPrivateKeys[0]
 		} else {
 			key = rm.rootPrivateKeys[0]
 		}
-		signature, err := crypto.Sign(payloadHash.Bytes(), key)
-		if err != nil {
-			t.Fatalf("failed to sign typed exclusion payload: %v", err)
-		}
-		list.Signatures = [][]byte{signature}
+		list.Signatures = [][]byte{signExclusionListEIP712(t, rm.networkId, list, key)}
 		return list
 	}
 
@@ -895,8 +891,18 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 		unsigned := list
 		unsigned.Signatures = nil
 
-		payloadHash := common.NewExclusionListSigningPayloadV1(chainID, unsigned).Hash()
-		signature, err := crypto.Sign(payloadHash.Bytes(), rm.aliasPrivateKeys[0])
+		set, err := newExclusionSet(&unsigned)
+		if err != nil || set == nil {
+			t.Fatalf("newExclusionSet: %v", err)
+		}
+		source := set.makeList()
+		source.Signatures = nil
+		validators := canonicalExcludedValidatorsForEIP712(source.Validators)
+		digest, err := exclusionListEIP712Digest(chainID, set.timestamp, set.hash, validators)
+		if err != nil {
+			t.Fatalf("exclusionListEIP712Digest: %v", err)
+		}
+		signature, err := crypto.Sign(digest.Bytes(), rm.aliasPrivateKeys[0])
 		if err != nil {
 			t.Fatalf("failed to sign typed exclusion payload: %v", err)
 		}
@@ -910,14 +916,18 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
 		unsigned := list
 		unsigned.Signatures = nil
-		unsigned.Timestamp++
+		tampered := unsigned
+		tampered.Timestamp++
 
-		payloadHash := common.NewExclusionListSigningPayloadV1(rm.networkId, unsigned).Hash()
-		signature, err := crypto.Sign(payloadHash.Bytes(), rm.aliasPrivateKeys[0])
-		if err != nil {
-			t.Fatalf("failed to sign typed exclusion payload: %v", err)
+		set, err := newExclusionSet(&list)
+		if err != nil || set == nil {
+			t.Fatalf("newExclusionSet: %v", err)
 		}
-		list.Signatures = [][]byte{signature}
+		source := set.makeList()
+		source.Signatures = nil
+		validators := canonicalExcludedValidatorsForEIP712(source.Validators)
+		td := exclusionListEIP712TypedData(rm.networkId, tampered.Timestamp, set.hash, validators)
+		list.Signatures = [][]byte{signExclusionListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])}
 		return list
 	}
 
@@ -928,13 +938,16 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 		unsigned := list
 		unsigned.Signatures = nil
 
-		payload := common.NewExclusionListSigningPayloadV1(rm.networkId, unsigned)
-		payload.Metadata.ProposalType = common.GovernanceProposalTypeRootList
-		signature, err := crypto.Sign(payload.Hash().Bytes(), rm.aliasPrivateKeys[0])
-		if err != nil {
-			t.Fatalf("failed to sign typed exclusion payload: %v", err)
+		set, err := newExclusionSet(&unsigned)
+		if err != nil || set == nil {
+			t.Fatalf("newExclusionSet: %v", err)
 		}
-		list.Signatures = [][]byte{signature}
+		source := set.makeList()
+		source.Signatures = nil
+		validators := canonicalExcludedValidatorsForEIP712(source.Validators)
+		td := exclusionListEIP712TypedData(rm.networkId, set.timestamp, set.hash, validators)
+		td.Message["proposalType"] = common.GovernanceProposalTypeRootList
+		list.Signatures = [][]byte{signExclusionListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])}
 		return list
 	}
 
@@ -944,15 +957,18 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
 		unsigned := list
 		unsigned.Signatures = nil
-		unsigned.Validators = append([]common.ExcludedValidator(nil), list.Validators...)
-		unsigned.Validators[0].EndBlock++
+		tampered := append([]common.ExcludedValidator(nil), list.Validators...)
+		tampered[0].EndBlock++
 
-		payloadHash := common.NewExclusionListSigningPayloadV1(rm.networkId, unsigned).Hash()
-		signature, err := crypto.Sign(payloadHash.Bytes(), rm.aliasPrivateKeys[0])
-		if err != nil {
-			t.Fatalf("failed to sign typed exclusion payload: %v", err)
+		set, err := newExclusionSet(&list)
+		if err != nil || set == nil {
+			t.Fatalf("newExclusionSet: %v", err)
 		}
-		list.Signatures = [][]byte{signature}
+		source := set.makeList()
+		source.Signatures = nil
+		validators := canonicalExcludedValidatorsForEIP712(tampered)
+		td := exclusionListEIP712TypedData(rm.networkId, set.timestamp, set.hash, validators)
+		list.Signatures = [][]byte{signExclusionListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])}
 		return list
 	}
 
@@ -1042,7 +1058,7 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 }
 
 func TestGovPubSigningPayloadV1(t *testing.T) {
-	t.Run("root list payload matches canonical builder and typed submit", func(t *testing.T) {
+	t.Run("root list payload is EIP-712 and typed submit accepts wallet digest", func(t *testing.T) {
 		rm := newTestRootManager(t, false, true)
 		gov, err := New(rm.RootManager, tmpDirName(t))
 		if err != nil {
@@ -1054,36 +1070,32 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		api := NewGovernancePublicAPI(gov)
 
 		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 0, true)
-		unsigned := list
-		unsigned.Signatures = nil
-		set, err := newRootSet(&unsigned)
-		if err != nil {
-			t.Fatalf("newRootSet: %v", err)
-		}
-		want := common.NewRootListSigningPayloadV1(rm.networkId, common.RootList{
-			Timestamp: set.timestamp,
-			Nodes:     set.rootAddresses,
-			Hash:      set.hash,
-		})
 		got, err := api.SigningPayloadRootListV1(list)
 		if err != nil {
 			t.Fatalf("SigningPayloadRootListV1: %v", err)
 		}
-		if !reflect.DeepEqual(got, want) {
-			t.Fatalf("payload mismatch\n got: %+v\nwant: %+v", got, want)
+		if got.PrimaryType != common.GovernanceEIP712RootListTypeName {
+			t.Fatalf("primaryType = %s, want %s", got.PrimaryType, common.GovernanceEIP712RootListTypeName)
+		}
+		if got.Message["proposalType"] != common.GovernanceProposalTypeRootList {
+			t.Fatalf("proposalType = %v", got.Message["proposalType"])
 		}
 
-		sig, err := crypto.Sign(got.Hash().Bytes(), rm.aliasPrivateKeys[0])
+		bundle, err := api.SigningPayloadRootListV1WithDigest(list)
 		if err != nil {
-			t.Fatalf("sign: %v", err)
+			t.Fatalf("SigningPayloadRootListV1WithDigest: %v", err)
 		}
-		list.Signatures = [][]byte{sig}
+		if !reflect.DeepEqual(bundle.TypedData, got) {
+			t.Fatalf("WithDigest typedData mismatch")
+		}
+
+		list.Signatures = [][]byte{signRootListEIP712(t, rm.networkId, list, rm.aliasPrivateKeys[0])}
 		if _, err := api.SubmitTypedSignedRootList(list); err != nil {
-			t.Fatalf("SubmitTypedSignedRootList after payload digest: %v", err)
+			t.Fatalf("SubmitTypedSignedRootList after EIP-712 digest: %v", err)
 		}
 	})
 
-	t.Run("root list WithDigest matches plain payload and digest equals Hash", func(t *testing.T) {
+	t.Run("root list WithDigest equals TypedDataAndHash", func(t *testing.T) {
 		rm := newTestRootManager(t, false, true)
 		gov, err := New(rm.RootManager, tmpDirName(t))
 		if err != nil {
@@ -1094,19 +1106,20 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		}
 		api := NewGovernancePublicAPI(gov)
 		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 5, 0, true)
-		plain, err := api.SigningPayloadRootListV1(list)
-		if err != nil {
-			t.Fatalf("SigningPayloadRootListV1: %v", err)
-		}
 		bundle, err := api.SigningPayloadRootListV1WithDigest(list)
 		if err != nil {
 			t.Fatalf("SigningPayloadRootListV1WithDigest: %v", err)
 		}
-		if !reflect.DeepEqual(bundle.Payload, plain) {
-			t.Fatalf("WithDigest payload mismatch: %+v vs %+v", bundle.Payload, plain)
+		td, err := fromPublicEIP712TypedData(bundle.TypedData)
+		if err != nil {
+			t.Fatalf("fromPublicEIP712TypedData: %v", err)
 		}
-		if bundle.Digest != plain.Hash() {
-			t.Fatalf("digest %s want payload.Hash %s", bundle.Digest.Hex(), plain.Hash().Hex())
+		wantDigest, err := eip712Digest(td)
+		if err != nil {
+			t.Fatalf("eip712Digest: %v", err)
+		}
+		if bundle.Digest != wantDigest {
+			t.Fatalf("digest %s want EIP-712 hash %s", bundle.Digest.Hex(), wantDigest.Hex())
 		}
 	})
 
@@ -1134,17 +1147,16 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		if err != nil {
 			t.Fatalf("newRootSet: %v", err)
 		}
-		want := common.NewRootListSigningPayloadV1(rm.networkId, common.RootList{
-			Timestamp: set.timestamp,
-			Nodes:     set.rootAddresses,
-			Hash:      set.hash,
-		})
-		got, err := api.SigningPayloadRootListV1(scrambled)
+		wantDigest, err := rootListEIP712Digest(rm.networkId, set.timestamp, set.hash, set.rootAddresses)
 		if err != nil {
-			t.Fatalf("SigningPayloadRootListV1: %v", err)
+			t.Fatalf("rootListEIP712Digest: %v", err)
 		}
-		if !reflect.DeepEqual(got, want) {
-			t.Fatalf("payload mismatch\n got: %+v\nwant: %+v", got, want)
+		bundle, err := api.SigningPayloadRootListV1WithDigest(scrambled)
+		if err != nil {
+			t.Fatalf("SigningPayloadRootListV1WithDigest: %v", err)
+		}
+		if bundle.Digest != wantDigest {
+			t.Fatalf("digest %s want %s", bundle.Digest.Hex(), wantDigest.Hex())
 		}
 	})
 
@@ -1174,17 +1186,21 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		}
 		source := set.makeList()
 		source.Signatures = nil
-		want := common.NewExclusionListSigningPayloadV1(rm.networkId, source)
-		got, err := api.SigningPayloadExclusionListV1(scrambled)
+		validators := canonicalExcludedValidatorsForEIP712(source.Validators)
+		wantDigest, err := exclusionListEIP712Digest(rm.networkId, set.timestamp, set.hash, validators)
 		if err != nil {
-			t.Fatalf("SigningPayloadExclusionListV1: %v", err)
+			t.Fatalf("exclusionListEIP712Digest: %v", err)
 		}
-		if !reflect.DeepEqual(got, want) {
-			t.Fatalf("payload mismatch\n got: %+v\nwant: %+v", got, want)
+		bundle, err := api.SigningPayloadExclusionListV1WithDigest(scrambled)
+		if err != nil {
+			t.Fatalf("SigningPayloadExclusionListV1WithDigest: %v", err)
+		}
+		if bundle.Digest != wantDigest {
+			t.Fatalf("digest %s want %s", bundle.Digest.Hex(), wantDigest.Hex())
 		}
 	})
 
-	t.Run("exclusion list payload matches canonical builder and typed submit", func(t *testing.T) {
+	t.Run("exclusion list payload is EIP-712 and typed submit accepts wallet digest", func(t *testing.T) {
 		rm := newTestRootManager(t, false, true)
 		gov, err := New(rm.RootManager, tmpDirName(t))
 		if err != nil {
@@ -1198,32 +1214,21 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
 		unsigned := list
 		unsigned.Signatures = nil
-		set, err := newExclusionSet(&unsigned)
-		if err != nil {
-			t.Fatalf("newExclusionSet: %v", err)
-		}
-		source := set.makeList()
-		source.Signatures = nil
-		want := common.NewExclusionListSigningPayloadV1(rm.networkId, source)
 		got, err := api.SigningPayloadExclusionListV1(list)
 		if err != nil {
 			t.Fatalf("SigningPayloadExclusionListV1: %v", err)
 		}
-		if !reflect.DeepEqual(got, want) {
-			t.Fatalf("payload mismatch\n got: %+v\nwant: %+v", got, want)
+		if got.PrimaryType != common.GovernanceEIP712ExclusionListTypeName {
+			t.Fatalf("primaryType = %s, want %s", got.PrimaryType, common.GovernanceEIP712ExclusionListTypeName)
 		}
 
-		sig, err := crypto.Sign(got.Hash().Bytes(), rm.aliasPrivateKeys[0])
-		if err != nil {
-			t.Fatalf("sign: %v", err)
-		}
-		list.Signatures = [][]byte{sig}
+		list.Signatures = [][]byte{signExclusionListEIP712(t, rm.networkId, list, rm.aliasPrivateKeys[0])}
 		if _, err := api.SubmitTypedSignedExclusionList(list); err != nil {
-			t.Fatalf("SubmitTypedSignedExclusionList after payload digest: %v", err)
+			t.Fatalf("SubmitTypedSignedExclusionList after EIP-712 digest: %v", err)
 		}
 	})
 
-	t.Run("exclusion list WithDigest matches plain payload and digest equals Hash", func(t *testing.T) {
+	t.Run("exclusion list WithDigest equals TypedDataAndHash", func(t *testing.T) {
 		rm := newTestRootManager(t, false, true)
 		gov, err := New(rm.RootManager, tmpDirName(t))
 		if err != nil {
@@ -1234,19 +1239,20 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		}
 		api := NewGovernancePublicAPI(gov)
 		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 7000)
-		plain, err := api.SigningPayloadExclusionListV1(list)
-		if err != nil {
-			t.Fatalf("SigningPayloadExclusionListV1: %v", err)
-		}
 		bundle, err := api.SigningPayloadExclusionListV1WithDigest(list)
 		if err != nil {
 			t.Fatalf("SigningPayloadExclusionListV1WithDigest: %v", err)
 		}
-		if !reflect.DeepEqual(bundle.Payload, plain) {
-			t.Fatalf("WithDigest payload mismatch: %+v vs %+v", bundle.Payload, plain)
+		td, err := fromPublicEIP712TypedData(bundle.TypedData)
+		if err != nil {
+			t.Fatalf("fromPublicEIP712TypedData: %v", err)
 		}
-		if bundle.Digest != plain.Hash() {
-			t.Fatalf("digest %s want payload.Hash %s", bundle.Digest.Hex(), plain.Hash().Hex())
+		wantDigest, err := eip712Digest(td)
+		if err != nil {
+			t.Fatalf("eip712Digest: %v", err)
+		}
+		if bundle.Digest != wantDigest {
+			t.Fatalf("digest %s want EIP-712 hash %s", bundle.Digest.Hex(), wantDigest.Hex())
 		}
 	})
 

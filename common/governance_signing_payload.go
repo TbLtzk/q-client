@@ -44,19 +44,6 @@ type ExclusionListSigningPayload struct {
 	Validators []ExcludedValidator       `json:"validators"`
 }
 
-// RootListSigningPayloadV1WithDigest bundles the canonical v1 typed payload and the 32-byte digest
-// that wallets sign (Payload.Hash()). JSON-RPC cannot return multiple values; use this struct for WithDigest APIs.
-type RootListSigningPayloadV1WithDigest struct {
-	Payload RootListSigningPayload `json:"payload"`
-	Digest  Hash                   `json:"digest"`
-}
-
-// ExclusionListSigningPayloadV1WithDigest is the exclusion-list counterpart of RootListSigningPayloadV1WithDigest.
-type ExclusionListSigningPayloadV1WithDigest struct {
-	Payload ExclusionListSigningPayload `json:"payload"`
-	Digest  Hash                        `json:"digest"`
-}
-
 func NewRootListSigningPayloadV1(chainID uint64, list RootList) RootListSigningPayload {
 	return RootListSigningPayload{
 		Metadata: GovernanceSigningMetadata{
@@ -85,10 +72,14 @@ func NewExclusionListSigningPayloadV1(chainID uint64, list ValidatorExclusionLis
 	}
 }
 
+// Hash returns the legacy custom canonical digest. Wallet signing and typed verification
+// use EIP-712 (see governance/eip712.go and govPub_signingPayload* RPCs).
 func (p RootListSigningPayload) Hash() Hash {
 	return keccakHash(p.canonicalBytes())
 }
 
+// Hash returns the legacy custom canonical digest. Wallet signing and typed verification
+// use EIP-712 (see governance/eip712.go and govPub_signingPayload* RPCs).
 func (p ExclusionListSigningPayload) Hash() Hash {
 	return keccakHash(p.canonicalBytes())
 }

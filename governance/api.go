@@ -199,85 +199,58 @@ func (a *GovernancePublicAPI) SubmitTypedSignedExclusionList(list common.Validat
 	return a.gov.handler.ProcessTypedSignedExclusionList(list)
 }
 
-// SigningPayloadRootListV1 returns the canonical QGOV v1 typed signing payload for a root-list proposal.
+// SigningPayloadRootListV1 returns EIP-712 typed data for eth_signTypedData_v4 (QGOV L0 root-list v1).
 // The node uses its configured network id as chainId (same as typed-signature verification).
 // Signatures on the input list are ignored. Proposal content must match list.Hash when hash is set.
-func (a *GovernancePublicAPI) SigningPayloadRootListV1(list common.RootList) (common.RootListSigningPayload, error) {
-	return a.rootListSigningPayloadV1(list)
+func (a *GovernancePublicAPI) SigningPayloadRootListV1(list common.RootList) (common.GovernanceEIP712TypedData, error) {
+	if err := a.gov.RootManager.validateGovPubProposalInputSize(list); err != nil {
+		return common.GovernanceEIP712TypedData{}, err
+	}
+	return buildRootListEIP712(a.gov.RootManager.networkId, list)
 }
 
-// SigningPayloadRootListV1WithDigest returns the same payload as SigningPayloadRootListV1 plus the signing digest (Payload.Hash()).
+// SigningPayloadRootListV1WithDigest returns EIP-712 typed data plus the wallet signing hash (TypedDataAndHash).
 func (a *GovernancePublicAPI) SigningPayloadRootListV1WithDigest(list common.RootList) (common.RootListSigningPayloadV1WithDigest, error) {
-	p, err := a.rootListSigningPayloadV1(list)
+	typedData, err := a.SigningPayloadRootListV1(list)
 	if err != nil {
 		return common.RootListSigningPayloadV1WithDigest{}, err
 	}
-	return common.RootListSigningPayloadV1WithDigest{Payload: p, Digest: p.Hash()}, nil
-}
-
-func (a *GovernancePublicAPI) rootListSigningPayloadV1(list common.RootList) (common.RootListSigningPayload, error) {
-	if err := a.gov.RootManager.validateGovPubProposalInputSize(list); err != nil {
-		return common.RootListSigningPayload{}, err
-	}
-
-	unsigned := list
-	unsigned.Signatures = nil
-
-	set, err := newRootSet(&unsigned)
+	td, err := fromPublicEIP712TypedData(typedData)
 	if err != nil {
-		return common.RootListSigningPayload{}, errors.Wrap(err, "invalid root list proposal")
+		return common.RootListSigningPayloadV1WithDigest{}, err
 	}
-	if set == nil {
-		return common.RootListSigningPayload{}, errors.New("root list has no nodes")
+	digest, err := eip712Digest(td)
+	if err != nil {
+		return common.RootListSigningPayloadV1WithDigest{}, err
 	}
-
-	rm := a.gov.RootManager
-	return common.NewRootListSigningPayloadV1(rm.networkId, common.RootList{
-		Timestamp: set.timestamp,
-		Nodes:     set.rootAddresses,
-		Hash:      set.hash,
-	}), nil
+	return common.RootListSigningPayloadV1WithDigest{TypedData: typedData, Digest: digest}, nil
 }
 
-// SigningPayloadExclusionListV1 returns the canonical QGOV v1 typed signing payload for an exclusion-list proposal.
+// SigningPayloadExclusionListV1 returns EIP-712 typed data for eth_signTypedData_v4 (QGOV L0 exclusion-list v1).
 // The node uses its configured network id as chainId (same as typed-signature verification).
 // Signatures on the input list are ignored. When list.Hash is non-zero it must match the computed proposal hash.
-func (a *GovernancePublicAPI) SigningPayloadExclusionListV1(list common.ValidatorExclusionList) (common.ExclusionListSigningPayload, error) {
-	return a.exclusionListSigningPayloadV1(list)
+func (a *GovernancePublicAPI) SigningPayloadExclusionListV1(list common.ValidatorExclusionList) (common.GovernanceEIP712TypedData, error) {
+	if err := a.gov.RootManager.validateGovPubProposalInputSize(list); err != nil {
+		return common.GovernanceEIP712TypedData{}, err
+	}
+	return buildExclusionListEIP712(a.gov.RootManager.networkId, list)
 }
 
-// SigningPayloadExclusionListV1WithDigest returns the same payload as SigningPayloadExclusionListV1 plus the signing digest (Payload.Hash()).
+// SigningPayloadExclusionListV1WithDigest returns EIP-712 typed data plus the wallet signing hash (TypedDataAndHash).
 func (a *GovernancePublicAPI) SigningPayloadExclusionListV1WithDigest(list common.ValidatorExclusionList) (common.ExclusionListSigningPayloadV1WithDigest, error) {
-	p, err := a.exclusionListSigningPayloadV1(list)
+	typedData, err := a.SigningPayloadExclusionListV1(list)
 	if err != nil {
 		return common.ExclusionListSigningPayloadV1WithDigest{}, err
 	}
-	return common.ExclusionListSigningPayloadV1WithDigest{Payload: p, Digest: p.Hash()}, nil
-}
-
-func (a *GovernancePublicAPI) exclusionListSigningPayloadV1(list common.ValidatorExclusionList) (common.ExclusionListSigningPayload, error) {
-	if err := a.gov.RootManager.validateGovPubProposalInputSize(list); err != nil {
-		return common.ExclusionListSigningPayload{}, err
-	}
-
-	unsigned := list
-	unsigned.Signatures = nil
-
-	set, err := newExclusionSet(&unsigned)
+	td, err := fromPublicEIP712TypedData(typedData)
 	if err != nil {
-		return common.ExclusionListSigningPayload{}, errors.Wrap(err, "invalid exclusion list proposal")
+		return common.ExclusionListSigningPayloadV1WithDigest{}, err
 	}
-	if set == nil {
-		return common.ExclusionListSigningPayload{}, errors.New("invalid exclusion list proposal")
+	digest, err := eip712Digest(td)
+	if err != nil {
+		return common.ExclusionListSigningPayloadV1WithDigest{}, err
 	}
-	if list.Hash != (common.Hash{}) && set.hash != list.Hash {
-		return common.ExclusionListSigningPayload{}, errHashMismatch
-	}
-
-	rm := a.gov.RootManager
-	source := set.makeList()
-	source.Signatures = nil
-	return common.NewExclusionListSigningPayloadV1(rm.networkId, source), nil
+	return common.ExclusionListSigningPayloadV1WithDigest{TypedData: typedData, Digest: digest}, nil
 }
 
 func (s *RootManager) validateGovPubProposalInputSize(list interface{}) error {

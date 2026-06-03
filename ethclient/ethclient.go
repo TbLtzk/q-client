@@ -810,14 +810,14 @@ func (ec *Client) SubmitSignedExclusionList(ctx context.Context, list common.Val
 	return res, err
 }
 
-func (ec *Client) SigningPayloadRootListV1(ctx context.Context, list common.RootList) (common.RootListSigningPayload, error) {
-	var res common.RootListSigningPayload
+func (ec *Client) SigningPayloadRootListV1(ctx context.Context, list common.RootList) (common.GovernanceEIP712TypedData, error) {
+	var res common.GovernanceEIP712TypedData
 	err := ec.c.CallContext(ctx, &res, "govPub_signingPayloadRootListV1", list)
 	return res, err
 }
 
-func (ec *Client) SigningPayloadExclusionListV1(ctx context.Context, list common.ValidatorExclusionList) (common.ExclusionListSigningPayload, error) {
-	var res common.ExclusionListSigningPayload
+func (ec *Client) SigningPayloadExclusionListV1(ctx context.Context, list common.ValidatorExclusionList) (common.GovernanceEIP712TypedData, error) {
+	var res common.GovernanceEIP712TypedData
 	err := ec.c.CallContext(ctx, &res, "govPub_signingPayloadExclusionListV1", list)
 	return res, err
 }
