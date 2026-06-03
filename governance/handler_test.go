@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"strings"
 	rand2 "math/rand"
 	"os"
 	"reflect"
@@ -789,9 +790,10 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		list    func(t *testing.T, rm *TestRootManager) common.RootList
-		wantErr bool
+		name          string
+		list          func(t *testing.T, rm *TestRootManager) common.RootList
+		wantErr       bool
+		wantErrSubstr string
 	}{
 		{
 			name: "valid typed signature from active alias is accepted without quorum merge",
@@ -804,7 +806,8 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 			list: func(t *testing.T, rm *TestRootManager) common.RootList {
 				return makeTypedRootList(t, rm, false)
 			},
-			wantErr: true,
+			wantErr:      true,
+			wantErrSubstr: errTypedMustUseAliasPrefix,
 		},
 		{
 			name: "typed signature with wrong chain id is rejected",
@@ -845,6 +848,9 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("expected error, got hash %s", hash.Hex())
+				}
+				if tt.wantErrSubstr != "" && !strings.Contains(err.Error(), tt.wantErrSubstr) {
+					t.Fatalf("error %q missing %q", err, tt.wantErrSubstr)
 				}
 				if rm.proposed != nil && rm.proposed.hash == list.Hash {
 					t.Fatalf("rejected typed root list changed proposed state: %v", rm.proposed)
@@ -973,9 +979,10 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		list    func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList
-		wantErr bool
+		name          string
+		list          func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList
+		wantErr       bool
+		wantErrSubstr string
 	}{
 		{
 			name: "valid typed signature from active alias is accepted without quorum merge",
@@ -988,7 +995,8 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 			list: func(t *testing.T, rm *TestRootManager) common.ValidatorExclusionList {
 				return makeTypedExclusionList(t, rm, false)
 			},
-			wantErr: true,
+			wantErr:       true,
+			wantErrSubstr: errTypedMustUseAliasPrefix,
 		},
 		{
 			name: "typed signature with wrong chain id is rejected",
@@ -1036,6 +1044,9 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("expected error, got hash %s", hash.Hex())
+				}
+				if tt.wantErrSubstr != "" && !strings.Contains(err.Error(), tt.wantErrSubstr) {
+					t.Fatalf("error %q missing %q", err, tt.wantErrSubstr)
 				}
 				if rm.proposedExSet != nil && rm.proposedExSet.hash == list.Hash {
 					t.Fatalf("rejected typed exclusion list changed proposed state: %v", rm.proposedExSet)

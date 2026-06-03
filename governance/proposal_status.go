@@ -33,8 +33,9 @@ type GovernanceProposalStatus struct {
 	Timestamp      uint64                      `json:"timestamp"`
 	Signers        []common.Address            `json:"signers"`
 	Threshold      GovernanceProposalThreshold `json:"threshold"`
-	NeedsSignature bool                        `json:"needsSignature"`
-	QueriedSigner  common.Address              `json:"queriedSigner"`
+	NeedsSignature           bool           `json:"needsSignature"`
+	QueriedSigner            common.Address `json:"queriedSigner"`
+	RequiredSigningAddress   common.Address `json:"requiredSigningAddress,omitempty"`
 }
 
 func (a *GovernancePublicAPI) GetGovernanceProposalStatus(proposalType string, hash common.Hash, signer common.Address) (GovernanceProposalStatus, error) {
@@ -57,7 +58,7 @@ func (s *RootManager) rootListProposalStatus(hash common.Hash, queriedSigner com
 	defer s.rootLock.Unlock()
 
 	active := s.active
-	if active != nil {
+	if active != nil && s.isAthosReached() {
 		active.aliases = s.getAliasesOfRoots(active.rootAddresses)
 	}
 
@@ -84,7 +85,7 @@ func (s *RootManager) exclusionListProposalStatus(hash common.Hash, queriedSigne
 
 	s.rootLock.Lock()
 	active := s.active
-	if active != nil {
+	if active != nil && s.isAthosReached() {
 		active.aliases = s.getAliasesOfRoots(active.rootAddresses)
 	}
 	s.rootLock.Unlock()
@@ -148,6 +149,7 @@ func buildRootListProposalStatus(active *rootSet, set *rootSet, phase string, qu
 			MeetsThreshold:   meetsThreshold,
 		}
 		status.NeedsSignature = active.needsSignatureFrom(set.signers, queriedSigner)
+		status.RequiredSigningAddress = active.requiredTypedSigningAddress(queriedSigner)
 	}
 
 	return status
@@ -173,6 +175,7 @@ func buildExclusionListProposalStatus(active *rootSet, set *exclusionSet, phase 
 			MeetsThreshold:   meetsThreshold,
 		}
 		status.NeedsSignature = active.needsSignatureFrom(set.signers, queriedSigner)
+		status.RequiredSigningAddress = active.requiredTypedSigningAddress(queriedSigner)
 	}
 
 	return status

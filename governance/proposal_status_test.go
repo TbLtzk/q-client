@@ -89,6 +89,24 @@ func TestGetGovernanceProposalStatus(t *testing.T) {
 		}
 	})
 
+	t.Run("required signing address is alias when root is queried", func(t *testing.T) {
+		rm := newTestRootManager(t, false, true)
+		active := rm.active.copy()
+
+		proposed := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 5, 0, true)
+		set, err := newRootSet(&proposed)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rootAddr := crypto.PubkeyToAddress(rm.rootPrivateKeys[0].PublicKey)
+		aliasAddr := crypto.PubkeyToAddress(rm.aliasPrivateKeys[0].PublicKey)
+		status := buildRootListProposalStatus(active, set, governanceProposalPhaseProposed, rootAddr)
+		if status.RequiredSigningAddress != aliasAddr {
+			t.Fatalf("required %s got %s", aliasAddr.Hex(), status.RequiredSigningAddress.Hex())
+		}
+	})
+
 	t.Run("alias still needs signature", func(t *testing.T) {
 		rm := newTestRootManager(t, false, true)
 		active := rm.active.copy()

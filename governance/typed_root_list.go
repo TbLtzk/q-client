@@ -33,8 +33,8 @@ func (s *RootManager) newTypedSignedRootSet(list common.RootList) (*rootSet, err
 			return nil, errInvalidSignature
 		}
 
-		if len(active.knownSigners(map[common.Address][]byte{signer: signature})) == 0 {
-			return nil, errors.New("typed root list contains unknown signer")
+		if err := validateTypedActiveSigner(active, signer, "root list"); err != nil {
+			return nil, err
 		}
 		signers[signer] = signature
 	}

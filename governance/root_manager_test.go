@@ -163,17 +163,18 @@ func newTestRootManagerWithAccounts(t *testing.T, isRootNode, useAliases bool, n
 		}
 	}
 
-	aliases = roots
 	if useAliases {
-		aliases = aliases[:0]
+		aliases = make([]common.Address, len(roots))
 		for i := 0; i < len(roots); i++ {
 			aliasPrivateKey, err := crypto.GenerateKey()
 			if err != nil {
 				t.Fatalf("Failed to generate random private key: %v", err)
 			}
 			aliasKeys = append(aliasKeys, aliasPrivateKey)
-			aliases = append(aliases, crypto.PubkeyToAddress(aliasPrivateKey.PublicKey))
+			aliases[i] = crypto.PubkeyToAddress(aliasPrivateKey.PublicKey)
 		}
+	} else {
+		aliases = append([]common.Address(nil), roots...)
 	}
 
 	accountAliases := make(map[common.Address]common.Address)
