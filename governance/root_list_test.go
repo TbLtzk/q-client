@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/hexutil"
 )
 
 func Test_newRootSet(t *testing.T) {
@@ -73,8 +74,8 @@ func Test_newRootSet(t *testing.T) {
 						common.HexToAddress("0x01FDCC35858C76C6ECD459DA0174116FB5A4BFF7"),
 						common.HexToAddress("0xEB3B90FD1862B10D14D71881B32D80E530AD394B"),
 					},
-					Signatures: [][]byte{
-						common.Hex2Bytes("0xf68af076b760d81d3d2a5071817c7def517a0d60f7e5bec5c65daf6e2dcab855"),
+					Signatures: []hexutil.Bytes{
+						hexutil.Bytes(common.Hex2Bytes("0xf68af076b760d81d3d2a5071817c7def517a0d60f7e5bec5c65daf6e2dcab855")),
 					},
 				},
 			},

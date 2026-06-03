@@ -280,6 +280,6 @@ func (s *rootSet) makeList() common.RootList {
 		Timestamp:  s.timestamp,
 		Hash:       s.hash,
 		Nodes:      s.rootAddresses,
-		Signatures: s.signatures(),
+		Signatures: common.HexSignaturesFromBytes(s.signatures()),
 	}
 }

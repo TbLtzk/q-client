@@ -305,6 +305,20 @@ These methods should be limited to signed payload ingestion, canonical signing p
 
 The dapp should probe the RPC endpoint configured for the connected wallet before enabling signing or submission controls. If the node does not expose the required L0 governance capabilities, the dapp should keep monitoring/read-only views usable, disable action controls, and explain that the selected RPC endpoint does not yet support external L0 governance signing/submission.
 
+### govPub JSON wire format for list signatures
+
+For `govPub_submitSignedRootList`, `govPub_submitTypedSignedRootList`, `govPub_submitSignedExclusionList`, and `govPub_submitTypedSignedExclusionList`, each element of `signatures` must be a **`0x`-prefixed hex string** (65 bytes for a standard ECDSA signature), consistent with `hash` and `address` fields elsewhere in JSON-RPC. **Base64 is not accepted** for `signatures` on these payloads.
+
+Example (typed root list submit):
+
+```json
+"signatures": ["0x<r><s><v>"]
+```
+
+Pass the value returned by `eth_signTypedData_v4` / wallet `signTypedData` **without** re-encoding the recovery byte: q-client normalizes Yellow Paper `v` (`27` / `28`) to the internal `0` / `1` form before verification.
+
+List responses over JSON-RPC marshal `signatures` the same way (`0x` hex). **p2p / RLP** list messages are unchanged.
+
 ### 4. Existing `qgov` p2p propagation
 
 The existing `RootListMsg` / `ExclusionListMsg` / handshake payloads remain the **canonical carrier for raw ECDSA signatures** over the deterministic list hash (`list.Hash`), because that is what all deployed clients verify today (`governance/root_list.go`, `governance/exclusion_set.go`).

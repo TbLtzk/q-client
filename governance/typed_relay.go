@@ -278,7 +278,7 @@ func (s *exclusionSet) hasRawSignatureFrom(signer common.Address) bool {
 	if !ok {
 		return false
 	}
-	_, err := crypto.SigToPub(s.hash.Bytes(), sig)
+	_, err := crypto.SigToPub(s.hash.Bytes(), normalizeECDSASignatureV(sig))
 	return err == nil
 }
 
@@ -289,7 +289,7 @@ func (h *handler) mintAndImportRawRootSignature(proposal *rootSet, signer common
 	}
 
 	list := proposal.makeList()
-	list.Signatures = [][]byte{sig}
+	list.Signatures = common.HexSignaturesFromBytes([][]byte{sig})
 	return h.importRootListFrom("", &list, false)
 }
 
@@ -300,6 +300,6 @@ func (h *handler) mintAndImportRawExclusionSignature(proposal *exclusionSet, sig
 	}
 
 	list := proposal.makeList()
-	list.Signatures = [][]byte{sig}
+	list.Signatures = common.HexSignaturesFromBytes([][]byte{sig})
 	return h.importExclusionListFrom("", &list, false)
 }

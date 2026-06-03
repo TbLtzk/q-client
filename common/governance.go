@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+
+	"gitlab.com/q-dev/q-client/common/hexutil"
 )
 
 // RootList.
@@ -13,7 +15,20 @@ type RootList struct {
 	Nodes     []Address `json:"nodes"`
 	Hash      Hash      `json:"hash"`
 
-	Signatures [][]byte `json:"signatures"`
+	// Signatures use 0x hex in JSON-RPC (hexutil.Bytes); not base64.
+	Signatures []hexutil.Bytes `json:"signatures"`
+}
+
+// HexSignaturesFromBytes converts raw signature slices for JSON-RPC list payloads.
+func HexSignaturesFromBytes(sigs [][]byte) []hexutil.Bytes {
+	if len(sigs) == 0 {
+		return nil
+	}
+	out := make([]hexutil.Bytes, len(sigs))
+	for i, b := range sigs {
+		out[i] = hexutil.Bytes(b)
+	}
+	return out
 }
 
 // ValidatorExclusionList.
@@ -22,7 +37,8 @@ type ValidatorExclusionList struct {
 	Validators []ExcludedValidator `json:"validators"`
 	Hash       Hash                `json:"hash"`
 
-	Signatures [][]byte `json:"signatures"`
+	// Signatures use 0x hex in JSON-RPC (hexutil.Bytes); not base64.
+	Signatures []hexutil.Bytes `json:"signatures"`
 }
 
 func (el ValidatorExclusionList) IsEmpty() bool {
