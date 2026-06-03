@@ -92,20 +92,27 @@ func testTypedRootList(t *testing.T, rm *TestRootManager) common.RootList {
 	unsigned := list
 	unsigned.Signatures = nil
 
-	payloadHash := common.NewRootListSigningPayloadV1(rm.networkId, unsigned).Hash()
-
 	root := rm.active.rootAddresses[0]
 	signer := rm.active.aliases[root]
 
 	var signature []byte
-	var err error
 	if len(rm.aliasPrivateKeys) > 0 {
-		signature, err = crypto.Sign(payloadHash.Bytes(), rm.aliasPrivateKeys[0])
+		signature = signRootListEIP712(t, rm.networkId, list, rm.aliasPrivateKeys[0])
 	} else {
-		signature, err = rm.SignHash(accounts.Account{Address: signer}, payloadHash.Bytes())
-	}
-	if err != nil {
-		t.Fatalf("sign typed payload: %v", err)
+		unsigned := list
+		unsigned.Signatures = nil
+		set, err := newRootSet(&unsigned)
+		if err != nil || set == nil {
+			t.Fatalf("newRootSet: %v", err)
+		}
+		digest, err := rootListEIP712Digest(rm.networkId, set.timestamp, set.hash, set.rootAddresses)
+		if err != nil {
+			t.Fatalf("rootListEIP712Digest: %v", err)
+		}
+		signature, err = rm.SignHash(accounts.Account{Address: signer}, digest.Bytes())
+		if err != nil {
+			t.Fatalf("sign typed payload: %v", err)
+		}
 	}
 	list.Signatures = [][]byte{signature}
 	return list
