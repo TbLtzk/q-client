@@ -114,6 +114,6 @@ func testTypedRootList(t *testing.T, rm *TestRootManager) common.RootList {
 			t.Fatalf("sign typed payload: %v", err)
 		}
 	}
-	list.Signatures = [][]byte{signature}
+	list.Signatures = common.HexSignaturesFromBytes([][]byte{signature})
 	return list
 }

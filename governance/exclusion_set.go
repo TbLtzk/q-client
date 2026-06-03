@@ -186,7 +186,7 @@ func (s *exclusionSet) makeList() common.ValidatorExclusionList {
 	return common.ValidatorExclusionList{
 		Timestamp:  s.timestamp,
 		Hash:       s.hash,
-		Signatures: signatures,
+		Signatures: common.HexSignaturesFromBytes(signatures),
 		Validators: validators,
 	}
 }

@@ -14,7 +14,7 @@ func verifyRootListSignature(set *rootSet, sig []byte, networkID uint64, typedFi
 	}
 
 	tryRaw := func() (common.Address, bool) {
-		pubkey, err := crypto.SigToPub(set.hash.Bytes(), sig)
+		pubkey, err := crypto.SigToPub(set.hash.Bytes(), normalizeECDSASignatureV(sig))
 		if err != nil {
 			return common.Address{}, false
 		}
@@ -42,7 +42,7 @@ func verifyExclusionListSignature(set *exclusionSet, sig []byte, networkID uint6
 	}
 
 	tryRaw := func() (common.Address, bool) {
-		pubkey, err := crypto.SigToPub(set.hash.Bytes(), sig)
+		pubkey, err := crypto.SigToPub(set.hash.Bytes(), normalizeECDSASignatureV(sig))
 		if err != nil {
 			return common.Address{}, false
 		}
@@ -70,6 +70,6 @@ func (s *rootSet) hasRawSignatureFrom(signer common.Address) bool {
 	if !ok {
 		return false
 	}
-	_, err := crypto.SigToPub(s.hash.Bytes(), sig)
+	_, err := crypto.SigToPub(s.hash.Bytes(), normalizeECDSASignatureV(sig))
 	return err == nil
 }

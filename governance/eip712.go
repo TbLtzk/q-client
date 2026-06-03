@@ -166,7 +166,7 @@ func verifyRootListEIP712Signature(chainID uint64, set *rootSet, sig []byte) (co
 	if err != nil {
 		return common.Address{}, false
 	}
-	pubkey, err := crypto.SigToPub(digest.Bytes(), sig)
+	pubkey, err := crypto.SigToPub(digest.Bytes(), normalizeECDSASignatureV(sig))
 	if err != nil {
 		return common.Address{}, false
 	}
@@ -185,7 +185,7 @@ func verifyExclusionListEIP712Signature(chainID uint64, set *exclusionSet, sig [
 	if err != nil {
 		return common.Address{}, false
 	}
-	pubkey, err := crypto.SigToPub(digest.Bytes(), sig)
+	pubkey, err := crypto.SigToPub(digest.Bytes(), normalizeECDSASignatureV(sig))
 	if err != nil {
 		return common.Address{}, false
 	}

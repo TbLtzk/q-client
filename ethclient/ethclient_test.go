@@ -27,6 +27,7 @@ import (
 
 	ethereum "gitlab.com/q-dev/q-client"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus/ethash"
 	"gitlab.com/q-dev/q-client/core"
 	"gitlab.com/q-dev/q-client/core/types"
@@ -207,7 +208,7 @@ func TestGovernanceSubmissionWrappers(t *testing.T) {
 		Timestamp:  1,
 		Nodes:      []common.Address{common.HexToAddress("0x1")},
 		Hash:       common.HexToHash("0x1234"),
-		Signatures: [][]byte{{1, 2, 3}},
+		Signatures: []hexutil.Bytes{{1, 2, 3}},
 	}
 	rootHash, err := client.SubmitSignedRootList(context.Background(), rootList)
 	if err != nil {
@@ -221,7 +222,7 @@ func TestGovernanceSubmissionWrappers(t *testing.T) {
 		Timestamp:  2,
 		Validators: []common.ExcludedValidator{{Address: common.HexToAddress("0x2"), Block: 10, EndBlock: 20}},
 		Hash:       common.HexToHash("0x5678"),
-		Signatures: [][]byte{{4, 5, 6}},
+		Signatures: []hexutil.Bytes{{4, 5, 6}},
 	}
 	exclusionHash, err := client.SubmitSignedExclusionList(context.Background(), exclusionList)
 	if err != nil {

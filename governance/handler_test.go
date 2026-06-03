@@ -18,6 +18,7 @@ import (
 
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/crypto"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/p2p"
@@ -368,7 +369,7 @@ func TestImportRootListDoesNotRequireLocalSigning(t *testing.T) {
 		t.Fatalf("failed to sign root list: %v", err)
 	}
 	list.Hash = set.hash
-	list.Signatures = [][]byte{signature}
+	list.Signatures = common.HexSignaturesFromBytes([][]byte{signature})
 
 	if err := gov.handler.importRootList(&list); err != nil {
 		t.Fatalf("importRootList returned error: %v", err)
@@ -727,7 +728,7 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 		} else {
 			key = rm.rootPrivateKeys[0]
 		}
-		list.Signatures = [][]byte{signRootListEIP712(t, rm.networkId, list, key)}
+		list.Signatures = common.HexSignaturesFromBytes([][]byte{signRootListEIP712(t, rm.networkId, list, key)})
 		return list
 	}
 
@@ -750,7 +751,7 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to sign typed root payload: %v", err)
 		}
-		list.Signatures = [][]byte{signature}
+		list.Signatures = common.HexSignaturesFromBytes([][]byte{signature})
 		return list
 	}
 
@@ -768,7 +769,7 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 			t.Fatalf("newRootSet: %v", err)
 		}
 		td := rootListEIP712TypedData(rm.networkId, tampered.Timestamp, set.hash, set.rootAddresses)
-		list.Signatures = [][]byte{signRootListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])}
+		list.Signatures = common.HexSignaturesFromBytes([][]byte{signRootListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])})
 		return list
 	}
 
@@ -785,7 +786,7 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 		}
 		td := rootListEIP712TypedData(rm.networkId, set.timestamp, set.hash, set.rootAddresses)
 		td.Message["proposalType"] = common.GovernanceProposalTypeExclusionList
-		list.Signatures = [][]byte{signRootListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])}
+		list.Signatures = common.HexSignaturesFromBytes([][]byte{signRootListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])})
 		return list
 	}
 
@@ -886,7 +887,7 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 		} else {
 			key = rm.rootPrivateKeys[0]
 		}
-		list.Signatures = [][]byte{signExclusionListEIP712(t, rm.networkId, list, key)}
+		list.Signatures = common.HexSignaturesFromBytes([][]byte{signExclusionListEIP712(t, rm.networkId, list, key)})
 		return list
 	}
 
@@ -912,7 +913,7 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to sign typed exclusion payload: %v", err)
 		}
-		list.Signatures = [][]byte{signature}
+		list.Signatures = common.HexSignaturesFromBytes([][]byte{signature})
 		return list
 	}
 
@@ -933,7 +934,7 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 		source.Signatures = nil
 		validators := canonicalExcludedValidatorsForEIP712(source.Validators)
 		td := exclusionListEIP712TypedData(rm.networkId, tampered.Timestamp, set.hash, validators)
-		list.Signatures = [][]byte{signExclusionListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])}
+		list.Signatures = common.HexSignaturesFromBytes([][]byte{signExclusionListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])})
 		return list
 	}
 
@@ -953,7 +954,7 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 		validators := canonicalExcludedValidatorsForEIP712(source.Validators)
 		td := exclusionListEIP712TypedData(rm.networkId, set.timestamp, set.hash, validators)
 		td.Message["proposalType"] = common.GovernanceProposalTypeRootList
-		list.Signatures = [][]byte{signExclusionListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])}
+		list.Signatures = common.HexSignaturesFromBytes([][]byte{signExclusionListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])})
 		return list
 	}
 
@@ -974,7 +975,7 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 		source.Signatures = nil
 		validators := canonicalExcludedValidatorsForEIP712(tampered)
 		td := exclusionListEIP712TypedData(rm.networkId, set.timestamp, set.hash, validators)
-		list.Signatures = [][]byte{signExclusionListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])}
+		list.Signatures = common.HexSignaturesFromBytes([][]byte{signExclusionListEIP712FromTypedData(t, td, rm.aliasPrivateKeys[0])})
 		return list
 	}
 
@@ -1100,7 +1101,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 			t.Fatalf("WithDigest typedData mismatch")
 		}
 
-		list.Signatures = [][]byte{signRootListEIP712(t, rm.networkId, list, rm.aliasPrivateKeys[0])}
+		list.Signatures = common.HexSignaturesFromBytes([][]byte{signRootListEIP712(t, rm.networkId, list, rm.aliasPrivateKeys[0])})
 		if _, err := api.SubmitTypedSignedRootList(list); err != nil {
 			t.Fatalf("SubmitTypedSignedRootList after EIP-712 digest: %v", err)
 		}
@@ -1233,7 +1234,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 			t.Fatalf("primaryType = %s, want %s", got.PrimaryType, common.GovernanceEIP712ExclusionListTypeName)
 		}
 
-		list.Signatures = [][]byte{signExclusionListEIP712(t, rm.networkId, list, rm.aliasPrivateKeys[0])}
+		list.Signatures = common.HexSignaturesFromBytes([][]byte{signExclusionListEIP712(t, rm.networkId, list, rm.aliasPrivateKeys[0])})
 		if _, err := api.SubmitTypedSignedExclusionList(list); err != nil {
 			t.Fatalf("SubmitTypedSignedExclusionList after EIP-712 digest: %v", err)
 		}
@@ -2418,7 +2419,7 @@ func randomRootList(t *testing.T, rm *TestRootManager, timestamp int64, nodesCou
 	rootList := common.RootList{
 		Timestamp:  uint64(timestamp),
 		Nodes:      make([]common.Address, 0, nodesCount),
-		Signatures: make([][]byte, 0, signersCount),
+		Signatures: make([]hexutil.Bytes, 0, signersCount),
 	}
 	for i := 0; i < nodesCount; i++ {
 		rootList.Nodes = append(rootList.Nodes, common.BytesToAddress(randBytes(common.AddressLength)))
@@ -2455,7 +2456,7 @@ func randomRootList(t *testing.T, rm *TestRootManager, timestamp int64, nodesCou
 		if err != nil {
 			t.Error(errors.Wrap(err, "failed to sign hash"))
 		}
-		rootList.Signatures = append(rootList.Signatures, sig)
+		rootList.Signatures = append(rootList.Signatures, hexutil.Bytes(sig))
 	}
 
 	return rootList
@@ -2465,7 +2466,7 @@ func randomExclusionList(t *testing.T, rm *TestRootManager, timestamp uint64, va
 	exclusionList := common.ValidatorExclusionList{
 		Timestamp:  timestamp,
 		Validators: make([]common.ExcludedValidator, 0, validatorsCount),
-		Signatures: make([][]byte, 0, signersCount),
+		Signatures: make([]hexutil.Bytes, 0, signersCount),
 	}
 	for i := 0; i < validatorsCount; i++ {
 		exclusionList.Validators = append(exclusionList.Validators, common.ExcludedValidator{
@@ -2503,7 +2504,7 @@ func randomExclusionList(t *testing.T, rm *TestRootManager, timestamp uint64, va
 		if err != nil {
 			t.Error(errors.Wrap(err, "failed to sign hash"))
 		}
-		exclusionList.Signatures = append(exclusionList.Signatures, sig)
+		exclusionList.Signatures = append(exclusionList.Signatures, hexutil.Bytes(sig))
 	}
 
 	return exclusionList
@@ -2513,7 +2514,7 @@ func signedExclusionList(t *testing.T, rm *TestRootManager, timestamp uint64, va
 	exclusionList := common.ValidatorExclusionList{
 		Timestamp:  timestamp,
 		Validators: make([]common.ExcludedValidator, 0, validatorsCount),
-		Signatures: make([][]byte, 0, signersCount),
+		Signatures: make([]hexutil.Bytes, 0, signersCount),
 	}
 	for i := 0; i < validatorsCount; i++ {
 		block := blockStart + uint64(i)
@@ -2543,7 +2544,7 @@ func signedExclusionList(t *testing.T, rm *TestRootManager, timestamp uint64, va
 			if err != nil {
 				t.Error(errors.Wrap(err, "failed to sign hash"))
 			}
-			exclusionList.Signatures = append(exclusionList.Signatures, signature)
+			exclusionList.Signatures = append(exclusionList.Signatures, hexutil.Bytes(signature))
 		}
 		return exclusionList
 	} else {
@@ -2561,7 +2562,7 @@ func signedExclusionList(t *testing.T, rm *TestRootManager, timestamp uint64, va
 		if err != nil {
 			t.Error(errors.Wrap(err, "failed to sign hash"))
 		}
-		exclusionList.Signatures = append(exclusionList.Signatures, sig)
+		exclusionList.Signatures = append(exclusionList.Signatures, hexutil.Bytes(sig))
 	}
 
 	return exclusionList
@@ -2588,7 +2589,7 @@ func signedActiveExclusionListWithTimestamp(t *testing.T, rm *TestRootManager, t
 		if err != nil {
 			t.Error(errors.Wrap(err, "failed to sign hash"))
 		}
-		list.Signatures = append(list.Signatures, sig)
+		list.Signatures = append(list.Signatures, hexutil.Bytes(sig))
 	}
 	list.Hash = set.hash
 	return list

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"gitlab.com/q-dev/q-client/common"
+	"gitlab.com/q-dev/q-client/common/hexutil"
 )
 
 var (
@@ -155,7 +156,7 @@ var (
 				Block:   1000,
 			},
 		},
-		Signatures: [][]byte{[]byte("0x6662d75a2ddb2c63342dcec4ae307dca29adf5aefd5b06a4586a4541afddcdf4")},
+		Signatures: []hexutil.Bytes{hexutil.MustDecode("0x6662d75a2ddb2c63342dcec4ae307dca29adf5aefd5b06a4586a4541afddcdf4")},
 	}
 )
 
