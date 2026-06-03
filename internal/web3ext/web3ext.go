@@ -941,7 +941,12 @@ const GovPublicJs = `
 web3._extend({
 	property: 'govPub',
 	methods: [
-        new web3._extend.Method({
+		new web3._extend.Method({
+			name: 'l0GovernanceCapabilities',
+			call: 'govPub_l0GovernanceCapabilities',
+			params: 0
+		}),
+		new web3._extend.Method({
 			name: 'activeRootList',
 			call: 'govPub_activeRootList',
 			params: 0
