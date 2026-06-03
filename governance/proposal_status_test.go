@@ -69,7 +69,6 @@ func TestGetGovernanceProposalStatus(t *testing.T) {
 	t.Run("threshold matches isAcceptable at 75 percent", func(t *testing.T) {
 		rm := newTestRootManager(t, false, true)
 		active := rm.active.copy()
-		active.aliases = rm.getAliasesOfRoots(active.rootAddresses)
 
 		proposed := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 5, defNumAccounts-1, true)
 		set, err := newRootSet(&proposed)
@@ -110,7 +109,6 @@ func TestGetGovernanceProposalStatus(t *testing.T) {
 	t.Run("alias still needs signature", func(t *testing.T) {
 		rm := newTestRootManager(t, false, true)
 		active := rm.active.copy()
-		active.aliases = rm.getAliasesOfRoots(active.rootAddresses)
 
 		proposed := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 5, 0, true)
 		set, err := newRootSet(&proposed)
@@ -129,7 +127,6 @@ func TestGetGovernanceProposalStatus(t *testing.T) {
 	t.Run("root does not need signature when alias already signed", func(t *testing.T) {
 		rm := newTestRootManager(t, false, true)
 		active := rm.active.copy()
-		active.aliases = rm.getAliasesOfRoots(active.rootAddresses)
 
 		proposed := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 5, 1, true)
 		set, err := newRootSet(&proposed)
@@ -148,7 +145,6 @@ func TestGetGovernanceProposalStatus(t *testing.T) {
 	t.Run("alias still needs signature when only root key signed", func(t *testing.T) {
 		rm := newTestRootManager(t, false, true)
 		active := rm.active.copy()
-		active.aliases = rm.getAliasesOfRoots(active.rootAddresses)
 
 		proposed := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 5, 1, false)
 		set, err := newRootSet(&proposed)
@@ -167,7 +163,6 @@ func TestGetGovernanceProposalStatus(t *testing.T) {
 	t.Run("non-root address does not need signature", func(t *testing.T) {
 		rm := newTestRootManager(t, false, true)
 		active := rm.active.copy()
-		active.aliases = rm.getAliasesOfRoots(active.rootAddresses)
 
 		proposed := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 5, 0, true)
 		set, err := newRootSet(&proposed)
@@ -212,7 +207,6 @@ func TestGetGovernanceProposalStatus(t *testing.T) {
 	t.Run("exclusion threshold matches isEnoughExSetSignatures", func(t *testing.T) {
 		rm := newTestRootManager(t, false, true)
 		active := rm.active.copy()
-		active.aliases = rm.getAliasesOfRoots(active.rootAddresses)
 
 		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, defNumAccounts-1, true, 7000)
 		set, err := newExclusionSet(&list)
