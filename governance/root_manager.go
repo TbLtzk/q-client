@@ -213,12 +213,27 @@ func (s *RootManager) InitRegistry(reg *contracts.Registry) {
 	s.updateAliasesOfRootSets()
 }
 
-func (s *RootManager) updateAliasesOfRootSets() {
+func (s *RootManager) canResolveAliasesFromChain() bool {
+	if s == nil || !s.isAthosReached() || s.reg == nil {
+		return false
+	}
+	return s.reg.AccountAliases(nil) != nil
+}
+
+// refreshActiveAliases updates active.aliases from chain only when Athos is live and alias resolution is available.
+func (s *RootManager) refreshActiveAliases() {
+	if s == nil || s.active == nil || !s.canResolveAliasesFromChain() {
+		return
+	}
 	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
-	if s.desired != nil {
+}
+
+func (s *RootManager) updateAliasesOfRootSets() {
+	s.refreshActiveAliases()
+	if s.desired != nil && s.canResolveAliasesFromChain() {
 		s.desired.updateAliases(s.getAliasesOfRoots(s.desired.rootAddresses))
 	}
-	if s.proposed != nil {
+	if s.proposed != nil && s.canResolveAliasesFromChain() {
 		s.proposed.updateAliases(s.getAliasesOfRoots(s.proposed.rootAddresses))
 	}
 }
@@ -614,7 +629,7 @@ func (s *RootManager) proposeExclusionSet(set *exclusionSet, force bool) (*exclu
 	if s.signExclusionSet(set) {
 		log.Info("Signed desired exclusion list", "hash", set.hash.Hex())
 	}
-	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
+	s.refreshActiveAliases()
 
 	if s.getActiveRootSet(true).isEnoughExSetSignatures(set) {
 		s.upgradeExclusionSet(set, false)
@@ -671,7 +686,7 @@ func (s *RootManager) acceptProposedExclusionList(lock bool) error {
 
 	exSetToSend := s.proposedExSet
 
-	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
+	s.refreshActiveAliases()
 
 	if s.getActiveRootSet(true).isEnoughExSetSignatures(s.proposedExSet) {
 		s.upgradeExclusionSet(s.proposedExSet, false)
@@ -876,9 +891,7 @@ func (s *RootManager) getActiveRootSet(lock bool) *rootSet {
 		defer s.rootLock.Unlock()
 	}
 
-	if s.active != nil && s.isAthosReached() {
-		s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
-	}
+	s.refreshActiveAliases()
 
 	return s.active.copy()
 }
@@ -889,7 +902,7 @@ func (s *RootManager) getDesiredRootSet(lock bool) *rootSet {
 		defer s.rootLock.Unlock()
 	}
 
-	if s.desired != nil && s.isAthosReached() {
+	if s.desired != nil && s.canResolveAliasesFromChain() {
 		s.desired.aliases = s.getAliasesOfRoots(s.desired.rootAddresses)
 	}
 
@@ -902,7 +915,7 @@ func (s *RootManager) getProposedRootSet(lock bool) *rootSet {
 		defer s.rootLock.Unlock()
 	}
 
-	if s.proposed != nil && s.isAthosReached() {
+	if s.proposed != nil && s.canResolveAliasesFromChain() {
 		s.proposed.aliases = s.getAliasesOfRoots(s.proposed.rootAddresses)
 	}
 

@@ -27,15 +27,15 @@ type GovernanceProposalThreshold struct {
 
 // GovernanceProposalStatus is the normalized status of a root-list or exclusion-list proposal hash.
 type GovernanceProposalStatus struct {
-	ProposalType   string                      `json:"proposalType"`
-	Phase          string                      `json:"phase"`
-	Hash           common.Hash                 `json:"hash"`
-	Timestamp      uint64                      `json:"timestamp"`
-	Signers        []common.Address            `json:"signers"`
-	Threshold      GovernanceProposalThreshold `json:"threshold"`
-	NeedsSignature           bool           `json:"needsSignature"`
-	QueriedSigner            common.Address `json:"queriedSigner"`
-	RequiredSigningAddress   common.Address `json:"requiredSigningAddress,omitempty"`
+	ProposalType           string                      `json:"proposalType"`
+	Phase                  string                      `json:"phase"`
+	Hash                   common.Hash                 `json:"hash"`
+	Timestamp              uint64                      `json:"timestamp"`
+	Signers                []common.Address            `json:"signers"`
+	Threshold              GovernanceProposalThreshold `json:"threshold"`
+	NeedsSignature         bool                        `json:"needsSignature"`
+	QueriedSigner          common.Address              `json:"queriedSigner"`
+	RequiredSigningAddress common.Address              `json:"requiredSigningAddress,omitempty"`
 }
 
 func (a *GovernancePublicAPI) GetGovernanceProposalStatus(proposalType string, hash common.Hash, signer common.Address) (GovernanceProposalStatus, error) {
@@ -58,9 +58,7 @@ func (s *RootManager) rootListProposalStatus(hash common.Hash, queriedSigner com
 	defer s.rootLock.Unlock()
 
 	active := s.active
-	if active != nil && s.isAthosReached() {
-		active.aliases = s.getAliasesOfRoots(active.rootAddresses)
-	}
+	s.refreshActiveAliases()
 
 	set, phase := s.findRootSetByHashLocked(hash)
 	if set == nil {
@@ -85,9 +83,7 @@ func (s *RootManager) exclusionListProposalStatus(hash common.Hash, queriedSigne
 
 	s.rootLock.Lock()
 	active := s.active
-	if active != nil && s.isAthosReached() {
-		active.aliases = s.getAliasesOfRoots(active.rootAddresses)
-	}
+	s.refreshActiveAliases()
 	s.rootLock.Unlock()
 
 	set, phase := s.findExclusionSetByHashLocked(hash)

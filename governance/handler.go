@@ -273,11 +273,11 @@ func (h *handler) makeStatusBody(rm *RootManager, cm *ConstitutionManager) statu
 	rm.rootLock.Lock()
 	defer rm.rootLock.Unlock()
 
-	rm.active.aliases = rm.getAliasesOfRoots(rm.active.rootAddresses)
-	if rm.desired != nil {
+	rm.refreshActiveAliases()
+	if rm.desired != nil && rm.canResolveAliasesFromChain() {
 		rm.desired.aliases = rm.getAliasesOfRoots(rm.desired.rootAddresses)
 	}
-	if rm.proposed != nil {
+	if rm.proposed != nil && rm.canResolveAliasesFromChain() {
 		rm.proposed.aliases = rm.getAliasesOfRoots(rm.proposed.rootAddresses)
 	}
 
@@ -471,7 +471,10 @@ func (s *RootManager) snapshotRootListImport(set *rootSet) (rootListImportSnapsh
 	s.rootLock.Lock()
 	defer s.rootLock.Unlock()
 
-	set.updateAliases(s.getAliasesOfRoots(set.rootAddresses))
+	s.refreshActiveAliases()
+	if s.canResolveAliasesFromChain() {
+		set.updateAliases(s.getAliasesOfRoots(set.rootAddresses))
+	}
 	if len(s.active.knownSigners(set.signers)) == 0 {
 		return rootListImportSnapshot{}, errors.New("signed root list has no active root signatures")
 	}
@@ -560,7 +563,7 @@ func (s *RootManager) snapshotExclusionListImport(set *exclusionSet) (exclusionL
 	s.exLock.Lock()
 	defer s.exLock.Unlock()
 
-	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
+	s.refreshActiveAliases()
 	if len(s.getActiveRootSet(true).knownSigners(set.signers)) == 0 {
 		return exclusionListImportSnapshot{}, errors.New("signed exclusion list has no active root signatures")
 	}
@@ -1017,7 +1020,7 @@ func (h *handler) importExclusionSet(fromID string, received *exclusionSet, sign
 	rm.exLock.Lock()
 	defer rm.exLock.Unlock()
 
-	rm.active.aliases = rm.getAliasesOfRoots(rm.active.rootAddresses)
+	rm.refreshActiveAliases()
 
 	// Check if the received exclusion set is acceptable (spam protection)
 	// Skip this check if the received exclusion set is the same as the active one

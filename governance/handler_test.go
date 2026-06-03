@@ -6,11 +6,11 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
-	"strings"
 	rand2 "math/rand"
 	"os"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -806,7 +806,7 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 			list: func(t *testing.T, rm *TestRootManager) common.RootList {
 				return makeTypedRootList(t, rm, false)
 			},
-			wantErr:      true,
+			wantErr:       true,
 			wantErrSubstr: errTypedMustUseAliasPrefix,
 		},
 		{

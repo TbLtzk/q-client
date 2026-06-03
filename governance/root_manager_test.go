@@ -181,7 +181,7 @@ func newTestRootManagerWithAccounts(t *testing.T, isRootNode, useAliases bool, n
 	for i := 0; i < len(roots); i++ {
 		accountAliases[roots[i]] = aliases[i]
 	}
-	_ = mocks.NewMockAccountAliases(accountAliases)
+	aliasesMock := mocks.NewMockAccountAliases(accountAliases)
 
 	// Active root set
 	rootList := common.RootList{
@@ -200,7 +200,7 @@ func newTestRootManagerWithAccounts(t *testing.T, isRootNode, useAliases bool, n
 	rm.db.saveActiveExclusionSet(exSet)
 	rm.activeExSet = exSet
 
-	reg := newTestRegistry()
+	reg := contracts.NewTestModeRegistryWithMocks(nil, aliasesMock)
 	rm.InitRegistry(reg)
 
 	rm.active.updateAliases(accountAliases)

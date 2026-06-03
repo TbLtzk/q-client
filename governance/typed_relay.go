@@ -192,7 +192,6 @@ func (rm *RootManager) localGovernanceSigningAddresses() []common.Address {
 	if active == nil {
 		return nil
 	}
-	active.aliases = rm.getAliasesOfRoots(active.rootAddresses)
 
 	var addrs []common.Address
 	for _, root := range active.rootAddresses {
