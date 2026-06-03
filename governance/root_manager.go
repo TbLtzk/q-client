@@ -220,12 +220,24 @@ func (s *RootManager) canResolveAliasesFromChain() bool {
 	return s.reg.AccountAliases(nil) != nil
 }
 
-// refreshActiveAliases updates active.aliases from chain only when Athos is live and alias resolution is available.
+// refreshActiveAliases updates active.aliases from chain when Athos is live and alias
+// resolution is available. Pre-Athos (or when the registry is unavailable) each root
+// address is its own alias (root == alias), which is the correct pre-Athos identity
+// for typed signing. Self-aliases are only seeded if the map is empty; once aliases
+// have been explicitly set (e.g. from chain) they are not overwritten.
 func (s *RootManager) refreshActiveAliases() {
-	if s == nil || s.active == nil || !s.canResolveAliasesFromChain() {
+	if s == nil || s.active == nil {
 		return
 	}
-	s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
+	if s.canResolveAliasesFromChain() {
+		s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
+		return
+	}
+	// Seed self-aliases so typed signing works before Athos activates or registry is
+	// available, but only when the map has not already been populated from the chain.
+	if len(s.active.aliases) == 0 {
+		s.active.aliases = s.getAliasesOfRoots(s.active.rootAddresses)
+	}
 }
 
 func (s *RootManager) updateAliasesOfRootSets() {
