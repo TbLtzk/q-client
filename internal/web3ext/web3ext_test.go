@@ -7,6 +7,8 @@ import (
 
 func TestGovernanceSubmissionWeb3Extensions(t *testing.T) {
 	for _, expected := range []string{
+		"name: 'l0GovernanceCapabilities'",
+		"call: 'govPub_l0GovernanceCapabilities'",
 		"name: 'submitSignedRootList'",
 		"call: 'govPub_submitSignedRootList'",
 		"name: 'signingPayloadRootListV1'",

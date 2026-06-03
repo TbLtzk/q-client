@@ -798,6 +798,12 @@ func (ec *Client) GetProposedRootList(ctx context.Context) (governance.RootList,
 	return res, err
 }
 
+func (ec *Client) L0GovernanceCapabilities(ctx context.Context) (common.L0GovernanceCapabilities, error) {
+	var res common.L0GovernanceCapabilities
+	err := ec.c.CallContext(ctx, &res, "govPub_l0GovernanceCapabilities")
+	return res, err
+}
+
 func (ec *Client) SubmitSignedRootList(ctx context.Context, list common.RootList) (common.Hash, error) {
 	var res common.Hash
 	err := ec.c.CallContext(ctx, &res, "govPub_submitSignedRootList", list)
