@@ -156,7 +156,7 @@ func (db *database) deleteProposedExclusionSet() {
 }
 
 func (db *database) saveRootSet(set *rootSet, key []byte) error {
-	value, err := json.Marshal(set.makeList())
+	value, err := json.Marshal(rootSetToDBList(set))
 	if err != nil {
 		panic(errors.Wrap(err, "failed to marshal root list"))
 	}
@@ -183,21 +183,19 @@ func (db *database) getRootSet(key []byte) (*rootSet, error) {
 		return nil, nil
 	}
 
-	var rootList common.RootList
-	if err := json.Unmarshal(raw, &rootList); err != nil {
+	set, err := rootSetFromDBJSON(raw)
+	if err != nil {
 		panic(errors.Wrap(err, "failed to unmarshal root list"))
 	}
-
-	set, err := newRootSet(&rootList)
-	if err != nil {
-		panic(errors.Wrap(err, "malformed root set"))
+	if set == nil {
+		panic(errors.New("malformed root set"))
 	}
 
 	return set, nil
 }
 
 func (db *database) saveExclusionSet(set *exclusionSet, key []byte) error {
-	raw, err := json.Marshal(set.makeList())
+	raw, err := json.Marshal(exclusionSetToDBList(set))
 	if err != nil {
 		panic(errors.Wrap(err, "failed to marshal exclusion set"))
 	}
@@ -220,14 +218,12 @@ func (db *database) getExclusionSet(key []byte) (*exclusionSet, error) {
 		return nil, errors.Wrap(err, "failed to get from db")
 	}
 
-	var exclusionList common.ValidatorExclusionList
-	if err := json.Unmarshal(raw, &exclusionList); err != nil {
+	set, err := exclusionSetFromDBJSON(raw)
+	if err != nil {
 		panic(errors.Wrap(err, "failed to unmarshal exclusion list"))
 	}
-
-	set, err := newExclusionSet(&exclusionList)
-	if err != nil {
-		panic(errors.Wrap(err, "malformed exclusion set"))
+	if set == nil {
+		panic(errors.New("malformed exclusion set"))
 	}
 
 	return set, nil
@@ -444,8 +440,6 @@ func (db *database) addExclusionSetToQuarantine(set *exclusionSet) error {
 		return nil
 	}
 
-	var resSets []common.ValidatorExclusionList
-
 	exRecords, err := db.getExclusionSetsFromQuarantine()
 	if err != nil {
 		log.Error("Failed to get exclusion sets from quarantine", "err", err)
@@ -454,11 +448,14 @@ func (db *database) addExclusionSetToQuarantine(set *exclusionSet) error {
 		if exSet.hash == set.hash {
 			return nil // It's already there
 		}
-		resSets = append(resSets, exSet.makeList())
 	}
-	resSets = append(resSets, set.makeList())
+	var dbLists []exclusionListDB
+	for _, exSet := range exRecords {
+		dbLists = append(dbLists, exclusionSetToDBList(&exSet))
+	}
+	dbLists = append(dbLists, exclusionSetToDBList(set))
 
-	value, err := json.Marshal(resSets)
+	value, err := json.Marshal(dbLists)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to marshal quarantine exclusion sets"))
 	}
@@ -488,7 +485,7 @@ func (db *database) removeExclusionSetFromQuarantine(set *exclusionSet) (*[]excl
 		resSets = append(resSets, exSet)
 	}
 
-	value, err := json.Marshal(resSets)
+	value, err := json.Marshal(exclusionDBListsFromSets(resSets))
 	if err != nil {
 		panic(errors.Wrap(err, "failed to marshal quarantine exclusion sets"))
 	}
@@ -516,19 +513,9 @@ func (db *database) getExclusionSetsFromQuarantine() ([]exclusionSet, error) {
 		return nil, errors.Wrap(err, "failed to get quarantined  from db")
 	}
 
-	var exclusionLists []common.ValidatorExclusionList
-	if err := json.Unmarshal(raw, &exclusionLists); err != nil {
+	sets, err := exclusionSetsFromQuarantineJSON(raw)
+	if err != nil {
 		panic(errors.Wrap(err, "failed to unmarshal quarantined exclusion lists"))
-	}
-
-	var sets []exclusionSet
-	for i := range exclusionLists {
-		set, err := newExclusionSet(&exclusionLists[i])
-		if err != nil {
-			// don't return error, just skip this list
-			continue
-		}
-		sets = append(sets, *set)
 	}
 
 	return sets, nil
