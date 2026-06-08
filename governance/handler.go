@@ -103,6 +103,8 @@ func (h *handler) run() {
 
 	go h.broadcastTypedRootRelays()
 	go h.broadcastTypedExclusionRelays()
+
+	go h.catchUpSignActiveListsTicker()
 }
 
 type rootSetEvent struct {
