@@ -698,13 +698,27 @@ func reinitializeRootLists(rm *RootManager, active *rootSet) {
 	rm.desired = nil
 }
 
+const (
+	// defaultTestChainBlocks is enough for Athos activation and quarantine tests that
+	// use setMaxRewindLimit(100) with earliest affected block near genesis.
+	defaultTestChainBlocks = 128
+)
+
 func newTestChain(t *testing.T, rm *RootManager) *core.BlockChain {
+	return newTestChainWithBlocks(t, rm, defaultTestChainBlocks)
+}
+
+func newTestChainWithBlocks(t *testing.T, rm *RootManager, numBlocks int) *core.BlockChain {
+	t.Helper()
+	if numBlocks < 1 {
+		t.Fatalf("test chain must contain at least one block, got %d", numBlocks)
+	}
+
 	var (
-		db     = rawdb.NewMemoryDatabase()
-		key, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-		addr   = crypto.PubkeyToAddress(key.PublicKey)
-		engine = clique.New(params.AllCliqueProtocolChanges.Clique, db, rm, rm.reg)
-		// signer      = new(types.HomesteadSigner)
+		db          = rawdb.NewMemoryDatabase()
+		key, _      = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		addr        = crypto.PubkeyToAddress(key.PublicKey)
+		engine      = clique.New(params.AllCliqueProtocolChanges.Clique, db, rm, rm.reg)
 		extraVanity = 32
 		extraSeal   = crypto.SignatureLength
 		diffInTurn  = big.NewInt(2) // Block difficulty for in-turn signatures
@@ -727,7 +741,7 @@ func newTestChain(t *testing.T, rm *RootManager) *core.BlockChain {
 
 	chain, _ := core.NewBlockChain(db, nil, genspec, nil, engine, vm.Config{}, nil, nil)
 
-	blocks, _ := core.GenerateChain(genspec.Config, genesis, engine, db, 5000, func(i int, block *core.BlockGen) {
+	blocks, _ := core.GenerateChain(genspec.Config, genesis, engine, db, numBlocks, func(i int, block *core.BlockGen) {
 		block.SetDifficulty(diffInTurn)
 	})
 	for i, block := range blocks {
@@ -744,7 +758,7 @@ func newTestChain(t *testing.T, rm *RootManager) *core.BlockChain {
 		blocks[i] = block.WithSeal(header)
 	}
 
-	if _, err := chain.InsertChain(blocks[:5000]); err != nil {
+	if _, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("failed to insert initial blocks: %v", err)
 	}
 
@@ -826,7 +840,7 @@ func TestQuarantineExclusionSet(t *testing.T) {
 
 	t.Log("Starting root manager with quarantine enabled")
 	rm := newTestRootManager(t, true, false)
-	t.Log("Initializing blockchain with 5000 blocks size")
+	t.Log("Initializing blockchain with test chain")
 	bc := newTestChain(t, rm.RootManager)
 	defer bc.Stop()
 	rm.InitBlockChain(bc)
