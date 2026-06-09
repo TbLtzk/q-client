@@ -8,38 +8,35 @@ import (
 )
 
 func TestNewGovernanceLifecycle(t *testing.T) {
-	var gov = newGovernance(t)
-
-	defer func(gov *Governance) {
-		err := gov.Stop()
-		if err != nil {
-			t.Fatalf("Failed to stop Governance: %v", err)
-		}
-	}(gov)
-	if gov == nil {
+	if newGovernance(t) == nil {
 		t.Fatalf("Failed to create Governance instance")
 	}
 }
 
 func TestRunPeer(t *testing.T) {
-	var gov = newGovernance(t)
-
-	defer func(gov *Governance) {
-		err := gov.Stop()
-		if err != nil {
-			t.Fatalf("Failed to stop Governance: %v", err)
-		}
-	}(gov)
-	if gov == nil {
+	if newGovernance(t) == nil {
 		t.Fatalf("Failed to create Governance instance")
 	}
+}
+
+// startGovernance starts the governance service and registers t.Cleanup to stop it.
+func startGovernance(t *testing.T, gov *Governance) {
+	t.Helper()
+	if err := gov.Start(); err != nil {
+		t.Fatalf("Failed to start Governance: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := gov.Stop(); err != nil {
+			t.Fatalf("Failed to stop Governance: %v", err)
+		}
+	})
 }
 
 func newGovernance(t *testing.T) *Governance {
 	rm := newTestRootManager(t, true, false)
 
 	bc := newTestChain(t, rm.RootManager)
-	defer bc.Stop()
+	t.Cleanup(func() { bc.Stop() })
 	rm.InitBlockChain(bc)
 
 	gov, err := New(rm.RootManager, tmpDirName(t))
@@ -47,12 +44,7 @@ func newGovernance(t *testing.T) *Governance {
 		t.Fatalf("Failed to create Governance: %v", err)
 	}
 
-	err = gov.Start()
-	if err != nil {
-		t.Fatalf("Failed to start Governance: %v", err)
-		return nil
-	}
-
+	startGovernance(t, gov)
 	return gov
 }
 

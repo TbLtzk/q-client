@@ -16,9 +16,7 @@ func TestSubmitTypedSignedRootList_hexJSONWire(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	if err := gov.Start(); err != nil {
-		t.Fatalf("Start: %v", err)
-	}
+	startGovernance(t, gov)
 
 	list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 0, true)
 	unsigned := list
@@ -57,9 +55,7 @@ func TestSubmitTypedSignedRootList_walletRecoveryByte(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	if err := gov.Start(); err != nil {
-		t.Fatalf("Start: %v", err)
-	}
+	startGovernance(t, gov)
 
 	list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 0, true)
 	sig := signRootListEIP712(t, rm.networkId, list, rm.aliasPrivateKeys[0])

@@ -1295,8 +1295,12 @@ func (s *RootManager) notifyExclusionSetIsQuarantined(set *exclusionSet, current
 func (s *RootManager) startQuarantineRoutine() {
 	for {
 		if s.bc == nil {
-			time.Sleep(5 * time.Second)
-			continue
+			select {
+			case <-s.quarantineTickerDone:
+				return
+			case <-time.After(5 * time.Second):
+				continue
+			}
 		}
 		select {
 		case <-s.quarantineTickerDone:

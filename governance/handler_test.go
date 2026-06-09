@@ -149,10 +149,7 @@ func TestHandleRootSet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Governance: %v", err)
 	}
-	err = gov.Start()
-	if err != nil {
-		t.Fatalf("Failed to start Governance: %v", err)
-	}
+	startGovernance(t, gov)
 
 	rw1, rw2 := p2p.MsgPipe()
 	p1 := newPeer(5, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
@@ -326,9 +323,7 @@ func TestImportRootList(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create Governance: %v", err)
 			}
-			if err := gov.Start(); err != nil {
-				t.Fatalf("Failed to start Governance: %v", err)
-			}
+			startGovernance(t, gov)
 
 			list := tt.list(t, rm)
 			if tt.beforeImport != nil {
@@ -348,9 +343,7 @@ func TestImportRootListDoesNotRequireLocalSigning(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Governance: %v", err)
 	}
-	if err := gov.Start(); err != nil {
-		t.Fatalf("Failed to start Governance: %v", err)
-	}
+	startGovernance(t, gov)
 
 	list := common.RootList{
 		Timestamp: uint64(time.Now().Add(5 * time.Minute).Unix()),
@@ -586,9 +579,7 @@ func TestSubmitSignedRootList(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create Governance: %v", err)
 			}
-			if err := gov.Start(); err != nil {
-				t.Fatalf("Failed to start Governance: %v", err)
-			}
+			startGovernance(t, gov)
 			api := NewGovernancePublicAPI(gov)
 
 			list := tt.list(t, rm)
@@ -679,12 +670,8 @@ func TestSubmitSignedRootListEquivalentToPeerImport(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create rpc Governance: %v", err)
 			}
-			if err := peerGov.Start(); err != nil {
-				t.Fatalf("Failed to start peer Governance: %v", err)
-			}
-			if err := rpcGov.Start(); err != nil {
-				t.Fatalf("Failed to start rpc Governance: %v", err)
-			}
+			startGovernance(t, peerGov)
+			startGovernance(t, rpcGov)
 
 			peerBefore := peerRM.rootListImportSnapshot(list.Hash)
 			rpcBefore := rpcRM.rootListImportSnapshot(list.Hash)
@@ -840,9 +827,7 @@ func TestSubmitTypedSignedRootList(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create Governance: %v", err)
 			}
-			if err := gov.Start(); err != nil {
-				t.Fatalf("Failed to start Governance: %v", err)
-			}
+			startGovernance(t, gov)
 
 			list := tt.list(t, rm)
 			hash, err := NewGovernancePublicAPI(gov).SubmitTypedSignedRootList(list)
@@ -1036,9 +1021,7 @@ func TestSubmitTypedSignedExclusionList(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create Governance: %v", err)
 			}
-			if err := gov.Start(); err != nil {
-				t.Fatalf("Failed to start Governance: %v", err)
-			}
+			startGovernance(t, gov)
 
 			list := tt.list(t, rm)
 			hash, err := NewGovernancePublicAPI(gov).SubmitTypedSignedExclusionList(list)
@@ -1076,9 +1059,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create Governance: %v", err)
 		}
-		if err := gov.Start(); err != nil {
-			t.Fatalf("Failed to start Governance: %v", err)
-		}
+		startGovernance(t, gov)
 		api := NewGovernancePublicAPI(gov)
 
 		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 10, 0, true)
@@ -1113,9 +1094,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create Governance: %v", err)
 		}
-		if err := gov.Start(); err != nil {
-			t.Fatalf("Failed to start Governance: %v", err)
-		}
+		startGovernance(t, gov)
 		api := NewGovernancePublicAPI(gov)
 		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 5, 0, true)
 		bundle, err := api.SigningPayloadRootListV1WithDigest(list)
@@ -1141,9 +1120,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create Governance: %v", err)
 		}
-		if err := gov.Start(); err != nil {
-			t.Fatalf("Failed to start Governance: %v", err)
-		}
+		startGovernance(t, gov)
 		api := NewGovernancePublicAPI(gov)
 
 		scrambled := common.RootList{
@@ -1178,9 +1155,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create Governance: %v", err)
 		}
-		if err := gov.Start(); err != nil {
-			t.Fatalf("Failed to start Governance: %v", err)
-		}
+		startGovernance(t, gov)
 		api := NewGovernancePublicAPI(gov)
 
 		scrambled := common.ValidatorExclusionList{
@@ -1218,9 +1193,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create Governance: %v", err)
 		}
-		if err := gov.Start(); err != nil {
-			t.Fatalf("Failed to start Governance: %v", err)
-		}
+		startGovernance(t, gov)
 		api := NewGovernancePublicAPI(gov)
 
 		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
@@ -1246,9 +1219,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create Governance: %v", err)
 		}
-		if err := gov.Start(); err != nil {
-			t.Fatalf("Failed to start Governance: %v", err)
-		}
+		startGovernance(t, gov)
 		api := NewGovernancePublicAPI(gov)
 		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 7000)
 		bundle, err := api.SigningPayloadExclusionListV1WithDigest(list)
@@ -1274,9 +1245,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create Governance: %v", err)
 		}
-		if err := gov.Start(); err != nil {
-			t.Fatalf("Failed to start Governance: %v", err)
-		}
+		startGovernance(t, gov)
 		api := NewGovernancePublicAPI(gov)
 		_, err = api.SigningPayloadRootListV1(common.RootList{Timestamp: 1, Nodes: nil})
 		if err == nil {
@@ -1290,9 +1259,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create Governance: %v", err)
 		}
-		if err := gov.Start(); err != nil {
-			t.Fatalf("Failed to start Governance: %v", err)
-		}
+		startGovernance(t, gov)
 		api := NewGovernancePublicAPI(gov)
 		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 3, 0, true)
 		list.Hash = common.BytesToHash([]byte{1, 2, 3})
@@ -1311,9 +1278,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create Governance: %v", err)
 		}
-		if err := gov.Start(); err != nil {
-			t.Fatalf("Failed to start Governance: %v", err)
-		}
+		startGovernance(t, gov)
 		api := NewGovernancePublicAPI(gov)
 		addr := common.HexToAddress("0x1111111111111111111111111111111111111111")
 		list := common.ValidatorExclusionList{
@@ -1335,9 +1300,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create Governance: %v", err)
 		}
-		if err := gov.Start(); err != nil {
-			t.Fatalf("Failed to start Governance: %v", err)
-		}
+		startGovernance(t, gov)
 		api := NewGovernancePublicAPI(gov)
 		list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, true, 6000)
 		list.Hash = common.BytesToHash([]byte{7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7})
@@ -1356,9 +1319,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create Governance: %v", err)
 		}
-		if err := gov.Start(); err != nil {
-			t.Fatalf("Failed to start Governance: %v", err)
-		}
+		startGovernance(t, gov)
 		api := NewGovernancePublicAPI(gov)
 		list := randomRootList(t, nil, time.Now().Unix(), 2*maxNRootNodes+1, 2*maxNRootNodes+1, false)
 		_, err = api.SigningPayloadRootListV1(list)
@@ -1374,9 +1335,7 @@ func TestGovPubSigningPayloadV1(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create Governance: %v", err)
 		}
-		if err := gov.Start(); err != nil {
-			t.Fatalf("Failed to start Governance: %v", err)
-		}
+		startGovernance(t, gov)
 		api := NewGovernancePublicAPI(gov)
 		list := randomRootList(t, rm, time.Now().Add(5*time.Minute).Unix(), 5, 0, true)
 		if _, err := api.SigningPayloadRootListV1(list); err != nil {
@@ -1525,12 +1484,8 @@ func TestSubmitSignedExclusionListEquivalentToPeerImport(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create rpc Governance: %v", err)
 			}
-			if err := peerGov.Start(); err != nil {
-				t.Fatalf("Failed to start peer Governance: %v", err)
-			}
-			if err := rpcGov.Start(); err != nil {
-				t.Fatalf("Failed to start rpc Governance: %v", err)
-			}
+			startGovernance(t, peerGov)
+			startGovernance(t, rpcGov)
 
 			peerBefore := peerRM.exclusionListImportSnapshot(list.Hash)
 			rpcBefore := rpcRM.exclusionListImportSnapshot(list.Hash)
@@ -1577,10 +1532,7 @@ func TestHandleExclusionSet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Governance: %v", err)
 	}
-	err = gov.Start()
-	if err != nil {
-		t.Fatalf("Failed to start Governance: %v", err)
-	}
+	startGovernance(t, gov)
 
 	rw1, rw2 := p2p.MsgPipe()
 	p1 := newPeer(5, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
@@ -1766,9 +1718,7 @@ func TestImportExclusionList(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create Governance: %v", err)
 			}
-			if err := gov.Start(); err != nil {
-				t.Fatalf("Failed to start Governance: %v", err)
-			}
+			startGovernance(t, gov)
 
 			list := tt.list(t, rm)
 			if tt.beforeImport != nil {
@@ -1788,9 +1738,7 @@ func TestImportExclusionListDoesNotRequireLocalSigning(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Governance: %v", err)
 	}
-	if err := gov.Start(); err != nil {
-		t.Fatalf("Failed to start Governance: %v", err)
-	}
+	startGovernance(t, gov)
 
 	list := signedExclusionList(t, rm, uint64(time.Now().Add(5*time.Minute).Unix()), 2, 1, false, 6000)
 	if err := gov.handler.importExclusionList(&list); err != nil {
@@ -1835,9 +1783,7 @@ func TestImportExclusionListPreservesQuarantine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Governance: %v", err)
 	}
-	if err := gov.Start(); err != nil {
-		t.Fatalf("Failed to start Governance: %v", err)
-	}
+	startGovernance(t, gov)
 
 	currentExclusionSet := rm.activeExSet.copy()
 	if err := gov.handler.importExclusionList(&list); err != nil {
@@ -2058,9 +2004,7 @@ func TestSubmitSignedExclusionList(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create Governance: %v", err)
 			}
-			if err := gov.Start(); err != nil {
-				t.Fatalf("Failed to start Governance: %v", err)
-			}
+			startGovernance(t, gov)
 
 			api := NewGovernancePublicAPI(gov)
 			list := tt.list(t, rm)
@@ -2096,10 +2040,7 @@ func TestHandleConstitution(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Governance: %v", err)
 	}
-	err = gov.Start()
-	if err != nil {
-		t.Fatalf("Failed to start Governance: %v", err)
-	}
+	startGovernance(t, gov)
 
 	rw1, rw2 := p2p.MsgPipe()
 	p1 := newPeer(5, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)
@@ -2215,10 +2156,7 @@ func TestApproval(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Governance: %v", err)
 	}
-	err = gov.Start()
-	if err != nil {
-		t.Fatalf("Failed to start Governance: %v", err)
-	}
+	startGovernance(t, gov)
 
 	rw1, rw2 := p2p.MsgPipe()
 	p1 := newPeer(5, p2p.NewPeer(randomPeerID(), "peer", nil), rw1)

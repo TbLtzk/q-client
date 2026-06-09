@@ -765,6 +765,22 @@ func newTestChainWithBlocks(t *testing.T, rm *RootManager, numBlocks int) *core.
 	return chain
 }
 
+func TestRootManagerStopWithoutBlockchain(t *testing.T) {
+	rm := newTestRootManager(t, false, true)
+
+	done := make(chan struct{})
+	go func() {
+		rm.stop()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("RootManager.stop blocked with nil blockchain")
+	}
+}
+
 func randomExclusionSet(t *testing.T, add int64) exclusionSet {
 	var set exclusionSet
 
@@ -875,10 +891,7 @@ func TestQuarantineExclusionSet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Governance: %v", err)
 	}
-	err = gov.Start()
-	if err != nil {
-		t.Fatalf("Failed to start Governance: %v", err)
-	}
+	startGovernance(t, gov)
 	p := peer{
 		id: "test",
 	}
