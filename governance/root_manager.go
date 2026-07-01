@@ -84,6 +84,9 @@ type RootManager struct {
 	quarantineLock    sync.Mutex
 	quarantineEventCh chan *QuarantineEvent
 
+	discardedExclusionLock   sync.RWMutex
+	discardedExclusionHashes map[common.Hash]struct{}
+
 	rootQuotaEntries      map[common.Address][]common.ListQuotaEntry
 	exclusionQuotaEntries map[common.Address][]common.ListQuotaEntry
 
@@ -185,7 +188,14 @@ func NewRootManager(am *accounts.Manager, networkId uint64, datadir string, cfg 
 
 		quarantineTicker:     time.NewTicker(time.Minute),
 		quarantineTickerDone: make(chan struct{}),
+
+		discardedExclusionHashes: make(map[common.Hash]struct{}),
 	}
+
+	if err := manager.loadDiscardedExclusionHashes(); err != nil {
+		return nil, errors.Wrap(err, "failed to load discarded exclusion hashes")
+	}
+	manager.seedDiscardedExclusionHashes()
 
 	manager.transitionBlockChecker = newTransitionBlockChecker(
 		int64(cfg.TransitionBlockVerifiedBlocks),
@@ -1260,6 +1270,9 @@ func (s *RootManager) isAthosReached() bool {
 // received exclusion set cam cause huge rewind of the blockchain. It is very undesirable
 // instead of updating active exclusion set we will create new one and start quarantining it
 func (s *RootManager) initiateExclusionSetQuarantine(set *exclusionSet) error {
+	if set == nil || s.isDiscardedExclusionHash(set.hash) {
+		return nil
+	}
 	if s.isExclusionSetInQuarantine(set) {
 		return nil
 	}
@@ -1322,6 +1335,11 @@ func (s *RootManager) quarantineProposedExclusionSetIfNeeded() {
 	defer s.exLock.Unlock()
 
 	if s.proposedExSet == nil {
+		return
+	}
+	if s.isDiscardedExclusionHash(s.proposedExSet.hash) {
+		s.proposedExSet = nil
+		s.db.deleteProposedExclusionSet()
 		return
 	}
 

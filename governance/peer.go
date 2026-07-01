@@ -166,17 +166,17 @@ func (p *peer) handshake(msg statusMsgBody, rm *RootManager) (*peerStatus, error
 
 	// Validators
 
-	currentExSet, err := newExclusionSetForNetwork(&status.CurrentExclusionList, rm.networkId)
+	currentExSet, err := rm.parseExclusionListFromWire(&status.CurrentExclusionList)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid exclusion list")
 	}
 
-	desiredExSet, err := newExclusionSetForNetwork(&status.DesiredExclusionList, rm.networkId)
+	desiredExSet, err := rm.parseExclusionListFromWire(&status.DesiredExclusionList)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid desired exclusion list")
 	}
 
-	proposedExSet, err := newExclusionSetForNetwork(&status.ProposedExclusionList, rm.networkId)
+	proposedExSet, err := rm.parseExclusionListFromWire(&status.ProposedExclusionList)
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid proposed exclusion list")
 	}

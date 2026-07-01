@@ -495,3 +495,12 @@ This command will cause a rewind of the blockchain.
 >gov.acceptQuarantinedExclusionList("0xf6cc800a504eadaabe2e7dbd5651fdd546d8769323af8ab50245b61e80795982")
 
 ----
+
+==== gov.discardExclusionList
+
+Permanently ignores an exclusion list by its calculated hash. The list is removed from quarantine (if present), will no longer be imported from P2P gossip, and will not be propagated to peers. This does not affect the active exclusion list.
+
+----
+> gov.discardExclusionList("0x61b7caed3930d652bf98942ab4dfaaa5a948736e87de11a013556e5895a09a06")
+
+----

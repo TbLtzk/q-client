@@ -29,6 +29,7 @@ var (
 	desiredExclusionKey     = []byte("desired-exclusion-set")
 	proposedExclusionKey    = []byte("proposed-exclusion-set")
 	quarantinedExclusionKey = []byte("quarantined-exclusion-set")
+	discardedExclusionKey   = []byte("discarded-exclusion-hashes")
 )
 
 var (
@@ -532,6 +533,49 @@ func (db *database) getQuarantinedExclusionSetByHash(hash *common.Hash) (*exclus
 		}
 	}
 	return nil, nil
+}
+
+func (db *database) getDiscardedExclusionHashes() ([]common.Hash, error) {
+	ok, err := db.store.Has(discardedExclusionKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to check discarded exclusion hashes")
+	}
+	if !ok {
+		return nil, nil
+	}
+
+	raw, err := db.store.Get(discardedExclusionKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get discarded exclusion hashes")
+	}
+
+	var hashes []common.Hash
+	if err := json.Unmarshal(raw, &hashes); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal discarded exclusion hashes")
+	}
+	return hashes, nil
+}
+
+func (db *database) saveDiscardedExclusionHashes(hashes []common.Hash) error {
+	raw, err := json.Marshal(hashes)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal discarded exclusion hashes")
+	}
+	return db.store.Put(discardedExclusionKey, raw)
+}
+
+func (db *database) addDiscardedExclusionHash(hash common.Hash) error {
+	hashes, err := db.getDiscardedExclusionHashes()
+	if err != nil {
+		return err
+	}
+	for _, existing := range hashes {
+		if existing == hash {
+			return nil
+		}
+	}
+	hashes = append(hashes, hash)
+	return db.saveDiscardedExclusionHashes(hashes)
 }
 
 func (db *database) saveQuotaEntries(entries map[common.Address][]common.ListQuotaEntry, quotaKey []byte) error {

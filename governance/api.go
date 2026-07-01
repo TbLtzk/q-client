@@ -276,6 +276,10 @@ func (a *GovernanceAPI) AcceptQuarantinedExclusionList(hash *common.Hash) error 
 	return a.gov.RootManager.acceptQuarantinedExclusionSet(hash)
 }
 
+func (a *GovernanceAPI) DiscardExclusionList(hash *common.Hash) error {
+	return a.gov.RootManager.discardExclusionList(hash)
+}
+
 func (a *GovernanceAPI) QuarantinedExclusionLists() string {
 	sets, err := a.gov.RootManager.db.getExclusionSetsFromQuarantine()
 	if sets == nil {

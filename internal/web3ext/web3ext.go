@@ -932,6 +932,11 @@ web3._extend({
 			call: 'gov_acceptQuarantinedExclusionList',
 			params: 1
 		}),
+	    new web3._extend.Method({
+			name: 'discardExclusionList',
+			call: 'gov_discardExclusionList',
+			params: 1
+		}),
     ],
 	properties: []
 });

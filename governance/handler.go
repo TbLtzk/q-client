@@ -321,13 +321,13 @@ func (h *handler) runPeer(p *peer) error {
 	}
 
 	// Propagate current exclusion set to newly connected peers
-	if shouldPropagateExcl(rm.desiredExSet, status.desiredExSet, rm.active) {
+	if shouldPropagateExcl(rm.desiredExSet, status.desiredExSet, rm) {
 		h.propagateExclusionSet(status.desiredExSet)
 	}
-	if shouldPropagateExcl(rm.proposedExSet, status.proposedExSet, rm.active) {
+	if shouldPropagateExcl(rm.proposedExSet, status.proposedExSet, rm) {
 		h.propagateExclusionSet(status.proposedExSet)
 	}
-	if shouldPropagateExcl(rm.activeExSet, status.currentExSet, rm.active) {
+	if shouldPropagateExcl(rm.activeExSet, status.currentExSet, rm) {
 		h.propagateExclusionSet(status.currentExSet)
 	}
 
@@ -365,7 +365,7 @@ func (h *handler) runPeer(p *peer) error {
 		{rm.proposedExSet, status.proposedExSet},
 	} {
 		our, their := set.our, set.their
-		if shouldPropagateExcl(our, their, rm.active) {
+		if shouldPropagateExcl(our, their, rm) {
 			if err = h.importExclusionSet(p.id, their, true); err != nil {
 				return err
 			}
@@ -391,12 +391,15 @@ func (h *handler) runPeer(p *peer) error {
 	}
 }
 
-func shouldPropagateExcl(our, their *exclusionSet, active *rootSet) bool {
-	if their == nil {
+func shouldPropagateExcl(our, their *exclusionSet, rm *RootManager) bool {
+	if their == nil || rm == nil || rm.active == nil {
+		return false
+	}
+	if rm.isDiscardedExclusionHash(their.hash) {
 		return false
 	}
 	if our == nil {
-		return len(active.knownSigners(their.signers)) != 0 // signatures were checked in handshake func
+		return len(rm.active.knownSigners(their.signers)) != 0 // signatures were checked in handshake func
 	}
 
 	if our.hash == their.hash {
@@ -404,7 +407,7 @@ func shouldPropagateExcl(our, their *exclusionSet, active *rootSet) bool {
 	}
 
 	if their.timestamp > our.timestamp {
-		return len(active.knownSigners(their.signers)) != 0 // signatures were checked in handshake func
+		return len(rm.active.knownSigners(their.signers)) != 0 // signatures were checked in handshake func
 	}
 
 	return false
@@ -581,6 +584,10 @@ func (s *RootManager) snapshotExclusionListImport(set *exclusionSet) (exclusionL
 		return exclusionListImportSnapshot{}, errors.New("signed exclusion list is quarantined")
 	}
 
+	if s.isDiscardedExclusionHash(set.hash) {
+		return exclusionListImportSnapshot{}, errors.New("signed exclusion list is discarded")
+	}
+
 	if s.getActiveRootSet(true).isEnoughExSetSignatures(set) && s.exclusionSetWouldQuarantine(set) {
 		return exclusionListImportSnapshot{}, errors.New("signed exclusion list would be quarantined")
 	}
@@ -659,7 +666,7 @@ func (h *handler) propagateRootSet(set *rootSet) {
 }
 
 func (h *handler) propagateExclusionSet(set *exclusionSet) {
-	if set != nil {
+	if set != nil && !h.rootManager.isDiscardedExclusionHash(set.hash) {
 		h.exEventCh <- &exclusionSetEvent{set: set}
 	}
 }
@@ -1001,9 +1008,12 @@ func (h *handler) importExclusionList(list *common.ValidatorExclusionList) error
 }
 
 func (h *handler) importExclusionListFrom(fromID string, list *common.ValidatorExclusionList, signLocal bool) error {
-	received, err := newExclusionSetForNetwork(list, h.rootManager.networkId)
+	received, err := h.rootManager.parseExclusionListFromWire(list)
 	if err != nil {
 		return err
+	}
+	if received == nil {
+		return nil
 	}
 	return h.importExclusionSet(fromID, received, signLocal)
 }

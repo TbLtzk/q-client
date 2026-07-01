@@ -9,7 +9,6 @@ import (
 	"gitlab.com/q-dev/q-client/common"
 	"gitlab.com/q-dev/q-client/common/math"
 	"gitlab.com/q-dev/q-client/crypto"
-	"gitlab.com/q-dev/q-client/log"
 )
 
 type exclusionSet struct {
@@ -91,13 +90,6 @@ func newExclusionSetForNetwork(list *common.ValidatorExclusionList, networkID ui
 
 	// Fix known bad hashes/timestamps
 	set.fixTimestamp()
-
-	// Validate hash if provided (signatures are validated against the calculated hash below)
-	if list.Hash != (common.Hash{}) {
-		if set.hash != list.Hash {
-			log.Warn("Exclusion list hash mismatch", "provided", list.Hash.Hex(), "calculated", set.hash.Hex(), "timestamp", set.timestamp)
-		}
-	}
 
 	signers := make(map[common.Address][]byte)
 	for _, sig := range list.Signatures {
