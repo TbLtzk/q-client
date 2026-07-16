@@ -183,7 +183,7 @@ func TestForkChoice(t *testing.T) {
 	var chain *core.BlockChain
 
 	shouldPreserve := func(header *types.Header, externalHeader *types.Header) bool {
-		rHeader, err := engine.ChooseBlockWithMostRecentSigner(chain, header, externalHeader)
+		rHeader, err := engine.PreferHeaderByInTurnRecency(chain, header, externalHeader)
 		if err != nil {
 			log.Warn("Failed to retrieve recent signer list for preserve check for local header", "number", header.Number.Uint64(), "hash", header.Hash(), "err", err)
 			return false
@@ -223,6 +223,113 @@ func TestForkChoice(t *testing.T) {
 	if chain.CurrentBlock().Hash() != minHash {
 		t.Errorf("Rule 4 failed")
 	}
+}
+
+// TestForkChoiceRule3DifferentSigners verifies EIP-3436 rule #3: equal-TD tips from
+// different validators converge on PreferHeaderByInTurnRecency regardless of import order.
+func TestForkChoiceRule3DifferentSigners(t *testing.T) {
+	var (
+		reg          = contracts.NewTestModeRegistry()
+		signersCount = 7
+		keys         = make(map[common.Address]*ecdsa.PrivateKey)
+		addresses    = make([]common.Address, 0, signersCount)
+	)
+
+	for len(addresses) != signersCount {
+		key, _ := crypto.GenerateKey()
+		addr := crypto.PubkeyToAddress(key.PublicKey)
+		keys[addr] = key
+		addresses = append(addresses, addr)
+	}
+	sort.Sort(signersAscending(addresses))
+
+	genSpec := &core.Genesis{
+		Config:    params.AllCliqueProtocolChanges,
+		ExtraData: make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
+		Alloc: map[common.Address]core.GenesisAccount{
+			addresses[0]: {Balance: big.NewInt(10000000000000000)},
+		},
+		BaseFee:    big.NewInt(params.InitialBaseFee),
+		Difficulty: big.NewInt(0),
+	}
+	for i := 0; i < signersCount; i++ {
+		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addresses[i][:])
+	}
+
+	runOrder := func(t *testing.T, loserFirst bool) {
+		t.Helper()
+		db := rawdb.NewMemoryDatabase()
+		engine := New(params.AllCliqueProtocolChanges.Clique, db, &consensus.NoopExclusionSetProvider{}, reg)
+		engine.fakeDiff = true
+		genSpec.MustCommit(db, trie.NewDatabase(db, trie.HashDefaults))
+
+		var chain *core.BlockChain
+		shouldPreserve := func(header *types.Header, externalHeader *types.Header) bool {
+			rHeader, err := engine.PreferHeaderByInTurnRecency(chain, header, externalHeader)
+			if err != nil {
+				t.Fatalf("PreferHeaderByInTurnRecency: %v", err)
+			}
+			return rHeader == header
+		}
+
+		chain, err := core.NewBlockChain(db, nil, genSpec, nil, engine, vm.Config{}, shouldPreserve, nil)
+		if err != nil {
+			t.Fatalf("new chain: %v", err)
+		}
+		defer chain.Stop()
+
+		commonBlocks := generateChain(t, params.AllCliqueProtocolChanges, genSpec.ToBlock(), engine, db, signersCount*2, addresses, keys, reg, false)
+		if _, err := chain.InsertChain(commonBlocks); err != nil {
+			t.Fatalf("insert common: %v", err)
+		}
+		parent := commonBlocks[len(commonBlocks)-1]
+
+		blockA := sealCompetingBlock(t, parent, engine, db, addresses[1], keys[addresses[1]], reg)
+		blockB := sealCompetingBlock(t, parent, engine, db, addresses[3], keys[addresses[3]], reg)
+
+		preferred, err := engine.PreferHeaderByInTurnRecency(chain, blockA.Header(), blockB.Header())
+		if err != nil {
+			t.Fatalf("prefer: %v", err)
+		}
+		want, loser := blockA, blockB
+		if preferred.Hash() != blockA.Hash() {
+			want, loser = blockB, blockA
+		}
+
+		first, second := want, loser
+		if loserFirst {
+			first, second = loser, want
+		}
+		if _, err := chain.InsertChain([]*types.Block{first}); err != nil {
+			t.Fatalf("insert first: %v", err)
+		}
+		if _, err := chain.InsertChain([]*types.Block{second}); err != nil {
+			t.Fatalf("insert second: %v", err)
+		}
+		if chain.CurrentBlock().Hash() != want.Hash() {
+			t.Fatalf("import order loserFirst=%v: head %x, want %x", loserFirst, chain.CurrentBlock().Hash(), want.Hash())
+		}
+	}
+
+	t.Run("winnerThenLoser", func(t *testing.T) { runOrder(t, false) })
+	t.Run("loserThenWinner", func(t *testing.T) { runOrder(t, true) })
+}
+
+// sealCompetingBlock creates one equal-difficulty Clique block on parent sealed by signer.
+func sealCompetingBlock(t *testing.T, parent *types.Block, engine *Clique, db ethdb.Database, signer common.Address, key *ecdsa.PrivateKey, reg *contracts.Registry) *types.Block {
+	t.Helper()
+	blocks, _ := core.GenerateChain(params.AllCliqueProtocolChanges, parent, engine, db, 1, nil)
+	header := blocks[0].Header()
+	header.ParentHash = parent.Hash()
+	header.Extra = make([]byte, extraVanity+extraSeal)
+	header.Difficulty = diffNoTurn
+	header.Coinbase = reg.RewardReceiver()
+	sig, err := crypto.Sign(SealHash(header).Bytes(), key)
+	if err != nil {
+		t.Fatalf("sign: %v", err)
+	}
+	copy(header.Extra[len(header.Extra)-extraSeal:], sig)
+	return blocks[0].WithSeal(header)
 }
 
 // Generates blocks with the required signer and difficulty in the middle

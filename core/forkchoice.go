@@ -90,18 +90,20 @@ func (f *ForkChoice) ReorgNeeded(currentHeader *types.Header, externalHeader *ty
 		if externalNum < currentNum {
 			reorg = true
 		} else if externalNum == currentNum {
-			// Preserve check is modified in order to attempt of applying rule#3 from https://eips.ethereum.org/EIPS/eip-3436
-			// If header numbers are the same, then choose the block whose validator had the least recent in-turn block assignment
+			// Equal TD and height: EIP-3436 rules #3 then #4.
+			// preserve(a, b) is true when a wins (or ties) PreferHeaderByInTurnRecency against b.
 			var currentPreserve, externPreserve bool
 			if f.preserve != nil {
 				currentPreserve, externPreserve = f.preserve(currentHeader, externalHeader), f.preserve(externalHeader, currentHeader)
 			}
-			// If both headers are from the same validator, then choose the block with the lower hash
 			if currentPreserve && externPreserve {
-				// EIP-3436 rule #4
-				// Apply external chain if it has the lower hash
+				// Same in-turn recency (typically same signer): rule #4, lower hash wins.
 				reorg = externalHeader.Hash().Big().Cmp(currentHeader.Hash().Big()) < 0
+			} else if externPreserve {
+				// Rule #3: external header's signer has the least recent in-turn assignment.
+				reorg = true
 			} else {
+				// Current wins rule #3, or no preserve callback — keep current head.
 				reorg = false
 			}
 		}

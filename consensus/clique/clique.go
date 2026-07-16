@@ -1124,7 +1124,10 @@ func toSet(signers []common.Address) map[common.Address]struct{} {
 	return set
 }
 
-func (c *Clique) ChooseBlockWithMostRecentSigner(chain *core.BlockChain, header *types.Header, externalHeader *types.Header) (*types.Header, error) {
+// PreferHeaderByInTurnRecency implements EIP-3436 rule #3: among two headers at the
+// same height, prefer the one whose signer had the least recent in-turn assignment.
+// Returns the preferred header (header on a tie or unknown external signer).
+func (c *Clique) PreferHeaderByInTurnRecency(chain *core.BlockChain, header *types.Header, externalHeader *types.Header) (*types.Header, error) {
 	// In this case, header numbers should be the same, so take it from local header
 	number := header.Number.Uint64()
 	if number == 0 {
