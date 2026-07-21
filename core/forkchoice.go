@@ -49,8 +49,9 @@ type ForkChoice struct {
 	// local td is equal to the extern one. It can be nil for light
 	// client
 
-	// As we use Clique as engine, we need to obey rule #3 of Eip3436
-	// Choose the block whose validator had the least recent in-turn block assignment
+	// As we use Clique as engine, we need to obey EIP-3436 rule #3 (QGOV interpretation):
+	// prefer the block whose signer has the smaller (number-index)%N score — next
+	// in-turn farthest away. See PreferHeaderByInTurnRecency.
 	// This function is introduced because original preserve doesn't know anything about the external header
 	preserve func(header *types.Header, externalHeader *types.Header) bool
 }
@@ -100,7 +101,7 @@ func (f *ForkChoice) ReorgNeeded(currentHeader *types.Header, externalHeader *ty
 				// Same in-turn recency (typically same signer): rule #4, lower hash wins.
 				reorg = externalHeader.Hash().Big().Cmp(currentHeader.Hash().Big()) < 0
 			} else if externPreserve {
-				// Rule #3: external header's signer has the least recent in-turn assignment.
+				// Rule #3: external header wins PreferHeaderByInTurnRecency (smaller score).
 				reorg = true
 			} else {
 				// Current wins rule #3, or no preserve callback — keep current head.

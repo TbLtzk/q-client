@@ -1124,8 +1124,14 @@ func toSet(signers []common.Address) map[common.Address]struct{} {
 	return set
 }
 
-// PreferHeaderByInTurnRecency implements EIP-3436 rule #3: among two headers at the
-// same height, prefer the one whose signer had the least recent in-turn assignment.
+// PreferHeaderByInTurnRecency implements EIP-3436 rule #3 among two headers at the
+// same height using score = (number - signerIndex) % N.
+//
+// QGOV prefers the **smaller** score (most recently in-turn / next in-turn farthest
+// away). That matches the EIP rationale — decline validators closest to their next
+// in-turn slot — and intentionally diverges from the EIP's contradictory "choose
+// the largest value" formula line.
+//
 // Returns the preferred header (header on a tie or unknown external signer).
 func (c *Clique) PreferHeaderByInTurnRecency(chain *core.BlockChain, header *types.Header, externalHeader *types.Header) (*types.Header, error) {
 	// In this case, header numbers should be the same, so take it from local header
@@ -1172,7 +1178,8 @@ func (c *Clique) PreferHeaderByInTurnRecency(chain *core.BlockChain, header *typ
 	localPosition := (number - uint64(localIndex-1)) % uint64(len(snap.SignersList()))
 	externalPosition := (number - uint64(externalIndex-1)) % uint64(len(snap.SignersList()))
 
-	if localPosition < externalPosition {
+	// Prefer smaller score: next in-turn is farther away.
+	if externalPosition < localPosition {
 		return externalHeader, nil
 	}
 

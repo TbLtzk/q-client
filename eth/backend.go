@@ -448,7 +448,7 @@ func (s *Ethereum) shouldPreserve(header *types.Header, externalHeader *types.He
 }
 
 func (s *Ethereum) ShouldPreserveClique(header *types.Header, externalHeader *types.Header) bool {
-	// If we use Clique as engine, we need to check rule #3 of Eip3436: https://eips.ethereum.org/EIPS/eip-3436
+	// Clique EIP-3436 rule #3 via PreferHeaderByInTurnRecency (QGOV: prefer smaller score).
 	if c, ok := s.engine.(*clique.Clique); ok {
 		rHeader, err := c.PreferHeaderByInTurnRecency(s.blockchain, header, externalHeader)
 		if err != nil {

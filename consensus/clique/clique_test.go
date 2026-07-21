@@ -332,6 +332,86 @@ func sealCompetingBlock(t *testing.T, parent *types.Block, engine *Clique, db et
 	return blocks[0].WithSeal(header)
 }
 
+// TestPreferHeaderByInTurnRecencyPrefersLowerScore locks the QGOV rule-3 direction:
+// smaller (number-index)%N wins (next in-turn farther away), not the EIP "largest" line.
+func TestPreferHeaderByInTurnRecencyPrefersLowerScore(t *testing.T) {
+	var (
+		db           = rawdb.NewMemoryDatabase()
+		reg          = contracts.NewTestModeRegistry()
+		engine       = New(params.AllCliqueProtocolChanges.Clique, db, &consensus.NoopExclusionSetProvider{}, reg)
+		signersCount = 7
+		keys         = make(map[common.Address]*ecdsa.PrivateKey)
+		addresses    = make([]common.Address, 0, signersCount)
+	)
+	engine.fakeDiff = true
+
+	for len(addresses) != signersCount {
+		key, _ := crypto.GenerateKey()
+		addr := crypto.PubkeyToAddress(key.PublicKey)
+		keys[addr] = key
+		addresses = append(addresses, addr)
+	}
+	sort.Sort(signersAscending(addresses))
+
+	genSpec := &core.Genesis{
+		Config:    params.AllCliqueProtocolChanges,
+		ExtraData: make([]byte, extraVanity+common.AddressLength*signersCount+extraSeal),
+		Alloc: map[common.Address]core.GenesisAccount{
+			addresses[0]: {Balance: big.NewInt(10000000000000000)},
+		},
+		BaseFee:    big.NewInt(params.InitialBaseFee),
+		Difficulty: big.NewInt(0),
+	}
+	for i := 0; i < signersCount; i++ {
+		copy(genSpec.ExtraData[extraVanity+i*common.AddressLength:], addresses[i][:])
+	}
+	genSpec.MustCommit(db, trie.NewDatabase(db, trie.HashDefaults))
+
+	chain, err := core.NewBlockChain(db, nil, genSpec, nil, engine, vm.Config{}, nil, nil)
+	if err != nil {
+		t.Fatalf("new chain: %v", err)
+	}
+	defer chain.Stop()
+
+	commonBlocks := generateChain(t, params.AllCliqueProtocolChanges, genSpec.ToBlock(), engine, db, signersCount*2, addresses, keys, reg, false)
+	if _, err := chain.InsertChain(commonBlocks); err != nil {
+		t.Fatalf("insert common: %v", err)
+	}
+	parent := commonBlocks[len(commonBlocks)-1]
+	number := parent.NumberU64() + 1
+
+	// Indices 1 and 3 are distinct OOT for typical heights; pick the lower score as winner.
+	idxLow, idxHigh := 1, 3
+	score := func(index int) uint64 {
+		return (number - uint64(index)) % uint64(signersCount)
+	}
+	if score(idxLow) == score(idxHigh) {
+		t.Fatalf("test setup: scores collided at number %d", number)
+	}
+	wantIdx, otherIdx := idxLow, idxHigh
+	if score(idxHigh) < score(idxLow) {
+		wantIdx, otherIdx = idxHigh, idxLow
+	}
+
+	wantBlock := sealCompetingBlock(t, parent, engine, db, addresses[wantIdx], keys[addresses[wantIdx]], reg)
+	otherBlock := sealCompetingBlock(t, parent, engine, db, addresses[otherIdx], keys[addresses[otherIdx]], reg)
+
+	preferred, err := engine.PreferHeaderByInTurnRecency(chain, wantBlock.Header(), otherBlock.Header())
+	if err != nil {
+		t.Fatalf("prefer: %v", err)
+	}
+	if preferred.Hash() != wantBlock.Hash() {
+		t.Fatalf("prefer(want, other): got %x, want lower-score %x (scores %d vs %d)", preferred.Hash(), wantBlock.Hash(), score(wantIdx), score(otherIdx))
+	}
+	preferred, err = engine.PreferHeaderByInTurnRecency(chain, otherBlock.Header(), wantBlock.Header())
+	if err != nil {
+		t.Fatalf("prefer reverse: %v", err)
+	}
+	if preferred.Hash() != wantBlock.Hash() {
+		t.Fatalf("prefer(other, want): got %x, want lower-score %x", preferred.Hash(), wantBlock.Hash())
+	}
+}
+
 // Generates blocks with the required signer and difficulty in the middle
 func generateChain(t *testing.T, config *params.ChainConfig, parent *types.Block, engine *Clique, db ethdb.Database, numBlocks int, addresses []common.Address, keys map[common.Address]*ecdsa.PrivateKey, reg *contracts.Registry, side bool) []*types.Block {
 	current := 1
