@@ -23,6 +23,7 @@ import (
 	"math/big"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -383,7 +384,7 @@ func TestPreferHeaderByInTurnRecencyPrefersLowerScore(t *testing.T) {
 	// Indices 1 and 3 are distinct OOT for typical heights; pick the lower score as winner.
 	idxLow, idxHigh := 1, 3
 	score := func(index int) uint64 {
-		return (number - uint64(index)) % uint64(signersCount)
+		return inTurnRecencyScore(number, index, signersCount)
 	}
 	if score(idxLow) == score(idxHigh) {
 		t.Fatalf("test setup: scores collided at number %d", number)
@@ -409,6 +410,32 @@ func TestPreferHeaderByInTurnRecencyPrefersLowerScore(t *testing.T) {
 	}
 	if preferred.Hash() != wantBlock.Hash() {
 		t.Fatalf("prefer(other, want): got %x, want lower-score %x", preferred.Hash(), wantBlock.Hash())
+	}
+}
+
+func TestOutOfTurnSealDelay(t *testing.T) {
+	tests := []struct {
+		recency uint64
+		want    time.Duration
+	}{
+		{0, 0},
+		{1, 75 * time.Millisecond},
+		{5, 375 * time.Millisecond},
+		{10, 750 * time.Millisecond},
+		{11, 1050 * time.Millisecond},
+		{15, 2250 * time.Millisecond},
+		{20, 3750 * time.Millisecond},
+	}
+	for _, tc := range tests {
+		if got := outOfTurnSealDelay(tc.recency); got != tc.want {
+			t.Errorf("recency %d: got %v, want %v", tc.recency, got, tc.want)
+		}
+	}
+	if outOfTurnSealDelay(2)-outOfTurnSealDelay(1) != wiggleTime/4 {
+		t.Fatalf("compressed band neighbors should differ by wiggle/4")
+	}
+	if outOfTurnSealDelay(11)-outOfTurnSealDelay(10) != wiggleTime {
+		t.Fatalf("recency 10→11 should add full wiggle step")
 	}
 }
 

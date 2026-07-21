@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -56,7 +55,9 @@ const (
 	inmemorySnapshots  = 128  // Number of recent vote snapshots to keep in memory
 	inmemorySignatures = 4096 // Number of recent block signatures to keep in memory
 
-	wiggleTime = 500 * time.Millisecond // Random delay (per signer) to allow concurrent signers
+	wiggleTime = 300 * time.Millisecond // Out-of-turn seal delay step (see outOfTurnSealDelay)
+
+	compressedRecencyBand = 10 // Recency 1..10 use wiggle/4 per rank; above uses full wiggle
 )
 
 // Clique proof-of-authority protocol constants.
@@ -937,11 +938,19 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 	// Sweet, the protocol permits us to sign the block, wait for our time
 	delay := time.Unix(int64(header.Time), 0).Sub(time.Now()) // nolint: gosimple
 	if header.Difficulty.Cmp(diffNoTurn) == 0 {
-		// It's not our turn explicitly to sign, delay it a bit
-		wiggle := time.Duration(len(snap.Signers)/2+1) * wiggleTime
-		delay += time.Duration(rand.Int63n(int64(wiggle))) + wiggleTime
+		signers := snap.SignersList()
+		var signerIndex int
+		for i, addr := range signers {
+			if addr == signer {
+				signerIndex = i + 1
+				break
+			}
+		}
+		recency := inTurnRecencyScore(number, signerIndex, len(signers))
+		ootDelay := outOfTurnSealDelay(recency)
+		delay += ootDelay
 
-		log.Trace("Out-of-turn signing requested", "wiggle", common.PrettyDuration(wiggle))
+		log.Trace("Out-of-turn signing requested", "recency", recency, "delay", common.PrettyDuration(ootDelay))
 	}
 	// Sign all the things!
 	sighash, err := signFn(accounts.Account{Address: signer}, accounts.MimetypeClique, CliqueRLP(header))
@@ -1124,6 +1133,32 @@ func toSet(signers []common.Address) map[common.Address]struct{} {
 	return set
 }
 
+// inTurnRecencyScore is EIP-3436 rule #3 score: (number - signerIndex) % N with 1-based index.
+func inTurnRecencyScore(number uint64, signerIndex int, signerCount int) uint64 {
+	if signerIndex == 0 || signerCount == 0 {
+		return 0
+	}
+	return (number - uint64(signerIndex-1)) % uint64(signerCount)
+}
+
+// outOfTurnSealDelay returns deterministic extra wait before broadcasting an out-of-turn block.
+// Lower recency (next in-turn farther away) seals sooner. Recency 1..10 use wiggle/4 per rank;
+// higher recency adds full wiggle steps (compressed band for normal eligible validators).
+func outOfTurnSealDelay(recency uint64) time.Duration {
+	if recency == 0 {
+		return 0
+	}
+	low := recency
+	if low > compressedRecencyBand {
+		low = compressedRecencyBand
+	}
+	delay := time.Duration(low) * (wiggleTime / 4)
+	if recency > compressedRecencyBand {
+		delay += time.Duration(recency-compressedRecencyBand) * wiggleTime
+	}
+	return delay
+}
+
 // PreferHeaderByInTurnRecency implements EIP-3436 rule #3 among two headers at the
 // same height using score = (number - signerIndex) % N.
 //
@@ -1175,8 +1210,8 @@ func (c *Clique) PreferHeaderByInTurnRecency(chain *core.BlockChain, header *typ
 		return header, nil
 	}
 
-	localPosition := (number - uint64(localIndex-1)) % uint64(len(snap.SignersList()))
-	externalPosition := (number - uint64(externalIndex-1)) % uint64(len(snap.SignersList()))
+	localPosition := inTurnRecencyScore(number, localIndex, len(snap.SignersList()))
+	externalPosition := inTurnRecencyScore(number, externalIndex, len(snap.SignersList()))
 
 	// Prefer smaller score: next in-turn is farther away.
 	if externalPosition < localPosition {
