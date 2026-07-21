@@ -414,7 +414,8 @@ func TestPreferHeaderByInTurnRecencyPrefersLowerScore(t *testing.T) {
 }
 
 func TestOutOfTurnSealDelay(t *testing.T) {
-	tests := []struct {
+	const n21 = 21
+	tests21 := []struct {
 		recency uint64
 		want    time.Duration
 	}{
@@ -426,16 +427,24 @@ func TestOutOfTurnSealDelay(t *testing.T) {
 		{15, 2250 * time.Millisecond},
 		{20, 3750 * time.Millisecond},
 	}
-	for _, tc := range tests {
-		if got := outOfTurnSealDelay(tc.recency); got != tc.want {
-			t.Errorf("recency %d: got %v, want %v", tc.recency, got, tc.want)
+	for _, tc := range tests21 {
+		if got := outOfTurnSealDelay(tc.recency, n21); got != tc.want {
+			t.Errorf("N=%d recency %d: got %v, want %v", n21, tc.recency, got, tc.want)
 		}
 	}
-	if outOfTurnSealDelay(2)-outOfTurnSealDelay(1) != wiggleTime/4 {
+	if outOfTurnSealDelay(2, n21)-outOfTurnSealDelay(1, n21) != wiggleTime/4 {
 		t.Fatalf("compressed band neighbors should differ by wiggle/4")
 	}
-	if outOfTurnSealDelay(11)-outOfTurnSealDelay(10) != wiggleTime {
-		t.Fatalf("recency 10→11 should add full wiggle step")
+	if outOfTurnSealDelay(11, n21)-outOfTurnSealDelay(10, n21) != wiggleTime {
+		t.Fatalf("recency at band boundary should add full wiggle step")
+	}
+
+	const n7 = 7
+	if got := outOfTurnSealDelay(3, n7); got != 225*time.Millisecond {
+		t.Fatalf("N=7 recency 3: got %v, want 225ms", got)
+	}
+	if got := outOfTurnSealDelay(4, n7); got != 525*time.Millisecond {
+		t.Fatalf("N=7 recency 4: got %v, want 525ms", got)
 	}
 }
 

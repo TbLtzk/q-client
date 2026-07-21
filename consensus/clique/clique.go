@@ -56,8 +56,6 @@ const (
 	inmemorySignatures = 4096 // Number of recent block signatures to keep in memory
 
 	wiggleTime = 300 * time.Millisecond // Out-of-turn seal delay step (see outOfTurnSealDelay)
-
-	compressedRecencyBand = 10 // Recency 1..10 use wiggle/4 per rank; above uses full wiggle
 )
 
 // Clique proof-of-authority protocol constants.
@@ -947,7 +945,7 @@ func (c *Clique) Seal(chain consensus.ChainHeaderReader, block *types.Block, res
 			}
 		}
 		recency := inTurnRecencyScore(number, signerIndex, len(signers))
-		ootDelay := outOfTurnSealDelay(recency)
+		ootDelay := outOfTurnSealDelay(recency, len(signers))
 		delay += ootDelay
 
 		log.Trace("Out-of-turn signing requested", "recency", recency, "delay", common.PrettyDuration(ootDelay))
@@ -1142,19 +1140,22 @@ func inTurnRecencyScore(number uint64, signerIndex int, signerCount int) uint64 
 }
 
 // outOfTurnSealDelay returns deterministic extra wait before broadcasting an out-of-turn block.
-// Lower recency (next in-turn farther away) seals sooner. Recency 1..10 use wiggle/4 per rank;
-// higher recency adds full wiggle steps (compressed band for normal eligible validators).
-func outOfTurnSealDelay(recency uint64) time.Duration {
+// Lower recency (next in-turn farther away) seals sooner. Recency 1..N/2 use wiggle/4 per rank;
+// higher recency adds full wiggle steps (compressed band for the typical eligible set).
+func outOfTurnSealDelay(recency uint64, signerCount int) time.Duration {
 	if recency == 0 {
 		return 0
 	}
+	compressedBand := uint64(signerCount / 2)
 	low := recency
-	if low > compressedRecencyBand {
-		low = compressedRecencyBand
+	if compressedBand > 0 && low > compressedBand {
+		low = compressedBand
 	}
 	delay := time.Duration(low) * (wiggleTime / 4)
-	if recency > compressedRecencyBand {
-		delay += time.Duration(recency-compressedRecencyBand) * wiggleTime
+	if compressedBand > 0 && recency > compressedBand {
+		delay += time.Duration(recency-compressedBand) * wiggleTime
+	} else if compressedBand == 0 {
+		delay = time.Duration(recency) * wiggleTime
 	}
 	return delay
 }
