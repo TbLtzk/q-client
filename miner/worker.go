@@ -36,6 +36,7 @@ import (
 	"gitlab.com/q-dev/q-client/core/types"
 	"gitlab.com/q-dev/q-client/core/vm"
 	"gitlab.com/q-dev/q-client/event"
+	"gitlab.com/q-dev/q-client/internal/utils"
 	"gitlab.com/q-dev/q-client/log"
 	"gitlab.com/q-dev/q-client/params"
 	"gitlab.com/q-dev/q-client/trie"
@@ -1011,6 +1012,7 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 // be customized with the plugin in the future.
 func (w *worker) fillTransactions(interrupt *atomic.Int32, env *environment) error {
 	pending := w.eth.TxPool().Pending(true)
+	systemTxs := w.prepareSystemTx(w.accountManager, env)
 
 	// Split the pending transactions into locals and remotes.
 	localTxs, remoteTxs := make(map[common.Address][]*txpool.LazyTransaction), pending
@@ -1034,7 +1036,23 @@ func (w *worker) fillTransactions(interrupt *atomic.Int32, env *environment) err
 			return err
 		}
 	}
+	// Add system transactions (Validators.makeSnapshot) in the last block of an epoch.
+	if len(systemTxs) > 0 {
+		txs := newTransactionsByPriceAndNonce(env.signer, systemTxs, env.header.BaseFee)
+		if err := w.commitTransactions(env, txs, interrupt); err != nil {
+			log.Warn("fail to apply system txs")
+			return err
+		}
+		log.Info("committed system txs")
+	} else {
+		log.Debug("no system txs")
+	}
 	return nil
+}
+
+func (w *worker) prepareSystemTx(accountManager *accounts.Manager, env *environment) map[common.Address][]*txpool.LazyTransaction {
+	systemTxPreparer := utils.New(w.chainConfig, w.engine, env.state, env.header, env.signer, w.gpp)
+	return systemTxPreparer.PrepareSystemTx(accountManager, w.eth.TxPool())
 }
 
 // generateWork generates a sealing block based on the given parameters.
