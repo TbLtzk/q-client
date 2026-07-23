@@ -21,13 +21,11 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"runtime"
 	"sync"
 
 	"gitlab.com/q-dev/q-client/accounts"
 	"gitlab.com/q-dev/q-client/accounts/abi/bind"
 	"gitlab.com/q-dev/q-client/common"
-	"gitlab.com/q-dev/q-client/common/hexutil"
 	"gitlab.com/q-dev/q-client/consensus"
 	"gitlab.com/q-dev/q-client/consensus/beacon"
 	"gitlab.com/q-dev/q-client/consensus/clique"
@@ -59,7 +57,6 @@ import (
 	"gitlab.com/q-dev/q-client/p2p/dnsdisc"
 	"gitlab.com/q-dev/q-client/p2p/enode"
 	"gitlab.com/q-dev/q-client/params"
-	"gitlab.com/q-dev/q-client/rlp"
 	"gitlab.com/q-dev/q-client/rpc"
 )
 
@@ -275,7 +272,7 @@ func New(stack *node.Node, config *ethconfig.Config, conn bind.ContractBackend, 
 		rm.InitDownloader(eth.Downloader())
 	}
 	// eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), eth.EventMux(), eth.engine, eth.isLocalBlock, eth.accountManager, gpProvider)
-	// eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
+	// eth.miner.SetExtra(params.MakeExtraData(config.Miner.ExtraData))
 
 	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), stack.Config().AllowUnprotectedTxs, eth, gpProvider, nil}
 	if eth.APIBackend.allowUnprotectedTxs {
@@ -288,7 +285,7 @@ func New(stack *node.Node, config *ethconfig.Config, conn bind.ContractBackend, 
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
 
 	eth.miner = miner.New(eth, &config.Miner, chainConfig, eth.EventMux(), eth.engine, eth.isLocalBlock, eth.accountManager, gpProvider)
-	eth.miner.SetExtra(makeExtraData(config.Miner.ExtraData))
+	eth.miner.SetExtra(params.MakeExtraData(config.Miner.ExtraData))
 
 	// Setup DNS discovery iterators.
 	dnsclient := dnsdisc.NewClient(dnsdisc.Config{})
@@ -313,23 +310,6 @@ func New(stack *node.Node, config *ethconfig.Config, conn bind.ContractBackend, 
 	eth.shutdownTracker.MarkStartup()
 
 	return eth, nil
-}
-
-func makeExtraData(extra []byte) []byte {
-	if len(extra) == 0 {
-		// create default extradata
-		extra, _ = rlp.EncodeToBytes([]interface{}{
-			uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
-			"geth",
-			runtime.Version(),
-			runtime.GOOS,
-		})
-	}
-	if uint64(len(extra)) > params.MaximumExtraDataSize {
-		log.Warn("Miner extra data exceed limit", "extra", hexutil.Bytes(extra), "limit", params.MaximumExtraDataSize)
-		extra = nil
-	}
-	return extra
 }
 
 // APIs return the collection of RPC services the ethereum package offers.
