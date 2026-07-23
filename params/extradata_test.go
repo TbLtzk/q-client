@@ -13,8 +13,8 @@ type defaultExtraPayload struct {
 	OS      string
 }
 
-func TestDefaultMinerExtraData(t *testing.T) {
-	got := DefaultMinerExtraData()
+func TestMakeExtraDataDefault(t *testing.T) {
+	got := MakeExtraData(nil)
 	if len(got) == 0 {
 		t.Fatal("default extradata is empty")
 	}
@@ -36,5 +36,20 @@ func TestDefaultMinerExtraData(t *testing.T) {
 	}
 	if decoded.OS != runtime.GOOS {
 		t.Fatalf("os=%q want %q", decoded.OS, runtime.GOOS)
+	}
+}
+
+func TestMakeExtraDataOverride(t *testing.T) {
+	custom := []byte("custom-extra")
+	got := MakeExtraData(custom)
+	if string(got) != string(custom) {
+		t.Fatalf("override not preserved: %q", got)
+	}
+}
+
+func TestMakeExtraDataTooLong(t *testing.T) {
+	tooLong := make([]byte, MaximumExtraDataSize+1)
+	if got := MakeExtraData(tooLong); got != nil {
+		t.Fatalf("expected nil for oversized extradata, got len=%d", len(got))
 	}
 }

@@ -8,15 +8,19 @@ import (
 	"gitlab.com/q-dev/q-client/rlp"
 )
 
-// DefaultMinerExtraData builds the default miner extradata used as Clique vanity
-// when --miner.extradata is unset: packed QVersion, "QGOV Client", and GOOS.
-// runtime.Version() is omitted so the RLP fits in MaximumExtraDataSize (32).
-func DefaultMinerExtraData() []byte {
-	extra, _ := rlp.EncodeToBytes([]interface{}{
-		uint(QVersionMajor<<16 | QVersionMinor<<8 | QVersionPatch),
-		"QGOV Client",
-		runtime.GOOS,
-	})
+// MakeExtraData returns miner extradata for Clique vanity.
+// If extra is empty, it builds the default RLP fingerprint: packed QVersion,
+// "QGOV Client", and GOOS. runtime.Version() is omitted so the blob fits in
+// MaximumExtraDataSize (32). Non-empty extra is returned as-is unless it exceeds
+// the size limit (then nil, with a warning).
+func MakeExtraData(extra []byte) []byte {
+	if len(extra) == 0 {
+		extra, _ = rlp.EncodeToBytes([]interface{}{
+			uint(QVersionMajor<<16 | QVersionMinor<<8 | QVersionPatch),
+			"QGOV Client",
+			runtime.GOOS,
+		})
+	}
 	if uint64(len(extra)) > MaximumExtraDataSize {
 		log.Warn("Miner extra data exceed limit", "extra", hexutil.Bytes(extra), "limit", MaximumExtraDataSize)
 		return nil
